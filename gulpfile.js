@@ -104,9 +104,9 @@ gulp.task('elements', function () {
 // Lint JavaScript
 gulp.task('jshint', function () {
   return jshintTask([
-      'app/scripts/**/*.js',
-      'app/elements/**/*.js',
-      'app/elements/**/*.html',
+      'client/app/scripts/**/*.js',
+      'client/app/elements/**/*.js',
+      'client/app/elements/**/*.html',
       'gulpfile.js'
     ])
     .pipe($.jshint.extract()) // Extract JS from .html files
@@ -117,15 +117,15 @@ gulp.task('jshint', function () {
 
 // Optimize images
 gulp.task('images', function () {
-  return imageOptimizeTask('app/images/**/*', 'dist/images');
+  return imageOptimizeTask('client/app/images/**/*', 'dist/images');
 });
 
 // Copy all files at the root level (app)
 gulp.task('copy', function () {
   var app = gulp.src([
-    'app/*',
-    '!app/test',
-    '!app/cache-config.json'
+    'client/app/*',
+    '!client/app/test',
+    '!client/app/cache-config.json'
   ], {
     dot: true
   }).pipe(gulp.dest('dist'));
@@ -134,9 +134,9 @@ gulp.task('copy', function () {
     'bower_components/**/*'
   ]).pipe(gulp.dest('dist/bower_components'));
 
-  var elements = gulp.src(['app/elements/**/*.html',
-                           'app/elements/**/*.css',
-                           'app/elements/**/*.js'])
+  var elements = gulp.src(['client/app/elements/**/*.html',
+                           'client/app/elements/**/*.css',
+                           'client/app/elements/**/*.js'])
     .pipe(gulp.dest('dist/elements'));
 
   var swBootstrap = gulp.src(['bower_components/platinum-sw/bootstrap/*.js'])
@@ -145,7 +145,7 @@ gulp.task('copy', function () {
   var swToolbox = gulp.src(['bower_components/sw-toolbox/*.js'])
     .pipe(gulp.dest('dist/sw-toolbox'));
 
-  var vulcanized = gulp.src(['app/elements/elements.html'])
+  var vulcanized = gulp.src(['client/app/elements/elements.html'])
     .pipe($.rename('elements.vulcanized.html'))
     .pipe(gulp.dest('dist/elements'));
 
@@ -155,7 +155,7 @@ gulp.task('copy', function () {
 
 // Copy web fonts to dist
 gulp.task('fonts', function () {
-  return gulp.src(['app/fonts/**'])
+  return gulp.src(['client/app/fonts/**'])
     .pipe(gulp.dest('dist/fonts'))
     .pipe($.size({title: 'fonts'}));
 });
@@ -163,7 +163,7 @@ gulp.task('fonts', function () {
 // Scan your HTML for assets & optimize them
 gulp.task('html', function () {
   return optimizeHtmlTask(
-    ['app/**/*.html', '!app/{elements,test}/**/*.html'],
+    ['client/app/**/*.html', '!client/app/{elements,test}/**/*.html'],
     'dist');
 });
 
@@ -245,7 +245,7 @@ gulp.task('serve', ['styles', 'elements', 'images'], function () {
     //       will present a certificate warning in the browser.
     // https: true,
     server: {
-      baseDir: ['.tmp', 'app'],
+      baseDir: ['.tmp', 'client'],
       middleware: [ historyApiFallback() ],
       routes: {
         '/bower_components': 'bower_components'
@@ -253,11 +253,11 @@ gulp.task('serve', ['styles', 'elements', 'images'], function () {
     }
   });
 
-  gulp.watch(['app/**/*.html'], reload);
-  gulp.watch(['app/styles/**/*.css'], ['styles', reload]);
-  gulp.watch(['app/elements/**/*.css'], ['elements', reload]);
-  gulp.watch(['app/{scripts,elements}/**/{*.js,*.html}'], ['jshint']);
-  gulp.watch(['app/images/**/*'], reload);
+  gulp.watch(['client/app/**/*.html'], reload);
+  gulp.watch(['client/app/styles/**/*.css'], ['styles', reload]);
+  gulp.watch(['client/app/elements/**/*.css'], ['elements', reload]);
+  gulp.watch(['client/app/{scripts,elements}/**/{*.js,*.html}'], ['jshint']);
+  gulp.watch(['client/app/images/**/*'], reload);
 });
 
 // Build and serve the output from the dist build
