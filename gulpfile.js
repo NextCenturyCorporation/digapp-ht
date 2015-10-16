@@ -130,26 +130,31 @@ gulp.task('copy', function () {
     dot: true
   }).pipe(gulp.dest('dist'));
 
-  var bower = gulp.src([
-    'bower_components/**/*'
-  ]).pipe(gulp.dest('dist/bower_components'));
+  var bower = gulp.src(['client/bower_components/**/*'])
+    .pipe(gulp.dest('dist/bower_components'));
 
   var elements = gulp.src(['client/elements/**/*.html',
                            'client/elements/**/*.css',
                            'client/elements/**/*.js'])
     .pipe(gulp.dest('dist/elements'));
 
-  var swBootstrap = gulp.src(['bower_components/platinum-sw/bootstrap/*.js'])
+  var scripts = gulp.src(['client/scripts/**/*'])
+  .pipe(gulp.dest('dist/scripts'));
+
+  var styles = gulp.src(['client/styles/**/*'])
+  .pipe(gulp.dest('dist/styles'));
+
+  var swBootstrap = gulp.src(['client/bower_components/platinum-sw/bootstrap/*.js'])
     .pipe(gulp.dest('dist/elements/bootstrap'));
 
-  var swToolbox = gulp.src(['bower_components/sw-toolbox/*.js'])
+  var swToolbox = gulp.src(['client/bower_components/sw-toolbox/*.js'])
     .pipe(gulp.dest('dist/sw-toolbox'));
 
   var vulcanized = gulp.src(['client/elements/elements.html'])
     .pipe($.rename('elements.vulcanized.html'))
     .pipe(gulp.dest('dist/elements'));
 
-  return merge(app, bower, elements, vulcanized, swBootstrap, swToolbox)
+  return merge(app, bower, elements, scripts, styles, vulcanized, swBootstrap, swToolbox)
     .pipe($.size({title: 'copy'}));
 });
 
