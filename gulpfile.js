@@ -24,6 +24,8 @@ var historyApiFallback = require('connect-history-api-fallback');
 var packageJson = require('./package.json');
 var crypto = require('crypto');
 var polybuild = require('polybuild');
+var nodemon = require('gulp-nodemon');
+var mocha = require('gulp-mocha');
 
 var AUTOPREFIXER_BROWSERS = [
   'ie >= 10',
@@ -288,6 +290,21 @@ gulp.task('serve:dist', ['default'], function () {
   });
 });
 
+// start express app and watch files
+gulp.task('nodemon', function (cb) {
+  
+  var started = false;
+  
+  return nodemon({
+    script: 'server/app.js'
+  }).on('start', function () {
+    if (!started) {
+      cb();
+      started = true; 
+    } 
+  });
+});
+
 // Build production files, the default task
 gulp.task('default', ['clean'], function (cb) {
   // Uncomment 'cache-config' after 'rename-index' if you are going to use service workers.
@@ -297,6 +314,17 @@ gulp.task('default', ['clean'], function (cb) {
     ['jshint', 'images', 'fonts', 'html'],
     'vulcanize','rename-index', 'remove-old-build-index', // 'cache-config',
     cb);
+});
+
+gulp.task('mocha', function() {
+  return gulp.src('server/**/*spec.js', {read: false})
+  .pipe(mocha({reporter: 'spec'}))
+  .once('error', function () {
+    process.exit(1);
+  })
+  .once('end', function () {
+    process.exit();
+  });
 });
 
 // Load tasks for web-component-tester
