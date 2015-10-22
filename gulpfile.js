@@ -106,9 +106,9 @@ gulp.task('elements', function () {
 // Lint JavaScript
 gulp.task('jshint', function () {
   return jshintTask([
-      'client/scripts/**/*.js',
-      'client/elements/**/*.js',
-      'client/elements/**/*.html',
+      'app/scripts/**/*.js',
+      'app/elements/**/*.js',
+      'app/elements/**/*.html',
       'gulpfile.js'
     ])
     .pipe($.jshint.extract()) // Extract JS from .html files
@@ -119,40 +119,40 @@ gulp.task('jshint', function () {
 
 // Optimize images
 gulp.task('images', function () {
-  return imageOptimizeTask('client/images/**/*', 'dist/images');
+  return imageOptimizeTask('app/images/**/*', 'dist/images');
 });
 
 // Copy all files at the root level (app)
 gulp.task('copy', function () {
   var app = gulp.src([
-    'client/*',
-    '!client/test',
-    '!client/cache-config.json'
+    'app/*',
+    '!app/test',
+    '!app/cache-config.json'
   ], {
     dot: true
   }).pipe(gulp.dest('dist'));
 
-  var bower = gulp.src(['client/bower_components/**/*'])
+  var bower = gulp.src(['app/bower_components/**/*'])
     .pipe(gulp.dest('dist/bower_components'));
 
-  var elements = gulp.src(['client/elements/**/*.html',
-                           'client/elements/**/*.css',
-                           'client/elements/**/*.js'])
+  var elements = gulp.src(['app/elements/**/*.html',
+                           'app/elements/**/*.css',
+                           'app/elements/**/*.js'])
     .pipe(gulp.dest('dist/elements'));
 
-  var scripts = gulp.src(['client/scripts/**/*'])
+  var scripts = gulp.src(['app/scripts/**/*'])
   .pipe(gulp.dest('dist/scripts'));
 
-  var styles = gulp.src(['client/styles/**/*'])
+  var styles = gulp.src(['app/styles/**/*'])
   .pipe(gulp.dest('dist/styles'));
 
-  var swBootstrap = gulp.src(['client/bower_components/platinum-sw/bootstrap/*.js'])
+  var swBootstrap = gulp.src(['app/bower_components/platinum-sw/bootstrap/*.js'])
     .pipe(gulp.dest('dist/elements/bootstrap'));
 
-  var swToolbox = gulp.src(['client/bower_components/sw-toolbox/*.js'])
+  var swToolbox = gulp.src(['app/bower_components/sw-toolbox/*.js'])
     .pipe(gulp.dest('dist/sw-toolbox'));
 
-  var vulcanized = gulp.src(['client/elements/elements.html'])
+  var vulcanized = gulp.src(['app/elements/elements.html'])
     .pipe($.rename('elements.vulcanized.html'))
     .pipe(gulp.dest('dist/elements'));
 
@@ -162,7 +162,7 @@ gulp.task('copy', function () {
 
 // Copy web fonts to dist
 gulp.task('fonts', function () {
-  return gulp.src(['client/fonts/**'])
+  return gulp.src(['app/fonts/**'])
     .pipe(gulp.dest('dist/fonts'))
     .pipe($.size({title: 'fonts'}));
 });
@@ -170,7 +170,7 @@ gulp.task('fonts', function () {
 // Scan your HTML for assets & optimize them
 gulp.task('html', function () {
   return optimizeHtmlTask(
-    ['client/**/*.html', '!client/{elements,test}/**/*.html'],
+    ['app/**/*.html', '!app/{elements,test}/**/*.html'],
     'dist');
 });
 
@@ -252,7 +252,7 @@ gulp.task('serve', ['styles', 'elements', 'images'], function () {
     //       will present a certificate warning in the browser.
     // https: true,
     server: {
-      baseDir: ['.tmp', 'client'],
+      baseDir: ['.tmp', 'app'],
       middleware: [ historyApiFallback() ],
       routes: {
         '/bower_components': 'bower_components'
@@ -260,11 +260,11 @@ gulp.task('serve', ['styles', 'elements', 'images'], function () {
     }
   });
 
-  gulp.watch(['client/**/*.html'], reload);
-  gulp.watch(['client/styles/**/*.css'], ['styles', reload]);
-  gulp.watch(['client/elements/**/*.css'], ['elements', reload]);
-  gulp.watch(['client/{scripts,elements}/**/{*.js,*.html}'], ['jshint']);
-  gulp.watch(['client/images/**/*'], reload);
+  gulp.watch(['app/**/*.html'], reload);
+  gulp.watch(['app/styles/**/*.css'], ['styles', reload]);
+  gulp.watch(['app/elements/**/*.css'], ['elements', reload]);
+  gulp.watch(['app/{scripts,elements}/**/{*.js,*.html}'], ['jshint']);
+  gulp.watch(['app/images/**/*'], reload);
 });
 
 // Build and serve the output from the dist build

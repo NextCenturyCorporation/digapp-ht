@@ -1,7 +1,7 @@
 var path = require('path');
 
 var ret = {
-  'suites': ['client/test'],
+  'suites': ['app/test'],
   'webserver': {
     'pathMappings': []
   }
@@ -10,10 +10,8 @@ var ret = {
 var mapping = {};
 var rootPath = (__dirname).split(path.sep).slice(-1)[0];
 
-
-
 mapping['/components/' + rootPath  +
-'/client/bower_components'] = 'bower_components';
+'/app/bower_components'] = 'bower_components';
 
 ret.webserver.pathMappings.push(mapping);
 

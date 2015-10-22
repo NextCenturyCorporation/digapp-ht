@@ -10,8 +10,6 @@ path = require('path');
 
 module.exports = function(app) {
 
-    // Insert routes below
-    app.use('/api/things', require('./api/thing'));
 
     app.get('/config/?', function(req, res) {
         res.status(200).send({
