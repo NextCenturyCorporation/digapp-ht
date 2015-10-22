@@ -38,13 +38,8 @@ var all = {
 
     appVersion: pjson.version,
 
-    euiServerUrl: process.env.EUI_SERVER_URL || 'http://localhost',
-    euiServer: process.env.EUI_SERVER || 'localhost',
-    euiServerPort: process.env.EUI_SERVER_PORT || 9200,
-    dbServerUser: process.env.DB_SERVER_USER,
-    dbServerPass: process.env.DB_SERVER_PASS,
-    euiSearchIndex: process.env.EUI_SEARCH_INDEX || 'dig-latest',
-    euiSearchType: process.env.EUI_SEARCH_TYPE || 'WebPage',
+    elasticHostUrl: process.env.ELASTIC_HOST_URL || 'http://localhost:9200/mockads',
+ 
 };
 
 // Export the config object based on the NODE_ENV

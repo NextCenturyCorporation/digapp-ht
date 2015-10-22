@@ -15,9 +15,7 @@ module.exports = function(app) {
 
     app.get('/config/?', function(req, res) {
         res.status(200).send({
-            euiHost: config.euiServerUrl,
-            euiPort: config.euiServerPort,
-            euiSearchIndex: config.euiSearchIndex,
+            elasticHostUrl: config.elasticHostUrl,
             appVersion: config.appVersion       
         });
     });
