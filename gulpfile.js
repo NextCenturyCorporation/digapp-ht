@@ -26,6 +26,8 @@ var crypto = require('crypto');
 var polybuild = require('polybuild');
 var nodemon = require('gulp-nodemon');
 var mocha = require('gulp-mocha');
+var url = require('url');
+var proxy = require('proxy-middleware');
 
 var AUTOPREFIXER_BROWSERS = [
   'ie >= 10',
@@ -234,11 +236,14 @@ gulp.task('clean', function (cb) {
 });
 
 // Watch files for changes & reload
-gulp.task('serve', ['styles', 'elements', 'images'], function () {
+gulp.task('serve', ['styles', 'elements', 'images', 'nodemon'], function () {
+  var proxyOptions = url.parse('http://localhost:9000/config');
+  proxyOptions.route = '/config';
+
   browserSync({
     port: 5000,
     notify: false,
-    logPrefix: 'PSK',
+    logPrefix: 'DIG',
     snippetOptions: {
       rule: {
         match: '<span id="browser-sync-binding"></span>',
@@ -253,7 +258,7 @@ gulp.task('serve', ['styles', 'elements', 'images'], function () {
     // https: true,
     server: {
       baseDir: ['.tmp', 'app'],
-      middleware: [ historyApiFallback() ],
+      middleware: [proxy(proxyOptions), historyApiFallback()],
       routes: {
         '/bower_components': 'bower_components'
       }
