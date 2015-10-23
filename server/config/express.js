@@ -41,5 +41,6 @@ module.exports = function(app) {
     app.set('appPath', path.join(config.root, 'app'));
     app.use(morgan('dev'));
     app.use(errorHandler()); // Error handler - has to be last
+    app.use('/bower_components', express.static(path.join(config.root, '/bower_components')));
   }
 };
