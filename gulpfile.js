@@ -29,6 +29,11 @@ var mocha = require('gulp-mocha');
 var url = require('url');
 var proxy = require('proxy-middleware');
 
+var localConfig = {};
+try {
+  localConfig = require('./server/config/local.env');
+} catch(e) {}
+
 var AUTOPREFIXER_BROWSERS = [
   'ie >= 10',
   'ie_mob >= 10',
@@ -301,7 +306,8 @@ gulp.task('nodemon', function (cb) {
   var started = false;
   
   return nodemon({
-    script: 'server/app.js'
+    script: 'server/app.js',
+    env: localConfig
   }).on('start', function () {
     if (!started) {
       cb();
