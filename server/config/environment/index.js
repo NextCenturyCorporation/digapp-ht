@@ -39,8 +39,7 @@ var all = {
     appVersion: pjson.version,
 
     elasticHostUrl: process.env.ELASTIC_HOST_URL || 'http://localhost:9200',
-    elasticIndex: process.env.ELASTIC_INDEX || 'dig-ht-trial10'
-    //elasticIndex: process.env.ELASTIC_INDEX || 'mockads'
+    elasticIndex: process.env.ELASTIC_INDEX || 'mockads'
  
 };
 
