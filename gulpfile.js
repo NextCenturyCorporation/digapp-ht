@@ -246,7 +246,7 @@ gulp.task('serve', ['styles', 'elements', 'images', 'nodemon'], function () {
   proxyOptions.route = '/config';
 
   browserSync({
-    port: 5000,
+    port: 5009,
     notify: false,
     logPrefix: 'DIG',
     snippetOptions: {
@@ -275,6 +275,39 @@ gulp.task('serve', ['styles', 'elements', 'images', 'nodemon'], function () {
   gulp.watch(['app/elements/**/*.css'], ['elements', reload]);
   gulp.watch(['app/{scripts,elements}/**/{*.js,*.html}'], ['jshint']);
   gulp.watch(['app/images/**/*'], reload);
+});
+
+// Watch files for changes & reload
+gulp.task('mockup', ['styles', 'elements', 'images'], function () {
+
+  browserSync({
+    browser: 'google chrome',
+    port: 5010,
+    notify: false,
+    logPrefix: 'MOCKUP',
+    snippetOptions: {
+      rule: {
+        match: '<span id="browser-sync-binding"></span>',
+        fn: function (snippet) {
+          return snippet;
+        }
+      }
+    },
+    // https: true,
+    server: {
+      baseDir: ['.tmp', 'mockup'],
+      middleware: [historyApiFallback()],
+      routes: {
+        '/bower_components': 'bower_components'
+      }
+    }
+  });
+
+  gulp.watch(['mockup/**/*.html'], reload);
+  gulp.watch(['mockup/styles/**/*.css'], ['styles', reload]);
+  gulp.watch(['mockup/elements/**/*.css'], ['elements', reload]);
+  gulp.watch(['mockup/{scripts,elements}/**/{*.js,*.html}'], ['jshint']);
+  gulp.watch(['mockup/images/**/*'], reload);
 });
 
 // Build and serve the output from the dist build
