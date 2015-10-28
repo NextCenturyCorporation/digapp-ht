@@ -48,27 +48,60 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         queryResults: {
           type: Object,
           notify: true
+        },
+        page: {
+          type: Number,
+          notify: true,
+          observer: 'pageThroughResults'
         }
       },
       submitSearch: function() {
         /* jshint camelcase: false */
         var self = this;
+        this.page = 1;
       
-        this.client.search({
-          index: this.index,
-          type: this.type,
-          body: {
-            query: {
-              match: {_all: this.queryString}
+        if(this.client && this.queryString.length > 0) {
+          this.client.search({
+            index: this.index,
+            type: this.type,
+            body: {
+              query: {
+                match: {_all: this.queryString}
+              }
             }
-          }
-        })
-        .then(function(results) {
-          self.queryResults = results;
-        })
-        .catch(function(err) {
-          console.log(err);
-        });
+          })
+          .then(function(results) {
+            self.queryResults = results;
+          })
+          .catch(function(err) {
+            console.log(err);
+          });
+        }
+      },
+      // TODO: Consolidate submitSearch and pageThroughResults
+      pageThroughResults: function() {
+        /* jshint camelcase: false */
+        var self = this;
+      
+        if(this.client && this.queryString.length > 0) {
+          this.client.search({
+            index: this.index,
+            type: this.type,
+            from: this.page - 1,
+            body: {
+              query: {
+                match: {_all: this.queryString}
+              }
+            }
+          })
+          .then(function(results) {
+            self.queryResults = results;
+          })
+          .catch(function(err) {
+            console.log(err);
+          });
+        }
+
       }
     });
   })();
