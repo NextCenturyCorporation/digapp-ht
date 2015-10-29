@@ -126,7 +126,7 @@ gulp.task('jshint', function () {
 
 // Optimize images
 gulp.task('images', function () {
-  return imageOptimizeTask('app/images/**/*', 'dist/images');
+  return imageOptimizeTask('app/images/**/*.{png}', 'dist/images');
 });
 
 // Copy all files at the root level (app)
