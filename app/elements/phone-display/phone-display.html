@@ -18,33 +18,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
       .expand:hover {
         cursor: pointer;
-        color: var(--default-primary-color);
+        /* color: var(--default-primary-color); */
+      }
+      .related-btn {
+        color: var(--secondary-text-color);
       }
     </style>
     <div class="expand" on-click="toggle">
       <h4><iron-icon icon="communication:phone"></iron-icon> Phone Number: <span>[[item._source.name]]</span></h4>
+      <!--simply using first result from each array (could be many owners) -->
+      <iron-collapse id="collapse" opened="[[isOpened]]">
+        <paper-item>
+          <label>Title:</label>
+          <span>[[item._source.owner.0.makesOffer.0.title]]</span>
+        </paper-item>
+        <paper-item>
+          <label>Address: </label>
+          <span>[[item._source.owner.0.makesOffer.0.availableAtOrFrom.address.0.addressLocality]]</span>
+          <span>[[item._source.owner.0.makesOffer.0.availableAtOrFrom.address.0.addressRegion]]</span> 
+          <span>[[item._source.owner.0.makesOffer.0.availableAtOrFrom.address.0.addressCountry]]</span>
+        </paper-item>
+        <paper-item>
+          <label>Item Offered: </label>
+          <span>[[item._source.owner.0.makesOffer.0.itemOffered.a]]</span>
+        </paper-item>
+        <paper-item>
+          <label>Valid From: </label>
+          <span>[[item._source.owner.0.makesOffer.0.validFrom]]</span>
+        </paper-item>
+        <!--TODO: Make query part of some behavior or its own component-->
+        <generic-query-wrapper index="[[index]]" client="[[client]]" type="adultservice" 
+          query-string="{{subqueryString}}"></generic-query-wrapper>
+        <generic-query-wrapper index="[[index]]" client="[[client]]" type="webpage" 
+          query-string="{{subqueryString}}"></generic-query-wrapper>
+        <generic-query-wrapper index="[[index]]" client="[[client]]" type="offer" 
+          query-string="{{subqueryString}}"></generic-query-wrapper>          
+        <generic-query-wrapper index="[[index]]" client="[[client]]" type="seller" 
+          query-string="{{subqueryString}}"></generic-query-wrapper>  
+      </iron-collapse>
     </div>
-    <!--simply using first result from each array (could be many owners) -->
-    <iron-collapse id="collapse" opened="[[isOpened]]">
-      <paper-item>
-        <label>Title:</label>
-        <span>[[item._source.owner.0.makesOffer.0.title]]</span>
-      </paper-item>
-      <paper-item>
-        <label>Address: </label>
-        <span>[[item._source.owner.0.makesOffer.0.availableAtOrFrom.address.0.addressLocality]]</span>
-        <span>[[item._source.owner.0.makesOffer.0.availableAtOrFrom.address.0.addressRegion]]</span> 
-        <span>[[item._source.owner.0.makesOffer.0.availableAtOrFrom.address.0.addressCountry]]</span>
-      </paper-item>
-      <paper-item>
-        <label>Item Offered: </label>
-        <span>[[item._source.owner.0.makesOffer.0.itemOffered.a]]</span>
-      </paper-item>
-      <paper-item>
-        <label>Valid From: </label>
-        <span>[[item._source.owner.0.makesOffer.0.validFrom]]</span>
-      </paper-item>
-    </iron-collapse>
   </template>
   <script>
   (function() {
@@ -53,17 +65,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'phone-display',
       properties: {
+        client: {
+          type: Object
+        },
+        index: {
+          type: String
+        },
         item: {
           type: Object,
-          notify: true
+          notify: true,
+          observer: 'clearSubquery'
         },
         isOpened: {
           type: Object,
-          value: true
+          value: false
+        },
+        subqueryString: {
+          type: String,
+          notify: true
         }
       },
       toggle: function() {
         this.$.collapse.toggle();
+        this.isOpened = !this.isOpened;
+        
+        if(this.isOpened) {
+          this.startSubquery();
+        }
+      },
+      startSubquery: function() {
+        this.subqueryString = this.item._source.name.toString();
+      },
+      clearSubquery: function() {
+        this.subqueryString = '';
       }
     });
   })();

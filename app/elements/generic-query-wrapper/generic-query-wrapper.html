@@ -1,0 +1,102 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="generic-query-wrapper">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      .expand:hover {
+        cursor: pointer;
+        color: var(--default-primary-color);
+      }
+    </style>
+    <div hidden="{{hasNoResults}}">
+      <span>[[results.hits.total]]</span> related results for <span>[[type]]</span><br/>
+      <template is="dom-repeat" items="[[results.hits.hits]]">
+        <span>[[parseItem(item._id)]]</span>
+      </template>
+    </div>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'generic-query-wrapper',
+      properties: {
+        client: {
+          type: Object
+        },
+        index: {
+          type: String
+        },
+        type: {
+          type: String
+        },
+        queryString: {
+          type: String,
+          observer: 'submitQuery'
+        },
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
+        },
+        results: {
+          type: Array,
+          notify: true,
+          observer: 'doResultsExist'
+        },
+        hasNoResults: {
+          type: Boolean,
+          notify: true
+        }
+      },
+      submitQuery: function() {
+        var self = this;
+
+        if(this.client && this.queryString.length > 0) {
+          this.client.search({
+            index: this.index,
+            type: this.type,
+            body: {
+              query: {
+                match: {_all: this.queryString}
+              }
+            }
+          })
+          .then(function(results) {
+            self.results = results;
+          })
+          .catch(function(err) {
+            console.log(err);
+          });
+        } else {
+          self.results = [];
+        }
+        
+      },
+      toggle: function() {
+        this.$.collapse.toggle();
+      },
+      parseItem: function(item) {
+        return JSON.stringify(item);
+      },
+      doResultsExist: function() {
+        this.hasNoResults = this.results.hits === undefined;
+      }
+    });
+  })();
+  </script>
+</dom-module>
