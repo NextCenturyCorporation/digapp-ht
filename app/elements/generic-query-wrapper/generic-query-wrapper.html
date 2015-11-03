@@ -20,11 +20,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         cursor: pointer;
         color: var(--default-primary-color);
       }
+      paper-material {
+        border-radius: 2px;
+        height: 100%;
+        padding: 16px;
+        margin: 16px auto;
+        background: white;
+      }
     </style>
-    <div hidden="{{hasNoResults}}">
+    <div hidden="{{resultsUndefined}}">
       <span>[[results.hits.total]]</span> related results for <span>[[type]]</span><br/>
-      <template is="dom-repeat" items="[[results.hits.hits]]">
-        <span>[[parseItem(item._id)]]</span><br/>
+      <div hidden="{{hasNoResults}}">
+        <paper-material elevation="2">
+          <div on-click="viewResult" attr="[[currentResult]]">
+            <span>{{getItemId(results.hits.hits, currentResult)}}</span>
+        </div>
+        </paper-material>
       </template>
     </div>
   </template>
@@ -44,6 +55,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         type: {
           type: String
         },
+        item: {
+          type: Object,
+          notify: true
+        },
         queryString: {
           type: String,
           observer: 'submitQuery'
@@ -58,8 +73,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true,
           observer: 'doResultsExist'
         },
-        hasNoResults: {
-          type: Boolean,
+        currentResult: {
+          type: Number,
+          value: 0,
           notify: true
         }
       },
@@ -87,14 +103,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
         
       },
+      getItem: function(key) {
+        if(this.results.hits[key]) {
+          return this.results.hits[key];
+        } else {
+          return null;
+        }        
+      },
+      getItemId: function(obj, key) {
+        if(obj[key]) {
+          return obj[key]._id;
+        } else {
+          return null;
+        }
+      },
       toggle: function() {
         this.$.collapse.toggle();
       },
-      parseItem: function(item) {
-        return JSON.stringify(item);
-      },
       doResultsExist: function() {
-        this.hasNoResults = this.results.hits === undefined;
+        this.resultsUndefined = this.results.hits === undefined;
+        this.hasNoResults = this.results.hits ? this.results.hits.total === 0 : true; 
+      },
+      viewResult: function() {
+        this.item = this.results.hits.hits[this.currentResult];
       }
     });
   })();
