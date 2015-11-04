@@ -18,8 +18,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <div>
-      <paper-input name="search-input" type="text" value="{{queryString::input}}" placeholder="Type something"></paper-input>
-      <paper-button class="search-btn" raised on-click="submitSearch">Search</paper-button> 
+      <paper-input name="search-input" type="text" value="{{queryStringLive::input}}" placeholder="Type something"></paper-input>
+      <paper-button class="search-btn" raised on-click="submitQuery">Search</paper-button> 
     </div>
   </template>
   <script>
@@ -39,12 +39,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         type: {
           type: String,
-          value: 'ad'
+          value: 'phone',
+          notify: true,
+          observer: 'performSearch'
         },
-        queryString: {
+        queryStringLive: {
           type: String,
-          value: ''
-        },
+          value: '',
+          notify: true
+        },      
+        queryStringSubmitted: {
+          type: String,
+          value: '',
+          notify: true,
+          observer: 'performSearch'
+        },   
         queryResults: {
           type: Object,
           notify: true
@@ -55,18 +64,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: 'pageThroughResults'
         }
       },
-      submitSearch: function() {
+      submitQuery: function() {
+        this.queryStringSubmitted = this.queryStringLive;
+      },
+      performSearch: function() {
         /* jshint camelcase: false */
         var self = this;
         this.page = 1;
       
-        if(this.client && this.queryString.length > 0) {
+        // TODO: find better way to manage main query state
+        if(this.queryStringSubmitted !== this.queryStringLive) {
+          this.queryStringLive = this.queryStringSubmitted;
+        }
+
+        if(this.client && this.queryStringSubmitted.length > 0) {
           this.client.search({
             index: this.index,
             type: this.type,
             body: {
               query: {
-                match: {_all: this.queryString}
+                match: {_all: this.queryStringSubmitted}
               }
             }
           })
@@ -83,14 +100,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /* jshint camelcase: false */
         var self = this;
       
-        if(this.client && this.queryString.length > 0) {
+        if(this.client && this.queryStringSubmitted.length > 0) {
           this.client.search({
             index: this.index,
             type: this.type,
             from: this.page - 1,
             body: {
               query: {
-                match: {_all: this.queryString}
+                match: {_all: this.queryStringSubmitted}
               }
             }
           })
