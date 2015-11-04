@@ -37,23 +37,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         index: {
           type: String
         },
-        type: {
-          type: String,
-          value: 'phone',
-          notify: true,
-          observer: 'performSearch'
+        queryObject: {
+          type: Object,
+          value: {type: 'phone', queryString: ''},
+          notify: true
         },
         queryStringLive: {
           type: String,
           value: '',
           notify: true
         },      
-        queryStringSubmitted: {
-          type: String,
-          value: '',
-          notify: true,
-          observer: 'performSearch'
-        },   
         queryResults: {
           type: Object,
           notify: true
@@ -64,8 +57,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: 'pageThroughResults'
         }
       },
+      observers: ['queryObjectChanged(queryObject.*)'],
+      queryObjectChanged: function(changeRecord) {
+        if(changeRecord.value.type && changeRecord.value.queryString) {
+          this.performSearch();
+        }
+      },
       submitQuery: function() {
-        this.queryStringSubmitted = this.queryStringLive;
+        this.queryObject.queryString = this.queryStringLive;
+        this.performSearch();
       },
       performSearch: function() {
         /* jshint camelcase: false */
@@ -73,17 +73,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.page = 1;
       
         // TODO: find better way to manage main query state
-        if(this.queryStringSubmitted !== this.queryStringLive) {
-          this.queryStringLive = this.queryStringSubmitted;
+        if(this.queryObject.queryString !== this.queryStringLive) {
+          this.queryStringLive = this.queryObject.queryString;
         }
 
-        if(this.client && this.queryStringSubmitted.length > 0) {
+        if(this.client && this.queryObject.queryString.length > 0) {
           this.client.search({
             index: this.index,
-            type: this.type,
+            type: this.queryObject.type,
             body: {
               query: {
-                match: {_all: this.queryStringSubmitted}
+                match: {_all: this.queryObject.queryString}
               }
             }
           })
@@ -100,14 +100,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /* jshint camelcase: false */
         var self = this;
       
-        if(this.client && this.queryStringSubmitted.length > 0) {
+        if(this.client && this.queryObject.queryString.length > 0) {
           this.client.search({
             index: this.index,
-            type: this.type,
+            type: this.queryObject.type,
             from: this.page - 1,
             body: {
               query: {
-                match: {_all: this.queryStringSubmitted}
+                match: {_all: this.queryObject.queryString}
               }
             }
           })
