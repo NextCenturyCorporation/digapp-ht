@@ -54,52 +54,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         page: {
           type: Number,
           notify: true,
-          observer: 'pageThroughResults'
+          observer: 'performSearch'
         }
       },
       observers: ['queryObjectChanged(queryObject.*)'],
       queryObjectChanged: function(changeRecord) {
         if(changeRecord.value.type && changeRecord.value.queryString) {
+          this.page = 1;
           this.performSearch();
         }
       },
       submitQuery: function() {
         this.queryObject.queryString = this.queryStringLive;
+        this.page = 1;
         this.performSearch();
       },
       performSearch: function() {
         /* jshint camelcase: false */
         var self = this;
-        this.page = 1;
-      
+
         // TODO: find better way to manage main query state
         if(this.queryObject.queryString !== this.queryStringLive) {
           this.queryStringLive = this.queryObject.queryString;
         }
 
-        if(this.client && this.queryObject.queryString.length > 0) {
-          this.client.search({
-            index: this.index,
-            type: this.queryObject.type,
-            body: {
-              query: {
-                match: {_all: this.queryObject.queryString}
-              }
-            }
-          })
-          .then(function(results) {
-            self.queryResults = results;
-          })
-          .catch(function(err) {
-            console.log(err);
-          });
-        }
-      },
-      // TODO: Consolidate submitSearch and pageThroughResults
-      pageThroughResults: function() {
-        /* jshint camelcase: false */
-        var self = this;
-      
         if(this.client && this.queryObject.queryString.length > 0) {
           this.client.search({
             index: this.index,
@@ -118,7 +96,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             console.log(err);
           });
         }
-
       }
     });
   })();
