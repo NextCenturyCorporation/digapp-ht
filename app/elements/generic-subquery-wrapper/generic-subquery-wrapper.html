@@ -34,9 +34,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <paper-material elevation="2">
           <div on-click="viewResult" attr="[[currentResult]]">
             <span>{{getItemId(results.hits.hits, currentResult)}}</span>
-        </div>
+          </div>
+          <paper-button disabled="{{hasNoPrevious}}" on-click="goToPrevious"><<</paper-button>
+          <paper-button disabled="{{hasNoNext}}" on-click="goToNext">>></paper-button>
         </paper-material>
-      </template>
+      </div>
     </div>
   </template>
   <script>
@@ -57,12 +59,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         subqueryString: {
           type: String,
-          observer: 'submitQuery'
+          observer: 'submitSubquery'
         },
-        page: {
+        from: {
           type: Number,
-          value: 1,
+          value: 0,
           notify: true
+        },
+        resultsPerPage: {
+          type: Number,
+          value: 10
         },
         results: {
           type: Array,
@@ -79,29 +85,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         }
       },
-      submitQuery: function() {
+      submitSubquery: function() {
         var self = this;
-
-        if(this.client && this.subqueryString.length > 0) {
-          this.client.search({
-            index: this.index,
-            type: this.type,
-            body: {
-              query: {
-                match: {_all: this.subqueryString}
-              }
-            }
-          })
-          .then(function(results) {
+        if(self.client && self.subqueryString.length > 0) {
+          self.getQueryPromise().then(function(results) {
             self.results = results;
-          })
-          .catch(function(err) {
-            console.log(err);
+          }, function(error) {
+            console.log(error);
           });
         } else {
           self.results = [];
         }
-        
       },
       getItem: function(key) {
         if(this.results.hits[key]) {
@@ -117,9 +111,68 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return null;
         }
       },
+      hasNoPreviousOrNext: function() {
+        this.hasNoPrevious = !this.resultsUndefined && (this.currentResult === 0 && this.from === 0);
+        this.hasNoNext = !this.resultsUndefined && ((this.from + this.currentResult) === this.results.hits.total - 1);
+      },
       doResultsExist: function() {
         this.resultsUndefined = this.results.hits === undefined;
         this.hasNoResults = this.results.hits ? this.results.hits.total === 0 : true; 
+        this.hasNoPreviousOrNext();
+      },
+      getQueryPromise: function() {
+        var self = this;
+        var promise = new Promise(function(resolve, reject) {
+          self.client.search({
+            index: self.index,
+            type: self.type,
+            from: self.from,
+            body: {
+              query: {
+                match: {_all: self.subqueryString}
+              }
+            }
+          })
+          .then(function(results) {
+            resolve(results);
+          }, function(error) {
+            reject(error);
+          });
+        });
+        return promise;
+      },
+      goToPrevious: function() {
+        var self = this;
+        if(self.currentResult === 0) {
+          self.from = self.from - self.resultsPerPage;
+          self.getQueryPromise().then(function(results) {
+            self.results = results;
+            self.currentResult = self.resultsPerPage - 1;
+            self.hasNoPreviousOrNext();
+          }, function(error) {
+            console.log(error);
+          });
+        } else {
+          self.currentResult = self.currentResult - 1; 
+          self.hasNoPreviousOrNext();
+        }
+        
+      },
+      goToNext: function() {
+        var self = this;
+        if(self.currentResult >= (self.resultsPerPage - 1)) {
+          self.from = self.from + self.resultsPerPage;
+          self.getQueryPromise().then(function(results) {
+            self.results = results;
+            self.currentResult = 0;
+            self.hasNoPreviousOrNext();
+          }, function(error) {
+            console.log(error);
+          });
+        } else {
+          self.currentResult = self.currentResult + 1; 
+          self.hasNoPreviousOrNext();
+        }
       },
       viewResult: function() {
         this.mainQuery = {type: this.type, queryString: this.subqueryString};
