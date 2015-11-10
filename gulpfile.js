@@ -295,7 +295,7 @@ gulp.task('mockup', ['styles', 'elements', 'images'], function () {
     },
     // https: true,
     server: {
-      baseDir: ['.tmp', 'mockup'],
+      baseDir: ['mockup'],
       middleware: [historyApiFallback()],
       routes: {
         '/bower_components': 'bower_components'
