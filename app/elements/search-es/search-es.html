@@ -39,7 +39,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         queryObject: {
           type: Object,
-          value: {type: 'phone', queryString: ''},
+          value: {type: 'phone', queryString: '', field: '_all'},
           notify: true
         },
         queryStringLive: {
@@ -66,8 +66,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       submitQuery: function() {
         this.queryObject.queryString = this.queryStringLive;
+        this.queryObject.field = '_all';
         this.from = 0;
         this.performSearch();
+      },
+      createQueryBody: function() {
+        return JSON.parse('{"query":{"match": {"' + this.queryObject.field + '" : "' + this.queryObject.queryString + '"}}}');
       },
       performSearch: function() {
         /* jshint camelcase: false */
@@ -83,11 +87,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             index: this.index,
             type: this.queryObject.type,
             from: this.from,
-            body: {
-              query: {
-                match: {_all: this.queryObject.queryString}
-              }
-            }
+            body: this.createQueryBody()
           })
           .then(function(results) {
             self.queryResults = results;
