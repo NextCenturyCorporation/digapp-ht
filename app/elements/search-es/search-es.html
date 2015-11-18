@@ -17,17 +17,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
     </style>
-    <div>
-      <paper-input name="search-input" type="text" value="{{queryStringLive::input}}" placeholder="Type something"></paper-input>
-      <paper-dropdown-menu>
-        <paper-menu class="dropdown-content" attr-for-selected="value" selected="{{queryObject.type}}">
-          <template is="dom-repeat" items="[[types]]">
-            <paper-item value="[[item]]">[[item]]</paper-item>
-          </template>
-        </paper-menu>
-      </paper-dropdown-menu>
-      <paper-button class="search-btn" raised on-click="submitQuery">Search</paper-button> 
-    </div>
   </template>
   <script>
   (function() {
@@ -38,64 +27,43 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'search-es',
       properties: {
         client: {
-          type: Object
+          type: Object,
+          observer: 'performSearch'
         },
         index: {
           type: String
         },
-        queryObject: {
-          type: Object,
-          value: {type: 'phone', queryString: '', field: '_all'},
-          notify: true
-        },
-        types: {
-          type: Array,
-          value: ['phone', 'webpage', 'email', 'offer', 'seller']
-        },
-        queryStringLive: {
-          type: String,
-          value: '',
-          notify: true
-        },      
         queryResults: {
           type: Object,
           notify: true
         },
         from: {
           type: Number,
+          value: 0,
           notify: true,
           observer: 'performSearch'
         }
       },
-      observers: ['queryObjectChanged(queryObject.*)'],
-      queryObjectChanged: function(changeRecord) {
-        if(changeRecord.value.type && changeRecord.value.queryString) {
-          this.from = 0;
-          this.performSearch();
-        }
-      },
-      submitQuery: function() {
-        this.queryObject.queryString = this.queryStringLive;
-        this.queryObject.field = '_all';
-        this.from = 0;
-        this.performSearch();
-      },
       createQueryBody: function() {
-        return JSON.parse('{"query":{"match": {"' + this.queryObject.field + '" : "' + this.queryObject.queryString + '"}}}');
+        return JSON.parse('{"query":{"match": {"' + app.params.field + '" : "' + 
+          app.params.query + '"}}}');
+      },
+      areParamsValid: function() {
+        return app.params.query !== undefined && app.params.type !== undefined && 
+          app.params.field !== undefined;
       },
       performSearch: function() {
         /* jshint camelcase: false */
         var self = this;
-
-        // TODO: find better way to manage main query state
-        if(this.queryObject.queryString !== this.queryStringLive) {
-          this.queryStringLive = this.queryObject.queryString;
+        
+        if(app.params === undefined) {
+          app.getURLParams();
         }
 
-        if(this.client && this.queryObject.queryString.length > 0) {
+        if(this.client && this.areParamsValid()) {
           this.client.search({
             index: this.index,
-            type: this.queryObject.type,
+            type: app.params.type,
             from: this.from,
             body: this.createQueryBody()
           })
