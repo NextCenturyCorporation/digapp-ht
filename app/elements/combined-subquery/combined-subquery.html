@@ -16,11 +16,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
-      .results {
+      #results {
         overflow-y: scroll;
-        height: 200px;
       }
-      .results > paper-material {
+      #results > paper-material {
         border-radius: 0;
         margin: 1px auto 0;
         padding: 16px;
@@ -29,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <div hidden="{{resultsUndefined}}">       
       <span>[[results.hits.total]]</span> related results<br/>
-      <div hidden="{{hasNoResults}}" class="results" on-scroll="scrollHandler">
+      <div hidden="{{hasNoResults}}" id="results" on-scroll="scrollHandler">
         <template is="dom-repeat" items="[[results.hits.hits]]">
           <paper-material elevation="2">
             <a href$="{{createURL(item)}}">
@@ -76,11 +75,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: 'doResultsExist'
         }
       },
+      calcResultsHeight: function() {
+        var clientHeight = this.$.results.clientHeight * 0.9;
+        this.$.results.style.height = clientHeight + 'px';
+      },
       submitSubquery: function() {
         var self = this;
         if(self.client && self.subqueryString.length > 0) {
           self.getQueryPromise().then(function(results) {
             self.results = results;
+            self.async(self.calcResultsHeight, 1);
           }, function(error) {
             console.log(error);
           });
