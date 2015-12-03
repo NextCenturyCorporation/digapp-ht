@@ -17,18 +17,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
     </style>
-
     <!--TODO: Make query part of some behavior or its own component-->
-    <iron-ajax
-       auto
-       url="dig-ht.json"
-       handle-as="json"
-       on-response="_handleResponse"></iron-ajax>          
-    </iron-collapse>
   </template>
   <script>
   (function() {
     'use strict';
+    /* globals Promise */
 
     Polymer({
       is: 'entity-view',
@@ -50,16 +44,65 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         }
       },
-      _handleResponse: function(request) {
+      getQueryPromise: function(queryString, typeToSubquery) {
+        var self = this;
+        var promise = new Promise(function(resolve, reject) {
+          self.client.search({
+            index: self.index,
+            type: typeToSubquery,
+            size: self.size,
+            body: {
+              query: {
+                match: {_all: queryString}
+              }
+            }
+          })
+          .then(function(results) {
+            resolve(results);
+          }, function(error) {
+            reject(error);
+          });
+        });
+        return promise;
+      },
+      runSubqueries: function() {
+        var self = this;
         var records = {
           phone: [], email: [], offer: [], seller: [], webpage: [], adultservice: []
         };
 
-        request.detail.response.forEach(function(element) {
-          records[element._type].push(element);
-        });
+        //how to get loop of things to query against?
+        var subqueryOptions = self.getSubqueryOptions();
 
-        this.relatedRecords = records;
+        subqueryOptions.typesToSubquery.forEach(function(type, index) {
+          self.getQueryPromise(subqueryOptions.field, type).then(function(results) {
+            records[type] = results.hits.hits;
+            if(index === subqueryOptions.typesToSubquery.length - 1) {
+              self.relatedRecords = records;
+            }
+          });
+        });
+      },
+      getSubqueryOptions: function() {
+        if(this.item._type === 'phone') {
+          return {field: this.item._source.name, 
+            typesToSubquery: ['webpage', 'offer', 'seller', 'email', 'adultservice']};
+        } else if(this.item._type === 'offer') {
+          return {field: this.item._source.title, 
+            typesToSubquery: ['webpage', 'phone', 'seller', 'email', 'adultservice']};
+        } else if(this.item._type === 'email') {
+          return {field: this.item._source.name, 
+            typesToSubquery: ['webpage', 'offer', 'seller', 'phone', 'adultservice']};
+        } else if(this.item._type === 'seller') {
+          return {field: this.item._source.telephone[0].name, 
+            typesToSubquery: ['webpage', 'offer', 'email', 'phone', 'adultservice']};
+        } else if(this.item._type === 'webpage') {
+          return {field: this.item._source.url, 
+            typesToSubquery: ['seller', 'offer', 'email', 'phone', 'adultservice']};
+        } else {
+          return {field: this.item._source.name || this.item._source.uri,
+            typesToSubquery: ['seller', 'offer', 'email', 'phone', 'webpage']};
+        } 
       },
       ready: function() {
         this.createTemplate();
@@ -71,7 +114,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // create new template based on item type
           var el = this.$.el = document.createElement(this.item._type.toString() + '-display');
 
-          el.client = this.client;        
+          el.client = this.client;
           el.index = this.index;
           el.item = this.item;
 
@@ -80,7 +123,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             Polymer.dom(this.root).removeChild(children[i]);
           }
 
-          Polymer.dom(this.root).appendChild(el);          
+          Polymer.dom(this.root).appendChild(el);        
+          this.runSubqueries();
         }
       }
     });
