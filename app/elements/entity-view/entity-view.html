@@ -58,7 +58,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             }
           })
           .then(function(results) {
-            resolve(results);
+            resolve({type: typeToSubquery, results: results});
           }, function(error) {
             reject(error);
           });
@@ -72,15 +72,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
 
         var subqueryOptions = self.getSubqueryOptions();
+        var allPromises = [];
 
-        subqueryOptions.typesToSubquery.forEach(function(type, index) {
-          self.getQueryPromise(subqueryOptions.field, type).then(function(results) {
-            records[type] = results.hits.hits;
-            if(index === subqueryOptions.typesToSubquery.length - 1) {
-              self.relatedRecords = records;
-            }
-          });
+        subqueryOptions.typesToSubquery.forEach(function(type) {
+          allPromises.push(self.getQueryPromise(subqueryOptions.field, type));
         });
+
+        Promise.all(allPromises).then(function(resultSets) {
+          resultSets.forEach(function(results) {
+            records[results.type] = results.results.hits.hits;
+          });
+          self.relatedRecords = records;
+        });
+
       },
       getSubqueryOptions: function() {
         if(this.item._type === 'phone') {
