@@ -8,9 +8,10 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iron-icons/communication-icons.html">
+
 <dom-module id="records-list">
   <template>
+    <style include="icon-styles"></style>
     <style>
       :host {
         display: block;
@@ -38,30 +39,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 0 8px 0 0;
       }
 
-      iron-icon {
-        margin: 0 10px 0 0;
-      }
-
-      iron-icon[icon$="phone"] {
-        --iron-icon-fill-color: #7B1FA2;
-      }
-
-      iron-icon[icon$="account-circle"] {
-        --iron-icon-fill-color: rgba(255,64,129,0.6);
-      }
-
-      iron-icon[icon$="email"] {
-        --iron-icon-fill-color: #3F51B5;
-      }
-
-      iron-icon[icon$="web"] {
-        --iron-icon-fill-color: #4CAF50
-      }
-
-      iron-icon[icon$="event"] {
-        --iron-icon-fill-color: #616161
-      }
-
       li>div:first-child {
         padding: 0 8px 0 0;
         min-width: 200px;
@@ -72,75 +49,95 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         background-color: #f2f2f2;
       }
 
+      .lineclamp {
+         overflow: hidden;
+         text-overflow: ellipsis;
+         display: -webkit-box;
+         -webkit-line-clamp: 2; /* number of lines to show */
+         -webkit-box-orient: vertical;
+      }
     </style>
 
     <ul>
-      <li>
-        <div>
-          <iron-icon icon="communication:contact-phone"></iron-icon>
-          <div class="layout vertical">
-            <div><strong>phone:</strong></div>
-            <div>2053901189</div>
+      <template is="dom-repeat" items="{{records.phone}}">
+        <li>
+          <div>
+            <iron-icon icon="communication:contact-phone"></iron-icon>
+            <div class="layout vertical">
+              <div><strong>phone:</strong></div>
+              <div>item.name</div>
+            </div>
           </div>
-        </div>
-        <div><strong>occurences</strong> 94</div>        
-      </li>
+          <div><strong>occurences</strong> {{numOffers(item)}}</div>   
+        </li>
+      </template>
 
-      <li>
-        <div>
-          <iron-icon icon="communication:email"></iron-icon>
-          <div class="layout vertical">
-            <div><strong>email:</strong></div>
-            <div>abc@xyx.com</div>
+      <template is="dom-repeat" items="{{records.email}}">
+        <li>
+          <div>
+            <iron-icon icon="communication:email"></iron-icon>
+            <div class="layout vertical">
+              <div><strong>email:</strong></div>
+              <div>item.name</div>
+            </div>
           </div>
-        </div>
-        <div><strong>occurrences</strong>15</div>
-      </li>
-      
-      <li>
-        <div>
-          <iron-icon icon="icons:account-circle"></iron-icon>
-          <div class="layout vertical">
-            <div><strong>seller:</strong></div>
-            <div>5203633774</div>
-          </div>
-        </div>
-        <div><strong>offers:</strong>115</div>
-      </li>
+          <div><strong>occurrences:</strong>{{numOffers(item)}}</div>
+        </li>        
+      </template>
 
-      <li>
-        <div>
-          <iron-icon icon="av:web"></iron-icon>
-          <div class="layout vertical">
-            <div><strong>web page:</strong></div>
-            <div>eroticmugshots.com</div>
+      <template is="dom-repeat" items="{{records.seller}}">
+        <li>
+          <div>
+            <iron-icon icon="icons:account-circle"></iron-icon>
+            <div class="layout vertical">
+              <div><strong>seller:</strong></div>
+              <div>{{getSellerPhone(item)}}</div>
+            </div>
           </div>
-        </div>
+          <div><strong>offers:</strong>{{numSellerOffers(item)}}</div>
+        </li>        
+      </template>
 
-        <div>661-609-6467 - Escort ad in Palmdale, California | The Ultimate Latino Package Vip Exclusive!! 661 609 6467</div>
-      </li>
-
-      <li>
-        <div>
-          <iron-icon icon="icons:event"></iron-icon>
-          <div class="layout vertical">
-            <div><strong>offer:</strong></div>
-            <div>5203633774</div>
+      <template is="dom-repeat" items="{{records.webpage}}">
+        <li>
+          <div>
+            <iron-icon icon="av:web"></iron-icon>
+            <div class="layout vertical">
+              <div><strong>web page:</strong></div>
+              <div>{{item._source.publisher.name}}</div>
+            </div>
           </div>
-        </div>
-        <div>817-230-4924 - Fort Worth Escorts - 6144771 - My Provider Guide</div>
-      </li>
 
-      <li>
-        <div>
-          <img src="https://s3.amazonaws.com/roxyimages/d2a780c0b217e4a3dc1f498ad10b8b5782f03cd5.jpg" height="60px">
-          <div class="layout vertical">
-            <div><strong>description</strong></div>
-            <div>5203633774</div>
+          <div class="lineclamp">{{item._source.mainEntity.title}}</div>
+        </li>        
+      </template>
+
+      <template is="dom-repeat" items="{{records.offer}}">
+        <li>
+          <div>
+            <iron-icon icon="icons:event"></iron-icon>
+            <div class="layout vertical">
+              <div><strong>offer:</strong></div>
+              <div>{{item._source.seller.telephone.0.name}}</div>
+            </div>
           </div>
-        </div>
-        <div><strong>haircolor</strong> brown <strong>eyes</strong> blue <strong>age</strong> 19</div>
-      </li>
+          <div class="lineclamp">{{item._source.title}}</div>
+        </li>
+      </template>
+
+      <template is="dom-repeat" items="{{records.adultservice}}">
+        <li>
+          <div>
+            <span><iron-icon icon="icons:face"></iron-icon></span>
+            <div class="layout vertical">
+              <div><strong>service details</strong></div>
+              <div>{{item._source.name}}</div>
+            </div>
+          </div>
+          <div><strong>age</strong> {{item._source.personAge}}</div>
+        </li>
+      </template>
+
     </ul>
   </template>
 
@@ -152,8 +149,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'records-list',
         properties: {
           records: {
-            type: Array
+            type: Object,
+            observer: 'logRecords'
           }
+        },
+        numOffers: function(item) {
+          return item._source.owner.makesOffer.length;
+        },
+        numSellerOffers: function(item) {
+            return item._source.makesOffer.length;
+        },
+        getSellerPhone: function(item) {
+          return item._source.telephone[0].name;
+        },
+        logRecords: function() {
+          console.log('records', this.records);
         }
       });
     })();

@@ -17,10 +17,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
     </style>
+    <!--TODO: Make query part of some behavior or its own component-->
   </template>
   <script>
   (function() {
     'use strict';
+    /* globals Promise */
 
     Polymer({
       is: 'entity-view',
@@ -36,7 +38,74 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true,
           observer: 'createTemplate'
+        },
+        relatedRecords: {
+          type: Object,
+          notify: true
         }
+      },
+      getQueryPromise: function(queryString, typeToSubquery) {
+        var self = this;
+        var promise = new Promise(function(resolve, reject) {
+          self.client.search({
+            index: self.index,
+            type: typeToSubquery,
+            size: self.size,
+            body: {
+              query: {
+                match: {_all: queryString}
+              }
+            }
+          })
+          .then(function(results) {
+            resolve({type: typeToSubquery, results: results});
+          }, function(error) {
+            reject(error);
+          });
+        });
+        return promise;
+      },
+      runSubqueries: function() {
+        var self = this;
+        var records = {
+          phone: [], email: [], offer: [], seller: [], webpage: [], adultservice: []
+        };
+
+        var subqueryOptions = self.getSubqueryOptions();
+        var allPromises = [];
+
+        subqueryOptions.typesToSubquery.forEach(function(type) {
+          allPromises.push(self.getQueryPromise(subqueryOptions.field, type));
+        });
+
+        Promise.all(allPromises).then(function(resultSets) {
+          resultSets.forEach(function(results) {
+            records[results.type] = results.results.hits.hits;
+          });
+          self.relatedRecords = records;
+        });
+
+      },
+      getSubqueryOptions: function() {
+        if(this.item._type === 'phone') {
+          return {field: this.item._source.name, 
+            typesToSubquery: ['webpage', 'offer', 'seller', 'email', 'adultservice']};
+        } else if(this.item._type === 'offer') {
+          return {field: this.item._source.title, 
+            typesToSubquery: ['webpage', 'phone', 'seller', 'email', 'adultservice']};
+        } else if(this.item._type === 'email') {
+          return {field: this.item._source.name, 
+            typesToSubquery: ['webpage', 'offer', 'seller', 'phone', 'adultservice']};
+        } else if(this.item._type === 'seller') {
+          return {field: this.item._source.telephone[0].name, 
+            typesToSubquery: ['webpage', 'offer', 'email', 'phone', 'adultservice']};
+        } else if(this.item._type === 'webpage') {
+          return {field: this.item._source.url, 
+            typesToSubquery: ['seller', 'offer', 'email', 'phone', 'adultservice']};
+        } else {
+          return {field: this.item._source.name || this.item._source.uri,
+            typesToSubquery: ['seller', 'offer', 'email', 'phone', 'webpage']};
+        } 
       },
       ready: function() {
         this.createTemplate();
@@ -48,7 +117,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // create new template based on item type
           var el = this.$.el = document.createElement(this.item._type.toString() + '-display');
 
-          el.client = this.client;        
+          el.client = this.client;
           el.index = this.index;
           el.item = this.item;
 
@@ -57,7 +126,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             Polymer.dom(this.root).removeChild(children[i]);
           }
 
-          Polymer.dom(this.root).appendChild(el);          
+          Polymer.dom(this.root).appendChild(el);
+            
+          this.runSubqueries();
         }
       }
     });
