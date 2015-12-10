@@ -18,6 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
+
       .bar {
         fill: steelblue;
       }
@@ -39,8 +40,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .x.axis path {
         display: none;
       }
+
     </style>
-    <svg id="chart"></svg>
+    <svg id="svgElement"></svg>
   </template>
   <script>
   (function() {
@@ -50,13 +52,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     Polymer({
       is: 'crossfilter-ex',
-
       properties: {
-        payments: {
-          type: String,
-          value: 'crossfilter-ex',
-          notify: true
-        },
         offers: {
           type: Array,
           notify: true,
@@ -64,30 +60,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }, 
       offerGroupCounts: function() {
-        if(this.offers) {
+        // calculate width/height based on data/screen size?
+        this.height = 200;
+        this.width = 400;
 
+        if(this.offers) {
           this.crossFilterOffers = crossfilter(this.offers);
 
           var byDate = this.crossFilterOffers.dimension(function(result) {
-            var date = new Date(result.makesOffer[0].validFrom);
-            date.setUTCHours(0);
-            date.setUTCMinutes(0);
-            date.setUTCSeconds(0);
-            //return date.getTime();
             return result.makesOffer[0].validFrom.substring(0, 10);
           });
 
           var numOffersByDates = byDate.group().reduceCount().all();
 
-          var margin = {top: 10, right: 10, bottom: 20, left: 50};
-          var height = 200 - margin.left - margin.right;
-          var width = 400 - margin.top - margin.bottom;
+          // calculate margins based on data?
+          var margin = {top: 10, right: 10, bottom: 30, left: 50};
+          var chartHeight = this.height - margin.left - margin.right;
+          var chartWidth = this.width - margin.top - margin.bottom;
+
 
           var x = d3.scale.ordinal()
-              .rangeRoundBands([0, width], 0.4);
+              .rangeRoundBands([0, chartWidth], 0.4);
 
           var y = d3.scale.linear()
-              .range([height, 0]);
+              .range([chartHeight, 0]);
           
           var xAxis = d3.svg.axis()
               .scale(x)
@@ -98,9 +94,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               .orient('left')
               .ticks(2); // needs to be different based on dataset
 
-          var chart = d3.select(this.$.chart)
-              .attr('width', width + margin.left + margin.right)
-              .attr('height', height + margin.top + margin.bottom)
+          var chart = d3.select(document.createElement('div')).append('svg')
+              .attr('width', chartHeight + margin.left + margin.right)
+              .attr('height', chartHeight + margin.top + margin.bottom)
             .append('g')
               .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
@@ -109,13 +105,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           chart.append('g')
               .attr('class', 'x axis')
-              .attr('transform', 'translate(0,' + height + ')')
-              .classed('crossfilter-ex', true)
+              .attr('transform', 'translate(0,' + chartHeight + ')')
               .call(xAxis);
 
           chart.append('g')
               .attr('class', 'y axis')
-              .classed('crossfilter-ex', true)
               .call(yAxis)
             .append('text')
               .attr('transform', 'rotate(-90)')
@@ -128,12 +122,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               .data(numOffersByDates)
             .enter().append('rect')
               .attr('class', 'bar')
-              .classed('crossfilter-ex', true)
               .attr('x', function(d) { return x(d.key); })
               .attr('width', x.rangeBand())
               .attr('y', function(d) { return y(d.value); })
-              .attr('height', function(d) { return height - y(d.value); });
+              .attr('height', function(d) { return chartHeight - y(d.value); });
 
+          // Add chart to DOM
+          this.$.svgElement.style.height = this.height;
+          this.$.svgElement.style.width = this.width;
+
+          Polymer.dom(this.$.svgElement).appendChild(chart.node());
         }
       }
     });
