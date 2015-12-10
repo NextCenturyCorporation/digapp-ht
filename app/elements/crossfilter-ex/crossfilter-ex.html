@@ -1,0 +1,142 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
+<script src="../../bower_components/crossfilter/crossfilter.js" charset="utf-8"></script>
+
+<dom-module id="crossfilter-ex">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      .bar {
+        fill: steelblue;
+      }
+
+      .bar:hover {
+        fill: brown;
+      }
+
+      .axis {
+        font: 10px sans-serif;
+      }
+
+      .axis > line, .axis > path {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+
+      .x.axis path {
+        display: none;
+      }
+    </style>
+    <svg id="chart"></svg>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+    /* globals d3 */
+    /* globals crossfilter */
+
+    Polymer({
+      is: 'crossfilter-ex',
+
+      properties: {
+        payments: {
+          type: String,
+          value: 'crossfilter-ex',
+          notify: true
+        },
+        offers: {
+          type: Array,
+          notify: true,
+          observer: 'offerGroupCounts'
+        }
+      }, 
+      offerGroupCounts: function() {
+        if(this.offers) {
+
+          this.crossFilterOffers = crossfilter(this.offers);
+
+          var byDate = this.crossFilterOffers.dimension(function(result) {
+            var date = new Date(result.makesOffer[0].validFrom);
+            date.setUTCHours(0);
+            date.setUTCMinutes(0);
+            date.setUTCSeconds(0);
+            //return date.getTime();
+            return result.makesOffer[0].validFrom.substring(0, 10);
+          });
+
+          var numOffersByDates = byDate.group().reduceCount().all();
+
+          var margin = {top: 10, right: 10, bottom: 20, left: 50};
+          var height = 200 - margin.left - margin.right;
+          var width = 400 - margin.top - margin.bottom;
+
+          var x = d3.scale.ordinal()
+              .rangeRoundBands([0, width], 0.4);
+
+          var y = d3.scale.linear()
+              .range([height, 0]);
+          
+          var xAxis = d3.svg.axis()
+              .scale(x)
+              .orient('bottom');
+
+          var yAxis = d3.svg.axis()
+              .scale(y)
+              .orient('left')
+              .ticks(2); // needs to be different based on dataset
+
+          var chart = d3.select(this.$.chart)
+              .attr('width', width + margin.left + margin.right)
+              .attr('height', height + margin.top + margin.bottom)
+            .append('g')
+              .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+          x.domain(numOffersByDates.map(function(d) { return d.key; }));
+          y.domain([0, d3.max(numOffersByDates, function(d) { return d.value; })]);
+
+          chart.append('g')
+              .attr('class', 'x axis')
+              .attr('transform', 'translate(0,' + height + ')')
+              .classed('crossfilter-ex', true)
+              .call(xAxis);
+
+          chart.append('g')
+              .attr('class', 'y axis')
+              .classed('crossfilter-ex', true)
+              .call(yAxis)
+            .append('text')
+              .attr('transform', 'rotate(-90)')
+              .attr('y', 6)
+              .attr('dy', '.71em')
+              .style('text-anchor', 'end')
+              .text('# of Offers');
+
+          chart.selectAll('.bar')
+              .data(numOffersByDates)
+            .enter().append('rect')
+              .attr('class', 'bar')
+              .classed('crossfilter-ex', true)
+              .attr('x', function(d) { return x(d.key); })
+              .attr('width', x.rangeBand())
+              .attr('y', function(d) { return y(d.value); })
+              .attr('height', function(d) { return height - y(d.value); });
+
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>
