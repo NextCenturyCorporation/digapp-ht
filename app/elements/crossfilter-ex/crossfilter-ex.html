@@ -42,7 +42,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
     </style>
-    <svg id="svgElement"></svg>
+    <div id="container">
+      <svg id="svgElement"></svg>
+    </div>
   </template>
   <script>
   (function() {
@@ -59,6 +61,101 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: 'offerGroupCounts'
         }
       },
+      setupChart: function(numOffersByDates) {
+        // calculate margins based on data?
+        var margin = {top: 10, right: 10, bottom: 30, left: 30};
+        var chartHeight = this.height - margin.top - margin.bottom;
+        var chartWidth = this.width - margin.left - margin.right;
+
+        var x = d3.scale.ordinal()
+            .domain(numOffersByDates.map(function(d) { return d.key; }))
+            .rangeRoundBands([0, chartWidth], 0.1, 0);
+
+        var y = d3.scale.linear()
+            .domain([0, d3.max(numOffersByDates, function(d) { return d.value; })])
+            .range([chartHeight, 0]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient('bottom')
+            .tickValues(x.domain().filter(function(d, i) { 
+              if(i === numOffersByDates.length - 1 || i === 0) { 
+                return d;
+              } 
+            }));
+      
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient('left')
+            .ticks(2); // needs to be different based on dataset
+
+        var elemToAdd = document.createElement('div');
+
+        var tooltip = d3.select(elemToAdd).append('div')
+            .style('position','absolute')
+            .style('padding','0 10px')
+            .style('background','white')
+            .style('opacity',0);
+
+        var chart = d3.select(elemToAdd).append('svg')
+            .attr('width', chartWidth + margin.left + margin.right)
+            .attr('height', chartHeight + margin.top + margin.bottom)
+          .append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+        this.appendAxesToChart(chart, chartHeight, xAxis, yAxis);
+        this.drawBarsAndAddTooltip(numOffersByDates, chart, chartHeight, tooltip, x, y);
+
+        // Add chart to DOM
+        this.$.svgElement.style.height = this.height;
+        this.$.svgElement.style.width = this.width;
+
+        Polymer.dom(this.$.svgElement).appendChild(chart.node());
+        Polymer.dom(this.$.container).appendChild(tooltip.node());
+      },
+      appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
+        chart.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0,' + chartHeight + ')')
+            .call(xAxis);
+
+        chart.append('g')
+            .attr('class', 'y axis')
+            .call(yAxis)
+          .append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 6)
+            .attr('dy', '.71em')
+            .style('text-anchor', 'end')
+            .text('# of Offers');
+      },
+      drawBarsAndAddTooltip: function(numOffersByDates, chart, chartHeight, tooltip, x, y) {
+        chart.selectAll('.bar')
+            .data(numOffersByDates)
+          .enter().append('rect')
+            .attr('class', 'bar')
+            .attr('x', function(d) { return x(d.key); })
+            .attr('width', Math.round(x.rangeBand()))
+            .attr('y', function(d) { return y(d.value); })
+            .attr('height', function(d) { return chartHeight - y(d.value); })
+            .on('mouseover',function(d){
+              tooltip.transition()
+                .style('opacity', 0.9);
+
+              tooltip.html(d.key + ': ' + d.value + ' offers')
+                .style('left', (d3.event.pageX - 20)+ 'px') //position of the tooltip
+                .style('top', (d3.event.pageY + 15) + 'px'); 
+              
+              d3.select(this)
+                .style('opacity', 0.5);
+            })
+            .on('mouseout',function(){
+              d3.select(this)
+                .style('opacity', 1);
+                tooltip.transition().style('opacity', 0);
+            });
+           
+      },
       offerGroupCounts: function() {
         // calculate width/height based on data/screen size?
         this.width = 400;
@@ -72,65 +169,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
 
           var numOffersByDates = byDate.group().reduceCount().all();
-
-          // calculate margins based on data?
-          var margin = {top: 10, right: 10, bottom: 30, left: 30};
-          var chartHeight = this.height - margin.top - margin.bottom;
-          var chartWidth = this.width - margin.left - margin.right;
-
-          var x = d3.scale.ordinal()
-              .rangeRoundBands([0, chartWidth], 0.2, 0.1);
-
-          var y = d3.scale.linear()
-              .range([chartHeight, 0]);
-          
-          var xAxis = d3.svg.axis()
-              .scale(x)
-              .orient('bottom');
-
-          var yAxis = d3.svg.axis()
-              .scale(y)
-              .orient('left')
-              .ticks(2); // needs to be different based on dataset
-
-          var chart = d3.select(document.createElement('div')).append('svg')
-              .attr('width', chartWidth + margin.left + margin.right)
-              .attr('height', chartHeight + margin.top + margin.bottom)
-            .append('g')
-              .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-          x.domain(numOffersByDates.map(function(d) { return d.key; }));
-          y.domain([0, d3.max(numOffersByDates, function(d) { return d.value; })]);
-
-          chart.append('g')
-              .attr('class', 'x axis')
-              .attr('transform', 'translate(0,' + chartHeight + ')')
-              .call(xAxis);
-
-          chart.append('g')
-              .attr('class', 'y axis')
-              .call(yAxis)
-            .append('text')
-              .attr('transform', 'rotate(-90)')
-              .attr('y', 6)
-              .attr('dy', '.71em')
-              .style('text-anchor', 'end')
-              .text('# of Offers');
-
-          chart.selectAll('.bar')
-              .data(numOffersByDates)
-            .enter().append('rect')
-              .attr('class', 'bar')
-              .attr('x', function(d) { return x(d.key); })
-              .attr('width', x.rangeBand())
-              .attr('y', function(d) { return y(d.value); })
-              .attr('height', function(d) { return chartHeight - y(d.value); });
-
-          // Add chart to DOM
-          this.$.svgElement.style.height = this.height;
-          this.$.svgElement.style.width = this.width;
-
-          Polymer.dom(this.$.svgElement).appendChild(chart.node());
+          this.setupChart(numOffersByDates);
         }
       }
     });
