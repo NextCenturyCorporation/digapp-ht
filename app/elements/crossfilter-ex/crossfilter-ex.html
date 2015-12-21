@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
 <script src="../../bower_components/crossfilter/crossfilter.js" charset="utf-8"></script>
+<link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
 
 <dom-module id="crossfilter-ex">
   <template>
@@ -41,9 +42,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: none;
       }
 
+      leaflet-map {
+        padding: 10px;
+        height: 200px;
+        width: 300px;
+      }
     </style>
-    <div id="container">
-      <svg id="svgElement"></svg>
+    <div class="layout horizontal">
+      <div id="chartContainer">
+        <svg id="svgElement"></svg>
+      </div>
+      <leaflet-map>
+        <template is="dom-repeat" items="[[mapData]]" as="loc">
+          <leaflet-marker latitude="[[loc.key.geo.lat]]" 
+              longitude="[[loc.key.geo.lon]]">
+            <span>[[loc.key.address.0.addressLocality]]</span>
+            <span>[[loc.key.address.0.addressRegion]]</span>
+            <span>[[loc.key.address.0.addressCountry]]</span>
+            <br/>
+            <span>[[loc.value]]</span> offers
+          </leaflet-marker>
+        </template>
+      </leaflet-map> 
     </div>
   </template>
   <script>
@@ -111,7 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.svgElement.style.width = this.width;
 
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
-        Polymer.dom(this.$.container).appendChild(tooltip.node());
+        Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
       },
       appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
         chart.append('g')
@@ -168,7 +188,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return result.makesOffer[0].validFrom.substring(0, 10);
           });
 
+          var byLocations = this.crossFilterOffers.dimension(function(result) {
+            return result.makesOffer[0].availableAtOrFrom;
+          });
+
+          this.mapData = byLocations.group().reduceCount().all();
           var numOffersByDates = byDate.group().reduceCount().all();
+
           this.setupChart(numOffersByDates);
         }
       }
