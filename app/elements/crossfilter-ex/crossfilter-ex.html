@@ -24,7 +24,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         fill: steelblue;
       }
 
-      .bar:hover {
+      .selected {
         fill: brown;
       }
 
@@ -46,6 +46,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 10px;
         height: 200px;
         width: 300px;
+      }
+
+      .resize path {
+        fill: #666;
+        fill-opacity: .8;
+        stroke: #000;
+        stroke-width: 1.5px;
+      }
+
+      .brush .extent {
+        fill-opacity: .125;
+        shape-rendering: crispEdges;
       }
     </style>
     <div class="layout horizontal">
@@ -83,9 +95,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       setupChart: function(numOffersByDates) {
         // calculate margins based on data?
-        var margin = {top: 10, right: 10, bottom: 30, left: 30};
+        var self = this;
+        var margin = {top: 10, right: 30, bottom: 30, left: 30};
         var chartHeight = this.height - margin.top - margin.bottom;
         var chartWidth = this.width - margin.left - margin.right;
+        var sliderHeight = 50;
 
         var x = d3.scale.ordinal()
             .domain(numOffersByDates.map(function(d) { return d.key; }))
@@ -125,6 +139,46 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this.appendAxesToChart(chart, chartHeight, xAxis, yAxis);
         this.drawBarsAndAddTooltip(numOffersByDates, chart, chartHeight, tooltip, x, y);
+
+        // start brush code
+        var brush = d3.svg.brush().x(x);
+
+        brush.on('brush', function() {          
+          var s = d3.event.target.extent();
+          chart.selectAll('.bar').classed('selected', function(d) { 
+            var midBar = Math.round(x.rangeBand() / 2);
+            return s[0] <= x(d.key) + midBar && x(d.key) + midBar <= s[1]; 
+          });
+        });
+
+        brush.on('brushend', function() {
+          var selected = x.domain().filter(function(d) {
+            var midBar = Math.round(x.rangeBand() / 2);
+            return (brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= brush.extent()[1]);
+          });  
+          console.log(selected);
+        });
+
+        var arc = d3.svg.arc()
+            .outerRadius(sliderHeight / 2)
+            .startAngle(0)
+            .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
+
+        var brushg = chart.append('g')
+            .attr('class', 'brush')
+            .call(brush);
+
+        brushg.selectAll('.resize').append('path')
+            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')');
+
+        brushg.selectAll('.resize').append('path')
+            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')')
+            .attr('d', arc);
+
+        brushg.selectAll('rect')
+            .attr('height', chartHeight);    
+
+        // end brush code
 
         // Add chart to DOM
         this.$.svgElement.style.height = this.height;
@@ -174,7 +228,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 .style('opacity', 1);
                 tooltip.transition().style('opacity', 0);
             });
-           
+ 
       },
       offerGroupCounts: function() {
         // calculate width/height based on data/screen size?
