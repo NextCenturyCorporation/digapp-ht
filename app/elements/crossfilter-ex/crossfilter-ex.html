@@ -65,17 +65,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <svg id="svgElement"></svg>
       </div>
       <leaflet-map>
-        <template is="dom-repeat" items="[[mapData]]" as="loc">
-          <leaflet-marker latitude="[[loc.key.geo.lat]]" 
-              longitude="[[loc.key.geo.lon]]">
-            <span>[[loc.key.address.0.addressLocality]]</span>
-            <span>[[loc.key.address.0.addressRegion]]</span>
-            <span>[[loc.key.address.0.addressCountry]]</span>
-            <br/>
-            <span>[[loc.value]]</span> offers
-          </leaflet-marker>
+        <template is="dom-repeat" items="{{mapData}}" as="loc">
+          <template is="dom-if" if="{{loc.key.geo.lat}}">
+            <leaflet-marker latitude="{{loc.key.geo.lat}}" 
+                longitude="{{loc.key.geo.lon}}">
+              <span>[[loc.key.address.0.addressLocality]]</span>
+              <span>[[loc.key.address.0.addressRegion]]</span>
+              <span>[[loc.key.address.0.addressCountry]]</span>
+              <br/>
+              <span>{{loc.value}}</span> offers
+            </leaflet-marker>
+          </template>
         </template>
-      </leaflet-map> 
+      </leaflet-map>
     </div>
   </template>
   <script>
@@ -91,6 +93,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Array,
           notify: true,
           observer: 'offerGroupCounts'
+        },
+        mapData: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true
         }
       },
       setupChart: function(numOffersByDates) {
@@ -157,6 +166,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return (brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= brush.extent()[1]);
           });  
           console.log(selected);
+
+          self.byDate.filter(function(d) {
+            var date = new Date(d);
+            var beginDate = new Date(selected[0]);
+            var endDate = new Date(selected[selected.length - 1]);
+            return date >= beginDate && date <= endDate;
+          });
+
+          // TODO: find better way to force dom-repeat refresh
+          var mapLocation = self.pop('mapData');
+          self.push('mapData', mapLocation);
         });
 
         var arc = d3.svg.arc()
@@ -238,16 +258,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if(this.offers) {
           this.crossFilterOffers = crossfilter(this.offers);
 
-          var byDate = this.crossFilterOffers.dimension(function(result) {
+          this.byDate = this.crossFilterOffers.dimension(function(result) {
             return result.makesOffer[0].validFrom.substring(0, 10);
           });
 
-          var byLocations = this.crossFilterOffers.dimension(function(result) {
+          this.byLocations = this.crossFilterOffers.dimension(function(result) {
             return result.makesOffer[0].availableAtOrFrom;
           });
 
-          this.mapData = byLocations.group().reduceCount().all();
-          var numOffersByDates = byDate.group().reduceCount().all();
+          this.mapData = this.byLocations.group().reduceCount().all();
+          var numOffersByDates = this.byDate.group().reduceCount().all();
 
           this.setupChart(numOffersByDates);
         }
