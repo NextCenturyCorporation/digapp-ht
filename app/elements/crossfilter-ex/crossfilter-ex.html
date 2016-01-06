@@ -11,7 +11,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
 <script src="../../bower_components/crossfilter/crossfilter.js" charset="utf-8"></script>
-<link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
 
 <dom-module id="crossfilter-ex">
   <template>
@@ -42,12 +41,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: none;
       }
 
-      leaflet-map {
-        padding: 10px;
-        height: 200px;
-        width: 300px;
-      }
-
       .resize path {
         fill: #666;
         fill-opacity: .8;
@@ -64,20 +57,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div id="chartContainer">
         <svg id="svgElement"></svg>
       </div>
-      <leaflet-map>
-        <template is="dom-repeat" items="{{mapData}}" as="loc">
-          <template is="dom-if" if="{{loc.key.geo.lat}}">
-            <leaflet-marker latitude="{{loc.key.geo.lat}}" 
-                longitude="{{loc.key.geo.lon}}">
-              <span>[[loc.key.address.0.addressLocality]]</span>
-              <span>[[loc.key.address.0.addressRegion]]</span>
-              <span>[[loc.key.address.0.addressCountry]]</span>
-              <br/>
-              <span>{{loc.value}}</span> offers
-            </leaflet-marker>
-          </template>
-        </template>
-      </leaflet-map>
+      <div id="mapDiv"></div>
     </div>
   </template>
   <script>
@@ -94,12 +74,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true,
           observer: 'offerGroupCounts'
         },
-        mapData: {
+        mapdata: {
           type: Array,
           value: function() {
             return [];
           },
           notify: true
+          
         }
       },
       setupChart: function(numOffersByDates) {
@@ -165,7 +146,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             var midBar = Math.round(x.rangeBand() / 2);
             return (brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= brush.extent()[1]);
           });  
-          console.log(selected);
+          //console.log(selected);
 
           self.byDate.filter(function(d) {
             var date = new Date(d);
@@ -174,9 +155,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return date >= beginDate && date <= endDate;
           });
 
-          // TODO: find better way to force dom-repeat refresh
-          var mapLocation = self.pop('mapData');
-          self.push('mapData', mapLocation);
+          // re-add the map to the dom since the dom-repeat template
+          // won't automatically refresh if associated array is not updated 
+          // by methods provided on Polymer elements:
+          // https://www.polymer-project.org/1.0/docs/devguide/templates.html#dom-repeat
+          self.renderMap();
         });
 
         var arc = d3.svg.arc()
@@ -206,6 +189,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
         Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
+      },
+      renderMap: function() {
+        var children = Polymer.dom(this.$.mapDiv).children;
+        var el = document.createElement('leaflet-wrapper');
+
+        el.mapdata = this.mapdata;
+
+        // delete previous nodes if they exist
+        for(var i = 0; i < children.length; i++) {
+          Polymer.dom(this.$.mapDiv).removeChild(children[i]);
+        }
+
+        Polymer.dom(this.$.mapDiv).appendChild(el);
       },
       appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
         chart.append('g')
@@ -266,10 +262,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return result.makesOffer[0].availableAtOrFrom;
           });
 
-          this.mapData = this.byLocations.group().reduceCount().all();
+          this.mapdata = this.byLocations.group().reduceCount().all();
           var numOffersByDates = this.byDate.group().reduceCount().all();
 
           this.setupChart(numOffersByDates);
+          this.renderMap();
         }
       }
     });
