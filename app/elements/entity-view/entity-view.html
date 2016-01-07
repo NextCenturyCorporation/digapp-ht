@@ -65,7 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
         return promise;
       },
-      runSubqueries: function() {
+      runSubqueries: function(el) {
         var self = this;
         var records = {
           phone: [], email: [], offer: [], seller: [], webpage: [], adultservice: []
@@ -83,13 +83,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             records[results.type] = results.results.hits.hits;
           });
           self.relatedRecords = records;
-        });
 
+          // add results to element created in createTemplate
+          el.subqueryResults = self.relatedRecords;
+        });
       },
       getSubqueryOptions: function() {
         if(this.item._type === 'phone') {
           return {field: this.item._source.name, 
-            typesToSubquery: ['webpage', 'offer', 'seller', 'email', 'adultservice']};
+            typesToSubquery: ['offer']};
         } else if(this.item._type === 'offer') {
           return {field: this.item._source.title, 
             typesToSubquery: ['webpage', 'phone', 'seller', 'email', 'adultservice']};
@@ -120,6 +122,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           el.client = this.client;
           el.index = this.index;
           el.item = this.item;
+ 
 
           // delete previous nodes if they exist
           for(var i = 0; i < children.length; i++) {
@@ -128,7 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           Polymer.dom(this.root).appendChild(el);
             
-          this.runSubqueries();
+          this.runSubqueries(el);
         }
       }
     });
