@@ -244,7 +244,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 .style('opacity', 1);
                 tooltip.transition().style('opacity', 0);
             });
- 
       },
       offerGroupCounts: function() {
         // calculate width/height based on data/screen size?
@@ -258,8 +257,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return result._source.validFrom.substring(0, 10);
           });
 
+          // define custom object and override valueOf for location dimension:
+          // https://github.com/square/crossfilter/wiki/API-Reference#dimension
+          var LocationObject = (function() {
+            var constructor = function LocationObject(address, geo)
+            {
+              this.address = address;
+              this.geo = geo;
+              this.valueOf = function() {
+                return this.address[0].addressLocality; 
+              };
+            };
+            
+            return constructor;
+          })();
+
           this.byLocations = this.crossFilterOffers.dimension(function(result) {
-            return result._source.availableAtOrFrom;
+            return new LocationObject(result._source.availableAtOrFrom.address, 
+              result._source.availableAtOrFrom.geo);
           });
 
           this.mapdata = this.byLocations.group().reduceCount().all();

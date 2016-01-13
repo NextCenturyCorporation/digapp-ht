@@ -9,7 +9,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
--<link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
+<script src="../../bower_components/leaflet/dist/leaflet.js"></script>
+<link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
 
 <dom-module id="leaflet-wrapper">
   <template>
@@ -23,16 +24,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         width: 300px;
       }
     </style>
-    <leaflet-map>
+    <leaflet-map id="map" fit-to-markers>
       <template is="dom-repeat" items="{{mapdata}}" as="loc">
-        <template is="dom-if" if="{{loc.key.geo.lat}}">
-           <leaflet-marker latitude="{{loc.key.geo.lat}}" longitude="{{loc.key.geo.lon}}"> 
-            <span>[[loc.key.address.0.addressLocality]]</span>
-            <span>[[loc.key.address.0.addressRegion]]</span>
-            <span>[[loc.key.address.0.addressCountry]]</span>
-            <br/>
-            <span>{{loc.value}}</span> offers
-          </leaflet-marker> 
+        <template is="dom-if" if="{{hasValidKeyAndValue(loc)}}">
+          <leaflet-marker latitude="{{loc.key.geo.lat}}" longitude="{{loc.key.geo.lon}}" 
+            on-mouseover="hoverOnMarker"></leaflet-marker> 
         </template>
       </template>
     </leaflet-map>
@@ -40,6 +36,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
   (function() {
     'use strict';
+    /* globals L */
 
     Polymer({
       is: 'leaflet-wrapper',
@@ -52,7 +49,71 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true 
         }
+      },
+      hoverOnMarker: function(e) {
+        var eventLat = e.model.loc.key.geo.lat;
+        var eventLng = e.model.loc.key.geo.lon;
+        
+        if(this.popup && this.popup._isOpen && 
+          parseFloat(this.popup._latlng.lat) !== parseFloat(eventLat) && 
+          parseFloat(this.popup._latlng.lng) !== parseFloat(eventLng)) {
+          this.popup._close();
+          delete this.popup;
+        } 
+
+        if(!this.popup || !this.popup._isOpen) {
+          var latlng = L.latLng(eventLat, eventLng);
+
+          this.popup = L.popup({offset: L.point(1, -27)})
+          .setLatLng(latlng)
+          .setContent(this.createPopupContent(e.model.loc))
+          .openOn(this.$.map.map); // TODO: better selector?    
+        }
+
+      },
+      hasValidKeyAndValue: function(loc) {
+        return loc.key.geo.lat && loc.value > 0;
+      },
+      createPopupContent: function(loc) {
+        var content = [];
+
+        if(loc.key.address[0].addressLocality) {
+          content.push(loc.key.address[0].addressLocality);
+        }
+
+        if(loc.key.address[0].addressRegion) {
+          if(content.length > 0) {
+            content.push(', ');
+          }
+          content.push(loc.key.address[0].addressRegion);
+        }
+
+        if(loc.key.address[0].addressCountry) {
+          if(content.length > 0) {
+            content.push(', ');
+          }
+          content.push(loc.key.address[0].addressCountry);
+        }
+
+        content.push('<br/>');
+        content.push(loc.value);
+        content.push(' offer');
+
+        if(loc.value !== 1) {
+          content.push('s');
+        }  
+
+        return content.join('');
+
       }
+      /* debating behavior on mouseout
+      leaveMarker: function() {
+        if(this.popup && this.popup._isOpen) {
+          //console.log('close!');
+          //this.popup._close();
+        }
+      }
+      */
     });
   })();
   </script>
