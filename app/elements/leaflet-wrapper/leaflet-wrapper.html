@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <script src="../../bower_components/leaflet/dist/leaflet.js"></script>
+<script src="../../bower_components/lodash/dist/lodash.min.js"></script>
 <link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
 
 <dom-module id="leaflet-wrapper">
@@ -28,7 +29,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="{{mapdata}}" as="loc">
         <template is="dom-if" if="{{hasValidKeyAndValue(loc)}}">
           <leaflet-marker latitude="{{loc.key.geo.lat}}" longitude="{{loc.key.geo.lon}}" 
-            on-mouseover="hoverOnMarker"></leaflet-marker> 
+            on-mouseover="hoverOnMarker">
+          </leaflet-marker> 
         </template>
       </template>
     </leaflet-map>
@@ -37,6 +39,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function() {
     'use strict';
     /* globals L */
+    /* globals _ */
 
     Polymer({
       is: 'leaflet-wrapper',
@@ -50,10 +53,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true 
         }
       },
+      listeners: {
+        'createPopupEvent': 'hoverFromOutsideElement'
+      },
       hoverOnMarker: function(e) {
         var eventLat = e.model.loc.key.geo.lat;
         var eventLng = e.model.loc.key.geo.lon;
-        
+        var address = e.model.loc.key.address;
+        var count = e.model.loc.value;
+
+        this.handleHoverEvent(eventLat, eventLng, address, count);
+      },
+      hoverFromOutsideElement: function(e) {
+        var eventLat = e.detail.detail._source.availableAtOrFrom.geo.lat;
+        var eventLng = e.detail.detail._source.availableAtOrFrom.geo.lon;
+        var location = _.find(this.mapdata,  function(o) { 
+          return o.key.geo.lat === eventLat && o.key.geo.lon === eventLng; });
+
+        this.handleHoverEvent(eventLat, eventLng, location.key.address, location.value);
+      },
+      handleHoverEvent: function(eventLat, eventLng, address, count) {
         if(this.popup && this.popup._isOpen && 
           parseFloat(this.popup._latlng.lat) !== parseFloat(eventLat) && 
           parseFloat(this.popup._latlng.lng) !== parseFloat(eventLng)) {
@@ -66,40 +85,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           this.popup = L.popup({offset: L.point(1, -27)})
           .setLatLng(latlng)
-          .setContent(this.createPopupContent(e.model.loc))
+          .setContent(this.createPopupContent(address, count))
           .openOn(this.$.map.map); // TODO: better selector?    
         }
-
       },
       hasValidKeyAndValue: function(loc) {
         return loc.key.geo.lat && loc.value > 0;
       },
-      createPopupContent: function(loc) {
+      createPopupContent: function(address, count) {
         var content = [];
 
-        if(loc.key.address[0].addressLocality) {
-          content.push(loc.key.address[0].addressLocality);
+        if(address[0].addressLocality) {
+          content.push(address[0].addressLocality);
         }
 
-        if(loc.key.address[0].addressRegion) {
+        if(address[0].addressRegion) {
           if(content.length > 0) {
             content.push(', ');
           }
-          content.push(loc.key.address[0].addressRegion);
+          content.push(address[0].addressRegion);
         }
 
-        if(loc.key.address[0].addressCountry) {
+        if(address[0].addressCountry) {
           if(content.length > 0) {
             content.push(', ');
           }
-          content.push(loc.key.address[0].addressCountry);
+          content.push(address[0].addressCountry);
         }
 
         content.push('<br/>');
-        content.push(loc.value);
+        content.push(count);
         content.push(' offer');
 
-        if(loc.value !== 1) {
+        if(count !== 1) {
           content.push('s');
         }  
 
