@@ -51,10 +51,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return [];
           },
           notify: true 
+        },
+        imagePath: {
+          // TODO: make new images location if component gets cleaned up/published
+          type: String,
+          value: '/images/leaflet/' 
         }
       },
       listeners: {
-        'createPopupEvent': 'hoverFromOutsideElement'
+        'createPopupEvent': 'hoverFromOutsideElement',
+        'popupclose': 'setDefaultIcon'
+      },
+      setDefaultIcon: function() {
+        if(this.selectedMarker) {
+          this.selectedMarker.setIcon(new L.Icon.Default());
+        }
+      },
+      changeMarker: function(latlng, imageName) {
+        var marker = _.find(this.$.map.map._layers, function(o) {
+          return o._latlng && o._latlng.equals(latlng);
+        });
+
+        if(marker) {
+          var icon = L.icon({
+            iconUrl: this.imagePath + imageName,
+          });
+
+          marker.setIcon(icon);
+
+          // save reference to marker
+          this.selectedMarker = marker;
+        }
       },
       hoverOnMarker: function(e) {
         var eventLat = e.model.loc.key.geo.lat;
@@ -67,22 +94,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       hoverFromOutsideElement: function(e) {
         var eventLat = e.detail.detail._source.availableAtOrFrom.geo.lat;
         var eventLng = e.detail.detail._source.availableAtOrFrom.geo.lon;
-        var location = _.find(this.mapdata,  function(o) { 
-          return o.key.geo.lat === eventLat && o.key.geo.lon === eventLng; });
+        var location = _.find(this.mapdata, function(o) { 
+          return o.key.geo.lat === eventLat && o.key.geo.lon === eventLng; 
+        });
 
         this.handleHoverEvent(eventLat, eventLng, location.key.address, location.value);
       },
       handleHoverEvent: function(eventLat, eventLng, address, count) {
+
+        var latlng = L.latLng(eventLat, eventLng);
+
         if(this.popup && this.popup._isOpen && 
-          parseFloat(this.popup._latlng.lat) !== parseFloat(eventLat) && 
-          parseFloat(this.popup._latlng.lng) !== parseFloat(eventLng)) {
+          !latlng.equals(this.popup._latlng)) {
           this.popup._close();
           delete this.popup;
         } 
 
         if(!this.popup || !this.popup._isOpen) {
-          var latlng = L.latLng(eventLat, eventLng);
-
+          this.changeMarker(latlng, 'marker-icon-2x-green.png');
           this.popup = L.popup({offset: L.point(1, -27)})
           .setLatLng(latlng)
           .setContent(this.createPopupContent(address, count))
@@ -122,7 +151,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }  
 
         return content.join('');
-
       }
       /* debating behavior on mouseout
       leaveMarker: function() {
