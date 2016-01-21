@@ -74,13 +74,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true,
           observer: 'offerGroupCounts'
         },
+        records: {
+          type: Object,
+          value: function() {
+            return {};
+          },
+          notify: true
+        },
         mapdata: {
           type: Array,
           value: function() {
             return [];
           },
           notify: true
-          
         }
       },
       setupChart: function(numOffersByDates) {
@@ -160,6 +166,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // by methods provided on Polymer elements:
           // https://www.polymer-project.org/1.0/docs/devguide/templates.html#dom-repeat
           self.renderMap();
+          self.records = {offer: self.fullOfferList.top(Infinity)};
         });
 
         var arc = d3.svg.arc()
@@ -273,6 +280,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               result._source.availableAtOrFrom.geo);
           });
 
+          var Offer = function(result) {
+            this.result = result;
+          };
+
+          Offer.prototype.valueOf = function() {
+            return this.result._id;
+          };
+
+          this.fullOfferList = this.crossFilterOffers.dimension(function(result) {
+            return new Offer(result);
+          });
+
+          this.records = {offer: this.fullOfferList.top(Infinity)};
           this.mapdata = this.byLocations.group().reduceCount().all();
           var numOffersByDates = this.byDate.group().reduceCount().all();
 
