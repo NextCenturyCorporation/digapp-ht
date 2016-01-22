@@ -9,9 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
 <script src="../../bower_components/crossfilter/crossfilter.js" charset="utf-8"></script>
-
 <dom-module id="crossfilter-ex">
   <template>
     <style>
@@ -19,51 +17,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
 
-      .bar {
-        fill: steelblue;
-      }
-
-      .selected {
-        fill: brown;
-      }
-
-      .axis {
-        font: 10px sans-serif;
-      }
-
-      .axis line, .axis path {
-        fill: none;
-        stroke: #000;
-        shape-rendering: crispEdges;
-      }
-
-      .x.axis path {
-        display: none;
-      }
-
-      .resize path {
-        fill: #666;
-        fill-opacity: .8;
-        stroke: #000;
-        stroke-width: 1.5px;
-      }
-
-      .brush .extent {
-        fill-opacity: .125;
-        shape-rendering: crispEdges;
-      }
     </style>
     <div class="layout horizontal">
-      <div id="chartContainer">
-        <svg id="svgElement"></svg>
-      </div>
+      <bar-chart data="{{chartData}}" chart-filter="{{chartFilter}}"></bar-chart>
       <div id="mapDiv"></div>
     </div>
   </template>
   <script>
   (function() {
     'use strict';
-    /* globals d3 */
     /* globals crossfilter */
 
     Polymer({
@@ -87,115 +49,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return [];
           },
           notify: true
+        },
+        chartFilter: {
+          type: Object, 
+          value: {begin: null, end: null},
+          notify: true,
+          observer: 'applyChartFilter'
         }
-      },
-      setupChart: function(numOffersByDates) {
-        // calculate margins based on data?
-        var self = this;
-        var margin = {top: 10, right: 30, bottom: 30, left: 30};
-        var chartHeight = this.height - margin.top - margin.bottom;
-        var chartWidth = this.width - margin.left - margin.right;
-        var sliderHeight = 50;
-
-        var x = d3.scale.ordinal()
-            .domain(numOffersByDates.map(function(d) { return d.key; }))
-            .rangeRoundBands([0, chartWidth], 0.1, 0);
-
-        var y = d3.scale.linear()
-            .domain([0, d3.max(numOffersByDates, function(d) { return d.value; })])
-            .range([chartHeight, 0]);
-
-        var xAxis = d3.svg.axis()
-            .scale(x)
-            .orient('bottom')
-            .tickValues(x.domain().filter(function(d, i) { 
-              if(i === numOffersByDates.length - 1 || i === 0) { 
-                return d;
-              } 
-            }));
-      
-        var yAxis = d3.svg.axis()
-            .scale(y)
-            .orient('left')
-            .ticks(2); // needs to be different based on dataset
-
-        var elemToAdd = document.createElement('div');
-
-        var tooltip = d3.select(elemToAdd).append('div')
-            .style('position','absolute')
-            .style('padding','0 10px')
-            .style('background','white')
-            .style('opacity',0);
-
-        var chart = d3.select(elemToAdd).append('svg')
-            .attr('width', chartWidth + margin.left + margin.right)
-            .attr('height', chartHeight + margin.top + margin.bottom)
-          .append('g')
-            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
-
-        this.appendAxesToChart(chart, chartHeight, xAxis, yAxis);
-        this.drawBarsAndAddTooltip(numOffersByDates, chart, chartHeight, tooltip, x, y);
-
-        // start brush code
-        var brush = d3.svg.brush().x(x);
-
-        brush.on('brush', function() {          
-          var s = d3.event.target.extent();
-          chart.selectAll('.bar').classed('selected', function(d) { 
-            var midBar = Math.round(x.rangeBand() / 2);
-            return s[0] <= x(d.key) + midBar && x(d.key) + midBar <= s[1]; 
-          });
-        });
-
-        brush.on('brushend', function() {
-          var selected = x.domain().filter(function(d) {
-            var midBar = Math.round(x.rangeBand() / 2);
-            return (brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= brush.extent()[1]);
-          });  
-          //console.log(selected);
-
-          self.byDate.filter(function(d) {
-            var date = new Date(d);
-            var beginDate = new Date(selected[0]);
-            var endDate = new Date(selected[selected.length - 1]);
-            return date >= beginDate && date <= endDate;
-          });
-
-          // re-add the map to the dom since the dom-repeat template
-          // won't automatically refresh if associated array is not updated 
-          // by methods provided on Polymer elements:
-          // https://www.polymer-project.org/1.0/docs/devguide/templates.html#dom-repeat
-          self.renderMap();
-          self.records = {offer: self.fullOfferList.top(Infinity)};
-        });
-
-        var arc = d3.svg.arc()
-            .outerRadius(sliderHeight / 2)
-            .startAngle(0)
-            .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
-
-        var brushg = chart.append('g')
-            .attr('class', 'brush')
-            .call(brush);
-
-        brushg.selectAll('.resize').append('path')
-            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')');
-
-        brushg.selectAll('.resize').append('path')
-            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')')
-            .attr('d', arc);
-
-        brushg.selectAll('rect')
-            .attr('height', chartHeight);    
-
-        // end brush code
-
-        // Add chart to DOM
-        this.$.svgElement.style.height = this.height;
-        this.$.svgElement.style.width = this.width;
-
-        Polymer.dom(this.$.svgElement).appendChild(chart.node());
-        Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
       },
       renderMap: function() {
         var children = Polymer.dom(this.$.mapDiv).children;
@@ -210,52 +70,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         Polymer.dom(this.$.mapDiv).appendChild(el);
       },
-      appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
-        chart.append('g')
-            .attr('class', 'x axis')
-            .attr('transform', 'translate(0,' + chartHeight + ')')
-            .call(xAxis);
-
-        chart.append('g')
-            .attr('class', 'y axis')
-            .call(yAxis)
-          .append('text')
-            .attr('transform', 'rotate(-90)')
-            .attr('y', 6)
-            .attr('dy', '.71em')
-            .style('text-anchor', 'end')
-            .text('# of Offers');
-      },
-      drawBarsAndAddTooltip: function(numOffersByDates, chart, chartHeight, tooltip, x, y) {
-        chart.selectAll('.bar')
-            .data(numOffersByDates)
-          .enter().append('rect')
-            .attr('class', 'bar')
-            .attr('x', function(d) { return x(d.key); })
-            .attr('width', Math.round(x.rangeBand()))
-            .attr('y', function(d) { return y(d.value); })
-            .attr('height', function(d) { return chartHeight - y(d.value); })
-            .on('mouseover',function(d){
-              tooltip.transition()
-                .style('opacity', 0.9);
-
-              tooltip.html(d.key + ': ' + d.value + ' offers')
-                .style('left', (d3.event.pageX - 20)+ 'px') //position of the tooltip
-                .style('top', (d3.event.pageY + 15) + 'px'); 
-              
-              d3.select(this)
-                .style('opacity', 0.5);
-            })
-            .on('mouseout',function(){
-              d3.select(this)
-                .style('opacity', 1);
-                tooltip.transition().style('opacity', 0);
-            });
+      applyChartFilter: function() {
+        var self = this;
+        if(self.byDate) {
+          self.byDate.filter(function(d) {
+            var date = new Date(d);
+            var beginDate = new Date(self.chartFilter.start);
+            var endDate = new Date(self.chartFilter.end);
+            return date >= beginDate && date <= endDate;
+          });
+          self.renderMap();
+        }
       },
       offerGroupCounts: function() {
         // calculate width/height based on data/screen size?
-        this.width = 400;
-        this.height = 200;
+
 
         if(this.offers) {
           this.crossFilterOffers = crossfilter(this.offers);
@@ -294,9 +123,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           this.records = {offer: this.fullOfferList.top(Infinity)};
           this.mapData = this.byLocations.group().reduceCount().all();
-          var numOffersByDates = this.byDate.group().reduceCount().all();
+          this.chartData = this.byDate.group().reduceCount().all();
 
-          this.setupChart(numOffersByDates);
           this.renderMap();
         }
       }
