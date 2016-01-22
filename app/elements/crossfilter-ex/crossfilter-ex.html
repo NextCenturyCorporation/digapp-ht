@@ -19,7 +19,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     </style>
     <div class="layout horizontal">
-      <bar-chart data="{{chartData}}" chart-filter="{{chartFilter}}"></bar-chart>
+      <bar-chart data="{{chartData}}" chart-filter="{{chartFilter}}" 
+        y-axis-label="# of Offers" tooltip-label="offers"></bar-chart>
       <div id="mapDiv"></div>
     </div>
   </template>
@@ -31,10 +32,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'crossfilter-ex',
       properties: {
-        offers: {
+        originalResults: {
           type: Array,
           notify: true,
-          observer: 'offerGroupCounts'
+          observer: 'createGroupings'
         },
         records: {
           type: Object,
@@ -72,56 +73,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       applyChartFilter: function() {
         var self = this;
-        if(self.byDate) {
-          self.byDate.filter(function(d) {
+        if(self.chartDimension) {
+          self.chartDimension.filter(function(d) {
+            // TODO: expect types other than dates
             var date = new Date(d);
             var beginDate = new Date(self.chartFilter.start);
             var endDate = new Date(self.chartFilter.end);
             return date >= beginDate && date <= endDate;
           });
           self.renderMap();
-          self.records = {offer: this.fullOfferList.top(Infinity)};
+          self.records = {offer: this.fullRecordList.top(Infinity)};
         }
       },
-      offerGroupCounts: function() {
-        if(this.offers) {
-          this.crossFilterOffers = crossfilter(this.offers);
+      createMapDimension: function() {
+        var Location = function(address, geo) {
+          this.address = address;
+          this.geo = geo;
+        };
 
-          this.byDate = this.crossFilterOffers.dimension(function(result) {
+        Location.prototype.valueOf = function() {
+          return this.address[0].addressLocality; 
+        }; 
+
+        this.mapDimesion = this.crossFilterData.dimension(function(result) {
+          return new Location(result._source.availableAtOrFrom.address, 
+            result._source.availableAtOrFrom.geo);
+        });
+      },
+      createRecordsListDimension: function() {
+        var Offer = function(result) {
+          this.result = result;
+        };
+
+        Offer.prototype.valueOf = function() {
+          return this.result._id;
+        };
+
+        this.fullRecordList = this.crossFilterData.dimension(function(result) {
+          return new Offer(result);
+        });
+      },
+      createGroupings: function() {
+        if(this.originalResults) {
+          this.crossFilterData = crossfilter(this.originalResults);
+
+          this.chartDimension = this.crossFilterData.dimension(function(result) {
             return result._source.validFrom.substring(0, 10);
           });
 
           // define custom object and override valueOf for location dimension:
           // https://github.com/square/crossfilter/wiki/API-Reference#dimension
-          var Location = function(address, geo) {
-            this.address = address;
-            this.geo = geo;
-          };
+          this.createMapDimension();
+          this.createRecordsListDimension();
 
-          Location.prototype.valueOf = function() {
-            return this.address[0].addressLocality; 
-          }; 
-
-          this.byLocations = this.crossFilterOffers.dimension(function(result) {
-            return new Location(result._source.availableAtOrFrom.address, 
-              result._source.availableAtOrFrom.geo);
-          });
-
-          var Offer = function(result) {
-            this.result = result;
-          };
-
-          Offer.prototype.valueOf = function() {
-            return this.result._id;
-          };
-
-          this.fullOfferList = this.crossFilterOffers.dimension(function(result) {
-            return new Offer(result);
-          });
-
-          this.records = {offer: this.fullOfferList.top(Infinity)};
-          this.mapData = this.byLocations.group().reduceCount().all();
-          this.chartData = this.byDate.group().reduceCount().all();
+          this.records = {offer: this.fullRecordList.top(Infinity)};
+          this.mapData = this.mapDimesion.group().reduceCount().all();
+          this.chartData = this.chartDimension.group().reduceCount().all();
 
           this.renderMap();
         }
