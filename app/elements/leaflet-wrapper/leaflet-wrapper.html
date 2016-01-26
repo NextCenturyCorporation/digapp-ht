@@ -26,6 +26,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         height: 200px;
         width: 300px;
       }
+      button {
+        margin: 0px 0px 10px 10px;
+      }
     </style>
     <leaflet-map id="map" fit-to-markers>
       <template is="dom-repeat" items="{{mapData}}" as="loc">
@@ -36,6 +39,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
       </template>
     </leaflet-map>
+    <button hidden="[[!clearFilterEnabled]]" on-click="resetFilter">Reset Filters</button>
   </template>
   <script>
   (function() {
@@ -56,18 +60,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         mapFilter: {
           type: Object,
-          notify: true
+          notify: true,
+          observer: 'setClearButtonEnabled'
         },
         imagePath: {
           // TODO: make new images location if component gets cleaned up/published
           type: String,
           value: '/images/leaflet/' 
+        },
+        clearFilterEnabled: {
+          type: Boolean,
+          value: false
         }
       },
       listeners: {
         'createPopupEvent': 'hoverFromOutsideElement',
         'popupclose': 'setDefaultIcon',
         'click': 'filterRecordsList'
+      },
+      setClearButtonEnabled: function() {
+        if(!_.isEmpty(this.mapFilter)) {
+          this.clearFilterEnabled = true;
+        } else {
+          this.clearFilterEnabled = false;
+        }
+      },
+      resetFilter: function() {
+        this.mapFilter = {};
+        if(this.popup && this.popup._isOpen) {
+          this.popup._close();
+          delete this.popup;
+        }
+
+        this.clearFilterEnabled = false;
       },
       filterRecordsList: function(event) {
         var targetType = Object.getPrototypeOf(event.target);
@@ -77,24 +102,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return loc.key.geo.lat === event.target.latitude && 
               loc.key.geo.lon === event.target.longitude;
           });
-
-          if(_.isEmpty(this.mapFilter)) {
-            var self = this;
-            var buttonArray = [];
-
-            this.refreshButton = L.easyButton('fa-refresh', function() {
-              self.mapFilter = {};
-              if(self.popup && self.popup._isOpen) {
-                self.popup._close();
-                delete self.popup;
-              }
-
-              self.refreshBar.removeFrom(self.$.map.map);
-            });
-
-            buttonArray.push(this.refreshButton);
-            this.refreshBar = L.easyBar(buttonArray).addTo(this.$.map.map);
-          }
 
           this.mapFilter = filter.key.address;
         }

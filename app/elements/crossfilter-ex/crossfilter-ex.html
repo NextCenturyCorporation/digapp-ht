@@ -76,7 +76,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           self.records = {offer: this.fullRecordList.top(Infinity)}; 
         } else if(self.mapDimension && !_.isEmpty(self.mapFilter)) {
           self.mapDimension.filter(function(item) {
-            return _.isEqual(self.mapFilter[0], item.address[0]); 
+            return item !== null && _.isEqual(self.mapFilter[0].addressLocality, item.address[0].addressLocality); 
           });
           self.records = {offer: this.fullRecordList.top(Infinity)}; 
         }      
@@ -127,6 +127,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }; 
 
         this.mapDimension = this.crossFilterData.dimension(function(result) {
+          if(!result._source.availableAtOrFrom.address || 
+            !result._source.availableAtOrFrom.geo) {
+            return null;
+          }
           return new Location(result._source.availableAtOrFrom.address, 
             result._source.availableAtOrFrom.geo);
         });
@@ -141,6 +145,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
 
         this.fullRecordList = this.crossFilterData.dimension(function(result) {
+          if(!result._source.availableAtOrFrom.address || 
+            !result._source.availableAtOrFrom.geo) {
+            return null;
+          }
           return new Offer(result);
         });
       },
@@ -149,6 +157,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.crossFilterData = crossfilter(this.originalResults);
 
           this.chartDimension = this.crossFilterData.dimension(function(result) {
+            if(!result._source.availableAtOrFrom.address || 
+              !result._source.availableAtOrFrom.geo) {
+              return null;
+            }
             return result._source.validFrom.substring(0, 10);
           });
 
