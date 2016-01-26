@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<script src="../../bower_components/lodash/dist/lodash.min.js"></script>
 <script src="../../bower_components/crossfilter/crossfilter.js" charset="utf-8"></script>
 <dom-module id="crossfilter-ex">
   <template>
@@ -28,6 +29,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function() {
     'use strict';
     /* globals crossfilter */
+    /* globals _ */
 
     Polymer({
       is: 'crossfilter-ex',
@@ -56,13 +58,42 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: {begin: null, end: null},
           notify: true,
           observer: 'applyChartFilter'
+        },
+        mapFilter: {
+          type: Object,
+          value: function() {
+            return {};
+          },
+          notify: true,
+          observer: 'applyMapFilter'
         }
+      },
+      applyMapFilter: function() {
+        var self = this;
+
+        if(self.mapDimension && _.isEmpty(self.mapFilter)) {
+          self.mapDimension.filterAll();
+          self.records = {offer: this.fullRecordList.top(Infinity)}; 
+        } else if(self.mapDimension && !_.isEmpty(self.mapFilter)) {
+          self.mapDimension.filter(function(item) {
+            return _.isEqual(self.mapFilter[0], item.address[0]); 
+          });
+          self.records = {offer: this.fullRecordList.top(Infinity)}; 
+        }      
+
       },
       renderMap: function() {
         var children = Polymer.dom(this.$.mapDiv).children;
         var el = document.createElement('leaflet-wrapper');
+        var self = this;
 
         el.mapData = this.mapData;
+        el.mapFilter = this.mapFilter;
+
+        el.addEventListener('map-filter-changed', function(){
+          self.mapFilter = this.mapFilter;
+          self.applyMapFilter();
+        });
 
         // delete previous nodes if they exist
         for(var i = 0; i < children.length; i++) {
@@ -95,7 +126,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return this.address[0].addressLocality; 
         }; 
 
-        this.mapDimesion = this.crossFilterData.dimension(function(result) {
+        this.mapDimension = this.crossFilterData.dimension(function(result) {
           return new Location(result._source.availableAtOrFrom.address, 
             result._source.availableAtOrFrom.geo);
         });
@@ -127,7 +158,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.createRecordsListDimension();
 
           this.records = {offer: this.fullRecordList.top(Infinity)};
-          this.mapData = this.mapDimesion.group().reduceCount().all();
+          this.mapData = this.mapDimension.group().reduceCount().all();
           this.chartData = this.chartDimension.group().reduceCount().all();
 
           this.renderMap();

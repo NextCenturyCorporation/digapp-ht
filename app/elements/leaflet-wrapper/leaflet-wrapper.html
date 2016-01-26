@@ -12,6 +12,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <script src="../../bower_components/leaflet/dist/leaflet.js"></script>
 <script src="../../bower_components/lodash/dist/lodash.min.js"></script>
 <link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
+<script src="../../bower_components/Leaflet.EasyButton/src/easy-button.js"></script>
+<link rel="stylesheet" href="../../bower_components/components-font-awesome/css/font-awesome.min.css">
 
 <dom-module id="leaflet-wrapper">
   <template>
@@ -52,6 +54,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true 
         },
+        mapFilter: {
+          type: Object,
+          notify: true
+        },
         imagePath: {
           // TODO: make new images location if component gets cleaned up/published
           type: String,
@@ -60,7 +66,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       listeners: {
         'createPopupEvent': 'hoverFromOutsideElement',
-        'popupclose': 'setDefaultIcon'
+        'popupclose': 'setDefaultIcon',
+        'click': 'filterRecordsList'
+      },
+      filterRecordsList: function(event) {
+        var targetType = Object.getPrototypeOf(event.target);
+
+        if(targetType.is === 'leaflet-marker') {
+          var filter = _.find(this.mapData, function(loc) {
+            return loc.key.geo.lat === event.target.latitude && 
+              loc.key.geo.lon === event.target.longitude;
+          });
+
+          if(_.isEmpty(this.mapFilter) && !this.refreshButton) {
+            var self = this;
+            var buttonArray = [];
+
+            this.refreshButton = L.easyButton('fa-refresh', function() {
+              self.mapFilter = {};
+              self.refreshBar.removeFrom(self.$.map.map);
+            });
+
+            buttonArray.push(this.refreshButton);
+            this.refreshBar = L.easyBar(buttonArray).addTo(this.$.map.map);
+          }
+
+          this.mapFilter = filter.key.address;
+        }
       },
       setDefaultIcon: function() {
         if(this.selectedMarker) {
