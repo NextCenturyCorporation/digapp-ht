@@ -57,9 +57,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true 
         },
         mapFilter: {
-          type: Object,
-          notify: true,
-          observer: 'setClearButtonEnabled'
+          type: Array,
+          notify: true
         },
         imagePath: {
           // TODO: make new images location if component gets cleaned up/published
@@ -71,20 +70,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: false
         }
       },
+      observers: [
+        'setClearButtonEnabled(mapFilter.*)'
+      ],
       listeners: {
         'createPopupEvent': 'hoverFromOutsideElement',
         'popupclose': 'setDefaultIcon',
         'click': 'filterRecordsList'
       },
-      setClearButtonEnabled: function() {
-        if(!_.isEmpty(this.mapFilter)) {
-          this.clearFilterEnabled = true;
-        } else {
-          this.clearFilterEnabled = false;
+      setClearButtonEnabled: function(mapFilterChanges) {
+        if(mapFilterChanges.path === 'mapFilter.length') {
+          if(mapFilterChanges.value !== 0) {
+            this.clearFilterEnabled = true;
+          } else {
+            this.clearFilterEnabled = false;
+          }
         }
       },
       resetFilter: function() {
-        this.mapFilter = {};
+        this.mapFilter = [];
         if(this.popup && this.popup._isOpen) {
           this.popup._close();
           delete this.popup;
@@ -101,12 +105,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               loc.key.geo.lon === event.target.longitude;
           });
 
-          this.mapFilter = filter.key.address;
+          this.push('mapFilter', filter.key.address[0].addressLocality);
         }
       },
       setDefaultIcon: function() {
-        if(this.selectedMarker) {
-          this.selectedMarker.setIcon(new L.Icon.Default());
+        if(this.popupMarker) {
+          this.popupMarker.setIcon(new L.Icon.Default());
         }
       },
       changeMarker: function(latlng, imageName) {
@@ -122,7 +126,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           marker.setIcon(icon);
 
           // save reference to marker
-          this.selectedMarker = marker;
+          this.popupMarker = marker;
         }
       },
       hoverOnMarker: function(e) {

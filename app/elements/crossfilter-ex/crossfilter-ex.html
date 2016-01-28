@@ -60,9 +60,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           observer: 'applyChartFilter'
         },
         mapFilter: {
-          type: Object,
+          type: Array,
           value: function() {
-            return {};
+            return [];
           },
           notify: true,
           observer: 'applyMapFilter'
@@ -71,12 +71,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       applyMapFilter: function() {
         var self = this;
 
-        if(self.mapDimension && _.isEmpty(self.mapFilter)) {
+        if(self.mapDimension && self.mapFilter.length === 0) {
           self.mapDimension.filterAll();
           self.records = {offer: this.fullRecordList.top(Infinity)}; 
-        } else if(self.mapDimension && !_.isEmpty(self.mapFilter)) {
+        } else if(self.mapDimension && self.mapFilter.length > 0) {
           self.mapDimension.filter(function(item) {
-            return item !== null && _.isEqual(self.mapFilter[0].addressLocality, item.address[0].addressLocality); 
+            if(item !== null && item.address !== null) {
+              return _.indexOf(self.mapFilter, item.address[0].addressLocality) !== -1;
+            } else {
+              return false;
+            }
           });
           self.records = {offer: this.fullRecordList.top(Infinity)}; 
         }      
@@ -127,10 +131,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }; 
 
         this.mapDimension = this.crossFilterData.dimension(function(result) {
+
           if(!result._source.availableAtOrFrom.address || 
             !result._source.availableAtOrFrom.geo) {
             return null;
           }
+
           return new Location(result._source.availableAtOrFrom.address, 
             result._source.availableAtOrFrom.geo);
         });
