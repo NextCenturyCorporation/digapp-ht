@@ -4,7 +4,8 @@ var ret = {
   'suites': ['app/test'],
   'webserver': {
     'pathMappings': []
-  }
+  },
+  'browsers': ['chrome', 'firefox']
 };
 
 var mapping = {};
