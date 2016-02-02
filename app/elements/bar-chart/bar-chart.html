@@ -52,10 +52,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         fill-opacity: .125;
         shape-rendering: crispEdges;
       }
+
+      button {
+        margin: 0px 0px 10px 10px;
+      }
     </style>
     <div id="chartContainer">
       <svg id="svgElement"></svg>
     </div>
+    <button hidden="[[!clearFilterEnabled]]" on-click="resetFilter">Reset Chart Filter</button>
   </template>
   <script>
   (function() {
@@ -83,12 +88,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         tooltipLabel: {
           type: String
+        },
+        clearFilterEnabled: {
+          type: Boolean,
+          value: false
         }
       },
       checkData: function() {
         if(this.data.length > 0) {
           this.setupChart();
         }
+      },
+      resetFilter: function() {
+        this.chartFilter = {begin: null, end: null};
+        this.clearFilterEnabled = false;
+        d3.selectAll('.brush').call(this.brush.clear());
+        d3.selectAll('.bar').classed('selected', false);
+        delete this.brushExtents;
       },
       setupChart: function() {
         // calculate margins based on data?
@@ -138,56 +154,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         this.appendAxesToChart(chart, chartHeight, xAxis, yAxis);
         this.drawBarsAndAddTooltip(chart, chartHeight, tooltip, x, y);
-
-        // start brush code
-        var brush = d3.svg.brush().x(x);
-
-        var computeSelected = function(extent) {
-          chart.selectAll('.bar').classed('selected', function(d) { 
-            var midBar = Math.round(x.rangeBand() / 2);
-            return extent[0] <= x(d.key) + midBar && x(d.key) + midBar <= extent[1]; 
-          });
-        };
-
-        brush.on('brush', function() {          
-          var s = d3.event.target.extent();
-          computeSelected(s);
-        });
-
-        brush.on('brushend', function() {  
-          var selected = x.domain().filter(function(d) {
-            var midBar = Math.round(x.rangeBand() / 2);
-            return (brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= brush.extent()[1]);
-          });  
-
-          self.brushExtents = brush.extent();
-          self.chartFilter = {start: selected[0], end: selected[selected.length - 1]};
-        });
-
-        var arc = d3.svg.arc()
-            .outerRadius(sliderHeight / 2)
-            .startAngle(0)
-            .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
-
-        var brushg = chart.append('g')
-            .attr('class', 'brush')
-            .call(brush);
-
-        brushg.selectAll('.resize').append('path')
-            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')');
-
-        brushg.selectAll('.resize').append('path')
-            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')')
-            .attr('d', arc);
-
-        brushg.selectAll('rect')
-            .attr('height', chartHeight);    
-        // end brush code
-
-        if(self.brushExtents) {
-          brushg.call(brush.extent(self.brushExtents));
-          computeSelected(self.brushExtents);
-        }
+        this.createBrush(chart, x, sliderHeight, chartHeight);
 
         // Add chart to DOM
         this.$.svgElement.style.height = this.height;
@@ -201,6 +168,57 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
         //Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
+      },
+      createBrush: function(chart, x, sliderHeight, chartHeight) {
+        var self = this;
+        self.brush = d3.svg.brush().x(x);
+
+        var computeSelected = function(extent) {
+          chart.selectAll('.bar').classed('selected', function(d) { 
+            var midBar = Math.round(x.rangeBand() / 2);
+            return extent[0] <= x(d.key) + midBar && x(d.key) + midBar <= extent[1]; 
+          });
+        };
+
+        self.brush.on('brush', function() {          
+          var s = d3.event.target.extent();
+          computeSelected(s);
+        });
+
+        self.brush.on('brushend', function() {  
+          var selected = x.domain().filter(function(d) {
+            var midBar = Math.round(x.rangeBand() / 2);
+            return (self.brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= self.brush.extent()[1]);
+          });  
+
+          self.brushExtents = self.brush.extent();
+          self.clearFilterEnabled = true;
+          self.chartFilter = {begin: selected[0], end: selected[selected.length - 1]};
+        });
+
+        var arc = d3.svg.arc()
+            .outerRadius(sliderHeight / 2)
+            .startAngle(0)
+            .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
+
+        var brushg = chart.append('g')
+            .attr('class', 'brush')
+            .call(self.brush);
+
+        brushg.selectAll('.resize').append('path')
+            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')');
+
+        brushg.selectAll('.resize').append('path')
+            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')')
+            .attr('d', arc);
+
+        brushg.selectAll('rect')
+            .attr('height', chartHeight);    
+
+        if(self.clearFilterEnabled) {
+          brushg.call(self.brush.extent(self.brushExtents));
+          computeSelected(self.brushExtents);
+        }
       },
       appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
         chart.append('g')
