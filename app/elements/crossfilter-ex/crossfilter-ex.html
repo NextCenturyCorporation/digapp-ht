@@ -37,7 +37,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         originalResults: {
           type: Array,
           notify: true,
-          observer: 'createGroupings'
+          observer: 'createDimensions'
         },
         records: {
           type: Object,
@@ -71,19 +71,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       applyMapFilter: function() {
         var self = this;
 
-        if(self.mapDimension && self.mapFilter.length === 0) {
-          self.mapDimension.filterAll();
-          self.records = {offer: this.fullRecordList.top(Infinity)}; 
-        } else if(self.mapDimension && self.mapFilter.length > 0) {
-          self.mapDimension.filter(function(item) {
-            if(item !== null && item.address !== null) {
-              return _.indexOf(self.mapFilter, item.address[0].addressLocality) !== -1;
-            } else {
-              return false;
-            }
-          });
-          self.records = {offer: this.fullRecordList.top(Infinity)}; 
-        }      
+        if(self.mapDimension) {
+          if(self.mapFilter.length === 0) {
+            self.mapDimension.filterAll();
+          } else {
+            self.mapDimension.filter(function(item) {
+              if(item !== null && item.address !== null) {
+                return _.indexOf(self.mapFilter, item.address[0].addressLocality) !== -1;
+              } else {
+                return false;
+              }
+            });
+          }
+          self.createGroupings();
+        }
 
       },
       renderMap: function() {
@@ -116,8 +117,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             var endDate = new Date(self.chartFilter.end);
             return date >= beginDate && date <= endDate;
           });
+          self.createGroupings();
           self.renderMap();
-          self.records = {offer: this.fullRecordList.top(Infinity)};
         }
       },
       createMapDimension: function() {
@@ -158,7 +159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return new Offer(result);
         });
       },
-      createGroupings: function() {
+      createDimensions: function() {
         if(this.originalResults) {
           this.crossFilterData = crossfilter(this.originalResults);
 
@@ -175,12 +176,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.createMapDimension();
           this.createRecordsListDimension();
 
-          this.records = {offer: this.fullRecordList.top(Infinity)};
-          this.mapData = this.mapDimension.group().reduceCount().all();
-          this.chartData = this.chartDimension.group().reduceCount().all();
-
+          this.createGroupings();
           this.renderMap();
         }
+      },
+      createGroupings: function() {
+        this.records = {offer: this.fullRecordList.top(Infinity)};
+        this.mapData = this.mapDimension.group().reduceCount().all();
+        this.chartData = this.chartDimension.group().reduceCount().all();
       }
     });
   })();

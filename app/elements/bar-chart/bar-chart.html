@@ -142,12 +142,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         // start brush code
         var brush = d3.svg.brush().x(x);
 
-        brush.on('brush', function() {          
-          var s = d3.event.target.extent();
+        var computeSelected = function(extent) {
           chart.selectAll('.bar').classed('selected', function(d) { 
             var midBar = Math.round(x.rangeBand() / 2);
-            return s[0] <= x(d.key) + midBar && x(d.key) + midBar <= s[1]; 
+            return extent[0] <= x(d.key) + midBar && x(d.key) + midBar <= extent[1]; 
           });
+        };
+
+        brush.on('brush', function() {          
+          var s = d3.event.target.extent();
+          computeSelected(s);
         });
 
         brush.on('brushend', function() {  
@@ -156,6 +160,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return (brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= brush.extent()[1]);
           });  
 
+          self.brushExtents = brush.extent();
           self.chartFilter = {start: selected[0], end: selected[selected.length - 1]};
         });
 
@@ -177,15 +182,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         brushg.selectAll('rect')
             .attr('height', chartHeight);    
-
         // end brush code
+
+        if(self.brushExtents) {
+          brushg.call(brush.extent(self.brushExtents));
+          computeSelected(self.brushExtents);
+        }
 
         // Add chart to DOM
         this.$.svgElement.style.height = this.height;
         this.$.svgElement.style.width = this.width;
 
+        var children = Polymer.dom(this.$.svgElement).children;
+        // delete previous nodes if they exist
+        for(var i = 0; i < children.length; i++) {
+          Polymer.dom(this.$.svgElement).removeChild(children[i]);
+        }
+
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
-        Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
+        //Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
       },
       appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
         chart.append('g')
