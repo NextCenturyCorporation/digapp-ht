@@ -30,7 +30,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
     <leaflet-map id="map" fit-to-markers>
       <template is="dom-repeat" items="{{mapData}}" as="loc">
-        <template is="dom-if" if="{{hasValidKeyAndValue(loc)}}">
+        <template is="dom-if" if="{{hasValidKeyAndValue(loc)}}" restamp="true">
           <leaflet-marker latitude="{{loc.key.geo.lat}}" longitude="{{loc.key.geo.lon}}" 
             on-mouseover="hoverOnMarker">
           </leaflet-marker> 
@@ -54,7 +54,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: function() {
             return [];
           },
-          notify: true 
+          notify: true,
+          observer: 'onMapDataChange' 
         },
         mapFilter: {
           type: Array,
@@ -83,6 +84,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       listeners: {
         'createPopupEvent': 'hoverFromOutsideElement',
         'click': 'filterRecordsList'
+      },
+      onMapDataChange: function() {
+        var self = this;
+
+        // if mapData has changed and popup is open, reset popup content
+        if(this.popup && this.popup._isOpen) {
+          var location = _.find(this.mapData, function(loc) {
+            return parseFloat(loc.key.geo.lat) === self.popup._latlng.lat && 
+              parseFloat(loc.key.geo.lon) === self.popup._latlng.lng;
+          });
+
+          if(location) {
+            this.popup.setContent(this.createPopupContent(location.key.address, 
+              location.value));
+          }
+        }
       },
       setClearButtonEnabled: function(mapFilterChanges) {
         if(mapFilterChanges.path === 'mapFilter.length') {
@@ -171,7 +188,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       hasValidKeyAndValue: function(loc) {
-        return loc.key.geo.lat && loc.value > 0;
+        return (loc.key.geo.lat && loc.value > 0) || 
+          _.indexOf(this.mapFilter, loc.key.address[0].addressLocality) !== -1;
       },
       createPopupContent: function(address, count) {
         var content = [];

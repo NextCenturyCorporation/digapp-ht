@@ -22,7 +22,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="layout horizontal">
       <bar-chart data="{{chartData}}" chart-filter="{{chartFilter}}" 
         y-axis-label="# of Offers" tooltip-label="offers"></bar-chart>
-      <div id="mapDiv"></div>
+      <leaflet-wrapper map-data="{{mapData}}" map-filter="{{mapFilter}}">
+      </leaflet-wrapper>
     </div>
   </template>
   <script>
@@ -87,26 +88,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
       },
-      renderMap: function() {
-        var children = Polymer.dom(this.$.mapDiv).children;
-        var el = document.createElement('leaflet-wrapper');
-        var self = this;
-
-        el.mapData = this.mapData;
-        el.mapFilter = this.mapFilter;
-
-        el.addEventListener('map-filter-changed', function(){
-          self.mapFilter = this.mapFilter;
-          self.applyMapFilter();
-        });
-
-        // delete previous nodes if they exist
-        for(var i = 0; i < children.length; i++) {
-          Polymer.dom(this.$.mapDiv).removeChild(children[i]);
-        }
-
-        Polymer.dom(this.$.mapDiv).appendChild(el);
-      },
       applyChartFilter: function() {
         var self = this;
         if(self.chartDimension) {
@@ -123,7 +104,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
 
           self.createGroupings();
-          self.renderMap();
         }
       },
       createMapDimension: function() {
@@ -182,10 +162,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.createRecordsListDimension();
 
           this.createGroupings();
-          this.renderMap();
         }
       },
       createGroupings: function() {
+        // TODO: future adapter should try to leverage array mutation methods provided
+        // on Polymer elements in order to better identify changes of interest
+        // https://www.polymer-project.org/1.0/docs/devguide/properties.html#array-mutation
         this.records = {offer: this.fullRecordList.top(Infinity)};
         this.mapData = this.mapDimension.group().reduceCount().all();
         this.chartData = this.chartDimension.group().reduceCount().all();
