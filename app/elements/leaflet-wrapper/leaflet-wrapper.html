@@ -28,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin: 0px 0px 10px 10px;
       }
     </style>
-    <leaflet-map id="map" fit-to-markers>
+    <leaflet-map id="map">
       <template is="dom-repeat" items="{{mapData}}" as="loc">
         <template is="dom-if" if="{{hasValidKeyAndValue(loc)}}" restamp="true">
           <leaflet-marker latitude="{{loc.key.geo.lat}}" longitude="{{loc.key.geo.lon}}" 
@@ -85,21 +85,42 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         'createPopupEvent': 'hoverFromOutsideElement',
         'click': 'filterRecordsList'
       },
+      fitToMarkers: function() {
+        var bounds = [];
+        for(var i = 0; i < this.mapData.length; i++) {
+          if(this.mapData[i].key.geo.lat && this.mapData[i].key.geo.lon) {
+            bounds.push([this.mapData[i].key.geo.lat, this.mapData[i].key.geo.lon]);
+          }
+        }
+
+        if(bounds.length === 1) {
+          this.$.map.map.setView(L.latLng(bounds[0][0], bounds[0][1]));
+          this.$.map.map.invalidateSize();
+        } else if(bounds.length > 1) {
+          this.$.map.map.fitBounds(bounds);
+          this.$.map.map.invalidateSize();
+        }
+      },
       onMapDataChange: function() {
         var self = this;
 
-        // if mapData has changed and popup is open, reset popup content
-        if(this.popup && this.popup._isOpen) {
-          var location = _.find(this.mapData, function(loc) {
+        // if mapData has changed and popup is open, reset popup content if marker is 
+        // being used as a filter, otherwise, remove popup
+        if(self.popup && self.popup._isOpen) {
+          var location = _.find(self.mapData, function(loc) {
             return parseFloat(loc.key.geo.lat) === self.popup._latlng.lat && 
               parseFloat(loc.key.geo.lon) === self.popup._latlng.lng;
           });
 
-          if(location) {
-            this.popup.setContent(this.createPopupContent(location.key.address, 
+          if(location && this.hasValidKeyAndValue(location)) {
+            self.popup.setContent(self.createPopupContent(location.key.address, 
               location.value));
+          } else {
+            self.popup._close();
+            delete self.popup;
           }
         }
+        self.fitToMarkers();
       },
       setClearButtonEnabled: function(mapFilterChanges) {
         if(mapFilterChanges.path === 'mapFilter.length') {
