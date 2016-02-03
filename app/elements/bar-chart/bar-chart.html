@@ -86,9 +86,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         yAxisLabel: {
           type: String
         },
-        tooltipLabel: {
-          type: String
-        },
         clearFilterEnabled: {
           type: Boolean,
           value: false
@@ -140,12 +137,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         var elemToAdd = document.createElement('div');
 
-        var tooltip = d3.select(elemToAdd).append('div')
-            .style('position','absolute')
-            .style('padding','0 10px')
-            .style('background','white')
-            .style('opacity',0);
-
         var chart = d3.select(elemToAdd).append('svg')
             .attr('width', chartWidth + margin.left + margin.right)
             .attr('height', chartHeight + margin.top + margin.bottom)
@@ -153,7 +144,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
 
         this.appendAxesToChart(chart, chartHeight, xAxis, yAxis);
-        this.drawBarsAndAddTooltip(chart, chartHeight, tooltip, x, y);
+        this.drawBars(chart, chartHeight, x, y);
         this.createBrush(chart, x, sliderHeight, chartHeight);
 
         // Add chart to DOM
@@ -167,7 +158,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
-        //Polymer.dom(this.$.chartContainer).appendChild(tooltip.node());
       },
       createBrush: function(chart, x, sliderHeight, chartHeight) {
         var self = this;
@@ -236,9 +226,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .style('text-anchor', 'end')
             .text(this.yAxisLabel);
       },
-      drawBarsAndAddTooltip: function(chart, chartHeight, tooltip, x, y) {
-        var self = this;
-        
+      drawBars: function(chart, chartHeight, x, y) {
         chart.selectAll('.bar')
             .data(this.data)
           .enter().append('rect')
@@ -246,23 +234,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .attr('x', function(d) { return x(d.key); })
             .attr('width', Math.round(x.rangeBand()))
             .attr('y', function(d) { return y(d.value); })
-            .attr('height', function(d) { return chartHeight - y(d.value); })
-            .on('mouseover',function(d){
-              tooltip.transition()
-                .style('opacity', 0.9);
-
-              tooltip.html(d.key + ': ' + d.value + ' ' + self.tooltipLabel)
-                .style('left', (d3.event.pageX - 20)+ 'px') //position of the tooltip
-                .style('top', (d3.event.pageY + 15) + 'px'); 
-              
-              d3.select(this)
-                .style('opacity', 0.5);
-            })
-            .on('mouseout',function(){
-              d3.select(this)
-                .style('opacity', 1);
-                tooltip.transition().style('opacity', 0);
-            });
+            .attr('height', function(d) { return chartHeight - y(d.value); });
       }
     });
   })();
