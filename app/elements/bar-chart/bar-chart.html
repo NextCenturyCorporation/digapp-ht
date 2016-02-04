@@ -1,0 +1,242 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
+
+
+<dom-module id="bar-chart">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .bar {
+        fill: steelblue;
+      }
+
+      .selected {
+        fill: brown;
+      }
+
+      .axis {
+        font: 10px sans-serif;
+      }
+
+      .axis line, .axis path {
+        fill: none;
+        stroke: #000;
+        shape-rendering: crispEdges;
+      }
+
+      .x.axis path {
+        display: none;
+      }
+
+      .resize path {
+        fill: #666;
+        fill-opacity: .8;
+        stroke: #000;
+        stroke-width: 1.5px;
+      }
+
+      .brush .extent {
+        fill-opacity: .125;
+        shape-rendering: crispEdges;
+      }
+
+      button {
+        margin: 0px 0px 10px 10px;
+      }
+    </style>
+    <div id="chartContainer">
+      <svg id="svgElement"></svg>
+    </div>
+    <button hidden="[[!clearFilterEnabled]]" on-click="resetFilter">Reset Chart Filter</button>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+    /* globals d3 */
+    
+    Polymer({
+      is: 'bar-chart',
+
+      properties: {
+        data: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true,
+          observer: 'checkData'
+        },
+        chartFilter: {
+          type: Object,
+          notify: true
+        },
+        yAxisLabel: {
+          type: String
+        },
+        clearFilterEnabled: {
+          type: Boolean,
+          value: false
+        }
+      },
+      checkData: function() {
+        if(this.data.length > 0) {
+          this.setupChart();
+        }
+      },
+      resetFilter: function() {
+        this.chartFilter = {begin: null, end: null};
+        this.clearFilterEnabled = false;
+        d3.selectAll('.brush').call(this.brush.clear());
+        d3.selectAll('.bar').classed('selected', false);
+        delete this.brushExtents;
+      },
+      setupChart: function() {
+        // calculate margins based on data?
+        var self = this;
+        this.width = 400;
+        this.height = 200;
+        var margin = {top: 10, right: 30, bottom: 30, left: 30};
+        var chartHeight = this.height - margin.top - margin.bottom;
+        var chartWidth = this.width - margin.left - margin.right;
+        var sliderHeight = 50;
+
+        var x = d3.scale.ordinal()
+            .domain(self.data.map(function(d) { return d.key; }))
+            .rangeRoundBands([0, chartWidth], 0.1, 0);
+
+        var y = d3.scale.linear()
+            .domain([0, d3.max(self.data, function(d) { return d.value; })])
+            .range([chartHeight, 0]);
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient('bottom')
+            .tickValues(x.domain().filter(function(d, i) { 
+              if(i === self.data.length - 1 || i === 0) { 
+                return d;
+              } 
+            }));
+      
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient('left')
+            .ticks(2); // needs to be different based on dataset
+
+        var elemToAdd = document.createElement('div');
+
+        var chart = d3.select(elemToAdd).append('svg')
+            .attr('width', chartWidth + margin.left + margin.right)
+            .attr('height', chartHeight + margin.top + margin.bottom)
+          .append('g')
+            .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+        this.appendAxesToChart(chart, chartHeight, xAxis, yAxis);
+        this.drawBars(chart, chartHeight, x, y);
+        this.createBrush(chart, x, sliderHeight, chartHeight);
+
+        // Add chart to DOM
+        this.$.svgElement.style.height = this.height;
+        this.$.svgElement.style.width = this.width;
+
+        var children = Polymer.dom(this.$.svgElement).children;
+        // delete previous nodes if they exist
+        for(var i = 0; i < children.length; i++) {
+          Polymer.dom(this.$.svgElement).removeChild(children[i]);
+        }
+
+        Polymer.dom(this.$.svgElement).appendChild(chart.node());
+      },
+      createBrush: function(chart, x, sliderHeight, chartHeight) {
+        var self = this;
+        self.brush = d3.svg.brush().x(x);
+
+        var computeSelected = function(extent) {
+          chart.selectAll('.bar').classed('selected', function(d) { 
+            var midBar = Math.round(x.rangeBand() / 2);
+            return extent[0] <= x(d.key) + midBar && x(d.key) + midBar <= extent[1]; 
+          });
+        };
+
+        self.brush.on('brush', function() {          
+          var s = d3.event.target.extent();
+          computeSelected(s);
+        });
+
+        self.brush.on('brushend', function() {  
+          var selected = x.domain().filter(function(d) {
+            var midBar = Math.round(x.rangeBand() / 2);
+            return (self.brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= self.brush.extent()[1]);
+          });  
+
+          self.brushExtents = self.brush.extent();
+          self.clearFilterEnabled = true;
+          self.chartFilter = {begin: selected[0], end: selected[selected.length - 1]};
+        });
+
+        var arc = d3.svg.arc()
+            .outerRadius(sliderHeight / 2)
+            .startAngle(0)
+            .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
+
+        var brushg = chart.append('g')
+            .attr('class', 'brush')
+            .call(self.brush);
+
+        brushg.selectAll('.resize').append('path')
+            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')');
+
+        brushg.selectAll('.resize').append('path')
+            .attr('transform', 'translate(0,' +  chartHeight / 2 + ')')
+            .attr('d', arc);
+
+        brushg.selectAll('rect')
+            .attr('height', chartHeight);    
+
+        if(self.clearFilterEnabled) {
+          brushg.call(self.brush.extent(self.brushExtents));
+          computeSelected(self.brushExtents);
+        }
+      },
+      appendAxesToChart: function(chart, chartHeight, xAxis, yAxis) {
+        chart.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0,' + chartHeight + ')')
+            .call(xAxis);
+
+        chart.append('g')
+            .attr('class', 'y axis')
+            .call(yAxis)
+          .append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 6)
+            .attr('dy', '.71em')
+            .style('text-anchor', 'end')
+            .text(this.yAxisLabel);
+      },
+      drawBars: function(chart, chartHeight, x, y) {
+        chart.selectAll('.bar')
+            .data(this.data)
+          .enter().append('rect')
+            .attr('class', 'bar')
+            .attr('x', function(d) { return x(d.key); })
+            .attr('width', Math.round(x.rangeBand()))
+            .attr('y', function(d) { return y(d.value); })
+            .attr('height', function(d) { return chartHeight - y(d.value); });
+      }
+    });
+  })();
+  </script>
+</dom-module>

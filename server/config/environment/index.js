@@ -38,7 +38,7 @@ var all = {
 
     appVersion: pjson.version,
 
-    elasticHostUrl: process.env.ELASTIC_HOST_URL || 'http://localhost:9200',
+    elasticHost: process.env.ELASTIC_HOST || '{"host": "http://localhost:9200"}',
     elasticIndex: process.env.ELASTIC_INDEX || 'mockads'
  
 };
