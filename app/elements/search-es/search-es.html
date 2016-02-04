@@ -17,6 +17,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
     </style>
+    <template is="dom-if" if="{{areParamsValid()}}">
+      <elastic-search 
+        client="[[client]]"
+        index="[[data.elasticIndex]]"
+        query='[[createQueryBody()]]'
+        results="{{queryResults}}"
+        lastError="{{error}}">
+      </elastic-search>
+    </template>
   </template>
   <script>
   (function() {
@@ -28,7 +37,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       properties: {
         client: {
           type: Object,
-          observer: 'performSearch'
+          notify: true
         },
         index: {
           type: String
@@ -36,44 +45,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         queryResults: {
           type: Object,
           notify: true
-        },
-        from: {
-          type: Number,
-          value: 0,
-          notify: true,
-          observer: 'performSearch'
         }
       },
       createQueryBody: function() {
-        return JSON.parse('{"query":{"match": {"' + app.params.field + '" : "' + 
-          app.params.value + '"}}}');
+        return JSON.parse('{"query":{"filtered":{"query":{"match":{"' + app.params.field + '" : "' + 
+          app.params.value + '"}},"filter": {"type": {"value": "' + app.params.type + '"}}}}}');
       },
       areParamsValid: function() {
-        return app.params.value !== undefined && app.params.type !== undefined && 
-          app.params.field !== undefined;
-      },
-      performSearch: function() {
-        /* jshint camelcase: false */
-        var self = this;
-        
         if(app.params === undefined) {
           app.getURLParams();
         }
-
-        if(this.client && this.areParamsValid()) {
-          this.client.search({
-            index: this.index,
-            type: app.params.type,
-            from: this.from,
-            body: this.createQueryBody()
-          })
-          .then(function(results) {
-            self.queryResults = results;
-          })
-          .catch(function(err) {
-            console.log(err);
-          });
-        }
+        return app.params.value !== undefined && app.params.type !== undefined && 
+          app.params.field !== undefined;
       }
     });
   })();
