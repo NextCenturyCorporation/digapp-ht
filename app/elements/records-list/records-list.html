@@ -24,9 +24,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       li {
         display: block;
-      }
-
-      a {
         padding: 8px 8px;
         margin: 0;
         background: white;
@@ -46,7 +43,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 0 8px 0 0;
       }
 
-      a>div:first-child {
+      li>div:first-child {
         padding: 0 8px 0 0;
         min-width: 200px;
         @apply(--layout-horizontal);
@@ -58,7 +55,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          -webkit-line-clamp: 2; /* number of lines to show */
          -webkit-box-orient: vertical;
       }
-      a:hover {
+      li:hover {
         background-color: #f2f2f2;
       }
     </style>
@@ -125,18 +122,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
 
       <template is="dom-repeat" items="{{records.offer}}">
-        <li>
-          <a href$="{{createURL(item)}}" on-mouseover="fireMapEvent">
-            <div>
-              <iron-icon icon="icons:event"></iron-icon>
-              <div class="layout vertical">
-                <div><strong>offer:</strong></div>
-                <div>{{item._source.seller.telephone.0.name}}</div>
-              </div>
+        <li on-click="toggle">
+          <div>
+            <iron-icon icon="icons:event"></iron-icon>
+            <div class="layout vertical">
+              <div><strong>offer:</strong></div>
+              <div>{{item._source.seller.telephone.0.name}}</div>
             </div>
-            <div class="lineclamp">{{item._source.title}}</div>
-          </a>
+          </div>
+          <div class="lineclamp">{{item._source.title}}</div>
         </li>
+        <iron-collapse id="{{createId('offer', index)}}">
+          <div class="collapse-content">
+            <div>Title: [[item._source.title]]</div>
+            <div>
+              Address: 
+              <template is="dom-repeat" items="[[item._source.availableAtOrFrom.address]]" as="address">
+                <span>[[address.addressLocality]]</span><br/>
+              </template>
+            </div>
+            <div>Valid From: [[item._source.validFrom]]</div>
+            <a href$="{{createURL(item)}}">View Offer</a>
+          </div>
+        </iron-collapse>
       </template>
 
       <template is="dom-repeat" items="{{records.adultservice}}">
@@ -179,7 +187,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return item._source.owner.makesOffer.length;
         },
         numSellerOffers: function(item) {
-            return item._source.makesOffer.length;
+          return item._source.makesOffer.length;
         },
         getSellerPhone: function(item) {
           return item._source.telephone[0].name;
@@ -189,6 +197,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         createURL: function(item) {
           return '/?value=' + item._id + '&type=' + item._type + '&field=_id';
+        },
+        createId: function(type, index) {
+          return type + '-' + index;
+        },
+        toggle: function(event) {
+          var id = '#' + event.model.item._type + '-' + event.model.index;
+          document.querySelector(id).toggle();
         }
       });
     })();
