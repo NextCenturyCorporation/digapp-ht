@@ -1,41 +1,139 @@
-/**
- * A comment describing this element...
- * @group my-element-set
- * @element query-builder
- * @demo demo/index.html
- */
-<dom-module id="query-builder">
-  <template>
-    <style>
-      :host {
-        display: block;
-      }
-    </style>
-    
-  </template>
-  <script>
-  (function() {
-    'use strict';
-    Polymer({
-      is: 'query-builder',
+<link rel='import' href='../mustache.html'>
 
-      properties: {
+<script>
+(function() {
+  'use strict';
+  Polymer({
+    is: 'query-builder',
+
+    properties: {
+      /**
+       * The elastic search query which this element builds
+       */
+      query: {
+        type: Object,
+        notify: true,
+        readOnly: true
+      },
+
+      /**
+       * The key is used to find the query template.
+       */
+      key: {
+        type: String
+      },
+
+      /**
+       * Application scope javascript object which contains query templates
+       * and other configuration data
+       */ 
+      appConfig: {
+        type: Object
+      }
+    },
+
+    /**
+     * Get query string parameters and then build the query
+     */
+    ready: function() {
+      app.getURLParams();
+      this.buildElasticQuery();
+    },
+
+    /**
+     * Build a query from query string parameters and a query template
+     */
+    buildElasticQuery: function() {
+      /* globals Mustache */
+      var view = {
+        field: app.params.field,
+        value: app.params.value
+      };
+
+      // TODO: look up this query template in app configuration
+      var queryTemplate = 
+      {
         query: {
-          type: Object,
-          notify: true,
-          readOnly: true
+          filtered:{
+            query:{
+              match:{ '{{field}}' : '{{value}}' }
+            }
+          }
+        },
+        size: 0,
+        'aggs' : {
+            // When: Timeline of offers
+            'offers_by_date': {
+                'date_histogram': {
+                    'field': 'validFrom',
+                    'interval': 'week'
+                }
+            },
+            // Where: Map showing offers by location
+            'offers_by_city': {
+                'terms': {
+                    'field': 'availableAtOrFrom.address.addressLocality'
+                }
+            },
+            // Who: Give a sense of who is using this phone 
+            // note that in current index, aggregations on hair color, eye color, and ethnicity come back empty
+            // and that ethnicity is missing from offer type
+            'service_by_name': {
+                'terms': {
+                    'field': 'itemOffered.name'
+                }
+            },
+            'service_by_age': {
+                'terms': {
+                    'field': 'itemOffered.personAge'
+                }
+            },
+            'service_by_eye_color': {
+                'terms': {
+                    'field': 'itemOffered.eyeColor'
+                }
+            },
+            'service_by_hair_color': {
+                'terms': {
+                    'field': 'itemOffered.hairColor'
+                }
+            },
+            // Relations
+            'related_phones' : {
+                'terms' : { 
+                    'field' : 'offer.seller.telephone.name' 
+                },
+                'aggs' : {
+                    // Timeline similarities
+                    'related_phone_timelines': {
+                        'date_histogram': {
+                            'field': 'validFrom',
+                            'interval': 'week'
+                        }
+                    } 
+                }         
+            },
+            'related_emails' : {
+                'terms' : { 
+                    'field' : 'offer.seller.email.name' 
+                }          
+            },
+            'related_websites' : {
+                'terms' : { 
+                    'field' : 'mainEntityOfPage.publisher.name' 
+                }          
+            }
         }
-      },
+      };
 
-      ready: function() {
-        app.getURLParams();
-        this.buildElasticQuery();
-      },
+      var query = Mustache.render(JSON.stringify(queryTemplate), view);
 
-      buildElasticQuery: function() {
-        console.log('params: ', app.params);
-      }
-    });
-  })();
-  </script>
-</dom-module>
+      this._setQuery(query);
+
+      console.log('query-builder', app.params);
+      console.log('query', query);
+    }
+
+  });
+})();
+</script>

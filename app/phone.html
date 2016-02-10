@@ -56,19 +56,19 @@
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
 
-    <app-config></app-config>
+    <app-config config="{{appconfig}}"></app-config>
     
-<!--get app configuration from server -->
+    <!--get app configuration from server -->
     <iron-ajax
-    id="ajax"
-    auto
-    url="/config"
-    handle-as="json"
-    last-response="{{config}}"
-    on-response="showConfig">
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}"
+      on-response="showConfig">
     </iron-ajax>
      
-<!--initialize new elastic client connection to server
+    <!--initialize new elastic client connection to server
     - esclient can be used throughout the application lifecycle -->
     <elastic-client 
       config="[[config.elasticConfig]]"
@@ -76,15 +76,17 @@
     </elastic-client>
 
      
-<!--look up and build an entity query for the entity specified in the
+    <!--look up and build an entity query for the entity specified in the
     query string for:
-    type: the name of the entity type
     field: the field in elasticsearch to use in the query
     value: value of the field above -->
-    <query-builder query="{{singleEntityQuery}}"></query-builder>
+    <query-builder 
+      query="{{singleEntityQuery}}" 
+      key="phone" 
+      app-config="[[appconfig]]">
+    </query-builder>
 
-    
-<!--make an search using {{singleEntityQuery}} and return results -->
+    <!--make an search using {{singleEntityQuery}} and return results -->
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
@@ -93,30 +95,60 @@
       lastError="{{error}}">
     </elastic-search>
 
-<!--make generic models for content sections -->
+    <!--make generic models for content sections -->
     <json-transform
      data-in="[[singleEntity]]"
      data-out="{{singleEntityData}}"
-     transform-functions="[[appconfig."
+     transform-functions="[[appconfig]]"
      ></json-transform>
 
     <!-- Main Content -->
-
-<!--     <div class="content">
+    <div class="vertical layout center">
       <paper-material elevation="2">
-        <div class="layout horizontal entity-content">          
-          <entity-view client="[[esclient]]" index="[[data.elasticIndex]]" 
-          item="[[results.hits.hits.0]]" related-records="{{related-items}}"
-          size="50"></entity-view>
-        </div>
-      </paper-material>   
-    </div> -->
+        <section class="heading">
+          <div class="paper-font-headline"><phone>703-272-7272</phone></div>
+          <div class="paper-font-subhead">cell phone in Washington, DC</div>
+        </section>
 
+        <div class="content">
+          <section class="who flex">
+            who section
+            <section class="photos">
+              photos section
+            </section>
+          </section>
+
+          <section class="where flex">
+            where section
+          </section>
+        </div>
+        
+        <div class="content">
+          <section class="population flex">
+            population section
+          </section>
+
+          <section class="relations flex">
+            relations section
+          </section>        
+        </div>
+
+
+        <section class="when">
+          when section
+        </section>
+      </paper-material>    
+    </div>
   </template>
 
   <script>
   (function(document) {
     var app = document.querySelector('#app');
+
+    app.showConfig = function (req, res) {
+      console.log('REQ: ', req);
+      console.log('RES: ', res);
+    };
 
     app.getURLParams = function() {
       var queryString = window.location.search.slice(1, window.location.search.length);
