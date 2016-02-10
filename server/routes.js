@@ -13,7 +13,7 @@ module.exports = function(app) {
 
     app.get('/config/?', function(req, res) {
         res.status(200).send({
-            elasticHost: JSON.parse(config.elasticHost),
+            elasticConfig: JSON.parse(config.elasticConfig),
             elasticIndex: config.elasticIndex,
             appVersion: config.appVersion       
         });
