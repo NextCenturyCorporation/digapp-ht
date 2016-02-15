@@ -35,14 +35,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   suite('<records-list>', function() {
     var recordsListElem;
 
-    setup(function() {
+    setup(function(done) {
       recordsListElem = fixture('records-list-fixture');
-      recordsListElem.records = {'offer': [{'thing': 1}]};
+      recordsListElem.records = {'offer': [{'_id': '1', '_type': 'offer'}]};
+      flush(function(){
+        done();
+      });
     });
 
     test('records should be equal to key/values specified in setup', function() {
       expect(recordsListElem.records).to.be.an('object');
-      expect(recordsListElem.records).to.be.deep.equal({'offer': [{'thing': 1}]});
+      expect(recordsListElem.records).to.be.deep.equal({'offer': [{'_id': '1', '_type': 'offer'}]});
+    });
+
+    test('expect an li element', function() {
+      expect(document.querySelector('li')).to.exist;
+    });
+
+    test('iron-collapse ids are created based on result of createId method with _type and index passed in', function() {
+      var offerRecord = recordsListElem.records.offer[0];
+      expect(document.querySelector('#' + recordsListElem.createId(offerRecord._type, 0))).to.exist;
+      expect(recordsListElem.createId(offerRecord._type, 0)).to.be.equal('offer-0');
     });
 
     test('numOffers should return length of item._source.owner', function() {
@@ -101,13 +114,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       var result = recordsListElem.getName(item);
 
       expect(result).to.be.equal('Name N/A');
-    });      
+    });
 
-    // test createURL
+    test('createURL returns URL based on item id and type', function() {
+      var offerRecord = recordsListElem.records.offer[0];
+      var result = recordsListElem.createURL(offerRecord);
+      var expectedURL = '/?value=' + offerRecord._id + '&type=' + offerRecord._type + '&field=_id';
 
-    // test createId
+      expect(result).to.be.equal(expectedURL);
+    });
 
-    // test toggle
+    test('clicking list item opens up expanded view', function() {
+      document.querySelector('li').click();
+      expect(document.querySelector('#offer-0').opened).to.be.true;
+    });
+
+    test('clicking on paper-button in expanded view does not collapse expanded view', function() {
+      document.querySelector('li').click();
+      expect(document.querySelector('#offer-0').opened).to.be.true;
+
+      document.querySelector('paper-button').click();
+      expect(document.querySelector('#offer-0').opened).to.be.true;
+    });
+
+    test('clicking anywhere besides paper-button in expanded view will collapse expanded view', function() {
+      document.querySelector('li').click();
+      expect(document.querySelector('#offer-0').opened).to.be.true;
+
+      document.querySelector('li').click();
+      expect(document.querySelector('#offer-0').opened).to.be.false;
+    });
+
 
   });
 </script>
