@@ -15,7 +15,8 @@ module.exports = function(app) {
         res.status(200).send({
             elasticConfig: JSON.parse(config.elasticConfig),
             elasticIndex: config.elasticIndex,
-            appVersion: config.appVersion       
+            appVersion: config.appVersion,
+            queryTemplates: config.queryTemplates
         });
     });
 
