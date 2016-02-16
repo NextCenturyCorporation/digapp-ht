@@ -3,6 +3,7 @@
 var path = require('path');
 var _ = require('lodash');
 var pjson = require('../../../package.json');
+var templates = require('../query-templates.js');
 
 function requiredProcessEnv(name) {
     if(!process.env[name]) {
@@ -39,7 +40,8 @@ var all = {
     appVersion: pjson.version,
 
     elasticConfig: process.env.ELASTIC_CONFIG || '{"host": "http://localhost:9200"}',
-    elasticIndex: process.env.ELASTIC_INDEX || 'mockads'
+    elasticIndex: process.env.ELASTIC_INDEX || 'mockads',
+    queryTemplates: templates.QUERY_TEMPLATES || '{}'
  
 };
 
