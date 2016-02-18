@@ -1,3 +1,4 @@
+/* globals _ */
 var phonetransform = (function() {
 
     function getTelephone(record) {
@@ -9,7 +10,7 @@ var phonetransform = (function() {
         }
         */
         var telephone = {};
-        telephone.number = record.seller.telephone[0].name[0];
+        telephone.number = _.get(record, 'seller.telephone[0].name[0]');
         telephone.type = 'cell';
         telephone.origin = 'Washington, DC';
         return telephone;
