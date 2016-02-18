@@ -11,7 +11,7 @@ module.exports = {
             }
           }
         },
-        size: 0,
+        size: 1,
         'aggs' : {
             // When: Timeline of offers
             'offers_by_date': {
