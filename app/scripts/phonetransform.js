@@ -1,4 +1,9 @@
+/**
+ * transform elastic search phone query to display format.  See data-model.json
+ */
+
 /* globals _ */
+/* exported phonetransform */
 var phonetransform = (function() {
 
     function getTelephone(record) {
