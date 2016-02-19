@@ -19,24 +19,13 @@ var phonetransform = (function() {
     return {
         // expected data is from an elasticsearch 
         transform: function(data) {
+            var newData = {};
 
-            data.telephone = getTelephone(data.hits.hits[0]._source);
-            return data;
+            newData.telephone = getTelephone(data.hits.hits[0]._source);
+            return newData;
         }
     };
 
 })();
-
-// function phonetransform(data) {
-//     var newData = [];
-//     data.forEach(function(record) {
-//         var data = record._source;
-
-//         var phone = {};
-//         phone.telephone = getTelephone(data);
-//     });
-//     newData.push(data);
-//     return newData;
-// }
 
 
