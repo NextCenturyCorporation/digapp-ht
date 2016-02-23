@@ -172,16 +172,52 @@ var phoneTransform = (function(_) {
         return cities;
     }
 
-    function getRelatedPhones(argument) {
-        return [];
+    function getRelatedPhones(aggs) {
+        // [{"number": 1234567, "count": 2}]
+        var relatedPhones = [];
+        var phoneBuckets = _.get(aggs, 'related_phones.buckets', []);
+
+        phoneBuckets.forEach(function(phoneBucket) {
+            var relatedPhone = {
+                number: phoneBucket.key,
+                count: phoneBucket.doc_count
+            };
+            relatedPhones.push(relatedPhone);
+        });
+
+        return relatedPhones;
     }
 
-    function getRelatedEmails(argument) {
-        return [];
+    function getRelatedEmails(aggs) {
+        // [{"email": "abc@xyz.com", "count": 2}]
+        var relatedEmails = [];
+        var emailBuckets = _.get(aggs, 'related_emails.buckets', []);
+
+        emailBuckets.forEach(function(emailBucket) {
+            var relatedEmail = {
+                email: emailBucket.key,
+                count: emailBucket.doc_count
+            };
+            relatedEmails.push(relatedEmail);
+        });
+
+        return relatedEmails;
     }
 
     function getRelatedWebsites(aggs) {
-        return [];
+        // [{"webSite": "backpage.com", "count": 3}]
+        var relatedWebsites = [];
+        var websiteBuckets = _.get(aggs, 'related_websites.buckets', []);
+
+        websiteBuckets.forEach(function(websiteBucket) {
+            var relatedWebsite = {
+                webSite: websiteBucket.key,
+                count: websiteBucket.doc_count
+            };
+            relatedWebsites.push(relatedWebsite);
+        });
+
+        return relatedWebsites;
     }
 
     return {
