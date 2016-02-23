@@ -74,6 +74,11 @@ module.exports = {
                 }          
             }
         }
+    },
+    offer: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
     }
   }
 };
