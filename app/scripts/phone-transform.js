@@ -3,10 +3,11 @@
  */
 
 /* globals _ */
-/* exported phonetransform */
+/* exported phoneTransform */
+/* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope */
-var phonetransform = (function(_) {
+var phoneTransform = (function(_) {
 
     function getTelephone(record) {
         /** build telephone object:
@@ -36,44 +37,126 @@ var phonetransform = (function(_) {
                 };
                 prices.push(price);
             });
-
         });
         return prices;
     }
 
+    function getPeopleNames(names) {
+        // [{name: 'Emily', 'count': 14}, 
+        // {name: 'Erin', 'count': 12},
+        // {name: 'Jane', 'count': 3}]
+        var peopleNames = [];
+        names.buckets.forEach(function(elem) {
+            var nameAgg = {name: elem.key, count: elem.doc_count};
+            peopleNames.push(nameAgg);
+        });
+        return peopleNames;
+    }
+
+    function getPeopleEyeColors(eyeColors) {
+        // [
+        //     {color: 'blue', 'count': 7},
+        //     {color: 'brown', 'count': 4}        
+        // ],
+        var peopleEyeColors = [];
+        eyeColors.buckets.forEach(function(elem) {
+            var eyeColorAgg = {color: elem.key, count: elem.doc_count};
+            peopleEyeColors.push(eyeColorAgg);
+        });
+        return peopleEyeColors;
+    }
+
+    function getPeopleHairColors(hairColors) {
+        // [{'color': 'brown', 'count': 7},
+        //     {'color': 'brown', 'count': 4}
+        // ],
+        var peopleHairColors = [];
+        hairColors.buckets.forEach(function(elem) {
+            var hairColorAgg = {color: elem.key, count: elem.doc_count};
+            peopleHairColors.push(hairColorAgg);
+        });
+        return peopleHairColors;
+    }
+
+    function getPeopleAges(ages) {
+        //[{"age": 30, "count": 9}]
+        var results = [];
+        ages.buckets.forEach(function(elem) {
+            var obj = {age: elem.key, count: elem.doc_count};
+            results.push(obj);
+        });
+        return results;
+    }
+
     function getPeople(aggs) {
+        
+
         var people = {
-            names: [
-                {name: 'Emily', 'count': 14}, 
-                {name: 'Erin', 'count': 12},
-                {name: 'Jane', 'count': 3}
-            ],
-            eyeColors: [
-                {color: 'blue', 'count': 7},
-                {color: 'brown', 'count': 4}        
-            ],
-            hairColors: [{'color': 'brown', 'count': 7},
-                {'color': 'brown', 'count': 4}
-            ],
-            ethnicities: [
-                {'ethnicity': 'white', 'count': 19}
-            ],
-            heights: [{height: 64, count:5, unitOfMeasure: 'inches'}],
-            weights: [{weight: 115, count: 5, unitOfMeasure: 'pounds'}],
-            ages: [{age: 30, count: 9}]
+
+            names: getPeopleNames(aggs.people_names),
+          
+            eyeColors: getPeopleEyeColors(aggs.people_eye_colors),
+
+            hairColors: getPeopleHairColors(aggs.people_hair_color),
+
+            ethnicities: [], // TODO: request this in elasticsearch
+            // [
+            //     {'ethnicity': 'white', 'count': 19}
+            // ],
+            heights: [], // TODO: determine if we can make aggregation for this
+            //[{height: 64, count:5, unitOfMeasure: 'inches'}],
+            weights:  [], // TODO: determine if we can make aggregation for this
+            //[{weight: 115, count: 5, unitOfMeasure: 'pounds'}],
+            ages: getPeopleAges(aggs.people_ages)
+            //[{age: 30, count: 9}]
         };
         return people;
     }
 
+    function getLocations(records) {
+        return [];
+    }
+
+    function getOfferTitles(records) {
+        return [];
+    }
+
+    function getOfferDates(aggs) {
+        return [];
+    }
+
+    function getOfferCities(argument) {
+        return [];
+    }
+
+    function getRelatedPhones(argument) {
+        return [];
+    }
+
+    function getRelatedEmails(argument) {
+        return [];
+    }
+
+    function getRelatedWebsites(aggs) {
+        return [];
+    }
+
     return {
         // expected data is from an elasticsearch 
-        transform: function(data) {
+        phone: function(data) {
             var newData = {};
 
             newData.telephone = getTelephone(data.hits.hits[0]._source);
-
             newData.prices = getPrices(data.hits.hits);
             newData.people = getPeople(data.aggregations);
+            newData.locations = getLocations(data.hits.hits);
+            newData.offerTitles = getOfferTitles(data.hits.hits);
+            newData.offerDates = getOfferDates(data.aggregations);
+            newData.offerCities = getOfferCities(data.aggregations);
+            newData.relatedPhones = getRelatedPhones(data.aggregations);
+            newData.relatedEmails = getRelatedEmails(data.aggregations);
+            newData.relatedWebsites = getRelatedWebsites(data.aggregations);
+
             return newData;
         }
     };
