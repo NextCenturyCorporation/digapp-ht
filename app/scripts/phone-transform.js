@@ -160,8 +160,16 @@ var phoneTransform = (function(_) {
         return [];
     }
 
-    function getOfferCities(argument) {
-        return [];
+    // [
+    //     {"city": "Los Angeles", "count": 10}, {}
+    // ]
+    function getOfferCities(aggs) {
+        var cities = [];
+
+        aggs.offers_by_city.buckets.forEach(function(elem) {
+            cities.push({city: elem.key, count: elem.doc_count});
+        });
+        return cities;
     }
 
     function getRelatedPhones(argument) {
