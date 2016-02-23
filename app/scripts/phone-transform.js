@@ -121,7 +121,24 @@ var phoneTransform = (function(_) {
     //     }
     // ]
     function getLocations(records) {
-        return [];
+        var locations = [];
+
+        records.forEach(function(record) {
+            var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
+            var lat = _.get(record, '_source.availableAtOrFrom.geo.lat');
+            var lon = _.get(record, '_source.availableAtOrFrom.geo.lon');
+            addresses.forEach(function(address) {
+                var location = {
+                    city: address.addressLocality,
+                    state: address.addressRegion,
+                    lat: lat,
+                    lon: lon,
+                    date: record._source.validFrom
+                };
+                locations.push(location);
+            });
+        });
+        return locations;
     }
 
     // "offerTitles": [
