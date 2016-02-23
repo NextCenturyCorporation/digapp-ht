@@ -82,15 +82,13 @@ var phoneTransform = (function(_) {
         //[{"age": 30, "count": 9}]
         var results = [];
         ages.buckets.forEach(function(elem) {
-            var obj = {age: elem.key, count: elem.doc_count};
+            var obj = {age: parseInt(elem.key), count: elem.doc_count};
             results.push(obj);
         });
         return results;
     }
 
     function getPeople(aggs) {
-        
-
         var people = {
 
             names: getPeopleNames(aggs.people_names),
@@ -113,12 +111,32 @@ var phoneTransform = (function(_) {
         return people;
     }
 
+    // "locations": [
+    //     {
+    //         "city": "hawthorn", 
+    //         "state": "california", 
+    //         "lat": 33.916403, 
+    //         "lon": -118.352575,
+    //         "date": "2012-04-23T18:25:43.511Z"
+    //     }
+    // ]
     function getLocations(records) {
         return [];
     }
 
+    // "offerTitles": [
+    //     {"title": "hello world 4", "date": "2012-04-23T18:25:43.511Z"},
+    //     {"title": "hello world 3", "date": "2012-04-22T18:25:43.511Z"},
+    //     {"title": "hello world 2 ", "date": "2012-04-21T18:25:43.511Z"},
+    //     {"title": "hello world 1", "date": "2012-04-20T18:25:43.511Z"}
+    // ],
     function getOfferTitles(records) {
-        return [];
+        var offerTitles = [];
+        records.forEach(function(record) {
+            offerTitles.push({title: record._source.title, date: record._source.validFrom});
+        });
+
+        return offerTitles;
     }
 
     function getOfferDates(aggs) {
