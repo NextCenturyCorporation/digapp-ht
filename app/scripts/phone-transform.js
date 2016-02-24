@@ -141,6 +141,29 @@ var phoneTransform = (function(_) {
         return locations;
     }
 
+    function getGeoCoordinates(records) {
+        var geos = [];
+
+        records.forEach(function(record) {
+            var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
+            var lat = _.get(record, '_source.availableAtOrFrom.geo.lat');
+            var lon = _.get(record, '_source.availableAtOrFrom.geo.lon');
+            addresses.forEach(function(address) {
+                if (lat && lon) {
+                    var geo = {
+                        city: address.addressLocality,
+                        state: address.addressRegion,
+                        lat: lat,
+                        lon: lon,
+                        date: record._source.validFrom
+                    };
+                    geos.push(geo);                    
+                }
+            });
+        });
+        return geos;
+    }
+
     // "offerTitles": [
     //     {"title": "hello world 4", "date": "2012-04-23T18:25:43.511Z"},
     //     {"title": "hello world 3", "date": "2012-04-22T18:25:43.511Z"},
@@ -156,8 +179,22 @@ var phoneTransform = (function(_) {
         return offerTitles;
     }
 
+    // [
+    //     {"date": "2012-04-23T18:25:43.511Z", "count": 2},
+    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
+    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
+    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
+    //     {"date": "2012-04-23T18:25:43.511Z", "count": 3},
+    //     {"date": "2012-04-15T18:25:43.511Z", "count": 1},
+    //     {"date": "2012-04-12T18:25:43.511Z", "count": 1}
+    // ]
     function getOfferDates(aggs) {
-        return [];
+        var dates = [];
+
+        aggs.offers_by_date.buckets.forEach(function(elem) {
+            dates.push({date: elem.key_as_string, count: elem.doc_count});
+        });
+        return dates;
     }
 
     // [
@@ -235,6 +272,7 @@ var phoneTransform = (function(_) {
             newData.relatedPhones = getRelatedPhones(data.aggregations);
             newData.relatedEmails = getRelatedEmails(data.aggregations);
             newData.relatedWebsites = getRelatedWebsites(data.aggregations);
+            newData.getCoordinates = getGeoCoordinates(data.hits.hits);
 
             return newData;
         }
