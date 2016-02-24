@@ -7,10 +7,14 @@ module.exports = {
         query: {
           filtered:{
             query:{
-              match:{ '{{field}}' : '{{value}}' }
+                match:{ '{{field}}' : '{{value}}' }
             }
           }
         },
+        filter : {
+            terms : { "_type" : ["offer"]}
+        },
+        size: 40, // TODO: add paging
         'aggs' : {
             // When: Timeline of offers
             'offers_by_date': {
