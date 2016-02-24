@@ -19,8 +19,8 @@ var phoneTransform = (function(_) {
         */
         var telephone = {};
         telephone.number = _.get(record, 'seller.telephone[0].name[0]');
-        telephone.type = 'cell';
-        telephone.origin = 'Washington, DC';
+        telephone.type = 'Cell';
+        telephone.origin = 'Los Angeles, CA';
         return telephone;
     }
 
