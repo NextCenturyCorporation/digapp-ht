@@ -11,9 +11,6 @@ module.exports = {
             }
           }
         },
-        filter : {
-            terms : { "_type" : ["offer"]}
-        },
         size: 40, // TODO: add paging
         'aggs' : {
             // When: Timeline of offers
