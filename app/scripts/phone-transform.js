@@ -272,7 +272,7 @@ var phoneTransform = (function(_) {
             newData.relatedPhones = getRelatedPhones(data.aggregations);
             newData.relatedEmails = getRelatedEmails(data.aggregations);
             newData.relatedWebsites = getRelatedWebsites(data.aggregations);
-            newData.getCoordinates = getGeoCoordinates(data.hits.hits);
+            newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
 
             return newData;
         }
