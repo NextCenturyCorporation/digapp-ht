@@ -1,0 +1,150 @@
+<!doctype html>
+
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Polymer Starter Kit" />
+  <title>DIG</title>
+  <!-- Place favicon.ico in the `app/` directory -->
+
+  <!-- Chrome for Android theme color -->
+  <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+
+  <!-- build:css styles/main.css -->
+  <link rel="stylesheet" href="styles/main.css">
+  <!-- endbuild-->
+
+  <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <!-- endbuild -->
+
+  <script src="bower_components/leaflet/dist/leaflet.js"></script>
+
+  <!-- will be replaced with elements/elements.vulcanized.html -->
+  <link rel="import" href="elements/elements.html">
+  <!-- endreplace-->
+
+  <!-- For shared styles, shared-styles.html import in elements.html -->
+  <style is="custom-style" include="shared-styles"></style>
+  <style is="custom-style" include="entity-view-styles"></style>
+  <style is="custom-style" include="map-styles"></style>
+
+</head>
+
+<body unresolved class="fullbleed layout vertical">
+  <span id="browser-sync-binding"></span>
+  <template is="dom-bind" id="app">
+    
+    <!--get app configuration from server -->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/test/data/phoneDisplay.json"
+      handle-as="json"
+      last-response="{{phoneDisplay}}"
+      on-response="showConfig">
+    </iron-ajax>
+
+    <!-- Main Content -->
+    <div class="vertical layout center">
+      <paper-material elevation="2">
+        <section class="heading">
+          <div class="paper-font-headline">
+          <phone-formatter number-input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+          </div>
+          <div class="paper-font-subhead">[[phoneDisplay.telephone.type]] phone in 
+          [[phoneDisplay.telephone.origin]]</div>
+        </section>
+
+        <div class="content">
+          <section class="who flex">
+            <person-features people="[[phoneDisplay.people]]"></person-features>
+            <section class="photos">
+              <div>Photos:</div>
+            </section>
+          </section>
+          <section class="where flex">
+            <leaflet-map id="map" fit-to-markers>
+              <template is="dom-repeat" items="{{phoneDisplay.geoCoordinates}}" as="loc">
+                <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
+              </template>
+            </leaflet-map> 
+            <div class="layout horizontal">
+              <feature-aggregation title="Offer Cities" key="city" agg="[[phoneDisplay.offerCities]]"></feature-aggregation>
+            </div>
+          </section>
+        </div>
+        
+        <div class="content">
+          <section class="relations flex">
+            <div class="layout horizontal">
+              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.relatedEmails]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.relatedPhones]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.relatedWebsites]]"></feature-aggregation>
+            </div>
+          </section>
+          <section class="related-records flex">
+            Related Offers: 
+            <div class="related-entities">
+              <records-list records="[[phoneDisplay.relatedRecords]]"></records-list>
+            </div>
+          </section>
+        </div>
+
+        <section class="when">
+          <bar-chart y-axis-label="# of Offers" data='[[phoneDisplay.offerDates]]' 
+            chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
+          </bar-chart>
+        </section>
+      </paper-material>    
+    </div>
+  </template>
+
+  <script>
+  (function(document) {
+    var app = document.querySelector('#app');
+
+    app.showConfig = function (req, res) {
+      console.log('REQ: ', req);
+      console.log('RES: ', res);
+    };
+
+    app.getURLParams = function() {
+      var queryString = window.location.search.slice(1, window.location.search.length);
+      var params = queryString.split('&');
+      app.params = {};
+      for (var i = 0; i < params.length; i++) {
+        var paramPair = params[i].split('=');
+        app.params[paramPair[0]] =  paramPair[1];
+      }
+    };
+
+  })(document);
+  </script>
+
+</body>
+
+</html>
