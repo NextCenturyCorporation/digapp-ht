@@ -35,7 +35,7 @@ var offerTransform = (function() {
     }
 
     function getPerson(record) {
-        /** build geolocation object:
+        /** build person object:
         "person": {
             "name": "Emily", 
             "eyeColor": "blue",
@@ -98,7 +98,7 @@ var offerTransform = (function() {
                 newData.address = getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
                 newData.person = getPerson(data.hits.hits[0]._source);
-                newData.title = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.name[0]');
+                newData.title = _.get(data.hits.hits[0]._source, 'title');
                 newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name[0]');
                 newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description[0]');
                 newData.prices = getPrices(data.hits.hits[0]);
