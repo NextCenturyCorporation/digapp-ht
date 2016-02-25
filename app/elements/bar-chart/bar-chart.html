@@ -78,6 +78,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true
         },
+        dataKey: {
+          type: String
+        },  
+        dataValue: {
+          type: String
+        },
         chartFilter: {
           type: Object,
           notify: true
@@ -91,12 +97,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       observers: [
-        'checkData(data, yAxisLabel)'
+        'checkData(data, dataKey, dataValue, yAxisLabel)'
       ],
       checkData: function() {
         if(this.data.length > 0) {
           this.setupChart();
         }
+      },
+      getItemKey: function(item) {
+        return item[this.dataKey];
+      },
+      getItemValue: function(item) {
+        return item[this.dataValue];
       },
       resetFilter: function() {
         this.chartFilter = {begin: null, end: null};
@@ -116,11 +128,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var sliderHeight = 50;
 
         var x = d3.scale.ordinal()
-            .domain(self.data.map(function(d) { return d.key; }))
+            .domain(self.data.map(function(d) { return self.getItemKey(d); }))
             .rangeRoundBands([0, chartWidth], 0.1, 0);
 
         var y = d3.scale.linear()
-            .domain([0, d3.max(self.data, function(d) { return d.value; })])
+            .domain([0, d3.max(self.data, function(d) { return self.getItemValue(d); })])
             .range([chartHeight, 0]);
 
         var xAxis = d3.svg.axis()
@@ -168,7 +180,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var computeSelected = function(extent) {
           chart.selectAll('.bar').classed('selected', function(d) { 
             var midBar = Math.round(x.rangeBand() / 2);
-            return extent[0] <= x(d.key) + midBar && x(d.key) + midBar <= extent[1]; 
+            return extent[0] <= x(self.getItemKey(d)) + midBar && x(self.getItemKey(d)) + midBar <= extent[1]; 
           });
         };
 
@@ -229,14 +241,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .text(this.yAxisLabel);
       },
       drawBars: function(chart, chartHeight, x, y) {
+        var self = this;
         chart.selectAll('.bar')
             .data(this.data)
           .enter().append('rect')
             .attr('class', 'bar')
-            .attr('x', function(d) { return x(d.key); })
+            .attr('x', function(d) { return x(self.getItemKey(d)); })
             .attr('width', Math.round(x.rangeBand()))
-            .attr('y', function(d) { return y(d.value); })
-            .attr('height', function(d) { return chartHeight - y(d.value); });
+            .attr('y', function(d) { return y(self.getItemValue(d)); })
+            .attr('height', function(d) { return chartHeight - y(self.getItemValue(d)); });
       }
     });
   })();
