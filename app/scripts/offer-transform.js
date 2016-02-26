@@ -27,10 +27,19 @@ var offerTransform = (function() {
             "lat": 33.916403, 
             "lon": -118.352575
         }
+        
+        if no lat && lon, return undefined 
         */
-        var geo = {};
-        geo.lat = _.get(record, 'availableAtOrFrom.geo.lat');
-        geo.lon = _.get(record, 'availableAtOrFrom.geo.lon');
+        var geo;
+        var lat = _.get(record, 'availableAtOrFrom.geo.lat');
+        var lon = _.get(record, 'availableAtOrFrom.geo.lon');
+
+        if(lat && lon) {
+            geo = {};
+            geo.lat = lat;
+            geo.lon = lon;
+        }
+
         return geo;
     }
 
