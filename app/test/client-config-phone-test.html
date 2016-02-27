@@ -1,0 +1,178 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>client-config</title>
+
+  <script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../../bower_components/web-component-tester/browser.js"></script>
+  <script src="data/phone-aggregation.js" type="text/javascript"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/client-config/client-config.html">
+
+</head>
+<body>
+
+<test-fixture id="client-config-fixture">
+  <template>
+    <client-config></client-config>
+  </template>
+</test-fixture>
+
+<script>
+  'use strict';
+  /* globals suite, test, expect, setup, fixture, phoneagg, assert */
+  /* jshint -W030 */
+  suite('<client-config> phone tests', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phonetransform = myEl.config.transforms.phone;
+      dataout = phonetransform(phoneagg);
+    });
+
+    test('defines config object', function (done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.phone).to.be.a('Function');
+      done();
+    });
+
+    test('defines phone data', function () {
+      expect(phoneagg).to.exist;
+      assert.equal(phoneagg.hits.total, 32);
+    });
+
+    test('defines phone number', function () {
+      assert.equal(dataout.telephone.number, '1234567890');
+      assert.equal(dataout.telephone.type, 'Cell');
+      assert.equal(dataout.telephone.origin, 'Los Angeles, CA');
+    });
+
+    test('defines prices array', function() {
+      expect(dataout.prices).to.be.an('Array');
+      assert.equal(dataout.prices.length, 12);
+      assert.equal(dataout.prices[1].amount, 200);
+      assert.equal(dataout.prices[4].unitCode, 'MIN');
+      assert.equal(dataout.prices[2].billingIncrement, 60);
+    });
+
+    test('defines people object', function() {
+      expect(dataout.people).to.exist;
+      expect(dataout.people.names).to.exist;
+      expect(dataout.people.eyeColors).to.exist;
+      expect(dataout.people.hairColors).to.exist;
+      expect(dataout.people.ages).to.exist;
+    });
+
+    test('defines people aggregations', function() {
+      assert.deepEqual(dataout.people.names[0], {name: 'erica', count: 10});
+      assert.deepEqual(dataout.people.ages[0], {age: 22, count: 15});
+    });
+
+    test('defines titles array', function() {
+      expect(dataout.offerTitles).to.exist;
+      expect(dataout.offerTitles).to.be.an('Array');
+    });
+
+    test('defines offerTitles items with dates', function() {
+      assert.equal(dataout.offerTitles.length, 10);
+      assert.equal(dataout.offerTitles[3].title.length, 81);
+      assert.equal(dataout.offerTitles[3].date, '2014-10-28T21:44:00');
+    });
+
+    test('defines locations array', function() {
+      expect(dataout.locations).to.exist;
+      expect(dataout.locations).to.be.an('Array');
+    });
+
+    test('defines location items', function() {
+      assert.equal(dataout.locations.length, 10);
+      assert.equal(dataout.locations[3].city, 'Los Angeles');
+      expect(dataout.locations[3].state).to.not.exist;
+      assert.equal(dataout.locations[3].lat, 34.0522);
+      assert.equal(dataout.locations[3].lon, -118.244);
+      assert.equal(dataout.locations[3].date, '2014-10-28T21:44:00');
+    });
+
+    test('defines cities agg array', function() {
+      expect(dataout.offerCities).to.exist;
+      expect(dataout.offerCities).to.be.an('Array');
+    });
+
+    test('defines cities items', function() {
+      assert.equal(dataout.offerCities.length, 3);
+      assert.deepEqual(dataout.offerCities[2], {city: 'San Fernando Valley', count: 10});
+    });
+
+    test('defines dates agg array', function() {
+      expect(dataout.offerDates).to.exist;
+      expect(dataout.offerDates).to.be.an('Array');
+    });
+
+    test('defines dates items', function() {
+      assert.equal(dataout.offerDates.length, 1);
+      assert.equal(dataout.offerDates[0].date, '2014-10-27T00:00:00.000Z');
+      assert.equal(dataout.offerDates[0].count, 32);
+    });
+
+    test('defines related phones', function() {
+      assert.isArray(dataout.relatedPhones);
+      assert.equal(dataout.relatedPhones.length, 1);
+      assert.equal(dataout.relatedPhones[0].number, '1234567890');
+      assert.equal(dataout.relatedPhones[0].count, 32);
+    });
+
+    test('defines related emails', function() {
+      assert.isArray(dataout.relatedEmails);
+      assert.equal(dataout.relatedEmails.length, 0);
+    });
+
+    test('defines related websites', function() {
+      assert.isArray(dataout.relatedWebsites);
+      assert.equal(dataout.relatedWebsites.length, 3);
+      assert.equal(dataout.relatedWebsites[0].webSite, 'backpage.com');
+      assert.equal(dataout.relatedWebsites[0].count, 15);
+    });
+
+    test('defines geo coordinates', function() {
+      assert.isArray(dataout.geoCoordinates);
+      assert.equal(dataout.geoCoordinates.length, 6);
+      assert.equal(dataout.geoCoordinates[3].lat, '33.6805');
+      assert.equal(dataout.geoCoordinates[3].lon, '-117.86');
+      assert.isDefined(dataout.geoCoordinates[5].lat);
+      assert.isDefined(dataout.geoCoordinates[5].lon);
+    });
+
+    test('defines related records with offer array', function() {
+      assert.isObject(dataout.relatedRecords);
+      assert.isArray(dataout.relatedRecords.offer);
+    });
+
+    test('defines offers with information specified in data-model', function() {
+      assert.equal(dataout.relatedRecords.offer.length, 10);
+      assert.isString(dataout.relatedRecords.offer[0]._id);
+      assert.equal(dataout.relatedRecords.offer[0]._type, 'offer');
+      assert.equal(dataout.relatedRecords.offer[0].date, '2014-10-30T22:37:00');
+      assert.isObject(dataout.relatedRecords.offer[3].address);
+      assert.equal(dataout.relatedRecords.offer[3].address.locality, 'Los Angeles');
+      assert.equal(dataout.relatedRecords.offer[0].address.region, 'California');
+      assert.isString(dataout.relatedRecords.offer[0].title);
+      assert.isString(dataout.relatedRecords.offer[0].publisher);
+      assert.isArray(dataout.relatedRecords.offer[8].prices);
+      assert.equal(dataout.relatedRecords.offer[8].prices[1].amount, 200);
+      assert.equal(dataout.relatedRecords.offer[8].prices[1].unitCode, 'MIN');
+      assert.equal(dataout.relatedRecords.offer[8].prices[0].billingIncrement, 60);
+      assert.isArray(dataout.relatedRecords.offer[0].phones);
+      assert.equal(dataout.relatedRecords.offer[0].phones[0], '1234567890');
+    });
+
+  });
+</script>
+
+</body>
+</html>

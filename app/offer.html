@@ -84,25 +84,24 @@
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
     <query-builder 
-      query="{{phoneQuery}}" 
-      query-template="{{config.queryTemplates.phone}}">
+      query="{{offerQuery}}" 
+      query-template="{{config.queryTemplates.offer}}">
     </query-builder>
 
-    <!--issue a search request using phoneQuery and return results -->
+    <!--make an search using {{singleEntityQuery}} and return results -->
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[phoneQuery]]'
-      results="{{phone}}"
-      elastic-type='["offer"]'
+      query='[[offerQuery]]'
+      results="{{offer}}"
       lastError="{{error}}">
     </elastic-search>
 
     <!--make generic models for content sections -->
     <json-transform
-     data-in="[[phone]]"
-     data-out="{{phoneDisplay}}"
-     transform-function="[[clientConfig.transforms.phone]]"
+     data-in="[[offer]]"
+     data-out="{{offerDisplay}}"
+     transform-function="[[clientConfig.transforms.offer]]"
      ></json-transform>
 
     <!-- Main Content -->
@@ -110,57 +109,65 @@
       <paper-material elevation="2">
         <section class="heading">
           <div class="paper-font-headline">
-          <phone-formatter number-input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+           [[offerDisplay.title]]
           </div>
-          <div class="paper-font-subhead">[[phoneDisplay.telephone.type]] phone in 
-          [[phoneDisplay.telephone.origin]]</div>
         </section>
 
         <div class="content">
-          <section class="who flex">
-            <person-features people="[[phoneDisplay.people]]"></person-features>
+          <section class="what flex">
+          <!--ad details-->
+            <b>Ad Details</b>
+            <p class="body">Description: [[offerDisplay.body]]</p>
+            <p class="publisher">Publisher: [[offerDisplay.publisher]]</p>
+            <p class="date">Posted <time is="relative-time" datetime$="[[offerDisplay.date]]"></time></p>
+            <p class="prices">
+              Prices:<br/>
+              <template is="dom-repeat" items="[[offerDisplay.prices]]" as="price">
+                <span>[[price.amount]] for [[price.billingIncrement]] [[price.unitCode]]</span><br/>
+              </template>
+            </p>
+            <p class="phones">
+              Phone Number(s):<br/>
+              <template is="dom-repeat" items="[[offerDisplay.phones]]" as="phone">
+                <phone-formatter number-input="[[phone]]"></phone-formatter>
+              </template>
+            </p>
+            <p class="emails">
+              Email(s):<br/>
+              <template is="dom-repeat" items="[[offerDisplay.emails]]" as="email">
+                <span>[[email]]</span>
+              </template>
+            </p>
             <section class="photos">
-              <div>Photos:</div>
+              photos section
             </section>
           </section>
+          
+          <section class="who flex">
+            <p class="name">Name: [[offerDisplay.person.name]]</p>
+            <p class="age">Age: [[offerDisplay.person.age]]</p>
+            <p class="eye-color">Eye Color: [[offerDisplay.person.eyeColor]]</p>
+            <p class="hair-color">Hair Color: [[offerDisplay.person.hairColor]]</p>
+            <p class="height">Height (in cm): [[offerDisplay.person.height]]</p>
+            <p class="weight">Weight (in kg): [[offerDisplay.person.weight]]</p>
+          </section>
           <section class="where flex">
-            <leaflet-map id="map" fit-to-markers>
-              <template is="dom-repeat" items="{{phoneDisplay.geoCoordinates}}" as="loc">
-                <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
-              </template>
-            </leaflet-map> 
+            <template is="dom-if" if="{{offerDisplay.geo}}">
+              <leaflet-map latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}" zoom="10">
+                <leaflet-marker latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}"></leaflet-marker> 
+              </leaflet-map> 
+            </template> 
             <div class="layout horizontal">
-              <feature-aggregation title="Offer Cities" key="city" agg="[[phoneDisplay.offerCities]]"></feature-aggregation>
+              <!--make address component?-->
             </div>
           </section>
         </div>
-        
-        <div class="content">
-          <section class="relations flex">
-            <div class="layout horizontal">
-              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.relatedEmails]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.relatedPhones]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.relatedWebsites]]"></feature-aggregation>
-            </div>
-          </section>
-          <section class="related-records flex">
-            Related Offers: 
-            <div class="related-entities">
-              <records-list records="[[phoneDisplay.relatedRecords]]"></records-list>
-            </div>
-          </section>
-        </div>
-
-        <section class="when">
-          <bar-chart y-axis-label="# of Offers" data='[[phoneDisplay.offerDates]]' 
-            chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
-          </bar-chart>
-        </section>
       </paper-material>    
     </div>
   </template>
 
   <script>
+
   (function(document) {
     var app = document.querySelector('#app');
 

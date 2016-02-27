@@ -7,11 +7,11 @@ module.exports = {
         query: {
           filtered:{
             query:{
-              match:{ '{{field}}' : '{{value}}' }
+                match:{ '{{field}}' : '{{value}}' }
             }
           }
         },
-        size: 1,
+        size: 40, // TODO: add paging
         'aggs' : {
             // When: Timeline of offers
             'offers_by_date': {
@@ -29,22 +29,22 @@ module.exports = {
             // Who: Give a sense of who is using this phone 
             // note that in current index, aggregations on hair color, eye color, and ethnicity come back empty
             // and that ethnicity is missing from offer type
-            'service_by_name': {
+            'people_names': {
                 'terms': {
                     'field': 'itemOffered.name'
                 }
             },
-            'service_by_age': {
+            'people_ages': {
                 'terms': {
                     'field': 'itemOffered.personAge'
                 }
             },
-            'service_by_eye_color': {
+            'people_eye_colors': {
                 'terms': {
                     'field': 'itemOffered.eyeColor'
                 }
             },
-            'service_by_hair_color': {
+            'people_hair_color': {
                 'terms': {
                     'field': 'itemOffered.hairColor'
                 }
@@ -74,6 +74,11 @@ module.exports = {
                     'field' : 'mainEntityOfPage.publisher.name' 
                 }          
             }
+        }
+    },
+    offer: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
         }
     }
   }
