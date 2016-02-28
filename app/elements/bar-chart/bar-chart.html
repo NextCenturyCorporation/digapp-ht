@@ -13,54 +13,76 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 
 <dom-module id="bar-chart">
+  <style>
+    :host {
+      display: block;
+    }
+
+    .bar {
+/*      fill: var(--accent-color);*/
+      fill: var(--default-primary-color);
+    }
+
+    .selected {
+      fill: var(--dark-accent-color);
+    }
+
+    .axis {
+      font-size: 11px;
+/*      fill: var(--text-primary-color);*/
+      fill: var(--secondary-text-color);
+    }
+
+    .axis line, .axis path {
+      fill: none;
+/*      stroke: rgba(255,255,255,0.3);*/
+      stroke: rgba(0,0,0,0.1);
+      shape-rendering: crispEdges;
+    }
+
+    .x.axis path {
+      display: none;
+    }
+
+    .resize path {
+/*      fill: var(--text-primary-color);*/
+      fill: rgba(0,0,0,0.5);
+      fill-opacity: .8;
+    }
+
+    .brush .extent {
+      fill-opacity: .125;
+      shape-rendering: crispEdges;
+    }
+
+    paper-button {
+      position: absolute;
+      right: 0;
+      top: 0;
+      margin: 0;
+    }
+    
+    #svgElement{
+      width: 100%;
+      height: 100px;
+    }
+    
+    paper-button{
+      background-color: var(--text-primary-color);
+      color: var(--primary-text-color);
+      font-size: 12px;
+    }
+    
+  </style>
   <template>
-    <style>
-      :host {
-        display: block;
-      }
-
-      .bar {
-        fill: var(--paper-blue-a200);
-      }
-
-      .selected {
-        fill: var(--paper-red-900);
-      }
-
-      .axis {
-        font: 10px sans-serif;
-      }
-
-      .axis line, .axis path {
-        fill: none;
-        stroke: #000;
-        shape-rendering: crispEdges;
-      }
-
-      .x.axis path {
-        display: none;
-      }
-
-      .resize path {
-        fill: var(--paper-grey-700);
-        fill-opacity: .8;
-        stroke: #000;
-        stroke-width: 1.5px;
-      }
-
-      .brush .extent {
-        fill-opacity: .125;
-        shape-rendering: crispEdges;
-      }
-
-      button {
-        margin: 0px 0px 10px 10px;
-      }
-    </style>
-    <div id="chartContainer">
-      <svg id="svgElement"></svg>
+    <div class="layout horizontal">
+      <div id="chartContainer" class="flex auto">
+        <svg id="svgElement"></svg>
+      </div>
     </div>
-    <button hidden="[[!clearFilterEnabled]]" on-click="resetFilter">Reset Chart Filter</button>
+    <paper-button raised hidden="[[!clearFilterEnabled]]" on-click="resetFilter">
+      Reset Chart Filter
+    </paper-button>
   </template>
   <script>
   (function() {
@@ -105,7 +127,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       getItemKey: function(item) {
-        return item[this.dataKey];
+        var format = d3.time.format("%Y-%m-%d");
+        var formattedDate = format(new Date(item[this.dataKey]));
+        return formattedDate;
+        
+        // Just do this if using a time scale
+//        return new Date(item[this.dataKey]);
       },
       getItemValue: function(item) {
         return item[this.dataValue];
@@ -120,16 +147,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       setupChart: function() {
         // calculate margins based on data?
         var self = this;
-        this.width = 400;
-        this.height = 200;
-        var margin = {top: 10, right: 30, bottom: 30, left: 30};
+        this.height = 100;
+        var margin = {top: 0, right: 0, bottom: 18, left: 20};
+        this.width = parseInt(d3.select('#chartContainer').style('width'), 10);
         var chartHeight = this.height - margin.top - margin.bottom;
         var chartWidth = this.width - margin.left - margin.right;
         var sliderHeight = 50;
+        var percent = d3.format('%');
 
         var x = d3.scale.ordinal()
             .domain(self.data.map(function(d) { return self.getItemKey(d); }))
             .rangeRoundBands([0, chartWidth], 0.1, 0);
+        
+        // Should be using a time scale instead, like this...
+//        var x = d3.time.scale.utc()
+//            .domain([
+//              d3.min(self.data, function(d) { return self.getItemKey(d); }),
+//              d3.max(self.data, function(d) { return self.getItemKey(d); })
+//            ])
+//            .range([0, chartWidth]);
 
         var y = d3.scale.linear()
             .domain([0, d3.max(self.data, function(d) { return self.getItemValue(d); })])
@@ -138,11 +174,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var xAxis = d3.svg.axis()
             .scale(x)
             .orient('bottom')
-            .tickValues(x.domain().filter(function(d, i) { 
-              if(i === self.data.length - 1 || i === 0) { 
-                return d;
-              } 
-            }));
+            .ticks(3);
       
         var yAxis = d3.svg.axis()
             .scale(y)
@@ -172,6 +204,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
+        
+        d3.select(window).on('resize', function(){
+          self.resize()
+        }); 
+        
       },
       createBrush: function(chart, x, sliderHeight, chartHeight) {
         var self = this;
@@ -201,7 +238,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
 
         var arc = d3.svg.arc()
-            .outerRadius(sliderHeight / 2)
+            .outerRadius(sliderHeight / 4)
             .startAngle(0)
             .endAngle(function(d, i) { return i ? -Math.PI : Math.PI; });
 
@@ -250,6 +287,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .attr('width', Math.round(x.rangeBand()))
             .attr('y', function(d) { return y(self.getItemValue(d)); })
             .attr('height', function(d) { return chartHeight - y(self.getItemValue(d)); });
+      },
+      resize: function() {
+        d3.select('#chartContainer').style('width', 0)
+        this.setupChart();
       }
     });
   })();
