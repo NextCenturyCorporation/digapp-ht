@@ -113,6 +113,9 @@ var offerTransform = (function() {
                 newData.prices = getPrices(data.hits.hits[0]);
                 newData.emails = getEmails(data.hits.hits[0]);
                 newData.phones = getPhones(data.hits.hits[0]);
+                newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
+                newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
+                newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');
             }
 
             return newData;

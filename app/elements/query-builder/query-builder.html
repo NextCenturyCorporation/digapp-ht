@@ -31,17 +31,33 @@
        */ 
       appConfig: {
         type: Object
+      },
+
+      /**
+       * The elasticsearch field on which to perform query
+       */
+      field: {
+        type: String,
+        notify: true
+
+      }, 
+
+      /**
+       * The value of the elasticsearch field
+       */
+      value: {
+        type: Object,
+        notify: true
       }
     },
     observers: [
-      'waitForQueryTemplate(queryTemplate)'
+      'waitForQueryTemplate(queryTemplate, field, value)'
     ],
 
     /**
      * Get query string parameters and then build the query based on the queryTemplate
      */
     waitForQueryTemplate: function() {
-      app.getURLParams();
       this.buildElasticQuery();
     },
 
@@ -51,10 +67,10 @@
     buildElasticQuery: function() {
       /* globals Mustache */
       var view = {
-        field: app.params.field,
-        value: encodeURIComponent(app.params.value)
+        field: this.field,
+        value: encodeURIComponent(this.value)
       };
-
+      
       var query = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(this.queryTemplate), view)));
       this._setQuery(query);
     }
