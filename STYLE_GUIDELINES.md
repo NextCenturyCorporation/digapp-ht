@@ -1,4 +1,9 @@
 #dig-polymer style guidelines
+
+This is compact, but it expands to a lot of new concepts and rules.  The reason for the styling guidelines so that our elements are consistent with Polymer's paper elements, and also because applying themes and styling globally is handled a little bit different than a framework such as bootstrap.  
+
+The objective is to leverage material design and existing components so that we do not spend time re-inventing this huge body of work.  There is still plenty of room for styling such as layout, size, font selection, but not a lot of flexibility for things like how buttons look (besides color) and how they behave.
+
 1. To encapsulate style rules in a component, use Shadow DOM styling rules.  IOW, add a style tag to the component.  See https://www.polymer-project.org/1.0/docs/devguide/styling.html
 
 2. Because we use Polymer paper-elements, adhere to all material design guidelines:
