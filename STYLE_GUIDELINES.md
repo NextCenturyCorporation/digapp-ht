@@ -17,4 +17,4 @@ Probably avoid different pieces of paper for sections of an entity
 6. Use Flexbox layout with iron-flex-layout (classes and/or mixins)
 
 
-##See polymer paper elements catalog and google web components for examples on how they used shadow DOM encapsulation, mix-ins, and style module imports.
+###See polymer paper elements catalog and google web components for examples on how they used shadow DOM encapsulation, mix-ins, and style module imports.
