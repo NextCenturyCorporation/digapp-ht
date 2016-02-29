@@ -1,4 +1,4 @@
-#dig-polymer styling guidelines
+#dig-polymer style guidelines
 1. To encapsulate style rules in a component, use Shadow DOM styling rules.  IOW, add a style tag to the component.  See https://www.polymer-project.org/1.0/docs/devguide/styling.html
 
 2. Because we use Polymer paper-elements, adhere to all material design guidelines:
