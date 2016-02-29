@@ -1,6 +1,6 @@
 #dig-polymer style guidelines
 
-This is compact, but it expands to a lot of new concepts and rules.  The reason for the styling guidelines so that our elements are consistent with Polymer's paper elements, and also because applying themes and styling globally is handled a little bit different than a framework such as bootstrap.  
+This is compact, but it expands to a lot of new concepts and rules.  The purpose of these styling guidelines is to ensure that all elements are consistent with Polymer's paper elements, and also because applying themes and styling globally is handled a little bit different than a framework such as bootstrap.
 
 The objective is to leverage material design and existing components so that we do not spend time re-inventing this huge body of work.  There is still plenty of room for styling such as layout, size, font selection, but not a lot of flexibility for things like how buttons look (besides color) and how they behave.
 
