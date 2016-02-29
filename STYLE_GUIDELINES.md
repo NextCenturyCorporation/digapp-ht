@@ -15,7 +15,7 @@
 5. Use var mix-in and @apply to give element a theming interface.  A common and consistent mix-in naming convention will allow all elements to adopt a global theme that is defined in app-theme.html
 Probably avoid different pieces of paper for sections of an entity
 6. Use Flexbox layout with iron-flex-layout (classes and/or mixins)
-7. It is not necessary to replace native elements with paper-elements everywhere.  For example, it is OK to use <input type="text"> instead of <paper-input>.
+7. It is not necessary to replace native elements with paper-elements everywhere.  For example, it is OK to use `<input type="text">` instead of `<paper-input>`.
 
 
 ###See polymer paper elements catalog and google web components for examples on how they used shadow DOM encapsulation, mix-ins, and style module imports.
