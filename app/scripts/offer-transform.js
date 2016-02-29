@@ -27,15 +27,24 @@ var offerTransform = (function() {
             "lat": 33.916403, 
             "lon": -118.352575
         }
+        
+        if no lat && lon, return undefined 
         */
-        var geo = {};
-        geo.lat = _.get(record, 'availableAtOrFrom.geo.lat');
-        geo.lon = _.get(record, 'availableAtOrFrom.geo.lon');
+        var geo;
+        var lat = _.get(record, 'availableAtOrFrom.geo.lat');
+        var lon = _.get(record, 'availableAtOrFrom.geo.lon');
+
+        if(lat && lon) {
+            geo = {};
+            geo.lat = lat;
+            geo.lon = lon;
+        }
+
         return geo;
     }
 
     function getPerson(record) {
-        /** build geolocation object:
+        /** build person object:
         "person": {
             "name": "Emily", 
             "eyeColor": "blue",
@@ -98,7 +107,7 @@ var offerTransform = (function() {
                 newData.address = getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
                 newData.person = getPerson(data.hits.hits[0]._source);
-                newData.title = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.name[0]');
+                newData.title = _.get(data.hits.hits[0]._source, 'title');
                 newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name[0]');
                 newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description[0]');
                 newData.prices = getPrices(data.hits.hits[0]);
