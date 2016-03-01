@@ -1,5 +1,6 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel='import' href='../mustache.html'>
+<link rel='import' href='../lodash.html'>
 
 <script>
 (function() {
@@ -26,14 +27,6 @@
       },
 
       /**
-       * Application scope javascript object which contains query templates
-       * and other configuration data
-       */ 
-      appConfig: {
-        type: Object
-      },
-
-      /**
        * The elasticsearch field on which to perform query
        */
       field: {
@@ -48,31 +41,44 @@
       value: {
         type: Object,
         notify: true
+      },
+
+
+      /**
+       * Alternatively, you can provide the path to the queryTemplate value that needs to be changed
+       */
+      pathToValue: {
+        type: String,
+        notify: true
       }
+
+
     },
     observers: [
-      'waitForQueryTemplate(queryTemplate, field, value)'
+      'buildElasticQuery(queryTemplate, field, value)',
+      'buildElasticQuery(queryTemplate, pathToValue, value)'
     ],
-
-    /**
-     * Get query string parameters and then build the query based on the queryTemplate
-     */
-    waitForQueryTemplate: function() {
-      this.buildElasticQuery();
-    },
 
     /**
      * Build a query from query string parameters and a query template
      */
     buildElasticQuery: function() {
-      /* globals Mustache */
-      var view = {
-        field: this.field,
-        value: encodeURIComponent(this.value)
-      };
-      
-      var query = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(this.queryTemplate), view)));
-      this._setQuery(query);
+      /* globals Mustache, _ */
+
+      var query = {};
+      if(this.field) {
+          var view = {
+            field: this.field,
+            value: encodeURIComponent(this.value)
+          };
+          
+          query = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(this.queryTemplate), view)));
+          this._setQuery(query);
+        
+      } else if(this.pathToValue) {
+          _.set(this.queryTemplate, this.pathToValue, this.value);
+          this._setQuery(this.queryTemplate);
+      }
     }
 
   });
