@@ -12,10 +12,9 @@ The objective is to leverage material design and existing components so that we 
     * use consistent, non-zero elevation for buttons, FAB per MD guidelines: https://www.google.com/design/spec/components/buttons.html#buttons-button-types
 3. For application wide theming and layout, use app-theming style module
 4. For visual elements, use style module instead of duplicating common style rules in the component
-5. Use var mix-in and @apply to give element a theming interface.  A common and consistent mix-in naming convention will allow all elements to adopt a global theme that is defined in app-theme.html
-Probably avoid different pieces of paper for sections of an entity
+5. Use var mix-in and @apply to give element a theming interface.  A common and consistent mix-in naming convention will allow all elements to adopt a global theme that is defined in app-theme.html.
 6. Use Flexbox layout with iron-flex-layout (classes and/or mixins)
-7. It is not necessary to replace native elements with paper-elements everywhere.  For example, it is OK to use `<input type="text">` instead of `<paper-input>`.
+7. Use paper elements to maintain material design metaphore and reduce workload, but native elements may be a better substitute in certain cases.
 
 
 ###See polymer paper elements catalog and google web components for examples on how they used shadow DOM encapsulation, mix-ins, and style module imports.
