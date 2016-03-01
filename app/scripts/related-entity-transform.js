@@ -115,12 +115,33 @@ var relatedEntityTransform = (function() {
         return relatedSellers;
     }
 
+    function getAddressArray(record) {
+        var addresses = [];
+        var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
+
+        addressesArr.forEach(function(addressElem) {
+            var obj = {
+                locality: _.get(addressElem, 'addressLocality'),
+                region: _.get(addressElem, 'addressRegion'),
+                country: _.get(addressElem, 'addressCountry')
+            };
+            addresses.push(obj);
+        });
+        return addresses;
+    }
+
     function getWebpageSummaries(records) {
         var relatedWebpages = [];
         records.forEach(function(record) {
             var obj = {
                 _id: record._id,
-                _type: record._type
+                _type: record._type,
+                title: _.get(record, '_source.name[0]'),
+                publisher: _.get(record, '_source.publisher.name'),
+                url: _.get(record, '_source.url'),
+                body: _.get(record, '_source.description[0]'),
+                addresses: getAddressArray(record),
+                date: _.get(record, '_source.dateCreated')
             };
             relatedWebpages.push(obj);
         });
@@ -130,7 +151,6 @@ var relatedEntityTransform = (function() {
     function getServiceSummaries(records) {
         var relatedServices = [];
         records.forEach(function(record) {
-            console.log(record);
             var obj = {
                 _id: record._id,
                 _type: record._type,
@@ -150,13 +170,12 @@ var relatedEntityTransform = (function() {
     }
 
     return {
-        // expected data is from an elasticsearch 
+        // expected data is from an elasticsearch query
         offer: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
                 newData = getOfferSummaries(data.hits.hits);
             }
-
             return newData;
         },
         phone: function(data) {
@@ -164,7 +183,6 @@ var relatedEntityTransform = (function() {
             if(data.hits.hits.length > 0) {
                 newData = getPhoneSummaries(data.hits.hits);
             }
-
             return newData;
         },
         email: function(data) {
