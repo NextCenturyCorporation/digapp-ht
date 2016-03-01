@@ -36,6 +36,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         position: absolute;
         left: 0;
       }
+      
+      .bar.entity-phone{
+        background-color: var(--light-entity-phone-color);
+      }
+      .bar.entity-email{
+        background-color: var(--light-entity-email-color);
+      }
+      .bar.entity-offer{
+        background-color: var(--light-entity-offer-color);
+      }
+      .bar.entity-webpage{
+        background-color: var(--light-entity-webpage-color);
+      }
+      .bar.entity-seller{
+        background-color: var(--light-entity-seller-color);
+      }
+      .bar.entity-person{
+        background-color: var(--light-entity-person-color);
+      }
+      .bar.entity-location{
+        background-color: var(--light-entity-location-color);
+      }
+      .bar.entity-photo{
+        background-color: var(--light-entity-photo-color);
+      }
 
       .bar-count {
         font-size: 11px;
@@ -65,18 +90,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-bottom: 2px;
       }
       
+      .agg > a{
+        margin-top: 10px;
+        display: inline-block;
+        
+        /* Repeating this for now until I get app-wide theme working */
+        color: var(--link-text-color);
+        text-decoration: none;
+        cursor: pointer;
+      }
+      /* This too... */
+      .agg > a:focus,
+      .agg > a:hover{
+        color: var(--dark-link-text-color);
+        text-decoration: none;
+      }
+      
     </style>
     <section class="feature-set">
       <span class="feature-title">{{title}}</span>
       <div class="agg">
-        <template is="dom-repeat" items="{{agg}}">
+        <template id="barList" is="dom-repeat" items="{{agg}}" filter="filterToLimit">
           <div class="bar-wrapper">
             <!-- placeholder: displaying bars to illustrate counts for now - might want something different -->
-            <div class="bar" style="{{getWidth(item)}}"></div>
+            <div class$="{{getClasses(item)}}" style="{{getWidth(item)}}"></div>
             <div class="bar-title flex">{{getItemKey(item)}} </div>
             <div class="bar-count">{{item.count}}</div>
           </div>
         </template>
+        <a hidden="[[isUnderLimit]]" on-click="showMore">
+          Show more
+        </a>
       </div>
     </section>
   </template>
@@ -96,6 +140,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         key: {
           type: String
+        },
+        entityType: {
+          type: String
+        },
+        limit: {
+          type: Number,
+          value: 5
+        },
+        isUnderLimit: {
+          type: Boolean,
+          value: true
         }
       },
       getItemKey: function(item) {
@@ -108,6 +163,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         // This returns bar widths relative to the highest count item, assuming it's first.
         // Could also sum up all counts and do widths relative to the total.
         return 'width: ' + Math.round((item.count / this.agg[0].count) * 100) + '%;';
+      },
+      getClasses: function(item) {
+        var classes = "bar";
+        if(this.entityType){
+          classes += " entity-"+this.entityType;
+        }
+        return classes;
+      },
+      filterToLimit: function() {
+        if(!this.itemCount){
+          this.itemCount = 1;
+        }
+        if(this.itemCount > this.limit){
+          this.isUnderLimit = false;
+          return false;
+        } else {
+          this.itemCount += 1;
+          return true;
+        }
+      },
+      showMore: function(e) {
+        e.preventDefault();
+        this.originalLimit = this.limit;
+        this.limit += 20;
+        if(this.agg.length <= this.limit){
+          this.isUnderLimit = true;
+        }
+        this.$.barList.render();
       }
     });
   })();
