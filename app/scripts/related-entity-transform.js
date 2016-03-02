@@ -32,8 +32,8 @@ var relatedEntityTransform = (function() {
 
     function getOfferSummaries(records) {
         /*
-            "offer": {
-                "_id": 1,
+            "offer": [{
+                "_id": "1",
                 "_type": "offer",
                 "date": "2012-04-23T18:25:43.511Z",
                 "address": {
@@ -50,7 +50,7 @@ var relatedEntityTransform = (function() {
                     "date": "2012-04-23T18:25:43.511Z"
                 }],
                 "phones": ["1234567890", "0123456789"]
-            }
+            }]
         */
         var relatedOffers = [];
         records.forEach(function(record) {
@@ -74,6 +74,14 @@ var relatedEntityTransform = (function() {
     }
 
     function getPhoneSummaries(records) {
+        /*
+            "phone": [{
+                "_id": "1",
+                "_type": "phone",
+                "phone": "1234567890",
+                "numOffers": 2
+            }]
+        */
         var relatedPhones = [];
         records.forEach(function(record) {
             var obj = {
@@ -88,6 +96,14 @@ var relatedEntityTransform = (function() {
     }
 
     function getEmailSummaries(records) {
+        /*
+            "email": [{
+                "_id": "1",
+                "_type": "email",
+                "email": "abc@xyz.com",
+                "numOffers": 2
+            }]
+        */
         var relatedEmails = [];
         records.forEach(function(record) {
             var obj = {
@@ -102,6 +118,14 @@ var relatedEntityTransform = (function() {
     }
 
     function getSellerSummaries(records) {
+        /*
+            "seller": [{
+                "_id": "1",
+                "_type": "seller",
+                "phone": "1234567890",
+                "numOffers": 2
+            }]
+        */
         var relatedSellers = [];
         records.forEach(function(record) {
             var obj = {
@@ -131,13 +155,29 @@ var relatedEntityTransform = (function() {
     }
 
     function getWebpageSummaries(records) {
+        /*
+            "webpage": [{
+                "_id": "1",
+                "_type": "webpage",
+                "title": "*Hello World -- google.com",
+                "publisher": "yahoo.com",
+                "url": "http://someurlhere.com",
+                "body": "description text here",
+                "addresses": [{
+                    "country": "United States",
+                    "locality": "Los Angeles",
+                    "region": "California"
+                }],
+                "date": "2012-04-23T18:25:43.511Z"
+            }]
+        */
         var relatedWebpages = [];
         records.forEach(function(record) {
             var obj = {
                 _id: record._id,
                 _type: record._type,
                 title: _.get(record, '_source.name[0]'),
-                publisher: _.get(record, '_source.publisher.name'),
+                publisher: _.get(record, '_source.publisher.name[0]'),
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description[0]'),
                 addresses: getAddressArray(record),
@@ -149,6 +189,21 @@ var relatedEntityTransform = (function() {
     }
 
     function getServiceSummaries(records) {
+        /*
+            "service": [{
+                "_id": "1",
+                "_type": "service",
+                "person": {
+                    "name": "Emily", 
+                    "eyeColor": "blue",
+                    "hairColor": "brown",
+                    "height": 64,
+                    "weight": 115,
+                    "ethnicity": "white",
+                    "age": 20
+                }
+            }]
+        */
         var relatedServices = [];
         records.forEach(function(record) {
             var obj = {
@@ -158,8 +213,8 @@ var relatedEntityTransform = (function() {
                     name: _.get(record, '_source.name'),
                     eyeColor: _.get(record, '_source.eyeColor'),
                     hairColor: _.get(record, '_source.hairColor'),
-                    height: _.get(record, '_.source[schema:height]'),
-                    weight: _.get(record, '_.source[schema:weight]'),
+                    height: _.get(record, '_source[schema:height]'),
+                    weight: _.get(record, '_source[schema:weight]'),
                     ethnicity: _.get(record, '_source.ethnicity'),
                     age: _.get(record, '_source.personAge[0]')                    
                 }
