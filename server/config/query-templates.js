@@ -81,7 +81,7 @@ module.exports = {
             match:{ '{{field}}' : '{{value}}' }
         }
     },
-    relatedPhones: {
+    relatedPhonesOrEmails: {
         query: {
             "query" : {
                 "filtered" : {
