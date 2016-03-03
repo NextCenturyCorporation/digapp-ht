@@ -7,7 +7,8 @@
 var relatedEntityTransform = (function() {
 
     function getOfferSpecificPrices(record) {
-        /*
+        /** build price array:
+
             "prices": [{
                 "amount": 250, 
                 "unitCode": "MIN", 
@@ -30,7 +31,8 @@ var relatedEntityTransform = (function() {
     }
 
     function getPhones(record) {
-        // "phones": ["1234567890", "0123456789"]
+        /** build phone array:
+            "phones": ["1234567890", "0123456789"] */
         var phones = [];
         var phoneArr = _.get(record, '_source.seller.telephone', []);
         phoneArr.forEach(function(phoneElem) {
@@ -40,7 +42,7 @@ var relatedEntityTransform = (function() {
     }
 
     function getOfferSummaries(records) {
-        /*
+        /**  build offer summary array:
             "offer": [{
                 "_id": "1",
                 "_type": "offer",
@@ -83,7 +85,8 @@ var relatedEntityTransform = (function() {
     }
 
     function getPhoneSummaries(records) {
-        /*
+        /**
+            build phone summary array:
             "phone": [{
                 "_id": "1",
                 "_type": "phone",
@@ -105,7 +108,8 @@ var relatedEntityTransform = (function() {
     }
 
     function getEmailSummaries(records) {
-        /*
+        /**
+            build email summary array:
             "email": [{
                 "_id": "1",
                 "_type": "email",
@@ -127,7 +131,8 @@ var relatedEntityTransform = (function() {
     }
 
     function getSellerSummaries(records) {
-        /*
+        /**
+            build seller summary array:
             "seller": [{
                 "_id": "1",
                 "_type": "seller",
@@ -149,7 +154,7 @@ var relatedEntityTransform = (function() {
     }
 
     function getAddressArray(record) {
-        /*
+        /** build address array:
             "addresses": [{
                 "country": "United States",
                 "locality": "Los Angeles",
@@ -171,7 +176,7 @@ var relatedEntityTransform = (function() {
     }
 
     function getWebpageSummaries(records) {
-        /*
+        /*  build webpage summary array:
             "webpage": [{
                 "_id": "1",
                 "_type": "webpage",
@@ -206,6 +211,7 @@ var relatedEntityTransform = (function() {
 
     function getServiceSummaries(records) {
         /*
+            build service summary array:
             "service": [{
                 "_id": "1",
                 "_type": "service",
