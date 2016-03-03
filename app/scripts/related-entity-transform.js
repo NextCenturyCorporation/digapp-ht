@@ -7,6 +7,14 @@
 var relatedEntityTransform = (function() {
 
     function getOfferSpecificPrices(record) {
+        /*
+            "prices": [{
+                "amount": 250, 
+                "unitCode": "MIN", 
+                "billingIncrement": 60, 
+                "date": "2012-04-23T18:25:43.511Z"
+            }]
+        */
         var prices = [];
         var priceArr = _.get(record, '_source.priceSpecification', []);
         priceArr.forEach(function(priceElem) {
@@ -22,6 +30,7 @@ var relatedEntityTransform = (function() {
     }
 
     function getPhones(record) {
+        // "phones": ["1234567890", "0123456789"]
         var phones = [];
         var phoneArr = _.get(record, '_source.seller.telephone', []);
         phoneArr.forEach(function(phoneElem) {
@@ -140,6 +149,13 @@ var relatedEntityTransform = (function() {
     }
 
     function getAddressArray(record) {
+        /*
+            "addresses": [{
+                "country": "United States",
+                "locality": "Los Angeles",
+                "region": "California"
+            }]
+        */
         var addresses = [];
         var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
 
