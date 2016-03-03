@@ -329,20 +329,22 @@ var phoneTransform = (function(_) {
         phone: function(data) {
             var newData = {};
 
-            newData.telephone = getTelephone(data.hits.hits[0]._source);
-            newData.prices = getPrices(data.hits.hits);
-            newData.people = getPeople(data.aggregations);
-            newData.locations = getLocations(data.hits.hits);
-            newData.offerTitles = getOfferTitles(data.hits.hits);
-            newData.offerDates = getOfferDates(data.aggregations);
-            newData.offerCities = getOfferCities(data.aggregations);
-            newData.relatedPhones = getRelatedPhones(data.aggregations);
-            newData.relatedEmails = getRelatedEmails(data.aggregations);
-            newData.relatedWebsites = getRelatedWebsites(data.aggregations);
-            newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
-            newData.relatedRecords = {
-                offer: getOfferSummaries(data.hits.hits)
-            };
+            if(data.hits.hits.length > 0) {
+                newData.telephone = getTelephone(data.hits.hits[0]._source);
+                newData.prices = getPrices(data.hits.hits);
+                newData.people = getPeople(data.aggregations);
+                newData.locations = getLocations(data.hits.hits);
+                newData.offerTitles = getOfferTitles(data.hits.hits);
+                newData.offerDates = getOfferDates(data.aggregations);
+                newData.offerCities = getOfferCities(data.aggregations);
+                newData.relatedPhones = getRelatedPhones(data.aggregations);
+                newData.relatedEmails = getRelatedEmails(data.aggregations);
+                newData.relatedWebsites = getRelatedWebsites(data.aggregations);
+                newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
+                newData.relatedRecords = {
+                    offer: getOfferSummaries(data.hits.hits)
+                };
+            }
 
             return newData;
         }
