@@ -80,6 +80,21 @@ module.exports = {
         query: {
             match:{ '{{field}}' : '{{value}}' }
         }
+    },
+    relatedPhonesOrEmails: {
+        query: {
+            "query" : {
+                "filtered" : {
+                    "filter" : {
+                        "terms" : { 
+                            "name": []
+                        }
+                    }
+                }
+            }
+        },
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
+       
     }
   }
 };

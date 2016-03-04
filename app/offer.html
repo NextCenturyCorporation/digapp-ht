@@ -85,7 +85,8 @@
       value: value of the field above -->
     <query-builder 
       query="{{offerQuery}}" 
-      query-template="{{config.queryTemplates.offer}}">
+      query-template="{{config.queryTemplates.offer}}" 
+      field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
     <!--make an search using {{singleEntityQuery}} and return results -->
@@ -104,7 +105,122 @@
      transform-function="[[clientConfig.transforms.offer]]"
      ></json-transform>
 
-    <!-- Main Content -->
+    <!--Start related entity queries and transforms-->
+    <!--Related seller info-->
+
+    <query-builder 
+      query="{{relatedSellerQuery}}" 
+      query-template="{{config.queryTemplates.offer}}" 
+      field="_id" value="[[offerDisplay.sellerId]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedSellerQuery]]'
+      results="{{relatedSeller}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedSeller]]"
+     data-out="{{relatedRecords.seller}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.seller]]"
+     ></json-transform>
+
+
+    <!--Related service info-->
+    <query-builder 
+      query="{{relatedServiceQuery}}" 
+      query-template="{{config.queryTemplates.offer}}" 
+      field="_id" value="[[offerDisplay.serviceId]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedServiceQuery]]'
+      results="{{relatedService}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedService]]"
+     data-out="{{relatedRecords.service}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.service]]"
+     ></json-transform>
+
+
+    <!--Related webpage info-->
+    <query-builder 
+      query="{{relatedWebpageQuery}}" 
+      query-template="{{config.queryTemplates.offer}}" 
+      field="_id" value="[[offerDisplay.webpageId]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedWebpageQuery]]'
+      results="{{relatedWebpage}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedWebpage]]"
+     data-out="{{relatedRecords.webpage}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.webpage]]"
+     ></json-transform>
+
+
+    <!--Related phones info-->
+    <query-builder 
+      query="{{relatedPhonesQuery}}" 
+      query-template="{{config.queryTemplates.relatedPhonesOrEmails.query}}" 
+      path-to-value="{{config.queryTemplates.relatedPhonesOrEmails.pathToValueRelativeToQuery}}"
+      value="[[offerDisplay.phones]]">
+    </query-builder>    
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["phone"]'
+      query='[[relatedPhonesQuery]]'
+      results="{{relatedPhones}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedPhones]]"
+     data-out="{{relatedRecords.phone}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.phone]]"
+     ></json-transform>
+
+    <!--Related emails info-->
+    <query-builder 
+      query="{{relatedEmailsQuery}}" 
+      query-template="{{config.queryTemplates.relatedPhonesOrEmails.query}}" 
+      path-to-value="{{config.queryTemplates.relatedPhonesOrEmails.pathToValueRelativeToQuery}}"
+      value="[[offerDisplay.emails]]">
+    </query-builder>    
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["email"]'
+      query='[[relatedEmailsQuery]]'
+      results="{{relatedEmails}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedEmails]]"
+     data-out="{{relatedRecords.email}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.email]]"
+     ></json-transform>
+    <!-- End related entity queries-->
+
+    <!-- Display Content -->
     <div class="vertical layout center">
       <paper-material elevation="2">
         <section class="heading">
@@ -142,15 +258,7 @@
               photos section
             </section>
           </section>
-          
-          <section class="who flex">
-            <p class="name">Name: [[offerDisplay.person.name]]</p>
-            <p class="age">Age: [[offerDisplay.person.age]]</p>
-            <p class="eye-color">Eye Color: [[offerDisplay.person.eyeColor]]</p>
-            <p class="hair-color">Hair Color: [[offerDisplay.person.hairColor]]</p>
-            <p class="height">Height (in cm): [[offerDisplay.person.height]]</p>
-            <p class="weight">Weight (in kg): [[offerDisplay.person.weight]]</p>
-          </section>
+
           <section class="where flex">
             <template is="dom-if" if="{{offerDisplay.geo}}">
               <leaflet-map latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}" zoom="10">
@@ -158,10 +266,29 @@
               </leaflet-map> 
             </template> 
             <div class="layout horizontal">
-              <!--make address component?-->
+              <span>[[offerDisplay.address.formattedAddress]]</span>
             </div>
           </section>
         </div>
+
+        <div class="content">
+          <section class="who flex">
+            <b>Person Details</b>
+            <p class="name">Name: [[offerDisplay.person.name]]</p>
+            <p class="age">Age: [[offerDisplay.person.age]]</p>
+            <p class="eye-color">Eye Color: [[offerDisplay.person.eyeColor]]</p>
+            <p class="hair-color">Hair Color: [[offerDisplay.person.hairColor]]</p>
+            <p class="height">Height (in cm): [[offerDisplay.person.height]]</p>
+            <p class="weight">Weight (in kg): [[offerDisplay.person.weight]]</p>
+          </section>
+          <section class="related-records flex">
+            Related Entities: 
+            <div class="related-entities">
+              <records-list records="{{relatedRecords}}"></records-list>
+            </div>
+          </section>
+        </div>
+
       </paper-material>    
     </div>
   </template>
@@ -185,6 +312,10 @@
         app.params[paramPair[0]] =  paramPair[1];
       }
     };
+
+    app.getURLParams();
+
+    app.relatedRecords = {};
 
   })(document);
   </script>
