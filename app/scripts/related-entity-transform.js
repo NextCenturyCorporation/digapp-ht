@@ -145,7 +145,7 @@ var relatedEntityTransform = (function() {
             var obj = {
                 _id: record._id,
                 _type: record._type,
-                phone: _.get(record, '_source.telephone[0].name'),
+                phone: _.get(record, '_source.telephone[0].name[0]'),
                 numOffers: _.get(record, '_source.makesOffer.length')
             };
             relatedSellers.push(obj);
