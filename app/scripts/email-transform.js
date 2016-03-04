@@ -10,13 +10,6 @@ var emailTransform = (function(_) {
         return source.seller.email.name;
     }
 
-    /*
-            [{"price": 250,
-            "unitCode": "MIN",
-            "billingIncrement": 60,
-            "date": "2012-04-23T18:25:43.511Z"}]
-
-    */
     function getPrices(hits) {
         var prices = [];
 
@@ -36,48 +29,40 @@ var emailTransform = (function(_) {
         return prices;
     }
 
-    function getPeople(hits) {
-        var nameAggregator = {};
-        var eyeColorsAggregator = {};
-        var hairColorsAggregator = {};
-        var ethnicitiesAggregator = {};
+    function getPeople(hits, aggs) {
         var heightsAggregator = {};
         var weightsAggregator = {};
-        var agesAggregator = {};
 
         _.each(hits, function(hit) {
             if(hit._source.itemOffered) {
                 var person = hit._source.itemOffered;
-
-                nameAggregator = extractArrayField(person, nameAggregator, 'name');
                 weightsAggregator = extractField(person, weightsAggregator, "schema:weight");
                 heightsAggregator = extractField(person, heightsAggregator, "schema:height");
-
-                agesAggregator = extractArrayField(person, agesAggregator, 'personAge');
             }
         });
 
         var people = {
-            names: [],
-            eyeColors: [],
-            hairColors: [],
-            ethnicities: [],
-            heights: [],
-            weights: [],
-            ages: []
+            names: tranformBuckets(aggs.names.buckets, 'name'),
+            eyeColors: tranformBuckets(aggs.eyeColors.buckets, 'color'),
+            hairColors: tranformBuckets(aggs.hairColors.buckets, 'color'),
+            ethnicities: [],//TODO this is not available through offer
+            heights: unrollAggregator(heightsAggregator, 'height'),
+            weights: unrollAggregator(weightsAggregator, 'weight'),
+            ages: tranformBuckets(aggs.ages.buckets, 'age')
         };
 
-        //resolve
         return people;
     }
 
-    function extractArrayField(person, aggregator, field) {
+    function extractPersonArrayField(person, aggregator, field) {
         if(person[field]) {
             _.each(person[field], function(val) {
                 if(aggregator[val]) {
                     aggregator[val] = aggregator[val] + 1;
                 } else {
-                    aggregator[val] = 1;
+                    aggregator[val] = {
+                        count: 1
+                    };
                 }
             });
         }
@@ -85,34 +70,82 @@ var emailTransform = (function(_) {
         return aggregator;
     }
 
-    function extractField(person, aggregator, field) {
+    function extractPersonField(person, aggregator, field) {
         if(person[field]) {
-            if(aggregator[person[field]]) {
-                aggregator[person[field]] = aggregator[person[field]] + 1;
+            if(person[field].constructor === Array) {
+                return extractPersonArrayField(person, aggregator, field);
             } else {
-                aggregator[person[field]] = 1;
+                if(aggregator[person[field]]) {
+                    aggregator[person[field]] = aggregator[person[field]] + 1;
+                } else {
+                    aggregator[person[field]] = 1;
+                }
+
+                return aggregator;
             }
         }
     }
 
-    function unrollAggregator(aggregator) {
+    function unrollAggregator(aggregator, keyName) {
         var array;
 
-
+        _.each(aggregator, function(count, key) {
+            var obj = {};
+            obj[keyName] = key;
+            obj.count = count;
+            array.push(obj);
+        })
 
         return array;
     }
 
-    function getOfferTitles(hits) {
+    function tranformBuckets(buckets, keyName, alternateKey) {
+        buckets = _.map(buckets, function(bucket) {
+            var obj = {
+                count: bucket.doc_count
+            };
+            if(alternateKey) {
+                obj[keyName] = bucket[alternateKey];
+            } else {
+                obj[keyName] = bucket.key;
+            }
+            return obj;
+        })
+    }
 
+    function getOfferTitles(hits) {
+        var title = [];
+        _.each(hits, function(hit) {
+            title.push({
+                title: hit._source.title,
+                date: hit._source.validFrom
+            })
+        });
     }
 
     function getLocations(hits) {
+        var locations = [];
+        _.each(hits, function(hit) {
+            var location = hit._source.availableAtOrFrom;
+            if(location) {
+                lat = _.get(location, 'geo.lat');
+                lon = _.get(location, 'geo.lon');
 
+                _.each(location.address, function(address) {
+                    locations.push({
+                        city: address.addressLocality,
+                        state: address.addressRegion,
+                        lat: lat,
+                        lon: lon,
+                        date: hit._source.validFrom
+                    })
+                });
+            }
+        });
     }
 
-    function getOfferDates(hits) {
-
+    function getOfferDates(aggs) {
+        return tranformBuckets(aggs.offerDates, 'date', 'key_as_string');
     }
 
     return {
@@ -121,13 +154,14 @@ var emailTransform = (function(_) {
 
             if(data.hits.hits[0]._source) {
                 var hits = data.hits.hits;
+                var aggs = data.aggregations;
 
                 newData.emailAddress = getEmailAddress(hits[0]._source);
                 newData.prices = getPrices(hits);
-                newData.people = getPeople(hits);
+                newData.people = getPeople(hits, aggs);
                 newData.offerTitles = getOfferTitles(hits);
                 newData.locations = getLocations(hits);
-                newData.offerDates = getOfferDates(hits);
+                newData.offerDates = getOfferDates(aggs);
             }
 
             return newData;
