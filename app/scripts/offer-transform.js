@@ -4,7 +4,9 @@
 
 /* globals _ */
 /* exported offerTransform */
-var offerTransform = (function() {
+
+/* note lodash should be defined in parent scope */
+var offerTransform = (function(_) {
 
     function getAddress(record) {
         /** build address object:
@@ -102,7 +104,7 @@ var offerTransform = (function() {
         offer: function(data) {
             var newData = {};
 
-            if(data.hits.hits[0]._source) {
+            if(data.hits.hits.length > 0) {
                 newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
                 newData.address = getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
@@ -119,6 +121,4 @@ var offerTransform = (function() {
         }
     };
 
-})();
-
-
+})(_);
