@@ -13,13 +13,36 @@ var offerTransform = (function(_) {
         "address": {
             "locality": "Los Angeles",
             "region": "California",
-            "country": "US"
+            "country": "US",
+            "formattedAddress": 'Los Angeles, California, US'
         }
         */
         var address = {};
         address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
         address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
         address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
+
+        var formattedAddress = [];
+        if(address.locality) {
+            formattedAddress.push(address.locality);
+        }
+
+        if(address.region) {
+            if(formattedAddress.length > 0) {
+                formattedAddress.push(', ');
+            }
+            formattedAddress.push(address.region);
+        }
+
+        if(address.country) {
+            if(formattedAddress.length > 0) {
+                formattedAddress.push(', ');
+            }
+            formattedAddress.push(address.country);
+        }
+
+        address.formattedAddress = formattedAddress.join('');
+
         return address;
     }
 
@@ -115,6 +138,9 @@ var offerTransform = (function(_) {
                 newData.prices = getPrices(data.hits.hits[0]);
                 newData.emails = getEmails(data.hits.hits[0]);
                 newData.phones = getPhones(data.hits.hits[0]);
+                newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
+                newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
+                newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');
             }
 
             return newData;
