@@ -267,6 +267,7 @@ var phoneTransform = (function(_, relatedEntityTransform) {
             var newData = {};
             if(data.hits.hits.length > 0) {
                 newData.telephone = getTelephone(data.hits.hits[0]._source);
+
             }
             
             return newData;
@@ -293,6 +294,17 @@ var phoneTransform = (function(_, relatedEntityTransform) {
 
             if(data.hits.hits.length > 0) {
                 newData.people = getPeople(data.aggregations);
+            }
+            
+            return newData;
+        },
+        seller: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                newData.relatedPhones = getRelatedPhones(data.aggregations);
+                newData.relatedEmails = getRelatedEmails(data.aggregations);
+                newData.relatedWebsites = getRelatedWebsites(data.aggregations);
             }
             
             return newData;

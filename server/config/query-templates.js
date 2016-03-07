@@ -35,31 +35,6 @@ module.exports = {
                 'terms': {
                     'field': 'availableAtOrFrom.address.addressLocality'
                 }
-            },
-            // TODO - redo - Relations
-            'related_phones' : {
-                'terms' : { 
-                    'field' : 'offer.seller.telephone.name' 
-                },
-                'aggs' : {
-                    // Timeline similarities
-                    'related_phone_timelines': {
-                        'date_histogram': {
-                            'field': 'validFrom',
-                            'interval': 'week'
-                        }
-                    } 
-                }         
-            },
-            'related_emails' : {
-                'terms' : { 
-                    'field' : 'offer.seller.email.name' 
-                }          
-            },
-            'related_websites' : {
-                'terms' : { 
-                    'field' : 'mainEntityOfPage.publisher.name' 
-                }          
             }
         }
     },
@@ -101,6 +76,40 @@ module.exports = {
                 "terms": {
                     "field": "hairColor"
                 }
+            }
+        }
+    },
+    phoneSellerAgg: {
+        "query": {
+            "match": {
+                "{{field}}": "{{value}}"
+            }   
+        },
+        "aggs" : {
+            // Relations
+            "related_phones" : {
+                "terms" : { 
+                    "field" : "telephone.name" 
+                },
+                "aggs" : {
+                    // Timeline similarities
+                    "related_phone_timelines": {
+                        "date_histogram": {
+                            "field": "makesOffer.validFrom",
+                            "interval": "week"
+                        }
+                    } 
+                }   
+            },
+            "related_emails" : {
+                "terms" : { 
+                    "field" : "email.name" 
+                }          
+            },
+            "related_websites" : {
+                "terms" : { 
+                    "field" : "makesOffer.mainEntityOfPage.publisher.name" 
+                }          
             }
         }
     },
