@@ -12,15 +12,19 @@ var phoneTransform = (function(_, relatedEntityTransform) {
     function getTelephone(record) {
         /** build telephone object:
         'telephone': {
-        'number': '1234567890',
-        'type': 'cell',
-        'origin': 'Washington, DC'
+            'uri': 'http://someuri/1234567890'
+            'number': '1234567890',
+            'type': 'cell',
+            'origin': 'Washington DC'
         }
         */
         var telephone = {};
-        telephone.number = _.get(record, 'seller.telephone[0].name[0]');
+        telephone.uri = _.get(record, 'uri');
+        telephone.number = _.get(record, 'name[0]');
         telephone.type = 'Cell';
-        telephone.origin = 'Los Angeles, CA';
+        //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
+        telephone.origin = _.get(record, 'owner[0].makesOffer[0].availableAtOrFrom.address[0].addressLocality');
+
         return telephone;
     }
 

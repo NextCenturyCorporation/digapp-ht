@@ -4,7 +4,6 @@ module.exports = {
 
   QUERY_TEMPLATES: {
     // phone page queries
-    // TODO: new query for just phone entity info?
     phone: {
         query: {
             filtered:{
@@ -124,7 +123,6 @@ module.exports = {
             }
         },
         pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
-       
     }
   }
 };
