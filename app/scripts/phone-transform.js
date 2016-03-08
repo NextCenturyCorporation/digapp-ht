@@ -263,10 +263,10 @@ var phoneTransform = (function(_, relatedEntityTransform) {
 
     return {
         // expected data is from an elasticsearch 
-        phone: function(data) {
+        telephone: function(data) {
             var newData = {};
             if(data.hits.hits.length > 0) {
-                newData.telephone = getTelephone(data.hits.hits[0]._source);
+                newData = getTelephone(data.hits.hits[0]._source);
             }
             
             return newData;
@@ -292,7 +292,7 @@ var phoneTransform = (function(_, relatedEntityTransform) {
             var newData = {};
 
             if(data.aggregations) {
-                newData.people = getPeople(data.aggregations);
+                newData = getPeople(data.aggregations);
             }
             
             return newData;
