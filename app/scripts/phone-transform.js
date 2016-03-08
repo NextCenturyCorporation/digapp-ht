@@ -22,8 +22,8 @@ var phoneTransform = (function(_, relatedEntityTransform) {
         telephone.uri = _.get(record, 'uri');
         telephone.number = _.get(record, 'name[0]');
         telephone.type = 'Cell';
-        //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
         telephone.origin = _.get(record, 'owner[0].makesOffer[0].availableAtOrFrom.address[0].addressLocality');
+        //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
 
         return telephone;
     }
@@ -267,7 +267,6 @@ var phoneTransform = (function(_, relatedEntityTransform) {
             var newData = {};
             if(data.hits.hits.length > 0) {
                 newData.telephone = getTelephone(data.hits.hits[0]._source);
-
             }
             
             return newData;
