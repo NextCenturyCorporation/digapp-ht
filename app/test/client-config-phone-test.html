@@ -6,7 +6,10 @@
 
   <script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <script src="../../bower_components/web-component-tester/browser.js"></script>
-  <script src="data/phone-aggregation.js" type="text/javascript"></script>
+  <script src="data/phone-result.js" type="text/javascript"></script>
+  <script src="data/offer-aggregations.js" type="text/javascript"></script>
+  <script src="data/people-aggregations.js" type="text/javascript"></script>
+  <script src="data/seller-aggregations.js" type="text/javascript"></script>
 
   <!-- Step 1: import the element to test -->
   <link rel="import" href="../elements/client-config/client-config.html">
@@ -22,35 +25,82 @@
 
 <script>
   'use strict';
-  /* globals suite, test, expect, setup, fixture, phoneagg, assert */
+  /* globals suite, test, expect, setup, fixture, offerAgg, phoneResult, 
+     peopleAgg, sellerAgg, assert */
   /* jshint -W030 */
-  suite('<client-config> phone tests', function() {
+
+  suite('<client-config> phone tests: phone entity transform', function() {
     var myEl;
     var dataout;
 
     setup(function() {
       myEl = fixture('client-config-fixture');
-      var phonetransform = myEl.config.transforms.phone;
-      dataout = phonetransform(phoneagg);
+      var phoneTransform = myEl.config.transforms.phone.telephone;
+      dataout = phoneTransform(phoneResult);
     });
 
     test('defines config object', function (done) {
       expect(myEl).to.exist;
       expect(myEl.config).to.exist;
       expect(myEl.config).to.be.an('Object');
-      expect(myEl.config.transforms.phone).to.be.a('Function');
+      expect(myEl.config.transforms.phone.telephone).to.be.a('Function');
       done();
     });
 
-    test('defines phone data', function () {
-      expect(phoneagg).to.exist;
-      assert.equal(phoneagg.hits.total, 32);
+    test('defines phone number', function () {
+      assert.equal(dataout.uri, 'http://dig.isi.edu/ht/data/phonenumber/x-1234567890');
+      assert.equal(dataout.number, '1234567890');
+      assert.equal(dataout.type, 'Cell');
+      assert.equal(dataout.origin, 'Orange County');
+    });
+  });
+
+  suite('<client-config> phone tests: phone entity transform if no results from query', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.telephone;
+      var noResults = {hits: {hits: []}};
+      dataout = phoneTransform(noResults);
     });
 
-    test('defines phone number', function () {
-      assert.equal(dataout.telephone.number, '1234567890');
-      assert.equal(dataout.telephone.type, 'Cell');
-      assert.equal(dataout.telephone.origin, 'Los Angeles, CA');
+    test('defines config object', function (done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.phone.telephone).to.be.a('Function');
+      done();
+    });
+
+    test('defines empty object for dataout', function () {
+      expect(dataout).to.exist;
+      assert.deepEqual(dataout, {});
+    });
+  });
+
+  suite('<client-config> phone tests: offer data', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneOfferTransform = myEl.config.transforms.phone.offerData;
+      dataout = phoneOfferTransform(offerAgg);
+    });
+
+    test('defines config object', function (done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.phone.offerData).to.be.a('Function');
+      done();
+    });
+
+    test('defines offer data', function () {
+      expect(offerAgg).to.exist;
+      assert.equal(offerAgg.hits.total, 32);
     });
 
     test('defines prices array', function() {
@@ -59,19 +109,6 @@
       assert.equal(dataout.prices[1].amount, 200);
       assert.equal(dataout.prices[4].unitCode, 'MIN');
       assert.equal(dataout.prices[2].billingIncrement, 60);
-    });
-
-    test('defines people object', function() {
-      expect(dataout.people).to.exist;
-      expect(dataout.people.names).to.exist;
-      expect(dataout.people.eyeColors).to.exist;
-      expect(dataout.people.hairColors).to.exist;
-      expect(dataout.people.ages).to.exist;
-    });
-
-    test('defines people aggregations', function() {
-      assert.deepEqual(dataout.people.names[0], {name: 'erica', count: 10});
-      assert.deepEqual(dataout.people.ages[0], {age: 22, count: 15});
     });
 
     test('defines titles array', function() {
@@ -120,25 +157,6 @@
       assert.equal(dataout.offerDates[0].count, 32);
     });
 
-    test('defines related phones', function() {
-      assert.isArray(dataout.relatedPhones);
-      assert.equal(dataout.relatedPhones.length, 1);
-      assert.equal(dataout.relatedPhones[0].number, '1234567890');
-      assert.equal(dataout.relatedPhones[0].count, 32);
-    });
-
-    test('defines related emails', function() {
-      assert.isArray(dataout.relatedEmails);
-      assert.equal(dataout.relatedEmails.length, 0);
-    });
-
-    test('defines related websites', function() {
-      assert.isArray(dataout.relatedWebsites);
-      assert.equal(dataout.relatedWebsites.length, 3);
-      assert.equal(dataout.relatedWebsites[0].webSite, 'backpage.com');
-      assert.equal(dataout.relatedWebsites[0].count, 15);
-    });
-
     test('defines geo coordinates', function() {
       assert.isArray(dataout.geoCoordinates);
       assert.equal(dataout.geoCoordinates.length, 6);
@@ -170,32 +188,88 @@
       assert.isArray(dataout.relatedRecords.offer[0].phones);
       assert.equal(dataout.relatedRecords.offer[0].phones[0], '1234567890');
     });
+  });
 
-    suite('<client-config> phone tests if no results from query', function() {
-      var myEl;
-      var dataout;
+  suite('<client-config> phone tests: offer data if no results from query', function() {
+    var myEl;
+    var dataout;
 
-      setup(function() {
-        myEl = fixture('client-config-fixture');
-        var phoneTransform = myEl.config.transforms.phone;
-        var noResults = {hits: {hits: []}};
-        dataout = phoneTransform(noResults);
-      });
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneOfferTransform = myEl.config.transforms.phone.offerData;
+      var noResults = {hits: {hits: []}};
+      dataout = phoneOfferTransform(noResults);
+    });
 
-      test('defines config object', function (done) {
-        expect(myEl).to.exist;
-        expect(myEl.config).to.exist;
-        expect(myEl.config).to.be.an('Object');
-        expect(myEl.config.transforms.phone).to.be.a('Function');
-        done();
-      });
+    test('defines config object', function (done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.phone.offerData).to.be.a('Function');
+      done();
+    });
 
-      test('defines empty object for dataout', function () {
-        expect(dataout).to.exist;
-        assert.deepEqual(dataout, {});
-      });
+    test('defines empty object for dataout', function () {
+      expect(dataout).to.exist;
+      assert.deepEqual(dataout, {});
     });
   });
+
+  suite('<client-config> phone tests: transform for people aggregations', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.people;
+      dataout = phoneTransform(peopleAgg);
+    });
+
+    test('defines people object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.names).to.exist;
+      expect(dataout.eyeColors).to.exist;
+      expect(dataout.hairColors).to.exist;
+      expect(dataout.ages).to.exist;
+    });
+
+    test('defines people aggregations', function() {
+      assert.deepEqual(dataout.names[0], {name: 'jan', count: 10});
+      assert.deepEqual(dataout.ages[0], {age: 22, count: 15});
+    });
+  });
+
+  suite('<client-config> phone tests: transform for seller aggregations', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.seller;
+      dataout = phoneTransform(sellerAgg);
+    });
+
+    test('defines related phones', function() {
+      assert.isArray(dataout.relatedPhones);
+      assert.equal(dataout.relatedPhones.length, 1);
+      assert.equal(dataout.relatedPhones[0].number, '1234567890');
+      assert.equal(dataout.relatedPhones[0].count, 32);
+    });
+
+    test('defines related emails', function() {
+      assert.isArray(dataout.relatedEmails);
+      assert.equal(dataout.relatedEmails.length, 0);
+    });
+
+    test('defines related websites', function() {
+      assert.isArray(dataout.relatedWebsites);
+      assert.equal(dataout.relatedWebsites.length, 3);
+      assert.equal(dataout.relatedWebsites[0].webSite, 'backpage.com');
+      assert.equal(dataout.relatedWebsites[0].count, 15);
+    });
+
+  });
+
 </script>
 
 </body>

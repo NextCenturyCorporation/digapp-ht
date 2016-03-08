@@ -12,15 +12,19 @@ var phoneTransform = (function(_, relatedEntityTransform) {
     function getTelephone(record) {
         /** build telephone object:
         'telephone': {
-        'number': '1234567890',
-        'type': 'cell',
-        'origin': 'Washington, DC'
+            'uri': 'http://someuri/1234567890'
+            'number': '1234567890',
+            'type': 'cell',
+            'origin': 'Washington DC'
         }
         */
         var telephone = {};
-        telephone.number = _.get(record, 'seller.telephone[0].name[0]');
+        telephone.uri = _.get(record, 'uri');
+        telephone.number = _.get(record, 'name[0]');
         telephone.type = 'Cell';
-        telephone.origin = 'Los Angeles, CA';
+        telephone.origin = _.get(record, 'owner[0].makesOffer[0].availableAtOrFrom.address[0].addressLocality');
+        //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
+
         return telephone;
     }
 
@@ -259,24 +263,47 @@ var phoneTransform = (function(_, relatedEntityTransform) {
 
     return {
         // expected data is from an elasticsearch 
-        phone: function(data) {
+        telephone: function(data) {
+            var newData = {};
+            if(data.hits.hits.length > 0) {
+                newData = getTelephone(data.hits.hits[0]._source);
+            }
+            
+            return newData;
+        },
+        offerData: function(data) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
-                newData.telephone = getTelephone(data.hits.hits[0]._source);
                 newData.prices = getPrices(data.hits.hits);
-                newData.people = getPeople(data.aggregations);
                 newData.locations = getLocations(data.hits.hits);
                 newData.offerTitles = getOfferTitles(data.hits.hits);
                 newData.offerDates = getOfferDates(data.aggregations);
                 newData.offerCities = getOfferCities(data.aggregations);
-                newData.relatedPhones = getRelatedPhones(data.aggregations);
-                newData.relatedEmails = getRelatedEmails(data.aggregations);
-                newData.relatedWebsites = getRelatedWebsites(data.aggregations);
                 newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
                 newData.relatedRecords = {
                     offer: relatedEntityTransform.offer(data)
                 };
+            }
+            
+            return newData;
+        },
+        people: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                newData = getPeople(data.aggregations);
+            }
+            
+            return newData;
+        },
+        seller: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                newData.relatedPhones = getRelatedPhones(data.aggregations);
+                newData.relatedEmails = getRelatedEmails(data.aggregations);
+                newData.relatedWebsites = getRelatedWebsites(data.aggregations);
             }
             
             return newData;

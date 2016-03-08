@@ -61,27 +61,93 @@
       query string for:
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
+
+    <!-- phoneDisplay query and transform -->
     <query-builder 
       query="{{phoneQuery}}" 
       query-template="{{config.queryTemplates.phone}}"
       field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
-    <!--issue a search request using phoneQuery and return results -->
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[phoneQuery]]'
       results="{{phone}}"
+      elastic-type='["phone"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[phone]]"
+     data-out="{{phoneDisplay.telephone}}"
+     transform-function="[[clientConfig.transforms.phone.telephone]]"
+     ></json-transform>
+
+    <!-- offerDataDisplay query and transform -->
+    <query-builder 
+      query="{{offerAggQuery}}" 
+      query-template="{{config.queryTemplates.phoneOfferAgg}}"
+      field="offer.seller.telephone.name" value="[[phoneDisplay.telephone.number]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerAggQuery]]'
+      results="{{offerAggs}}"
       elastic-type='["offer"]'
       lastError="{{error}}">
     </elastic-search>
 
-    <!--make generic models for content sections -->
     <json-transform
-     data-in="[[phone]]"
-     data-out="{{phoneDisplay}}"
-     transform-function="[[clientConfig.transforms.phone]]"
+     data-in="[[offerAggs]]"
+     data-out="{{phoneDisplay.offerData}}"
+     transform-function="[[clientConfig.transforms.phone.offerData]]"
+     ></json-transform>
+
+    <!-- peopleDisplay query and transform -->
+    <query-builder 
+      query="{{peopleAggQuery}}" 
+      query-template="{{config.queryTemplates.phonePeopleAgg}}"
+      field="offers.seller.telephone.name" value="[[phoneDisplay.telephone.number]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[peopleAggQuery]]'
+      results="{{peopleAggs}}"
+      elastic-type='["adultservice"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[peopleAggs]]"
+     data-out="{{phoneDisplay.people}}"
+     transform-function="[[clientConfig.transforms.phone.people]]"
+     ></json-transform>
+
+    <!-- sellerDisplay query and transform -->
+    <query-builder 
+      query="{{sellerAggQuery}}" 
+      query-template="{{config.queryTemplates.phoneSellerAgg}}"
+      field="telephone.uri" value="[[phoneDisplay.telephone.uri]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[sellerAggQuery]]'
+      results="{{sellerAggs}}"
+      elastic-type='["seller"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[sellerAggs]]"
+     data-out="{{phoneDisplay.seller}}"
+     transform-function="[[clientConfig.transforms.phone.seller]]"
      ></json-transform>
 
     <!-- Main Content -->
@@ -131,7 +197,7 @@
                       Offers between minDate and maxDate
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[phoneDisplay.offerDates]]' 
+                  <bar-chart y-axis-label="" data='[[phoneDisplay.offerData.offerDates]]' 
                     chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
                   </bar-chart>
                 </section>
@@ -185,7 +251,7 @@
               <!-- Leaflet map -->
               <section class="where flex-auto">
                 <leaflet-map id="map" fit-to-markers>
-                  <template is="dom-repeat" items="{{phoneDisplay.geoCoordinates}}" as="loc">
+                  <template is="dom-repeat" items="{{phoneDisplay.offerData.geoCoordinates}}" as="loc">
                     <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
                   </template>
                 </leaflet-map>
@@ -193,7 +259,7 @@
               
               <!-- City summary -->
               <section class="where-details flex-none">
-                <feature-aggregation title="Offers per city" key="city" agg="[[phoneDisplay.offerCities]]"></feature-aggregation>
+                <feature-aggregation title="Offers per city" key="city" agg="[[phoneDisplay.offerData.offerCities]]"></feature-aggregation>
               </section>
               
             </paper-material>
@@ -211,7 +277,7 @@
                   [[phoneDisplay.relatedRecords.offer.length]] offers
                 </div>
               </div>
-              <records-list records="[[phoneDisplay.relatedRecords]]"></records-list>
+              <records-list records="[[phoneDisplay.offerData.relatedRecords]]"></records-list>
             </section>
 
             <div class="v-divider"></div>
@@ -262,9 +328,9 @@
               
               <!-- Related items summary -->
               <!-- Would like to use a list as shown above, instead -->
-              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.relatedPhones]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.relatedEmails]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.relatedWebsites]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.seller.relatedEmails]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.seller.relatedPhones]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.seller.relatedWebsites]]"></feature-aggregation>
               
             </section>
 
@@ -296,6 +362,7 @@
     };
 
     app.getURLParams();
+    app.phoneDisplay = {};
 
   })(document);
   </script>
