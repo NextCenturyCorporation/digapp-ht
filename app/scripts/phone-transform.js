@@ -291,7 +291,7 @@ var phoneTransform = (function(_, relatedEntityTransform) {
         people: function(data) {
             var newData = {};
 
-            if(data.hits.hits.length > 0) {
+            if(data.aggregations) {
                 newData.people = getPeople(data.aggregations);
             }
             
@@ -300,7 +300,7 @@ var phoneTransform = (function(_, relatedEntityTransform) {
         seller: function(data) {
             var newData = {};
 
-            if(data.hits.hits.length > 0) {
+            if(data.aggregations) {
                 newData.relatedPhones = getRelatedPhones(data.aggregations);
                 newData.relatedEmails = getRelatedEmails(data.aggregations);
                 newData.relatedWebsites = getRelatedWebsites(data.aggregations);
