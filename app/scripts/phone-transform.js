@@ -2,12 +2,12 @@
  * transform elastic search phone query to display format.  See data-model.json
  */
 
-/* globals _, relatedEntityTransform */
+/* globals _, relatedEntityTransform, commonTransforms */
 /* exported phoneTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should relatedEntityTransform*/
-var phoneTransform = (function(_, relatedEntityTransform) {
+/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
+var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     function getTelephone(record) {
         /** build telephone object:
@@ -183,36 +183,6 @@ var phoneTransform = (function(_, relatedEntityTransform) {
         return offerTitles;
     }
 
-    // [
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 2},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 3},
-    //     {"date": "2012-04-15T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-12T18:25:43.511Z", "count": 1}
-    // ]
-    function getOfferDates(aggs) {
-        var dates = [];
-
-        aggs.offers_by_date.buckets.forEach(function(elem) {
-            dates.push({date: elem.key_as_string, count: elem.doc_count});
-        });
-        return dates;
-    }
-
-    // [
-    //     {"city": "Los Angeles", "count": 10}, {}
-    // ]
-    function getOfferCities(aggs) {
-        var cities = [];
-
-        aggs.offers_by_city.buckets.forEach(function(elem) {
-            cities.push({city: elem.key, count: elem.doc_count});
-        });
-        return cities;
-    }
-
     function getRelatedPhones(aggs) {
         // [{"number": 1234567, "count": 2}]
         var relatedPhones = [];
@@ -275,11 +245,13 @@ var phoneTransform = (function(_, relatedEntityTransform) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+
                 newData.prices = getPrices(data.hits.hits);
                 newData.locations = getLocations(data.hits.hits);
                 newData.offerTitles = getOfferTitles(data.hits.hits);
-                newData.offerDates = getOfferDates(data.aggregations);
-                newData.offerCities = getOfferCities(data.aggregations);
+                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
+                newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
                 newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
                 newData.relatedRecords = {
                     offer: relatedEntityTransform.offer(data)
@@ -310,6 +282,6 @@ var phoneTransform = (function(_, relatedEntityTransform) {
         }
     };
 
-})(_, relatedEntityTransform);
+})(_, relatedEntityTransform, commonTransforms);
 
 

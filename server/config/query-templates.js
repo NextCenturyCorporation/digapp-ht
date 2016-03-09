@@ -119,6 +119,27 @@ module.exports = {
             match:{ '{{field}}' : '{{value}}' }
         }
     },
+    // not being used yet
+    offerSellerAgg: {
+        "query": {
+            "match": {
+                "{{field}}": "{{value}}"
+            }   
+        },
+        "aggs": {
+            "offers_by_seller" : {
+                "date_histogram": {
+                    "field": "validFrom",
+                    "interval": "week"
+                }     
+            },
+            "offer_locs_by_seller" : {
+                "terms" : { 
+                    "field" : "availableAtOrFrom.address.addressLocality" 
+                }      
+            }        
+        }
+    },
     relatedPhonesOrEmails: {
         query: {
             "query" : {

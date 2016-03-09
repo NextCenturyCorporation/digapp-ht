@@ -2,11 +2,12 @@
  * transform elastic search offer query to display format.  See data-model.json
  */
 
-/* globals _ */
+/* globals _, commonTransforms */
 /* exported offerTransform */
+/* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
-var offerTransform = (function(_) {
+/* note lodash should be defined in parent scope, as well as commonTransforms */
+var offerTransform = (function(_, commonTransforms) {
 
     function getAddress(record) {
         /** build address object:
@@ -128,6 +129,7 @@ var offerTransform = (function(_) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
+                
                 newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
                 newData.address = getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
@@ -143,8 +145,15 @@ var offerTransform = (function(_) {
                 newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');
             }
 
+            // aggregation data for sparklines -- currently unused
+            if(data.aggregations) {
+                var aggs = data.aggregations;
+                newData.offersBySeller = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
+                newData.offerLocsBySeller = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
+            }
+
             return newData;
         }
     };
 
-})(_);
+})(_, commonTransforms);
