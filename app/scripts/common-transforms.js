@@ -83,7 +83,7 @@ var commonTransforms = (function(_) {
             return buckets;
         },
         /**
-        * Get price information and create array of price objects:
+        * Get price information from offers and create array of price objects:
         * 
         *    "prices": [
         *        {"amount": 250,

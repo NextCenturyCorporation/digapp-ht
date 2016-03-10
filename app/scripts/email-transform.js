@@ -17,7 +17,7 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
     */
     function getEmail(record) {
         var email = {};
-        email._id = _.get(record, '_id');
+        email._id = _.get(record, 'uri');
         email.emailAddress = _.get(record, 'name[0]');
 
         return email;
