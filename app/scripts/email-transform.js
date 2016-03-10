@@ -2,56 +2,25 @@
  * transform elastic search email query to display format.  See data-model.json
  */
 
-/* globals _ */
+/* globals _, relatedEntityTransform, commonTransforms */
 /* exported emailTransform */
+/* jshint camelcase:false */
 
-var emailTransform = (function(_) {
-    function getEmailAddress(source) {
-        return source.seller.email.name;
-    }
+/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
+var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-    function getPrices(hits) {
-        var prices = [];
+    /** build email object:
+        'email': {
+            '_id': 'http://someuri/1234567890'
+            'emailAddress': 'abc@xyz.com'
+        }
+    */
+    function getEmail(record) {
+        var email = {};
+        email._id = _.get(record, '_id');
+        email.emailAddress = _.get(record, 'name[0]');
 
-        _.each(hits, function(hit) {
-            if(hit._source.priceSpecification) {
-                _.each(hit._source.priceSpecification, function(price) {
-                    prices.push({
-                        price: price.price,
-                        unitCode: price.unitCode,
-                        billingIncrement: price.billingIncrement,
-                        date: hit._source.validFrom
-                    });
-                });
-            }
-        });
-
-        return prices;
-    }
-
-    function getPeople(hits, aggs) {
-        var heightsAggregator = {};
-        var weightsAggregator = {};
-
-        _.each(hits, function(hit) {
-            if(hit._source.itemOffered) {
-                var person = hit._source.itemOffered;
-                weightsAggregator = extractField(person, weightsAggregator, "schema:weight");
-                heightsAggregator = extractField(person, heightsAggregator, "schema:height");
-            }
-        });
-
-        var people = {
-            names: tranformBuckets(aggs.names.buckets, 'name'),
-            eyeColors: tranformBuckets(aggs.eyeColors.buckets, 'color'),
-            hairColors: tranformBuckets(aggs.hairColors.buckets, 'color'),
-            ethnicities: [],//TODO this is not available through offer
-            heights: unrollAggregator(heightsAggregator, 'height'),
-            weights: unrollAggregator(weightsAggregator, 'weight'),
-            ages: tranformBuckets(aggs.ages.buckets, 'age')
-        };
-
-        return people;
+        return email;
     }
 
     function extractPersonArrayField(person, aggregator, field) {
@@ -86,31 +55,48 @@ var emailTransform = (function(_) {
         }
     }
 
-    function unrollAggregator(aggregator, keyName) {
-        var array;
+    function getPrices(hits) {
+        var prices = [];
 
-        _.each(aggregator, function(count, key) {
-            var obj = {};
-            obj[keyName] = key;
-            obj.count = count;
-            array.push(obj);
-        })
+        _.each(hits, function(hit) {
+            if(hit._source.priceSpecification) {
+                _.each(hit._source.priceSpecification, function(price) {
+                    prices.push({
+                        price: price.price,
+                        unitCode: price.unitCode,
+                        billingIncrement: price.billingIncrement,
+                        date: hit._source.validFrom
+                    });
+                });
+            }
+        });
 
-        return array;
+        return prices;
     }
 
-    function tranformBuckets(buckets, keyName, alternateKey) {
-        buckets = _.map(buckets, function(bucket) {
-            var obj = {
-                count: bucket.doc_count
-            };
-            if(alternateKey) {
-                obj[keyName] = bucket[alternateKey];
-            } else {
-                obj[keyName] = bucket.key;
+    function getPeople(hits, aggs) {
+        var heightsAggregator = {};
+        var weightsAggregator = {};
+
+        _.each(hits, function(hit) {
+            if(hit._source) {
+                var person = hit._source;
+                weightsAggregator = extractPersonField(person, weightsAggregator, 'schema:weight');
+                heightsAggregator = extractPersonField(person, heightsAggregator, 'schema:height');
             }
-            return obj;
-        })
+        });
+
+        var people = {
+            names: commonTransforms.transformBuckets(aggs.people_names.buckets, 'name'),
+            eyeColors: commonTransforms.transformBuckets(aggs.people_eye_colors.buckets, 'color'),
+            hairColors: commonTransforms.transformBuckets(aggs.people_hair_color.buckets, 'color'),
+            ethnicities: commonTransforms.transformBuckets(aggs.people_ethnicities.buckets, 'ethnicity'),
+            heights: commonTransforms.unrollAggregator(heightsAggregator, 'height'),
+            weights: commonTransforms.unrollAggregator(weightsAggregator, 'weight'),
+            ages: commonTransforms.transformBuckets(aggs.people_ages.buckets, 'age')
+        };
+
+        return people;
     }
 
     function getOfferTitles(hits) {
@@ -119,7 +105,7 @@ var emailTransform = (function(_) {
             title.push({
                 title: hit._source.title,
                 date: hit._source.validFrom
-            })
+            });
         });
     }
 
@@ -128,8 +114,8 @@ var emailTransform = (function(_) {
         _.each(hits, function(hit) {
             var location = hit._source.availableAtOrFrom;
             if(location) {
-                lat = _.get(location, 'geo.lat');
-                lon = _.get(location, 'geo.lon');
+                var lat = _.get(location, 'geo.lat');
+                var lon = _.get(location, 'geo.lon');
 
                 _.each(location.address, function(address) {
                     locations.push({
@@ -138,33 +124,85 @@ var emailTransform = (function(_) {
                         lat: lat,
                         lon: lon,
                         date: hit._source.validFrom
-                    })
+                    });
                 });
             }
         });
     }
 
-    function getOfferDates(aggs) {
-        return tranformBuckets(aggs.offerDates, 'date', 'key_as_string');
+    function getGeoCoordinates(records) {
+        var geos = [];
+
+        records.forEach(function(record) {
+            var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
+            var lat = _.get(record, '_source.availableAtOrFrom.geo.lat');
+            var lon = _.get(record, '_source.availableAtOrFrom.geo.lon');
+            addresses.forEach(function(address) {
+                if (lat && lon) {
+                    var geo = {
+                        city: address.addressLocality,
+                        state: address.addressRegion,
+                        lat: lat,
+                        lon: lon,
+                        date: record._source.validFrom
+                    };
+                    geos.push(geo);
+                }
+            });
+        });
+        return geos;
     }
 
     return {
+        // expected data is from an elasticsearch
         email: function(data) {
             var newData = {};
 
-            if(data.hits.hits[0]._source) {
-                var hits = data.hits.hits;
+            if(data.hits.hits.length > 0) {
+                newData = getEmail(data.hits.hits[0]._source);
+            }
+
+            return newData;
+        },
+        offerData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
                 var aggs = data.aggregations;
 
-                newData.emailAddress = getEmailAddress(hits[0]._source);
-                newData.prices = getPrices(hits);
-                newData.people = getPeople(hits, aggs);
-                newData.offerTitles = getOfferTitles(hits);
-                newData.locations = getLocations(hits);
-                newData.offerDates = getOfferDates(aggs);
+                newData.prices = getPrices(data.hits.hits);
+                newData.locations = getLocations(data.hits.hits);
+                newData.offerTitles = getOfferTitles(data.hits.hits);
+                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
+                newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
+                newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
+                newData.relatedRecords = {
+                    offer: relatedEntityTransform.offer(data)
+                };
+            }
+
+            return newData;
+        },
+        people: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0 && data.aggregations) {
+                newData = getPeople(data.hits.hits, data.aggregations);
+            }
+
+            return newData;
+        },
+        seller: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                var aggs = data.aggregations;
+                newData.relatedPhones = commonTransforms.transformBuckets(aggs.related_phones.buckets, 'number');
+                newData.relatedEmails = commonTransforms.transformBuckets(aggs.related_emails.buckets, 'email');
+                newData.relatedWebsites = commonTransforms.transformBuckets(aggs.related_websites.buckets, 'webSite');
             }
 
             return newData;
         }
     };
-})(_);
+})(_, relatedEntityTransform, commonTransforms);

@@ -62,9 +62,9 @@
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
 
-    <!-- phoneDisplay.telephone query and transform -->
+    <!-- emailDisplay.telephone query and transform -->
     <query-builder 
-      query="{{phoneQuery}}" 
+      query="{{emailQuery}}" 
       query-template="{{config.queryTemplates.phoneOrEmail}}"
       field="[[params.field]]" value="[[params.value]]">
     </query-builder>
@@ -72,23 +72,23 @@
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[phoneQuery]]'
-      results="{{phone}}"
-      elastic-type='["phone"]'
+      query='[[emailQuery]]'
+      results="{{email}}"
+      elastic-type='["email"]'
       lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[phone]]"
-     data-out="{{phoneDisplay.telephone}}"
-     transform-function="[[clientConfig.transforms.phone.telephone]]"
+     data-in="[[email]]"
+     data-out="{{emailDisplay.email}}"
+     transform-function="[[clientConfig.transforms.email.email]]"
      ></json-transform>
 
-    <!-- phoneDisplay.offerData query and transform -->
+    <!-- emailDisplay.offerData query and transform -->
     <query-builder 
       query="{{offerAggQuery}}" 
       query-template="{{config.queryTemplates.phoneOrEmailOfferAgg}}"
-      field="offer.seller.telephone.name" value="[[phoneDisplay.telephone.number]]">
+      field="offer.seller.email.name" value="[[emailDisplay.email.emailAddress]]">
     </query-builder>
 
     <elastic-search 
@@ -102,15 +102,15 @@
 
     <json-transform
      data-in="[[offerAggs]]"
-     data-out="{{phoneDisplay.offerData}}"
-     transform-function="[[clientConfig.transforms.phone.offerData]]"
+     data-out="{{emailDisplay.offerData}}"
+     transform-function="[[clientConfig.transforms.email.offerData]]"
      ></json-transform>
 
-    <!-- phoneDisplay.people query and transform -->
+    <!-- emailDisplay.people query and transform -->
     <query-builder 
       query="{{peopleAggQuery}}" 
       query-template="{{config.queryTemplates.phoneOrEmailPeopleAgg}}"
-      field="offers.seller.telephone.name" value="[[phoneDisplay.telephone.number]]">
+      field="offers.seller.email.name" value="[[emailDisplay.email.emailAddress]]">
     </query-builder>
 
     <elastic-search 
@@ -124,15 +124,15 @@
 
     <json-transform
      data-in="[[peopleAggs]]"
-     data-out="{{phoneDisplay.people}}"
-     transform-function="[[clientConfig.transforms.phone.people]]"
+     data-out="{{emailDisplay.people}}"
+     transform-function="[[clientConfig.transforms.email.people]]"
      ></json-transform>
 
-    <!-- phoneDisplay.seller query and transform -->
+    <!-- emailDisplay.seller query and transform -->
     <query-builder 
       query="{{sellerAggQuery}}" 
       query-template="{{config.queryTemplates.phoneOrEmailSellerAgg}}"
-      field="telephone.uri" value="[[phoneDisplay.telephone._id]]">
+      field="email.uri" value="[[emailDisplay.email.uri]]">
     </query-builder>
 
     <elastic-search 
@@ -146,8 +146,8 @@
 
     <json-transform
      data-in="[[sellerAggs]]"
-     data-out="{{phoneDisplay.seller}}"
-     transform-function="[[clientConfig.transforms.phone.seller]]"
+     data-out="{{emailDisplay.seller}}"
+     transform-function="[[clientConfig.transforms.email.seller]]"
      ></json-transform>
 
     <!-- Main Content -->
@@ -159,10 +159,10 @@
         <section class="paper-header layout horizontal center">
           
           <!-- Entity title -->
-          <iron-icon class="iron-icon-huge" icon="communication:phone"></iron-icon>
+          <iron-icon class="iron-icon-huge" icon="communication:email"></iron-icon>
           <section class="flex-auto">
             <div class="paper-font-display1">
-              <phone-formatter number-input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+              <span>[[emailDisplay.email.emailAddress]]</span>
             </div>
           </section>
           
@@ -194,7 +194,7 @@
                       Offers between minDate and maxDate
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[phoneDisplay.offerData.offerDates]]' 
+                  <bar-chart y-axis-label="" data='[[emailDisplay.offerData.offerDates]]' 
                     chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
                   </bar-chart>
                 </section>
@@ -212,7 +212,7 @@
                     <!-- TO DO: Get count of number of persons this data is aggregated from -->
                     <div>9 people</div>
                   </div>
-                  <person-features class="flex-2" people="[[phoneDisplay.people]]"></person-features>
+                  <person-features class="flex-2" people="[[emailDisplay.people]]"></person-features>
                   
                 </section>
               </paper-material>
@@ -241,14 +241,14 @@
               <section class="where-header flex-none">
                 <div class="paper-font-title layout horizontal start center">
                   <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                  <div>[[phoneDisplay.offerData.geoCoordinates.length]] locations</div>
+                  <div>[[emailDisplay.offerData.geoCoordinates.length]] locations</div>
                 </div>
               </section>
               
               <!-- Leaflet map -->
               <section class="where flex-auto">
                 <leaflet-map id="map" fit-to-markers>
-                  <template is="dom-repeat" items="{{phoneDisplay.offerData.geoCoordinates}}" as="loc">
+                  <template is="dom-repeat" items="{{emailDisplay.offerData.geoCoordinates}}" as="loc">
                     <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
                   </template>
                 </leaflet-map>
@@ -256,7 +256,7 @@
               
               <!-- City summary -->
               <section class="where-details flex-none">
-                <feature-aggregation title="Offers per city" key="city" agg="[[phoneDisplay.offerData.offerCities]]"></feature-aggregation>
+                <feature-aggregation title="Offers per city" key="city" agg="[[emailDisplay.offerData.offerCities]]"></feature-aggregation>
               </section>
               
             </paper-material>
@@ -271,10 +271,10 @@
             <section class="offers flex">
               <div class="section-header">
                 <div class="paper-font-title">
-                  [[phoneDisplay.offerData.relatedRecords.offer.length]] offers
+                  [[emailDisplay.offerData.relatedRecords.offer.length]] offers
                 </div>
               </div>
-              <records-list records="[[phoneDisplay.offerData.relatedRecords]]"></records-list>
+              <records-list records="[[emailDisplay.offerData.relatedRecords]]"></records-list>
             </section>
 
             <div class="v-divider"></div>
@@ -302,15 +302,15 @@
                   
                   <div class="summary-badge layout horizontal flex">
                     <iron-icon class="entity-phone-font" icon="communication:phone"></iron-icon>
-                    <div class="paper-font-title">[[phoneDisplay.seller.relatedPhones.length]]</div>
+                    <div class="paper-font-title">[[emailDisplay.seller.relatedPhones.length]]</div>
                   </div>
                   <div class="summary-badge layout horizontal flex">
                     <iron-icon class="entity-email-font" icon="communication:email"></iron-icon>
-                    <div class="paper-font-title">[[phoneDisplay.seller.relatedEmails.length]]</div>
+                    <div class="paper-font-title">[[emailDisplay.seller.relatedEmails.length]]</div>
                   </div>
                   <div class="summary-badge layout horizontal flex">
                     <iron-icon class="entity-webpage-font" icon="av:web"></iron-icon>
-                    <div class="paper-font-title">[[phoneDisplay.seller.relatedWebsites.length]]</div>
+                    <div class="paper-font-title">[[emailDisplay.seller.relatedWebsites.length]]</div>
                   </div>
                 </div>
               </div>
@@ -318,16 +318,16 @@
               <!-- Related items list, would prefer to use this -->
               <!-- These would work better as a unified list, sorted by co-occurances -->
 <!--
-              <records-list records="[[phoneDisplay.seller.relatedEmails]]"></records-list>
-              <records-list records="[[phoneDisplay.seller.relatedPhones]]"></records-list>
-              <records-list records="[[phoneDisplay.seller.relatedWebsites]]"></records-list>
+              <records-list records="[[emailDisplay.seller.relatedEmails]]"></records-list>
+              <records-list records="[[emailDisplay.seller.relatedPhones]]"></records-list>
+              <records-list records="[[emailDisplay.seller.relatedWebsites]]"></records-list>
 -->
               
               <!-- Related items summary -->
               <!-- Would like to use a list as shown above, instead -->
-              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.seller.relatedEmails]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.seller.relatedPhones]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.seller.relatedWebsites]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[emailDisplay.seller.relatedEmails]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[emailDisplay.seller.relatedPhones]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[emailDisplay.seller.relatedWebsites]]"></feature-aggregation>
               
             </section>
 
@@ -359,7 +359,7 @@
     };
 
     app.getURLParams();
-    app.phoneDisplay = {};
+    app.emailDisplay = {};
 
   })(document);
   </script>

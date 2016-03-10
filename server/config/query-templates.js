@@ -3,8 +3,8 @@
 module.exports = {
 
   QUERY_TEMPLATES: {
-    // phone page queries
-    phone: {
+    // phone/email page queries
+    phoneOrEmail: {
         query: {
             filtered:{
                 query:{
@@ -13,7 +13,7 @@ module.exports = {
             }
         }
     },
-    phoneOfferAgg: {
+    phoneOrEmailOfferAgg: {
         query: {
           filtered:{
             query:{
@@ -38,10 +38,10 @@ module.exports = {
             }
         }
     },
-    // Who: Give a sense of who is using this phone 
+    // Who: Give a sense of who is using this phone/email
     // note that in current index, aggregations on hair color, eye color, and ethnicity come back empty
     // and that ethnicity is missing from offer type
-    phonePeopleAgg: {
+    phoneOrEmailPeopleAgg: {
         "query": {
             "filtered": {
                 "filter": {
@@ -79,14 +79,14 @@ module.exports = {
             }
         }
     },
-    phoneSellerAgg: {
+    // Relations
+    phoneOrEmailSellerAgg: {
         "query": {
             "match": {
                 "{{field}}": "{{value}}"
             }   
         },
         "aggs" : {
-            // Relations
             "related_phones" : {
                 "terms" : { 
                     "field" : "telephone.name" 
@@ -153,46 +153,6 @@ module.exports = {
             }
         },
         pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
-    },
-    email: {
-        "query": {
-            "match": {
-                match:{ '{{field}}' : '{{value}}' }
-            }
-        },
-        "aggs": {
-            "names": {
-                "terms": {
-                    "field": "itemOffered.name",
-                    "size": 0
-                }
-            },
-            "eyeColors": {
-                "terms": {
-                    "field": "itemOffered.eyeColor",
-                    "size": 0
-                }
-            },
-            "hairColors": {
-                "terms": {
-                    "field": "itemOffered.hairColor",
-                    "size": 0
-                }
-            },
-            "ages": {
-                "terms": {
-                    "field": "itemOffered.personAge",
-                    "size": 0
-                }
-            },
-            //This could be changed to a date_histogram agg if the model accepts dates rounded to an interval.
-            "offerDates": {
-                "terms": {
-                    "field": "validFrom",
-                    "size": 0
-                }
-            }
-        }
     }
   }
 };

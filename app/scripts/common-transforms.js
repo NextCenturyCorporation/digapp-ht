@@ -27,7 +27,20 @@ var commonTransforms = (function(_) {
                 return obj;
             });
             return buckets;
+        },
+        unrollAggregator: function(aggregator, keyName) {
+            var array;
+
+            _.each(aggregator, function(count, key) {
+                var obj = {};
+                obj[keyName] = key;
+                obj.count = count;
+                array.push(obj);
+            });
+
+            return array;
         }
+
     };
 
 })(_);
