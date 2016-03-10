@@ -2,24 +2,48 @@
  * transform elastic search offer query to display format.  See data-model.json
  */
 
-/* globals _ */
+/* globals _, commonTransforms */
 /* exported offerTransform */
+/* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
-var offerTransform = (function(_) {
+/* note lodash should be defined in parent scope, as well as commonTransforms */
+var offerTransform = (function(_, commonTransforms) {
 
     function getAddress(record) {
         /** build address object:
         "address": {
             "locality": "Los Angeles",
             "region": "California",
-            "country": "US"
+            "country": "US",
+            "formattedAddress": 'Los Angeles, California, US'
         }
         */
         var address = {};
         address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
         address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
         address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
+
+        var formattedAddress = [];
+        if(address.locality) {
+            formattedAddress.push(address.locality);
+        }
+
+        if(address.region) {
+            if(formattedAddress.length > 0) {
+                formattedAddress.push(', ');
+            }
+            formattedAddress.push(address.region);
+        }
+
+        if(address.country) {
+            if(formattedAddress.length > 0) {
+                formattedAddress.push(', ');
+            }
+            formattedAddress.push(address.country);
+        }
+
+        address.formattedAddress = formattedAddress.join('');
+
         return address;
     }
 
@@ -105,6 +129,7 @@ var offerTransform = (function(_) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
+                
                 newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
                 newData.address = getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
@@ -115,10 +140,20 @@ var offerTransform = (function(_) {
                 newData.prices = getPrices(data.hits.hits[0]);
                 newData.emails = getEmails(data.hits.hits[0]);
                 newData.phones = getPhones(data.hits.hits[0]);
+                newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
+                newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
+                newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');
+            }
+
+            // aggregation data for sparklines -- currently unused
+            if(data.aggregations) {
+                var aggs = data.aggregations;
+                newData.offersBySeller = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
+                newData.offerLocsBySeller = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
             }
 
             return newData;
         }
     };
 
-})(_);
+})(_, commonTransforms);

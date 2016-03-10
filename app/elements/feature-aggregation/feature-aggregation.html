@@ -9,6 +9,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+
+<!--
+### Styling
+The following custom properties and mixins are available for styling:
+Custom property | Description | Default
+----------------|-------------|----------
+`--feature-agg-bar-color`     | Bar background color                   | `--light-primary-color`
+`--feature-agg-title-color`   | Title text foreground color            | `--primary-text-color`
+`--feature-agg-bar-height`    | Bar height                             | `22px`
+-->
 
 <dom-module id="feature-aggregation">
   <template>
@@ -18,35 +30,68 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
       
       .feature-set {
-        min-width: 100px;
-        padding: 0px 5px 0px 10px;
+        margin: 0 16px 10px 0;
         @apply(--paper-font-body1);
+        min-width: 100px;
       }
-
-      .agg {
-        max-height: 100px;
-        overflow: auto;
+      
+      .bar-wrapper{
+        position: relative;
+        height: var(--feature-agg-bar-height, 22px);
+        @apply(--layout-horizontal);
+        @apply(--layout-center-center);
       }
 
       .bar {
-        font: 10px sans-serif;
-        background-color: var(--paper-teal-300);
-        text-align: right;
-        height: 10px;
-        padding: 3px;
-        margin: 1px;
+        background-color: var(--feature-agg-bar-color, --light-primary-color);
+        border-radius: 1px;
+        position: absolute;
+        left: 0;
+        top: 1px;
+        bottom: 1px;
       }
+
+      .bar-count {
+        font-size: 11px;
+        font-weight: 600;
+        text-align: right;
+        padding: 0 5px;
+        color: rgba(0,0,0,var(--dark-secondary-opacity));
+        position: relative;
+      }
+      
+      .bar-title{
+        color: var(--feature-agg-title-color, --primary-text-color);
+        font-size: 12px;
+        position: relative;
+        padding-left: 5px;
+        text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      
+      .feature-title{
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        text-transform: uppercase;
+        margin-bottom: 2px;
+      }
+      
     </style>
     <section class="feature-set">
-      <span>{{title}}</span>
+      <span class="feature-title">{{title}}</span>
       <div class="agg">
-        <template is="dom-repeat" items="{{agg}}">
-          <div class="layout horizontal">
-            <div>{{getItemKey(item)}}: </div>
+        <template id="barList" is="dom-repeat" items="{{agg}}" filter="filterToLimit">
+          <div class="bar-wrapper">
             <!-- placeholder: displaying bars to illustrate counts for now - might want something different -->
-            <div class="bar" style="{{getWidth(item)}}">{{item.count}}</div>
+            <div class="bar" style="{{getWidth(item)}}"></div>
+            <div class="bar-title flex">{{getItemKey(item)}} </div>
+            <div class="bar-count flex-none">{{item.count}}</div>
           </div>
         </template>
+        <div class="layout horizontal center-center" hidden="[[!canShowMore]]">
+          <paper-icon-button icon="icons:expand-more" title="Show more" on-click="showMore"></paper-icon-button>
+        </div>
       </div>
     </section>
   </template>
@@ -66,17 +111,47 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         key: {
           type: String
+        },
+        limit: {
+          type: Number,
+          value: 10
+        },
+        canShowMore: {
+          type: Boolean,
+          value: false
         }
       },
       getItemKey: function(item) {
+        if(!item[this.key]){
+          return 'Unknown';
+        }
         return item[this.key];
       },
       getWidth: function(item) {
-        if(this.agg[0].count * 5 > 100) {
-          return 'width: ' + Math.round(item.count / this.agg[0].count * 100) + 'px;';
-        } else {
-          return 'width: ' + (item.count * 5) + 'px;';
+        // This returns bar widths relative to the highest count item, assuming it's first.
+        // Could also sum up all counts and do widths relative to the total.
+        return 'width: ' + Math.round((item.count / this.agg[0].count) * 100) + '%;';
+      },
+      filterToLimit: function() {
+        if(!this.itemCount){
+          this.itemCount = 1;
         }
+        if(this.itemCount > this.limit){
+          this.canShowMore = true;
+          return false;
+        } else {
+          this.itemCount += 1;
+          return true;
+        }
+      },
+      showMore: function(e) {
+        e.preventDefault();
+        this.originalLimit = this.limit;
+        this.limit = 9999;
+        if(this.agg.length <= this.limit){
+          this.canShowMore = false;
+        }
+        this.$.barList.render();
       }
     });
   })();

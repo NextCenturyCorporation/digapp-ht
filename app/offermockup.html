@@ -58,168 +58,24 @@
 <body unresolved class="fullbleed layout vertical">
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
-
-    <!-- exposes clientConfig object which is a container for data 
-      transform functions -->
-    <client-config config="{{clientConfig}}"></client-config>
     
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
       auto
-      url="/config"
+      url="/test/data/offerDisplay.json"
       handle-as="json"
-      last-response="{{config}}"
+      last-response="{{offerDisplay}}"
       on-response="showConfig">
     </iron-ajax>
-     
-    <!--initialize new elastic client connection to server
-      esclient can be used throughout the application lifecycle -->
-    <elastic-client 
-      config="[[config.elasticConfig]]"
-      client="{{esclient}}">
-    </elastic-client>
-
-    <!--look up and build an entity query for the entity specified in the
-      query string for:
-      field: the field in elasticsearch to use in the query
-      value: value of the field above -->
-    <query-builder 
-      query="{{offerQuery}}" 
-      query-template="{{config.queryTemplates.offer}}" 
-      field="[[params.field]]" value="[[params.value]]">
-    </query-builder>
-
-    <!--make an search using {{singleEntityQuery}} and return results -->
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerQuery]]'
-      results="{{offer}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <!--make generic models for content sections -->
-    <json-transform
-     data-in="[[offer]]"
-     data-out="{{offerDisplay}}"
-     transform-function="[[clientConfig.transforms.offer]]"
-     ></json-transform>
-    
-    <!--Start related entity queries and transforms-->
-    <!--Related seller info-->
-
-    <query-builder 
-      query="{{relatedSellerQuery}}" 
-      query-template="{{config.queryTemplates.offer}}" 
-      field="_id" value="[[offerDisplay.sellerId]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedSellerQuery]]'
-      results="{{relatedSeller}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedSeller]]"
-     data-out="{{relatedRecords.seller}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.seller]]"
-     ></json-transform>
-
-
-    <!--Related service info-->
-    <query-builder 
-      query="{{relatedServiceQuery}}" 
-      query-template="{{config.queryTemplates.offer}}" 
-      field="_id" value="[[offerDisplay.serviceId]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedServiceQuery]]'
-      results="{{relatedService}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedService]]"
-     data-out="{{relatedRecords.service}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.service]]"
-     ></json-transform>
-
-
-    <!--Related webpage info-->
-    <query-builder 
-      query="{{relatedWebpageQuery}}" 
-      query-template="{{config.queryTemplates.offer}}" 
-      field="_id" value="[[offerDisplay.webpageId]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedWebpageQuery]]'
-      results="{{relatedWebpage}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedWebpage]]"
-     data-out="{{relatedRecords.webpage}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.webpage]]"
-     ></json-transform>
-
-
-    <!--Related phones info-->
-    <query-builder 
-      query="{{relatedPhonesQuery}}" 
-      query-template="{{config.queryTemplates.relatedPhonesOrEmails.query}}" 
-      path-to-value="{{config.queryTemplates.relatedPhonesOrEmails.pathToValueRelativeToQuery}}"
-      value="[[offerDisplay.phones]]">
-    </query-builder>    
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["phone"]'
-      query='[[relatedPhonesQuery]]'
-      results="{{relatedPhones}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedPhones]]"
-     data-out="{{relatedRecords.phone}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.phone]]"
-     ></json-transform>
-
-    <!--Related emails info-->
-    <query-builder 
-      query="{{relatedEmailsQuery}}" 
-      query-template="{{config.queryTemplates.relatedPhonesOrEmails.query}}" 
-      path-to-value="{{config.queryTemplates.relatedPhonesOrEmails.pathToValueRelativeToQuery}}"
-      value="[[offerDisplay.emails]]">
-    </query-builder>    
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["email"]'
-      query='[[relatedEmailsQuery]]'
-      results="{{relatedEmails}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedEmails]]"
-     data-out="{{relatedRecords.email}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.email]]"
-     ></json-transform>
-    <!-- End related entity queries-->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/test/data/relatedRecords.json"
+      handle-as="json"
+      last-response="{{relatedRecords}}"
+      on-response="showConfig">
+    </iron-ajax>
 
     <!-- Display Content -->
     <div class="entity">
@@ -390,8 +246,8 @@
               <!-- Leaflet map -->
               <section class="where flex-auto">
                 <template is="dom-if" if="{{offerDisplay.geo}}">
-                  <leaflet-map latitude="[[offerDisplay.geo.lat]]" longitude="[[offerDisplay.geo.lon]]" zoom="10">
-                    <leaflet-marker latitude="[[offerDisplay.geo.lat]]" longitude="[[offerDisplay.geo.lon]]"></leaflet-marker> 
+                  <leaflet-map latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}" zoom="10">
+                    <leaflet-marker latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}"></leaflet-marker> 
                   </leaflet-map> 
                 </template>
               </section>
@@ -405,14 +261,16 @@
           <div class="content">
           
             <!-- Offer list -->
-            <section class="offers flex-none">
-              <div class="section-header">
-                <div class="paper-font-title">
-                  [[relatedRecords.offer.length]] offers
+            <template is="dom-if" if="{{relatedRecords}}">
+              <section class="offers flex">
+                <div class="section-header">
+                  <div class="paper-font-title">
+                    [[relatedRecords.offer.length]] offers
+                  </div>
                 </div>
-              </div>
-              <records-list records="[[relatedRecords]]"></records-list>
-            </section>
+                <records-list records="[[relatedRecords]]"></records-list>
+              </section>
+            </template>
             
             <!-- Related entities? -->
             <section class="relations flex"></section>
@@ -444,10 +302,6 @@
         app.params[paramPair[0]] =  paramPair[1];
       }
     };
-
-    app.getURLParams();
-
-    app.relatedRecords = {};
 
   })(document);
   </script>

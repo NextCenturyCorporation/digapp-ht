@@ -57,6 +57,7 @@
       assert.equal(dataOut.address.locality, 'Los Angeles');
       assert.equal(dataOut.address.region, 'California');
       assert.equal(dataOut.address.country, 'US');
+      assert.equal(dataOut.address.formattedAddress, 'Los Angeles, California, US');
     });
 
     test('defines geolocation data', function () {
@@ -107,6 +108,13 @@
       assert.equal(dataOut.emails.length, 1);
       assert.equal(dataOut.emails[0], 'abc@xyz.com');
     });
+
+    test('defines id strings for related entities', function () {
+      assert.isString(dataOut.sellerId);
+      assert.isString(dataOut.serviceId);
+      assert.isString(dataOut.webpageId);
+    });
+
   });
 
   suite('<client-config> offer tests if no results from query', function() {
@@ -133,6 +141,64 @@
       assert.deepEqual(dataOut, {});
     });
   });
+
+  suite('<client-config> offer tests -- aggregations on seller uri', function() {
+    var myEl;
+    var dataOut;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var offerTransform = myEl.config.transforms.offer;
+      var aggs = {
+        'hits': {'hits': []},
+        'aggregations': {
+          'offer_locs_by_seller': {
+             'doc_count_error_upper_bound': 0,
+             'sum_other_doc_count': 0,
+             'buckets': [
+                {
+                   'key': 'Los Angeles',
+                   'doc_count': 1
+                }
+             ]
+          },
+          'offers_by_seller': {
+             'buckets': [
+                {
+                   'key_as_string': '2014-10-27T00:00:00.000Z',
+                   'key': 1414368000000,
+                   'doc_count': 1
+                }
+             ]
+          }
+        }
+      };
+      dataOut = offerTransform(aggs);
+    });
+
+    test('defines offers by seller agg array', function() {
+      expect(dataOut.offersBySeller).to.exist;
+      expect(dataOut.offersBySeller).to.be.an('Array');
+    });
+
+    test('defines offers by seller items', function() {
+      assert.equal(dataOut.offersBySeller.length, 1);
+      assert.equal(dataOut.offersBySeller[0].date, '2014-10-27T00:00:00.000Z');
+      assert.equal(dataOut.offersBySeller[0].count, 1);
+    });
+
+    test('defines offer locations by seller agg array', function() {
+      expect(dataOut.offerLocsBySeller).to.exist;
+      expect(dataOut.offerLocsBySeller).to.be.an('Array');
+    });
+
+    test('defines offer location items', function() {
+      assert.equal(dataOut.offerLocsBySeller.length, 1);
+      assert.deepEqual(dataOut.offerLocsBySeller[0], {city: 'Los Angeles', count: 1});
+    });
+
+  });
+
 </script>
 
 </body>

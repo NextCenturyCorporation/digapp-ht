@@ -27,6 +27,7 @@
   <!-- For shared styles, shared-styles.html import in elements.html -->
   <style is="custom-style" include="shared-styles"></style>
   <style is="custom-style" include="entity-view-styles"></style>
+  <style is="custom-style" include="icon-styles"></style>
   <style is="custom-style" include="map-styles"></style>
 
 </head>
@@ -60,80 +61,281 @@
       query string for:
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
+
+    <!-- phoneDisplay.telephone query and transform -->
     <query-builder 
       query="{{phoneQuery}}" 
-      query-template="{{config.queryTemplates.phone}}">
+      query-template="{{config.queryTemplates.phone}}"
+      field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
-    <!--issue a search request using phoneQuery and return results -->
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[phoneQuery]]'
       results="{{phone}}"
+      elastic-type='["phone"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[phone]]"
+     data-out="{{phoneDisplay.telephone}}"
+     transform-function="[[clientConfig.transforms.phone.telephone]]"
+     ></json-transform>
+
+    <!-- phoneDisplay.offerData query and transform -->
+    <query-builder 
+      query="{{offerAggQuery}}" 
+      query-template="{{config.queryTemplates.phoneOfferAgg}}"
+      field="offer.seller.telephone.name" value="[[phoneDisplay.telephone.number]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerAggQuery]]'
+      results="{{offerAggs}}"
       elastic-type='["offer"]'
       lastError="{{error}}">
     </elastic-search>
 
-    <!--make generic models for content sections -->
     <json-transform
-     data-in="[[phone]]"
-     data-out="{{phoneDisplay}}"
-     transform-function="[[clientConfig.transforms.phone]]"
+     data-in="[[offerAggs]]"
+     data-out="{{phoneDisplay.offerData}}"
+     transform-function="[[clientConfig.transforms.phone.offerData]]"
+     ></json-transform>
+
+    <!-- phoneDisplay.people query and transform -->
+    <query-builder 
+      query="{{peopleAggQuery}}" 
+      query-template="{{config.queryTemplates.phonePeopleAgg}}"
+      field="offers.seller.telephone.name" value="[[phoneDisplay.telephone.number]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[peopleAggQuery]]'
+      results="{{peopleAggs}}"
+      elastic-type='["adultservice"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[peopleAggs]]"
+     data-out="{{phoneDisplay.people}}"
+     transform-function="[[clientConfig.transforms.phone.people]]"
+     ></json-transform>
+
+    <!-- phoneDisplay.seller query and transform -->
+    <query-builder 
+      query="{{sellerAggQuery}}" 
+      query-template="{{config.queryTemplates.phoneSellerAgg}}"
+      field="telephone.uri" value="[[phoneDisplay.telephone.uri]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[sellerAggQuery]]'
+      results="{{sellerAggs}}"
+      elastic-type='["seller"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[sellerAggs]]"
+     data-out="{{phoneDisplay.seller}}"
+     transform-function="[[clientConfig.transforms.phone.seller]]"
      ></json-transform>
 
     <!-- Main Content -->
-    <div class="vertical layout center">
-      <paper-material elevation="2">
-        <section class="heading">
-          <div class="paper-font-headline">
-          <phone-formatter number-input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+    <div class="entity">
+      
+      <paper-header-panel class="flex" mode="waterfall-tall">
+      
+        <!-- Entity header -->
+        <section class="paper-header layout horizontal center">
+          
+          <!-- Entity title -->
+          <iron-icon class="iron-icon-huge" icon="communication:phone"></iron-icon>
+          <section class="flex-auto">
+            <div class="paper-font-display1">
+              <phone-formatter number-input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+            </div>
+          </section>
+          
+          <!-- Places actions performed on the entity here -->
+
+          <!-- Run a follow-on search on this entity -->
+          <!-- TO DO: Hook up with function/URL or comment out -->
+          <paper-button accent raised>
+            <iron-icon icon="icons:search"></iron-icon>
+            Search
+          </paper-button>
+            
+        </section>
+
+        <!-- Entity body -->
+        <div class="entity-page">
+
+          <div class="content">
+            
+            <div class="flex layout vertical">
+              
+              <!-- Timeline -->
+              <paper-material class="flex">
+                <section class="when">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <!-- TO DO: Get actual min/max dates, make it a compact date format -->
+                    <div>
+                      Offers between minDate and maxDate
+                    </div>
+                  </div>
+                  <bar-chart y-axis-label="" data='[[phoneDisplay.offerData.offerDates]]' 
+                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
+                  </bar-chart>
+                </section>
+              </paper-material>
+              
+              <div class="h-divider"></div>
+              
+              <!-- Who section -->
+              <paper-material class="flex">
+                <section class="who">
+                  
+                  <!-- Multi-person summary layout, could probably be improved -->
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
+                    <!-- TO DO: Get count of number of persons this data is aggregated from -->
+                    <div>9 people</div>
+                  </div>
+                  <person-features class="flex-2" people="[[phoneDisplay.people]]"></person-features>
+                  
+                </section>
+              </paper-material>
+              
+              <div class="h-divider"></div>
+
+              <!-- Photos section -->
+              <!-- TO DO: Hook up with data -->
+              <paper-material>
+                <section class="photos">
+                  <!-- Display a single row of images and provide a way to expand to see more -->
+                  (photos section)
+                </section>
+              </paper-material>
+
+            </div>
+
+            <div class="v-divider"></div>
+            
+            <div class="h-divider"></div>
+
+            <!-- Map section -->
+            <paper-material class="flex layout vertical">
+              
+              <!-- City summary -->
+              <section class="where-header flex-none">
+                <div class="paper-font-title layout horizontal start center">
+                  <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                  <div>[[phoneDisplay.offerData.geoCoordinates.length]] locations</div>
+                </div>
+              </section>
+              
+              <!-- Leaflet map -->
+              <section class="where flex-auto">
+                <leaflet-map id="map" fit-to-markers>
+                  <template is="dom-repeat" items="{{phoneDisplay.offerData.geoCoordinates}}" as="loc">
+                    <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
+                  </template>
+                </leaflet-map>
+              </section>
+              
+              <!-- City summary -->
+              <section class="where-details flex-none">
+                <feature-aggregation title="Offers per city" key="city" agg="[[phoneDisplay.offerData.offerCities]]"></feature-aggregation>
+              </section>
+              
+            </paper-material>
+
           </div>
-          <div class="paper-font-subhead">[[phoneDisplay.telephone.type]] phone in 
-          [[phoneDisplay.telephone.origin]]</div>
-        </section>
 
-        <div class="content">
-          <section class="who flex">
-            <person-features people="[[phoneDisplay.people]]"></person-features>
-            <section class="photos">
-              <div>Photos:</div>
+          <div class="h-divider"></div>
+
+          <div class="content">
+
+            <!-- Offer list -->
+            <section class="offers flex">
+              <div class="section-header">
+                <div class="paper-font-title">
+                  [[phoneDisplay.offerData.relatedRecords.offer.length]] offers
+                </div>
+              </div>
+              <records-list records="[[phoneDisplay.offerData.relatedRecords]]"></records-list>
             </section>
-          </section>
-          <section class="where flex">
-            <leaflet-map id="map" fit-to-markers>
-              <template is="dom-repeat" items="{{phoneDisplay.geoCoordinates}}" as="loc">
-                <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
-              </template>
-            </leaflet-map> 
-            <div class="layout horizontal">
-              <feature-aggregation title="Offer Cities" key="city" agg="[[phoneDisplay.offerCities]]"></feature-aggregation>
-            </div>
-          </section>
-        </div>
-        
-        <div class="content">
-          <section class="relations flex">
-            <div class="layout horizontal">
-              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.relatedEmails]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.relatedPhones]]"></feature-aggregation>
-              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.relatedWebsites]]"></feature-aggregation>
-            </div>
-          </section>
-          <section class="related-records flex">
-            Related Offers: 
-            <div class="related-entities">
-              <records-list records="[[phoneDisplay.relatedRecords]]"></records-list>
-            </div>
-          </section>
+
+            <div class="v-divider"></div>
+
+            <!-- Relations section -->
+            <section class="relations flex">
+              
+              <div class="section-header">
+                <div class="paper-font-title flex">77 other items in offers</div>
+                
+                <!-- Related items summary -->
+                <div class="layout horizontal">
+                  
+                  <!-- TO DO: Hook up these two with data and show in related entity list -->
+<!--
+                  <div class="summary-badge layout horizontal flex">
+                    <iron-icon class="entity-seller-font" icon="editor:attach-money"></iron-icon>
+                    <div class="paper-font-title">5</div>
+                  </div>
+                  <div class="summary-badge layout horizontal flex">
+                    <iron-icon class="entity-person-font" icon="icons:account-circle"></iron-icon>
+                    <div class="paper-font-title">20</div>
+                  </div>
+-->
+                  
+                  <div class="summary-badge layout horizontal flex">
+                    <iron-icon class="entity-phone-font" icon="communication:phone"></iron-icon>
+                    <div class="paper-font-title">[[phoneDisplay.seller.relatedPhones.length]]</div>
+                  </div>
+                  <div class="summary-badge layout horizontal flex">
+                    <iron-icon class="entity-email-font" icon="communication:email"></iron-icon>
+                    <div class="paper-font-title">[[phoneDisplay.seller.relatedEmails.length]]</div>
+                  </div>
+                  <div class="summary-badge layout horizontal flex">
+                    <iron-icon class="entity-webpage-font" icon="av:web"></iron-icon>
+                    <div class="paper-font-title">[[phoneDisplay.seller.relatedWebsites.length]]</div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Related items list, would prefer to use this -->
+              <!-- These would work better as a unified list, sorted by co-occurances -->
+<!--
+              <records-list records="[[phoneDisplay.seller.relatedEmails]]"></records-list>
+              <records-list records="[[phoneDisplay.seller.relatedPhones]]"></records-list>
+              <records-list records="[[phoneDisplay.seller.relatedWebsites]]"></records-list>
+-->
+              
+              <!-- Related items summary -->
+              <!-- Would like to use a list as shown above, instead -->
+              <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.seller.relatedEmails]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.seller.relatedPhones]]"></feature-aggregation>
+              <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.seller.relatedWebsites]]"></feature-aggregation>
+              
+            </section>
+
+          </div>
+
         </div>
 
-        <section class="when">
-          <bar-chart y-axis-label="# of Offers" data='[[phoneDisplay.offerDates]]' 
-            chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
-          </bar-chart>
-        </section>
-      </paper-material>    
+      </paper-header-panel>
     </div>
   </template>
 
@@ -155,6 +357,9 @@
         app.params[paramPair[0]] =  paramPair[1];
       }
     };
+
+    app.getURLParams();
+    app.phoneDisplay = {};
 
   })(document);
   </script>

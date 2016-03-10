@@ -2,25 +2,29 @@
  * transform elastic search phone query to display format.  See data-model.json
  */
 
-/* globals _ */
+/* globals _, relatedEntityTransform, commonTransforms */
 /* exported phoneTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
-var phoneTransform = (function(_) {
+/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
+var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     function getTelephone(record) {
         /** build telephone object:
         'telephone': {
-        'number': '1234567890',
-        'type': 'cell',
-        'origin': 'Washington, DC'
+            'uri': 'http://someuri/1234567890'
+            'number': '1234567890',
+            'type': 'cell',
+            'origin': 'Washington DC'
         }
         */
         var telephone = {};
-        telephone.number = _.get(record, 'seller.telephone[0].name[0]');
+        telephone.uri = _.get(record, 'uri');
+        telephone.number = _.get(record, 'name[0]');
         telephone.type = 'Cell';
-        telephone.origin = 'Los Angeles, CA';
+        telephone.origin = _.get(record, 'owner[0].makesOffer[0].availableAtOrFrom.address[0].addressLocality');
+        //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
+
         return telephone;
     }
 
@@ -179,36 +183,6 @@ var phoneTransform = (function(_) {
         return offerTitles;
     }
 
-    // [
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 2},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-23T18:25:43.511Z", "count": 3},
-    //     {"date": "2012-04-15T18:25:43.511Z", "count": 1},
-    //     {"date": "2012-04-12T18:25:43.511Z", "count": 1}
-    // ]
-    function getOfferDates(aggs) {
-        var dates = [];
-
-        aggs.offers_by_date.buckets.forEach(function(elem) {
-            dates.push({date: elem.key_as_string, count: elem.doc_count});
-        });
-        return dates;
-    }
-
-    // [
-    //     {"city": "Los Angeles", "count": 10}, {}
-    // ]
-    function getOfferCities(aggs) {
-        var cities = [];
-
-        aggs.offers_by_city.buckets.forEach(function(elem) {
-            cities.push({city: elem.key, count: elem.doc_count});
-        });
-        return cities;
-    }
-
     function getRelatedPhones(aggs) {
         // [{"number": 1234567, "count": 2}]
         var relatedPhones = [];
@@ -257,99 +231,57 @@ var phoneTransform = (function(_) {
         return relatedWebsites;
     }
 
-    function getOfferSpecificPrices(record) {
-        var prices = [];
-        var priceArr = _.get(record, '_source.priceSpecification', []);
-        priceArr.forEach(function(priceElem) {
-            var price = {
-                amount: priceElem.price, 
-                unitCode: priceElem.unitCode, 
-                billingIncrement: priceElem.billingIncrement, 
-                date: record.validFrom
-            };
-            prices.push(price);
-        });
-        return prices;
-    }
-
-    function getPhones(record) {
-        var phones = [];
-        var phoneArr = _.get(record, '_source.seller.telephone', []);
-        phoneArr.forEach(function(phoneElem) {
-            phones.push(_.get(phoneElem, 'name[0]'));
-        });
-        return phones;
-    }
-
-    function getOfferSummaries(records) {
-        /*
-            "offer": {
-                "_id": 1,
-                "_type": "offer",
-                "date": "2012-04-23T18:25:43.511Z",
-                "address": {
-                    "country": "United States",
-                    "locality": "Los Angeles",
-                    "region": "California"
-                },
-                "publisher": "backpage.com",
-                "title": "*Hello World -- google.com",
-                "prices": [{
-                    "amount": 250, 
-                    "unitCode": "MIN", 
-                    "billingIncrement": 60, 
-                    "date": "2012-04-23T18:25:43.511Z"
-                }],
-                "phones": ["1234567890", "0123456789"]
-            }
-        */
-        var relatedOffers = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                date: _.get(record, '_source.validFrom'),
-                address: {
-                    locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                    region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
-                    country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
-                },
-                title: _.get(record, '_source.mainEntityOfPage.name[0]'),
-                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
-                prices: getOfferSpecificPrices(record),
-                phones: getPhones(record)
-            };
-            relatedOffers.push(obj);
-        });
-        return relatedOffers;
-    }
-
     return {
         // expected data is from an elasticsearch 
-        phone: function(data) {
+        telephone: function(data) {
+            var newData = {};
+            if(data.hits.hits.length > 0) {
+                newData = getTelephone(data.hits.hits[0]._source);
+            }
+            
+            return newData;
+        },
+        offerData: function(data) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
-                newData.telephone = getTelephone(data.hits.hits[0]._source);
+                var aggs = data.aggregations;
+
                 newData.prices = getPrices(data.hits.hits);
-                newData.people = getPeople(data.aggregations);
                 newData.locations = getLocations(data.hits.hits);
                 newData.offerTitles = getOfferTitles(data.hits.hits);
-                newData.offerDates = getOfferDates(data.aggregations);
-                newData.offerCities = getOfferCities(data.aggregations);
+                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
+                newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
+                newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
+                newData.relatedRecords = {
+                    offer: relatedEntityTransform.offer(data)
+                };
+            }
+            
+            return newData;
+        },
+        people: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                newData = getPeople(data.aggregations);
+            }
+            
+            return newData;
+        },
+        seller: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
                 newData.relatedPhones = getRelatedPhones(data.aggregations);
                 newData.relatedEmails = getRelatedEmails(data.aggregations);
                 newData.relatedWebsites = getRelatedWebsites(data.aggregations);
-                newData.geoCoordinates = getGeoCoordinates(data.hits.hits);
-                newData.relatedRecords = {
-                    offer: getOfferSummaries(data.hits.hits)
-                };
             }
-
+            
             return newData;
         }
     };
 
-})(_);
+})(_, relatedEntityTransform, commonTransforms);
 
 
