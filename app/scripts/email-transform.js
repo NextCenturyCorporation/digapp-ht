@@ -23,36 +23,30 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return email;
     }
 
-    function extractPersonArrayField(person, aggregator, field) {
-        if(person[field]) {
-            _.each(person[field], function(val) {
-                if(aggregator[val]) {
-                    aggregator[val] = aggregator[val] + 1;
-                } else {
-                    aggregator[val] = {
-                        count: 1
-                    };
-                }
-            });
-        }
+    function getPeople(hits, aggs) {
+        var heightsAggregator = {};
+        var weightsAggregator = {};
 
-        return aggregator;
-    }
-
-    function extractPersonField(person, aggregator, field) {
-        if(person[field]) {
-            if(person[field].constructor === Array) {
-                return extractPersonArrayField(person, aggregator, field);
-            } else {
-                if(aggregator[person[field]]) {
-                    aggregator[person[field]] = aggregator[person[field]] + 1;
-                } else {
-                    aggregator[person[field]] = 1;
-                }
-
-                return aggregator;
+        _.each(hits, function(hit) {
+            if(hit._source) {
+                var person = hit._source;
+                weightsAggregator = commonTransforms.extractPersonField(person, weightsAggregator, 'schema:weight');
+                heightsAggregator = commonTransforms.extractPersonField(person, heightsAggregator, 'schema:height');
             }
-        }
+        });
+
+        var people = {
+            names: commonTransforms.transformBuckets(aggs.people_names.buckets, 'name'),
+            eyeColors: commonTransforms.transformBuckets(aggs.people_eye_colors.buckets, 'color'),
+            hairColors: commonTransforms.transformBuckets(aggs.people_hair_color.buckets, 'color'),
+            ethnicities: commonTransforms.transformBuckets(aggs.people_ethnicities.buckets, 'ethnicity'),
+            heights: commonTransforms.unrollAggregator(heightsAggregator, 'height'),
+            weights: commonTransforms.unrollAggregator(weightsAggregator, 'weight'),
+            ages: commonTransforms.transformBuckets(aggs.people_ages.buckets, 'age')
+        };
+        console.log(people);
+
+        return people;
     }
 
     function getPrices(hits) {
@@ -72,31 +66,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
         });
 
         return prices;
-    }
-
-    function getPeople(hits, aggs) {
-        var heightsAggregator = {};
-        var weightsAggregator = {};
-
-        _.each(hits, function(hit) {
-            if(hit._source) {
-                var person = hit._source;
-                weightsAggregator = extractPersonField(person, weightsAggregator, 'schema:weight');
-                heightsAggregator = extractPersonField(person, heightsAggregator, 'schema:height');
-            }
-        });
-
-        var people = {
-            names: commonTransforms.transformBuckets(aggs.people_names.buckets, 'name'),
-            eyeColors: commonTransforms.transformBuckets(aggs.people_eye_colors.buckets, 'color'),
-            hairColors: commonTransforms.transformBuckets(aggs.people_hair_color.buckets, 'color'),
-            ethnicities: commonTransforms.transformBuckets(aggs.people_ethnicities.buckets, 'ethnicity'),
-            heights: commonTransforms.unrollAggregator(heightsAggregator, 'height'),
-            weights: commonTransforms.unrollAggregator(weightsAggregator, 'weight'),
-            ages: commonTransforms.transformBuckets(aggs.people_ages.buckets, 'age')
-        };
-
-        return people;
     }
 
     function getOfferTitles(hits) {
