@@ -4,6 +4,7 @@ module.exports = {
 
   QUERY_TEMPLATES: {
     // phone/email page queries
+    // TODO: make common query if all entities use a match query to start
     phoneOrEmail: {
         query: {
             filtered:{
@@ -119,7 +120,7 @@ module.exports = {
             match:{ '{{field}}' : '{{value}}' }
         }
     },
-    // not being used yet
+    // not being used yet on offer
     offerSellerAgg: {
         "query": {
             "match": {
@@ -153,6 +154,77 @@ module.exports = {
             }
         },
         pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
+    },
+    // seller entity queries
+    seller: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
+    },
+    // phone and email aggregations might be able to be performed together when
+    // entity resolution is done on seller
+    sellerPhoneAggs: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        "aggs":{
+            "seller_assoc_numbers": {
+                "terms": {
+                    "field": "telephone.name"
+                }
+            }
+        }
+    },
+    sellerEmailAggs: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        "aggs":{
+            "seller_assoc_emails": {
+                "terms": {
+                    "field" : "email.name"
+                }
+            }
+        }
+    },
+    // TODO: reorganize queries -- duplicate of offerSellerAgg
+    offerAggsBySeller: {
+        "query": {
+            "match": {
+                '{{field}}' : '{{value}}'
+            }   
+        },
+        "aggs": {
+            "offers_by_seller" : {
+                "date_histogram": {
+                    "field": "validFrom",
+                    "interval": "week"
+                }
+            },
+            "offer_locs_by_seller" : {
+                "terms" : { 
+                    "field" : "availableAtOrFrom.address.addressLocality" 
+                }
+            }
+        }
+    },
+    relatedEntityQuery: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
     }
+
   }
 };
