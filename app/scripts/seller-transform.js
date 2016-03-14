@@ -24,7 +24,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         offerData: function(data) {
             var newData = {};
 
-            if(data.aggregations) {
+            if(data.hits.hits.length > 0 && data.aggregations) {
                 var aggs = data.aggregations;
 
                 newData.prices = commonTransforms.getPrices(data.hits.hits);
