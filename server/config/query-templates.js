@@ -220,6 +220,31 @@ module.exports = {
             }
         }
     },
+    // webpage entity queries
+    webpage: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
+    },
+    webpageRevisions: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        "aggs": {
+            "page_revisions" : {
+                "date_histogram": {
+                    "field": "dateCreated",
+                    "interval": "week"
+                }
+            }
+        }
+    },
     relatedEntityQuery: {
         query: {
             match:{ '{{field}}' : '{{value}}' }

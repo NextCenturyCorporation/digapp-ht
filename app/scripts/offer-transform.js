@@ -9,44 +9,6 @@
 /* note lodash should be defined in parent scope, as well as commonTransforms */
 var offerTransform = (function(_, commonTransforms) {
 
-    function getAddress(record) {
-        /** build address object:
-        "address": {
-            "locality": "Los Angeles",
-            "region": "California",
-            "country": "US",
-            "formattedAddress": 'Los Angeles, California, US'
-        }
-        */
-        var address = {};
-        address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
-        address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
-        address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
-
-        var formattedAddress = [];
-        if(address.locality) {
-            formattedAddress.push(address.locality);
-        }
-
-        if(address.region) {
-            if(formattedAddress.length > 0) {
-                formattedAddress.push(', ');
-            }
-            formattedAddress.push(address.region);
-        }
-
-        if(address.country) {
-            if(formattedAddress.length > 0) {
-                formattedAddress.push(', ');
-            }
-            formattedAddress.push(address.country);
-        }
-
-        address.formattedAddress = formattedAddress.join('');
-
-        return address;
-    }
-
     function getGeolocation(record) {
         /** build geolocation object:
         "geo": { 
@@ -131,7 +93,7 @@ var offerTransform = (function(_, commonTransforms) {
             if(data.hits.hits.length > 0) {
                 
                 newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
-                newData.address = getAddress(data.hits.hits[0]._source);
+                newData.address = commonTransforms.getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
                 newData.person = getPerson(data.hits.hits[0]._source);
                 newData.title = _.get(data.hits.hits[0]._source, 'title');

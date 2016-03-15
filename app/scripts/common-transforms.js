@@ -234,6 +234,44 @@ var commonTransforms = (function(_) {
                 });
             });
             return titles;
+        },
+
+        /** build address object:
+        "address": {
+            "locality": "Los Angeles",
+            "region": "California",
+            "country": "US",
+            "formattedAddress": 'Los Angeles, California, US'
+        }
+        */
+        getAddress: function(record) {
+            var address = {};
+            address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
+            address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
+            address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
+
+            var formattedAddress = [];
+            if(address.locality) {
+                formattedAddress.push(address.locality);
+            }
+
+            if(address.region) {
+                if(formattedAddress.length > 0) {
+                    formattedAddress.push(', ');
+                }
+                formattedAddress.push(address.region);
+            }
+
+            if(address.country) {
+                if(formattedAddress.length > 0) {
+                    formattedAddress.push(', ');
+                }
+                formattedAddress.push(address.country);
+            }
+
+            address.formattedAddress = formattedAddress.join('');
+
+            return address;
         }
 
     };

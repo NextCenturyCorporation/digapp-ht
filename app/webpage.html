@@ -1,0 +1,325 @@
+<!doctype html>
+
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Polymer Starter Kit" />
+  <title>DIG</title>
+  <!-- Place favicon.ico in the `app/` directory -->
+
+  <!-- Chrome for Android theme color -->
+  <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+
+  <!-- build:css styles/main.css -->
+  <link rel="stylesheet" href="styles/main.css">
+  <!-- endbuild-->
+
+  <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <!-- endbuild -->
+
+  <script src="bower_components/leaflet/dist/leaflet.js"></script>
+
+  <!-- will be replaced with elements/elements.vulcanized.html -->
+  <link rel="import" href="elements/elements.html">
+  <!-- endreplace-->
+
+  <!-- For shared styles, shared-styles.html import in elements.html -->
+  <style is="custom-style" include="shared-styles"></style>
+  <style is="custom-style" include="entity-view-styles"></style>
+  <style is="custom-style" include="icon-styles"></style>
+  <style is="custom-style" include="map-styles"></style>
+
+</head>
+
+<body unresolved class="fullbleed layout vertical">
+  <span id="browser-sync-binding"></span>
+  <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data 
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
+    
+    <!--get app configuration from server -->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}"
+      on-response="showConfig">
+    </iron-ajax>
+     
+    <!--initialize new elastic client connection to server
+      esclient can be used throughout the application lifecycle -->
+    <elastic-client 
+      config="[[config.elasticConfig]]"
+      client="{{esclient}}">
+    </elastic-client>
+
+    <!--look up and build an entity query for the entity specified in the
+      query string for:
+      field: the field in elasticsearch to use in the query
+      value: value of the field above -->
+    <query-builder 
+      query="{{webpageQuery}}" 
+      query-template="{{config.queryTemplates.webpage}}" 
+      field="[[params.field]]" value="[[params.value]]">
+    </query-builder>
+
+    <!--make an search using {{webpageQuery}} and return results -->
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["webpage"]'
+      query='[[webpageQuery]]'
+      results="{{webpage}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <!--make generic models for content sections -->
+    <json-transform
+     data-in="[[webpage]]"
+     data-out="{{webpageDisplay}}"
+     transform-function="[[clientConfig.transforms.webpage.webpage]]"
+     ></json-transform>
+    
+    <!--Start related entity queries and transforms-->
+    <!--page revision info-->
+    <query-builder 
+      query="{{pageRevisionsQuery}}" 
+      query-template="{{config.queryTemplates.webpageRevisions}}" 
+      field="url" value="[[webpageDisplay.url]]">
+    </query-builder>    
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["webpage"]'
+      query='[[pageRevisionsQuery]]'
+      results="{{pageRevisions}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpageDisplay.pageRevisions}}"
+     transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
+     ></json-transform>
+
+    <!--Related offer info-->
+    <query-builder 
+      query="{{relatedOfferQuery}}" 
+      query-template="{{config.queryTemplates.webpage}}" 
+      field="mainEntityOfPage.uri" value="[[webpageDisplay._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedOfferQuery]]'
+      results="{{relatedOffer}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedOffer]]"
+     data-out="{{relatedRecords.offer}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.offer]]"
+     ></json-transform>
+
+    <!-- End related entity queries-->
+
+    <!-- Display Content -->
+    <div class="entity">
+      <paper-header-panel class="flex" mode="waterfall-tall">
+        
+        <!-- Entity header -->
+        <section class="paper-header layout vertical">
+          
+          <!-- Entity title -->
+          <div class="layout horizontal center">
+            <iron-icon class="iron-icon-huge" icon="av:web"></iron-icon>
+            <section class="flex-auto">
+              <div class="paper-font-display1">
+                [[webpageDisplay.url]]
+              </div>
+              <div class="paper-font-subhead">
+                Posted <time is="relative-time" datetime$="[[webpageDisplay.date]]"></time>
+              </div>
+            </section>
+            
+            <!-- Places actions performed on the entity here -->
+
+            <!-- Run a follow-on search (find related entities??) -->
+            <!-- TO DO: Hook up with function or comment out -->
+            <paper-button accent raised>
+              <iron-icon icon="icons:search"></iron-icon>
+              Search
+            </paper-button>
+
+          </div>
+            
+        </section>
+
+        <!-- Entity body -->
+        <div class="entity-page">
+
+          <div class="content">
+            
+            <div class="flex layout vertical">
+              
+              <!-- What section (item details) -->
+              <paper-material class="flex">
+                <section class="what">
+                  
+                  <div class="what-section">
+                    <dl class="flex-12">
+                      <dt class="body">Title:</dt><dd>[[webpageDisplay.title]]</dd>
+                    </dl>
+                  </div>
+                  
+                  <div class="h-divider"></div>
+                  
+                  <div class="what-section">
+                    <dl class="flex-12">
+                      <dt class="body">Description:</dt><dd>[[webpageDisplay.body]]</dd>
+                    </dl>
+                    <div class="h-divider"></div>
+                  </div>
+
+                  <div class="h-divider"></div>
+                  
+                  <div class="what-section">
+                    <dl class="flex-6">
+                      <dt class="address">Address:</dt>
+                      <dd>[[webpageDisplay.address.formattedAddress]]</dd>
+                    </dl>
+                    <dl class="flex-6">
+                      <dt class="publisher layout horizontal center entity-webpage-font">
+                        <iron-icon icon="av:web"></iron-icon>
+                        Publisher:
+                      </dt>
+                      <!-- TO DO: Make these links to their entity pages -->
+                      <dd>[[webpageDisplay.publisher]]</dd>  
+                    </dl>
+                  </div>
+                  
+                </section>
+              </paper-material>
+              
+              <div class="h-divider"></div>
+              
+              <div class="h-divider"></div>
+
+              <!-- Photos section -->
+              <!-- TO DO: Hook up with data -->
+              <paper-material>
+                <section class="photos">
+                  <!-- Display a single row of images and provide a way to expand to see more -->
+                  (photos section)
+                </section>
+              </paper-material>
+
+            </div>
+
+            <div class="v-divider"></div>
+            
+            <div class="h-divider"></div>
+            <!-- Timeline -->
+            <paper-material class="flex">
+              <section class="when">
+                <div class="paper-font-title layout horizontal start center">
+                  <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                  <!-- TO DO: Get actual min/max dates, make it a compact date format -->
+                  <div>
+                    Revisions to this page between minDate and maxDate
+                  </div>
+                </div>
+                <bar-chart y-axis-label="" data='[[webpageDisplay.pageRevisions]]' 
+                  chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
+                </bar-chart>
+              </section>
+            </paper-material>            
+
+          </div>
+          
+          <div class="h-divider"></div>
+        
+          <div class="content">
+          
+            <!-- Offer list -->
+            <section class="offers flex-none">
+              <div class="section-header">
+                <div class="paper-font-title">
+                  [[relatedRecords.offer.length]] offers
+                </div>
+              </div>
+              <records-list records="[[relatedRecords]]"></records-list>
+            </section>
+            
+            <!-- Related entities? -->
+            <section class="relations flex"></section>
+
+          </div>
+          
+        </div>
+
+      </paper-header-panel>
+    </div>
+  </template>
+
+  <script>
+
+  (function(document) {
+    var app = document.querySelector('#app');
+
+    app.showConfig = function (req, res) {
+      console.log('REQ: ', req);
+      console.log('RES: ', res);
+    };
+
+    app.getURLParams = function() {
+      var queryString = window.location.search.slice(1, window.location.search.length);
+      var params = queryString.split('&');
+      app.params = {};
+      for (var i = 0; i < params.length; i++) {
+        var paramPair = params[i].split('=');
+        app.params[paramPair[0]] =  paramPair[1];
+      }
+    };
+
+    app.getURLParams();
+
+    app.webpageDisplay ={};
+    app.relatedRecords = {};
+
+  })(document);
+  </script>
+
+</body>
+
+</html>
