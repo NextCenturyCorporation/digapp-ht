@@ -34,48 +34,74 @@
   <span id="browser-sync-binding"></span>
 
   <template is="dom-bind" id="app">
-    
+    <!--get app configuration from server -->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}"
+      on-response="showConfig">
+    </iron-ajax>
+
+    <!--initialize new elastic client connection to server
+      esclient can be used throughout the application lifecycle -->
+    <elastic-client
+      config="[[config.elasticConfig]]"
+      client="{{esclient}}">
+    </elastic-client>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      index-type="[[esType]]"
+      query="[[ejsQuery]]"
+      results="{{ecsResult}}"
+      last-error="{{error}}"
+      result-count="{{resultCount}}">
+    </elastic-client-search>
+
     <paper-header-panel class="flex" mode="waterfall">
-      
+
       <!-- Search toolbar -->
       <paper-toolbar>
         <img src="images/dig-logo-original.png" alt="">
         <div class="drawer-spacer"></div>
         <iron-icon icon="icons:search"></iron-icon>
         <div class="v-divider"></div>
-        <paper-dropdown-menu label="type" value="{{indexType}}" class="flex">
-          <paper-menu class="dropdown-content" selected="0">
-            <paper-item name="all">All</paper-item>
-            <paper-item name="email">Emails</paper-item>
-            <paper-item name="offer">Offers</paper-item>
-            <paper-item name="phone">Phones</paper-item>
-            <paper-item name="seller">Sellers</paper-item>
-            <paper-item name="service">Services</paper-item>
-          </paper-menu>
-        </paper-dropdown-menu>
+        <elastic-type-selector
+          client="[[esclient]]"
+          index="[[config.elasticIndex]]"
+          selected-type={{esType}}
+        ></elastic-type-selector>
         <div class="v-divider"></div>
         <div class="flex-6">
-            <paper-input label="Search" class="flex" value="{{fullTextSearch::change}}"></paper-input>
+            <elastic-client-input
+              field="name"
+              query="{{ejsQuery}}"
+              autobuild="true"
+            >
+            </elastic-client-input>
         </div>
 
         <paper-icon-button icon="clear"></paper-icon-button>
 
       </paper-toolbar>
-      
+
       <paper-drawer-panel>
-        
+
         <!-- Sidebar on left side -->
         <paper-header-panel drawer>
           <section>
             stuff
           </section>
         </paper-header-panel>
-        
+
         <!-- Main content on right side -->
         <paper-header-panel main>
           <section>
             <div class="search-results-header">
-              <div class="paper-font-title flex">721 results</div>
+              <div class="paper-font-title flex">{{resultCount}} results</div>
               <div class="flex-none">
                 <!-- Place search controls or view options here -->
               </div>
@@ -83,36 +109,16 @@
             <div class="h-divider"></div>
             <paper-material>
               <section>
-                <!-- This should be a records list (paper-items) except with a 1px border in between items -->
-                <div>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Fugiat quod laudantium sequi consectetur pariatur, sed, repellendus a laborum mollitia totam dolores asperiores? Saepe, delectus quasi odio nobis repellat provident nemo!</div>
-                <div>Minus architecto praesentium facere ducimus, tenetur tempora nemo vero, cumque recusandae enim laborum, qui fugiat reprehenderit! Quam error illo, quos at suscipit inventore perferendis cum perspiciatis ex maiores, doloremque, accusantium!</div>
-                <div>Provident veniam amet ratione fuga, inventore asperiores, expedita fugit voluptates enim. Dolore, ipsam animi provident quidem dolorem quia, quos id magni quae soluta corrupti nesciunt blanditiis commodi, nulla quas nisi?</div>
-                <div>Cupiditate dicta voluptatum laborum deserunt, voluptate optio rem at, repudiandae atque repellendus, aliquam consequatur sed recusandae. Ipsa quibusdam, animi aliquid itaque perferendis dolorem modi, porro, aperiam amet adipisci aut similique.</div>
-                <div>Dolorem aliquid maiores commodi numquam, quo laudantium sunt earum voluptate mollitia vel, facere, in alias pariatur nulla rerum doloribus deserunt laboriosam nostrum! Mollitia architecto voluptatum numquam odio sint amet quisquam!</div>
-                <div>Quia excepturi cupiditate non, repudiandae omnis doloremque quibusdam nisi vero ipsam neque temporibus vel facilis. Nihil facilis vero possimus sint tempore porro est expedita tenetur quam, natus repellendus sequi at.</div>
-                <div>Deleniti quas dignissimos ipsam quae assumenda cum distinctio, porro animi debitis repellendus nobis, autem dolore ducimus fugiat ut reprehenderit facilis libero consequuntur, optio aspernatur delectus! Voluptates quam numquam, obcaecati quasi.</div>
-                <div>Libero incidunt ut placeat ex earum laudantium repellat, velit temporibus veniam omnis fuga quibusdam, hic suscipit quidem ducimus eaque maxime deserunt et voluptates laborum minima. Eos iusto alias excepturi fugit?</div>
-                <div>Soluta laudantium fuga eligendi. Eveniet id exercitationem amet praesentium nobis. Esse quae quaerat nemo iste consectetur porro obcaecati ut, nobis amet possimus aut? Aperiam ab adipisci enim dolore. Accusamus, a.</div>
-                <div>At itaque adipisci sapiente, unde esse officiis ipsa, culpa nulla eos recusandae asperiores, velit, veniam tempore cum hic dolores officia sed! Beatae laudantium natus vitae eum sunt quo nihil hic.</div>
-                <div>Tempore repellendus, sapiente qui quidem ducimus iusto fuga assumenda odio tempora quaerat nobis aut, eveniet fugiat porro facilis officiis molestias reprehenderit aperiam distinctio iste cumque illo possimus. Aliquid, numquam, nobis?</div>
-                <div>Provident facilis quo quibusdam animi maxime hic voluptatum! Dolorem sequi a esse, consequatur recusandae nemo sapiente quae ad, dolor minima corporis eveniet reiciendis quo veniam ducimus iusto, voluptatem nostrum ullam?</div>
-                <div>A dolorem, facilis! Ipsa voluptatem consectetur provident illum animi itaque odio assumenda dolore aliquid saepe consequatur est, distinctio a, nobis nemo illo laborum, nostrum aspernatur sit qui, rem soluta accusantium.</div>
-                <div>Neque optio provident eligendi incidunt, dolores officiis illo at sit inventore, necessitatibus, repellendus, totam rerum atque excepturi ex accusamus expedita sunt repellat magni? Possimus a sequi, veniam error iste recusandae.</div>
-                <div>Quibusdam, aspernatur soluta magni suscipit ullam sunt vitae impedit alias, fugit eos id quo perferendis, illo nihil. Eligendi sapiente, quaerat dolor. Ex, libero et odio debitis aperiam aut minima. Doloremque.</div>
-                <div>Temporibus asperiores architecto, animi unde delectus maxime laborum hic totam sapiente quam, impedit fugit reiciendis qui dignissimos optio officiis cumque inventore in nesciunt amet suscipit sequi aliquid. Impedit, officiis, perferendis.</div>
-                <div>In earum, quasi voluptatum alias, possimus fuga consectetur, sint, deleniti atque praesentium ipsum dolorum doloremque? Est quia incidunt labore, natus optio porro odit corporis id praesentium, quas, suscipit iusto ex.</div>
-                <div>Iste nulla doloribus sunt delectus deserunt itaque saepe facilis, id, illo eum aliquam, vel nihil omnis ad! Fuga corrupti est asperiores a. Neque quis officiis dolores eos cum deleniti saepe.</div>
-                <div>Illum dolores magni molestias eius, enim cumque optio consectetur modi soluta autem error. Aut, laborum. Doloribus voluptatum cupiditate eius veritatis dolores totam libero reiciendis quae odio ipsum, unde sequi, molestias.</div>
-                <div>Voluptatibus similique totam expedita? Odio sequi voluptas eaque mollitia praesentium obcaecati labore voluptate aut amet distinctio quidem culpa officia a doloremque minima illum expedita, explicabo, inventore vel et animi omnis!</div>
+                <records-list records="[[ecsResult.hits]]"></records-list>
               </section>
             </paper-material>
           </section>
         </paper-header-panel>
-        
+
       </paper-drawer-panel>
-      
+
     </paper-header-panel>
-    
+
   </template>
 
 </body>
