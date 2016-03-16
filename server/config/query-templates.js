@@ -249,7 +249,69 @@ module.exports = {
         query: {
             match:{ '{{field}}' : '{{value}}' }
         }
+    },
+    // person entity queries
+    person: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
+    },
+    // same agg is done under seller
+    personRelatedPhones: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        "aggs":{
+            "assoc_numbers": {
+                "terms": {
+                    "field": "telephone.name"
+                }
+            }
+        }
+    },
+    // used on other entity views as well (w/different aggregation names)
+    personOfferAgg: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        size: 40, // TODO: add paging
+        "aggs": {
+            "offers_with_person" : {
+                "date_histogram": {
+                    "field": "validFrom",
+                    "interval": "week"
+                }
+            },
+            "locs_for_person" : {
+                "terms" : {
+                    "field" : "availableAtOrFrom.address.addressLocality" 
+                }
+            },
+            // adding to get aggregate of all phones and emails
+            "phones_for_person": {
+                "terms" : {
+                    "field" : "seller.telephone.name"
+                }
+            },
+            "emails_for_person": {
+                "terms" : {
+                    "field" : "seller.email.name"
+                }
+            
+            }
+        }
     }
-
   }
 };

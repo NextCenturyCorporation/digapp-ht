@@ -1,0 +1,69 @@
+/**
+ * transform elastic search person queries to display format.  See data-model.json
+ */
+
+/* globals _, commonTransforms */
+/* exported personTransform */
+/* jshint camelcase:false */
+
+/* note lodash should be defined in parent scope, as well as commonTransforms */
+var personTransform = (function(_, commonTransforms) {
+
+    return {
+        // expected data is from an elasticsearch
+
+        /** build person object:
+        "person": {
+            "name": "Emily", 
+            "eyeColor": "blue",
+            "hairColor": "brown",
+            "height": 64,
+            "weight": 115,
+            "age": 20
+        }
+        */
+        person: function(data) {
+            var newData = {};
+
+            newData.name = _.get(data.hits.hits[0]._source, 'name');
+            newData.eyeColor = _.get(data.hits.hits[0]._source, 'eyeColor');
+            newData.hairColor = _.get(data.hits.hits[0]._source, 'hairColor');
+            newData.height = _.get(data.hits.hits[0]._source, '[schema:height]');
+            newData.weight = _.get(data.hits.hits[0]._source, '[schema:weight]');
+            newData.age = _.get(data.hits.hits[0]._source, 'personAge');
+
+            return newData;
+        },
+        offer: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                newData.locations = commonTransforms.getLocations(data.hits.hits);
+                newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
+                newData.prices = commonTransforms.getPrices(data.hits.hits);
+            }
+
+            if(data.aggregations) {
+                var aggs = data.aggregations;
+                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_with_person.buckets, 'date', 'key_as_string');
+                newData.offerCities = commonTransforms.transformBuckets(aggs.locs_for_person.buckets, 'city');
+                newData.emails = commonTransforms.getArrayOfStrings(aggs.emails_for_person, 'buckets', 'key');
+                newData.phones = commonTransforms.getArrayOfStrings(aggs.phones_for_person, 'buckets', 'key');
+                // add publisher aggs? or get from seller?
+            }
+
+            return newData;
+        },
+        relatedPhones: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                var aggs = data.aggregations;
+                newData = commonTransforms.transformBuckets(aggs.assoc_numbers.buckets, 'number');
+            }
+            
+            return newData;
+        }
+    };
+
+})(_, commonTransforms);

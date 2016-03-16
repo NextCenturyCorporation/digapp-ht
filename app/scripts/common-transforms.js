@@ -272,8 +272,20 @@ var commonTransforms = (function(_) {
             address.formattedAddress = formattedAddress.join('');
 
             return address;
-        }
+        },
+        /** build an array of strings:
+            example: ["1112223333", "0123456789"]
+        */
+        getArrayOfStrings: function(record, pathToArray, pathToString) {
+            var arrayToReturn = [];
+            var initialArray = _.get(record, pathToArray, []);
 
+            initialArray.forEach(function(element) {
+                arrayToReturn.push(_.get(element, pathToString));
+            });
+            
+            return arrayToReturn;
+        }
     };
 
 })(_);

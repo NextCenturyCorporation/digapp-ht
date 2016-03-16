@@ -67,24 +67,6 @@ var offerTransform = (function(_, commonTransforms) {
         return prices;
     }
 
-    function getPhones(record) {
-        var phones = [];
-        var phoneArr = _.get(record, '_source.seller.telephone', []);
-        phoneArr.forEach(function(phoneElem) {
-            phones.push(_.get(phoneElem, 'name[0]'));
-        });
-        return phones;
-    }
-
-    function getEmails(record) {
-        var emails = [];
-        var emailArr = _.get(record, '_source.seller.email', []);
-        emailArr.forEach(function(emailElem) {
-            emails.push(_.get(emailElem, 'name[0]'));
-        });
-        return emails;
-    }
-
     return {
         // expected data is from an elasticsearch 
         offer: function(data) {
@@ -100,8 +82,8 @@ var offerTransform = (function(_, commonTransforms) {
                 newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name[0]');
                 newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description[0]');
                 newData.prices = getPrices(data.hits.hits[0]);
-                newData.emails = getEmails(data.hits.hits[0]);
-                newData.phones = getPhones(data.hits.hits[0]);
+                newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name[0]');
+                newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name[0]');
                 newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
                 newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
                 newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');
