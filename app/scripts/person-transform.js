@@ -25,15 +25,17 @@ var personTransform = (function(_, commonTransforms, relatedEntityTransform) {
         */
         person: function(data) {
             var newData = {};
-
-            newData._id = _.get(data.hits.hits[0], '_id');
-            newData.name = _.get(data.hits.hits[0]._source, 'name', 'Name N/A');
-            newData.ethnicity = _.get(data.hits.hits[0]._source, 'ethnicity');
-            newData.eyeColor = _.get(data.hits.hits[0]._source, 'eyeColor');
-            newData.hairColor = _.get(data.hits.hits[0]._source, 'hairColor');
-            newData.height = _.get(data.hits.hits[0]._source, '[schema:height]');
-            newData.weight = _.get(data.hits.hits[0]._source, '[schema:weight]');
-            newData.age = _.get(data.hits.hits[0]._source, 'personAge');
+            
+            if(data.hits.hits.length > 0) {
+                newData._id = _.get(data.hits.hits[0], '_id');
+                newData.name = _.get(data.hits.hits[0]._source, 'name', 'Name N/A');
+                newData.ethnicity = _.get(data.hits.hits[0]._source, 'ethnicity');
+                newData.eyeColor = _.get(data.hits.hits[0]._source, 'eyeColor');
+                newData.hairColor = _.get(data.hits.hits[0]._source, 'hairColor');
+                newData.height = _.get(data.hits.hits[0]._source, '[schema:height]');
+                newData.weight = _.get(data.hits.hits[0]._source, '[schema:weight]');
+                newData.age = _.get(data.hits.hits[0]._source, 'personAge');
+            }
 
             return newData;
         },
