@@ -2,18 +2,19 @@
  * transform elastic search person queries to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
+/* globals _, commonTransforms, relatedEntityTransform */
 /* exported personTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as well as commonTransforms */
-var personTransform = (function(_, commonTransforms) {
+/* note lodash should be defined in parent scope, as well as commonTransforms and relatedEntityTransform*/
+var personTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     return {
         // expected data is from an elasticsearch
 
         /** build person object:
         "person": {
+            "_id": "http://someuri/",
             "name": "Emily", 
             "eyeColor": "blue",
             "hairColor": "brown",
@@ -25,7 +26,9 @@ var personTransform = (function(_, commonTransforms) {
         person: function(data) {
             var newData = {};
 
-            newData.name = _.get(data.hits.hits[0]._source, 'name');
+            newData._id = _.get(data.hits.hits[0], '_id');
+            newData.name = _.get(data.hits.hits[0]._source, 'name', 'Name N/A');
+            newData.ethnicity = _.get(data.hits.hits[0]._source, 'ethnicity');
             newData.eyeColor = _.get(data.hits.hits[0]._source, 'eyeColor');
             newData.hairColor = _.get(data.hits.hits[0]._source, 'hairColor');
             newData.height = _.get(data.hits.hits[0]._source, '[schema:height]');
@@ -34,13 +37,16 @@ var personTransform = (function(_, commonTransforms) {
 
             return newData;
         },
-        offer: function(data) {
+        offerData: function(data) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
                 newData.prices = commonTransforms.getPrices(data.hits.hits);
+                newData.relatedRecords = {
+                    offer: relatedEntityTransform.offer(data)
+                };
             }
 
             if(data.aggregations) {
@@ -49,7 +55,6 @@ var personTransform = (function(_, commonTransforms) {
                 newData.offerCities = commonTransforms.transformBuckets(aggs.locs_for_person.buckets, 'city');
                 newData.emails = commonTransforms.getArrayOfStrings(aggs.emails_for_person, 'buckets', 'key');
                 newData.phones = commonTransforms.getArrayOfStrings(aggs.phones_for_person, 'buckets', 'key');
-                // add publisher aggs? or get from seller?
             }
 
             return newData;
@@ -63,7 +68,17 @@ var personTransform = (function(_, commonTransforms) {
             }
             
             return newData;
+        },
+        relatedEmails: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                var aggs = data.aggregations;
+                newData = commonTransforms.transformBuckets(aggs.assoc_emails.buckets, 'email');
+            }
+            
+            return newData;
         }
     };
 
-})(_, commonTransforms);
+})(_, commonTransforms, relatedEntityTransform);

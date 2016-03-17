@@ -245,11 +245,6 @@ module.exports = {
             }
         }
     },
-    relatedEntityQuery: {
-        query: {
-            match:{ '{{field}}' : '{{value}}' }
-        }
-    },
     // person entity queries
     person: {
         query: {
@@ -258,22 +253,46 @@ module.exports = {
     },
     // same agg is done under seller
     personRelatedPhones: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        '{{field}}' : '{{value}}'
+        query: {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "terms": {
+                            "telephone.name": []
+                        }
+                    }
+                }
+            },
+            "aggs":{
+                "assoc_numbers": {
+                    "terms": {
+                        "field": "telephone.name"
                     }
                 }
             }
         },
-        "aggs":{
-            "assoc_numbers": {
-                "terms": {
-                    "field": "telephone.name"
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name"]'
+    },
+    personRelatedEmails: {
+        query: {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "terms": {
+                            "email.name": []
+                        }
+                    }
+                }
+            },
+            "aggs":{
+                "assoc_emails": {
+                    "terms": {
+                        "field": "email.name"
+                    }
                 }
             }
-        }
+        },
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name"]'
     },
     // used on other entity views as well (w/different aggregation names)
     personOfferAgg: {
@@ -309,9 +328,13 @@ module.exports = {
                 "terms" : {
                     "field" : "seller.email.name"
                 }
-            
             }
         }
+    },
+    relatedEntityQuery: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
     }
-  }
+}
 };
