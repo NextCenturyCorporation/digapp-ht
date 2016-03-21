@@ -21,6 +21,15 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             return newData;
         },
+        people: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                newData = commonTransforms.getPeople(data.aggregations);
+            }
+            
+            return newData;
+        },
         offerData: function(data) {
             var newData = {};
 
