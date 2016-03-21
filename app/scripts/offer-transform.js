@@ -9,44 +9,6 @@
 /* note lodash should be defined in parent scope, as well as commonTransforms */
 var offerTransform = (function(_, commonTransforms) {
 
-    function getAddress(record) {
-        /** build address object:
-        "address": {
-            "locality": "Los Angeles",
-            "region": "California",
-            "country": "US",
-            "formattedAddress": 'Los Angeles, California, US'
-        }
-        */
-        var address = {};
-        address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
-        address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
-        address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
-
-        var formattedAddress = [];
-        if(address.locality) {
-            formattedAddress.push(address.locality);
-        }
-
-        if(address.region) {
-            if(formattedAddress.length > 0) {
-                formattedAddress.push(', ');
-            }
-            formattedAddress.push(address.region);
-        }
-
-        if(address.country) {
-            if(formattedAddress.length > 0) {
-                formattedAddress.push(', ');
-            }
-            formattedAddress.push(address.country);
-        }
-
-        address.formattedAddress = formattedAddress.join('');
-
-        return address;
-    }
-
     function getGeolocation(record) {
         /** build geolocation object:
         "geo": { 
@@ -105,24 +67,6 @@ var offerTransform = (function(_, commonTransforms) {
         return prices;
     }
 
-    function getPhones(record) {
-        var phones = [];
-        var phoneArr = _.get(record, '_source.seller.telephone', []);
-        phoneArr.forEach(function(phoneElem) {
-            phones.push(_.get(phoneElem, 'name[0]'));
-        });
-        return phones;
-    }
-
-    function getEmails(record) {
-        var emails = [];
-        var emailArr = _.get(record, '_source.seller.email', []);
-        emailArr.forEach(function(emailElem) {
-            emails.push(_.get(emailElem, 'name[0]'));
-        });
-        return emails;
-    }
-
     return {
         // expected data is from an elasticsearch 
         offer: function(data) {
@@ -131,15 +75,15 @@ var offerTransform = (function(_, commonTransforms) {
             if(data.hits.hits.length > 0) {
                 
                 newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
-                newData.address = getAddress(data.hits.hits[0]._source);
+                newData.address = commonTransforms.getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
                 newData.person = getPerson(data.hits.hits[0]._source);
                 newData.title = _.get(data.hits.hits[0]._source, 'title');
                 newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name[0]');
                 newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description[0]');
                 newData.prices = getPrices(data.hits.hits[0]);
-                newData.emails = getEmails(data.hits.hits[0]);
-                newData.phones = getPhones(data.hits.hits[0]);
+                newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name[0]');
+                newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name[0]');
                 newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
                 newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
                 newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');

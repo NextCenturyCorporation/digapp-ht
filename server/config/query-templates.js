@@ -220,11 +220,121 @@ module.exports = {
             }
         }
     },
+    // webpage entity queries
+    webpage: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
+    },
+    webpageRevisions: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        "aggs": {
+            "page_revisions" : {
+                "date_histogram": {
+                    "field": "dateCreated",
+                    "interval": "week"
+                }
+            }
+        }
+    },
+    // person entity queries
+    person: {
+        query: {
+            match:{ '{{field}}' : '{{value}}' }
+        }
+    },
+    // same agg is done under seller
+    personRelatedPhones: {
+        query: {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "terms": {
+                            "telephone.name": []
+                        }
+                    }
+                }
+            },
+            "aggs":{
+                "assoc_numbers": {
+                    "terms": {
+                        "field": "telephone.name"
+                    }
+                }
+            }
+        },
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name"]'
+    },
+    personRelatedEmails: {
+        query: {
+            "query": {
+                "filtered": {
+                    "filter": {
+                        "terms": {
+                            "email.name": []
+                        }
+                    }
+                }
+            },
+            "aggs":{
+                "assoc_emails": {
+                    "terms": {
+                        "field": "email.name"
+                    }
+                }
+            }
+        },
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name"]'
+    },
+    // used on other entity views as well (w/different aggregation names)
+    personOfferAgg: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        '{{field}}' : '{{value}}'
+                    }
+                }
+            }
+        },
+        size: 40, // TODO: add paging
+        "aggs": {
+            "offers_with_person" : {
+                "date_histogram": {
+                    "field": "validFrom",
+                    "interval": "week"
+                }
+            },
+            "locs_for_person" : {
+                "terms" : {
+                    "field" : "availableAtOrFrom.address.addressLocality" 
+                }
+            },
+            // adding to get aggregate of all phones and emails
+            "phones_for_person": {
+                "terms" : {
+                    "field" : "seller.telephone.name"
+                }
+            },
+            "emails_for_person": {
+                "terms" : {
+                    "field" : "seller.email.name"
+                }
+            }
+        }
+    },
     relatedEntityQuery: {
         query: {
             match:{ '{{field}}' : '{{value}}' }
         }
     }
-
-  }
+}
 };
