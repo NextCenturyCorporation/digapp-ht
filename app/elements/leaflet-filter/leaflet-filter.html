@@ -1,0 +1,262 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<script src="../../bower_components/leaflet/dist/leaflet.js"></script>
+<link rel="import" href="../lodash.html">
+<link rel="import" href="../../bower_components/leaflet-map/leaflet-map.html">
+
+<dom-module id="leaflet-filter">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+      leaflet-map {
+        padding: 10px;
+        height: 200px;
+        width: 95%;
+      }
+      button {
+        margin: 0px 0px 10px 10px;
+      }
+    </style>
+    <leaflet-map id="map">
+      <template is="dom-repeat" items="{{mapData}}" as="loc">
+        <template is="dom-if" if="{{hasValidKeyAndValue(loc)}}" restamp="true">
+          <leaflet-marker latitude="{{loc.key.geo.lat}}" longitude="{{loc.key.geo.lon}}" 
+            on-mouseover="hoverOnMarker">
+          </leaflet-marker> 
+        </template>
+      </template>
+    </leaflet-map>
+    <button hidden="[[!clearFilterEnabled]]" on-click="resetFilter">Reset Map Filter</button>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+    /* globals L */
+    /* globals _ */
+
+    Polymer({
+      is: 'leaflet-filter',
+
+      properties: {
+        mapData: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true,
+          observer: 'onMapDataChange' 
+        },
+        mapFilter: {
+          type: Array,
+          notify: true,
+          value: function() {
+            return [];
+          }
+        },
+        filterMarkers: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true
+        },
+        filterActiveImagePath: {
+          // TODO: make new images location if component gets cleaned up/published
+          type: String,
+          value: '/images/leaflet/marker-icon-2x-red.png' 
+        },
+        clearFilterEnabled: {
+          type: Boolean,
+          value: false
+        }
+      },
+      observers: [
+        'setClearButtonEnabled(mapFilter.*)'
+      ],
+      listeners: {
+        'createPopupEvent': 'hoverFromOutsideElement',
+        'click': 'filterRecordsList'
+      },
+      fitToMarkers: function() {
+        var bounds = [];
+        for(var i = 0; i < this.mapData.length; i++) {
+          if(this.mapData[i].key.geo.lat && this.mapData[i].key.geo.lon) {
+            bounds.push([this.mapData[i].key.geo.lat, this.mapData[i].key.geo.lon]);
+          }
+        }
+
+        if(bounds.length === 1 && this.$.map.map) {
+          this.$.map.map.setView(L.latLng(bounds[0][0], bounds[0][1]));
+          this.$.map.map.invalidateSize();
+        } else if(bounds.length > 1 && this.$.map.map) {
+          this.$.map.map.fitBounds(bounds);
+          this.$.map.map.invalidateSize();
+        }
+      },
+      onMapDataChange: function() {
+        var self = this;
+
+        // if mapData has changed and popup is open, reset popup content if marker is 
+        // being used as a filter, otherwise, remove popup
+        if(self.popup && self.popup._isOpen) {
+          var location = _.find(self.mapData, function(loc) {
+            return parseFloat(loc.key.geo.lat) === self.popup._latlng.lat && 
+              parseFloat(loc.key.geo.lon) === self.popup._latlng.lng;
+          });
+
+          if(location && this.hasValidKeyAndValue(location)) {
+            self.popup.setContent(self.createPopupContent(location.key.address, 
+              location.value));
+          } else {
+            self.popup._close();
+            delete self.popup;
+          }
+        }
+        self.fitToMarkers();
+      },
+      setClearButtonEnabled: function(mapFilterChanges) {
+        if(mapFilterChanges.path === 'mapFilter.length') {
+          if(mapFilterChanges.value !== 0) {
+            this.clearFilterEnabled = true;
+          } else {
+            this.clearFilterEnabled = false;
+          }
+        }
+      },
+      resetFilter: function() {
+        _.forEach(this.filterMarkers, function(marker) {
+          marker.setIcon(new L.Icon.Default());
+        });
+
+        this.set('filterMarkers', []);
+        this.set('mapFilter', []);
+        this.clearFilterEnabled = false;
+      },
+      filterRecordsList: function(event) {
+        var targetType = Object.getPrototypeOf(event.target);
+
+        if(targetType.is === 'leaflet-marker') {
+          var latlng = L.latLng(event.target.latitude, event.target.longitude);
+
+          var marker = _.find(this.$.map.map._layers, function(o) {
+            return o._latlng && o._latlng.equals(latlng);
+          });
+
+          var filter = _.find(this.mapData, function(loc) {
+            return loc.key.geo.lat === event.target.latitude && 
+              loc.key.geo.lon === event.target.longitude;
+          });
+
+          if(!marker.options.icon.options.iconUrl || 
+            marker.options.icon.options.iconUrl !== this.filterActiveImagePath) {
+
+            var icon = L.icon({
+              iconUrl: this.filterActiveImagePath,
+            });
+
+            marker.setIcon(icon);
+            
+            this.push('filterMarkers', marker);
+            this.push('mapFilter', filter.key.address[0].addressLocality);
+          } else {
+            marker.setIcon(new L.Icon.Default());
+
+            this.pop('filterMarkers', marker);
+            this.pop('mapFilter', filter.key.address[0].addressLocality);
+          }
+
+        }
+      },
+      hoverOnMarker: function(e) {
+        var eventLat = e.model.loc.key.geo.lat;
+        var eventLng = e.model.loc.key.geo.lon;
+        var address = e.model.loc.key.address;
+        var count = e.model.loc.value;
+
+        this.handleHoverEvent(eventLat, eventLng, address, count);
+      },
+      hoverFromOutsideElement: function(e) {
+        if(e.detail.detail._source.availableAtOrFrom.geo) {
+          var eventLat = e.detail.detail._source.availableAtOrFrom.geo.lat;
+          var eventLng = e.detail.detail._source.availableAtOrFrom.geo.lon;
+          var location = _.find(this.mapData, function(o) { 
+            return o.key.geo.lat === eventLat && o.key.geo.lon === eventLng; 
+          });
+
+          this.handleHoverEvent(eventLat, eventLng, location.key.address, location.value);          
+        }
+      },
+      handleHoverEvent: function(eventLat, eventLng, address, count) {
+        var latlng = L.latLng(eventLat, eventLng);
+
+        if(this.popup && this.popup._isOpen && 
+          !latlng.equals(this.popup._latlng)) {
+          this.popup._close();
+          delete this.popup;
+        } 
+
+        if(!this.popup || !this.popup._isOpen) {
+          this.popup = L.popup({offset: L.point(1, -27)})
+          .setLatLng(latlng)
+          .setContent(this.createPopupContent(address, count))
+          .openOn(this.$.map.map); // TODO: better selector?    
+        }
+      },
+      hasValidKeyAndValue: function(loc) {
+        return (loc.key.geo.lat && loc.value > 0) || 
+          _.indexOf(this.mapFilter, loc.key.address[0].addressLocality) !== -1;
+      },
+      createPopupContent: function(address, count) {
+        var content = [];
+
+        if(address[0].addressLocality) {
+          content.push(address[0].addressLocality);
+        }
+
+        if(address[0].addressRegion) {
+          if(content.length > 0) {
+            content.push(', ');
+          }
+          content.push(address[0].addressRegion);
+        }
+
+        if(address[0].addressCountry) {
+          if(content.length > 0) {
+            content.push(', ');
+          }
+          content.push(address[0].addressCountry);
+        }
+
+        content.push('<br/>');
+        content.push(count);
+        content.push(' offer');
+
+        if(count !== 1) {
+          content.push('s');
+        }  
+
+        return content.join('');
+      }
+      /* debating behavior on mouseout
+      leaveMarker: function() {
+        if(this.popup && this.popup._isOpen) {
+          //console.log('close!');
+          //this.popup._close();
+        }
+      }
+      */
+    });
+  })();
+  </script>
+</dom-module>
