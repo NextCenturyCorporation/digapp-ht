@@ -63,6 +63,13 @@ var commonTransforms = (function(_) {
         return array;
     }
 
+    /**
+    * Check for geolocation equality
+    */
+    function isGeolocationEqual(value, other) {
+        return value.lat === other.lat && value.lon === other.lon;
+    }
+
     return {
         /**
         * Changes the key/value names of buckets given from an aggregation
@@ -189,8 +196,7 @@ var commonTransforms = (function(_) {
                     "city": "hawthorn",
                     "state": "california",
                     "lat": 33.916403,
-                    "lon": -118.352575,
-                    "date": "2012-04-23T18:25:43.511Z"
+                    "lon": -118.352575
                 }
             ]
         */
@@ -207,13 +213,15 @@ var commonTransforms = (function(_) {
                             city: address.addressLocality,
                             state: address.addressRegion,
                             lat: lat,
-                            lon: lon,
-                            date: record._source.validFrom
+                            lon: lon
                         };
                         geos.push(geo);
                     }
                 });
+                // Removing duplicates for better map display
+                geos = _.uniqWith(geos, isGeolocationEqual);
             });
+
             return geos;
         },
 
@@ -270,6 +278,10 @@ var commonTransforms = (function(_) {
             }
 
             address.formattedAddress = formattedAddress.join('');
+
+            if(_.isEmpty(address.formattedAddress)) {
+                address.formattedAddress = 'Address N/A';
+            }
 
             return address;
         },

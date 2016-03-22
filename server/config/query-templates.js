@@ -199,6 +199,45 @@ module.exports = {
             }
         }
     },
+    // same one used in phone/email
+    sellerPeopleAggs: {
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        "{{field}}": "{{value}}"
+                    }
+                }
+            }
+        },
+        "aggs" : {
+            "people_names": {
+                "terms": {
+                    "field": "name"
+                }
+            },
+            "people_ages": {
+                "terms": {
+                    "field": "personAge"
+                }
+            },
+            "people_ethnicities": {
+                "terms": {
+                    "field": "ethnicity"
+                }
+            },
+            "people_eye_colors": {
+                "terms": {
+                    "field": "eyeColor"
+                }
+            },
+            "people_hair_color": {
+                "terms": {
+                    "field": "hairColor"
+                }
+            }
+        }
+    },
     // TODO: reorganize queries -- duplicate of offerSellerAgg
     offerAggsBySeller: {
         "query": {

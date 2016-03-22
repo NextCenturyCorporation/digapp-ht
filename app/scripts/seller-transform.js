@@ -17,8 +17,18 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData._id = _.get(data.hits.hits[0], '_id');
                 newData.telephone = _.get(data.hits.hits[0]._source, 'telephone[0].name[0]');
                 newData.emailAddress = _.get(data.hits.hits[0]._source, 'email[0].name[0]');
+                newData.title = 'Seller (' + (newData.telephone || newData.emailAddress || 'Info N/A') + ')';
             }
 
+            return newData;
+        },
+        people: function(data) {
+            var newData = {};
+
+            if(data.aggregations) {
+                newData = commonTransforms.getPeople(data.aggregations);
+            }
+            
             return newData;
         },
         offerData: function(data) {

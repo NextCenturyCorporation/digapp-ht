@@ -217,6 +217,28 @@
      transform-function="[[clientConfig.transforms.relatedEntities.service]]"
      ></json-transform>
 
+    <!-- Related people (aggs) -->
+    <query-builder 
+      query="{{relatedServiceAggQuery}}" 
+      query-template="{{config.queryTemplates.sellerPeopleAggs}}" 
+      field="offers.seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedServiceAggQuery]]'
+      results="{{relatedServiceAggs}}"
+      elastic-type='["adultservice"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedServiceAggs]]"
+     data-out="{{sellerDisplay.people}}"
+     transform-function="[[clientConfig.transforms.seller.people]]"
+     ></json-transform>
+
     <!-- End related entity queries-->
 
     <!-- Display Content -->
@@ -231,7 +253,8 @@
             <iron-icon class="iron-icon-huge" icon="editor:attach-money"></iron-icon>
             <section class="flex-auto">
               <div class="paper-font-display1">
-                Seller
+                <!--Title will be phone, email, or 'Info N/A' - non-phone numbers will be ignored by phone-formatter --> 
+                <phone-formatter input="[[sellerDisplay.seller.title]]"></phone-formatter>
               </div>
             </section>
             
@@ -260,13 +283,13 @@
                 <section class="when">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <!-- TO DO: Get actual min/max dates, make it a compact date format -->
                     <div>
-                      Offers between minDate and maxDate
+                      Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
                   <bar-chart y-axis-label="" data='[[sellerDisplay.offerData.offerDates]]' 
-                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count">
+                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count" 
+                    min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </bar-chart>
                 </section>
 
@@ -282,28 +305,9 @@
                        When data has improved, add seller details -->
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
-                    <div>Seller Info</div>
+                    <div>Services Offered</div>
                   </div>
-                  <div class="layout horizontal">
-                    <dl class="flex">
-                      <dt class="age">Age:</dt><dd></dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="ethnicity">Ethnicity:</dt><dd></dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="eye-color">Eye Color:</dt><dd></dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="hair-color">Hair Color:</dt><dd></dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="height">Height:</dt><dd></dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="weight">Weight:</dt><dd></dd>
-                    </dl>
-                  </div>
+                  <person-features class="flex-2" people="[[sellerDisplay.people]]"></person-features>
                   
                 </section>
               </paper-material>
@@ -333,17 +337,14 @@
                 <div class="paper-font-title layout horizontal start center">
                   <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
                   <!-- Likely to be only one location for seller for now until entity resolution is done -->
-                  <div>[[sellerDisplay.offerData.geoCoordinates.length]] locations</div>
+                  <div>[[sellerDisplay.offerData.geoCoordinates.length]] location(s)</div>
                 </div>
               </section>
               
               <!-- Leaflet map -->
               <section class="where flex-auto">
-                <leaflet-map id="map" zoom="2">
-                  <template is="dom-repeat" items="{{sellerDisplay.offerData.geoCoordinates}}" as="loc">
-                    <leaflet-marker latitude="{{loc.lat}}" longitude="{{loc.lon}}"></leaflet-marker> 
-                  </template>
-                </leaflet-map>
+                <leaflet-wrapper map-data="{{sellerDisplay.offerData.geoCoordinates}}">
+                </leaflet-wrapper>
               </section>
               
               <!-- City summary -->
