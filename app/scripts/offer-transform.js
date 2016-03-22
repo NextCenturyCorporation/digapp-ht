@@ -43,7 +43,7 @@ var offerTransform = (function(_, commonTransforms) {
         }
         */
         var person = {};
-        person.name = _.get(record, 'itemOffered.name');
+        person.name = _.get(record, 'itemOffered.name', 'Name N/A');
         person.eyeColor = _.get(record, 'itemOffered.eyeColor');
         person.hairColor = _.get(record, 'itemOffered.hairColor');
         person.height = _.get(record, 'itemOffered[schema:height]');
@@ -78,7 +78,7 @@ var offerTransform = (function(_, commonTransforms) {
                 newData.address = commonTransforms.getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
                 newData.person = getPerson(data.hits.hits[0]._source);
-                newData.title = _.get(data.hits.hits[0]._source, 'title');
+                newData.title = _.get(data.hits.hits[0]._source, 'title', 'Title N/A');
                 newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name[0]');
                 newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description[0]');
                 newData.prices = getPrices(data.hits.hits[0]);

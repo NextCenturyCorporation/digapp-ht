@@ -279,6 +279,10 @@ var commonTransforms = (function(_) {
 
             address.formattedAddress = formattedAddress.join('');
 
+            if(_.isEmpty(address.formattedAddress)) {
+                address.formattedAddress = 'Address N/A';
+            }
+
             return address;
         },
         /** build an array of strings:
