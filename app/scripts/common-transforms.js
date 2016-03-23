@@ -295,7 +295,7 @@ var commonTransforms = (function(_) {
             initialArray.forEach(function(element) {
                 arrayToReturn.push(_.get(element, pathToString));
             });
-            
+
             return arrayToReturn;
         }
     };
