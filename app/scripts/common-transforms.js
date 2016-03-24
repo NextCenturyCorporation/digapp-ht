@@ -224,26 +224,6 @@ var commonTransforms = (function(_) {
 
             return geos;
         },
-
-        /**
-            "offerTitles": [
-                {"title": "hello world 4", "date": "2012-04-23T18:25:43.511Z"},
-                {"title": "hello world 3", "date": "2012-04-22T18:25:43.511Z"},
-                {"title": "hello world 2 ", "date": "2012-04-21T18:25:43.511Z"},
-                {"title": "hello world 1", "date": "2012-04-20T18:25:43.511Z"}
-            ]
-        */
-        getOfferTitles: function(hits) {
-            var titles = [];
-            _.each(hits, function(hit) {
-                titles.push({
-                    title: hit._source.title,
-                    date: hit._source.validFrom
-                });
-            });
-            return titles;
-        },
-
         /** build address object:
         "address": {
             "locality": "Los Angeles",

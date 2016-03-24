@@ -42,7 +42,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
                 newData.prices = commonTransforms.getPrices(data.hits.hits);
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
-                newData.offerTitles = commonTransforms.getOfferTitles(data.hits.hits);
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
                 newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
