@@ -10,60 +10,6 @@
 var commonTransforms = (function(_) {
 
     /**
-    * Path taken by extractPersonField when iterating over an array value
-    */
-    function extractPersonArrayField(person, aggregator, field) {
-        if(person[field]) {
-            _.each(person[field], function(val) {
-                if(aggregator[val]) {
-                    aggregator[val] = aggregator[val] + 1;
-                } else {
-                    aggregator[val] = {
-                        count: 1
-                    };
-                }
-            });
-        }
-
-        return aggregator;
-    }
-
-    /**
-    * Creates person aggregation based on a set of records
-    */
-    function extractPersonField(person, aggregator, field) {
-        if(person[field]) {
-            if(person[field].constructor === Array) {
-                return extractPersonArrayField(person, aggregator, field);
-            } else {
-                if(aggregator[person[field]]) {
-                    aggregator[person[field]] = aggregator[person[field]] + 1;
-                } else {
-                    aggregator[person[field]] = 1;
-                }
-
-                return aggregator;
-            }
-        }
-    }
-
-    /**
-    * Adds names (keyName and count) to key/value pairs.
-    */
-    function unrollAggregator(aggregator, keyName) {
-        var array = [];
-
-        _.each(aggregator, function(count, key) {
-            var obj = {};
-            obj[keyName] = key;
-            obj.count = count;
-            array.push(obj);
-        });
-
-        return array;
-    }
-
-    /**
     * Check for geolocation equality
     */
     function isGeolocationEqual(value, other) {
