@@ -39,7 +39,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
                 newData.prices = commonTransforms.getPrices(data.hits.hits);
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
-                newData.offerTitles = commonTransforms.getOfferTitles(data.hits.hits);
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
                 newData.offerCities = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);

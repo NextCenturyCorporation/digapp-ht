@@ -134,6 +134,9 @@ Custom property | Description | Default
           this.setupChart();
           this.minX = this.getItemKey(this.data[0]); 
           this.maxX = this.getItemKey(this.data[this.data.length - 1]);
+        } else {
+          this.minX = 'N/A';
+          this.maxX = 'N/A';
         }
       },
       getItemKey: function(item) {
@@ -159,7 +162,7 @@ Custom property | Description | Default
         var self = this;
         this.height = 120;
         this.width = 400;
-        var margin = {top: 10, right: 0, bottom: 18, left: 20};
+        var margin = {top: 10, right: 10, bottom: 18, left: 30};
         var container = document.getElementById('chartContainer');
         if(container){
           this.width = parseInt(container.offsetWidth, 10);
@@ -189,7 +192,29 @@ Custom property | Description | Default
         var xAxis = d3.svg.axis()
             .scale(x)
             .orient('bottom')
-            .ticks(3);
+            .ticks(3)
+            .tickFormat(function(d, index) {
+              var fullDateLabelWidth = 60;
+              var monthDayLabelWidth = 30;
+              var barWidth =  Math.round(x.rangeBand());
+
+              if(fullDateLabelWidth <= barWidth) {
+                return d;
+              } else {
+                // if full date is too wide, use label with month and day only
+
+                // if the chosen bar width exceeds the size of the day and month label, 
+                // pick which tick marks to label so that labels do not overlap
+                var incrementToLabel = 1;
+
+                while(monthDayLabelWidth > (incrementToLabel * barWidth)) {
+                  incrementToLabel++;
+                }
+
+                return (index % incrementToLabel === 0 ? d.substring(5, 10) : '');
+              }
+            });
+
 
         var yAxis = d3.svg.axis()
             .scale(y)
