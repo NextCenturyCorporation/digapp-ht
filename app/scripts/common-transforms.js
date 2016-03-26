@@ -53,8 +53,10 @@ var commonTransforms = (function(_) {
             var prices = [];
 
             _.each(hits, function(hit) {
-                if(hit._source.priceSpecification) {
-                    _.each(hit._source.priceSpecification, function(price) {
+                var priceArr = _.get(hit, '_source.priceSpecification');
+
+                if(priceArr) {
+                    _.each(priceArr, function(price) {
                         prices.push({
                             amount: price.price,
                             unitCode: price.unitCode,
