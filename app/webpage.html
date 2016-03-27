@@ -41,10 +41,6 @@
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <!-- endbuild -->
 
-  <!--Since leaflet-map is used directly here, need to include this in order -->
-  <!--for L.Icon.Default.imagePath to be set correctly -->
-  <link rel="import" href="bower_components/leaflet-map/leaflet-map.html">
-
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -60,24 +56,100 @@
 <body unresolved class="fullbleed layout vertical">
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data 
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
     
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
       auto
-      url="/test/data/offerDisplay.json"
+      url="/config"
       handle-as="json"
-      last-response="{{offerDisplay}}"
+      last-response="{{config}}"
       on-response="showConfig">
     </iron-ajax>
-    <iron-ajax
-      id="ajax"
-      auto
-      url="/test/data/relatedRecords.json"
-      handle-as="json"
-      last-response="{{relatedRecords}}"
-      on-response="showConfig">
-    </iron-ajax>
+     
+    <!--initialize new elastic client connection to server
+      esclient can be used throughout the application lifecycle -->
+    <elastic-client 
+      config="[[config.elasticConfig]]"
+      client="{{esclient}}">
+    </elastic-client>
+
+    <!--look up and build an entity query for the entity specified in the
+      query string for:
+      field: the field in elasticsearch to use in the query
+      value: value of the field above -->
+    <query-builder 
+      query="{{webpageQuery}}" 
+      query-template="{{config.queryTemplates.webpage}}" 
+      field="[[params.field]]" value="[[params.value]]">
+    </query-builder>
+
+    <!--make an search using {{webpageQuery}} and return results -->
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["webpage"]'
+      query='[[webpageQuery]]'
+      results="{{webpage}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <!--make generic models for content sections -->
+    <json-transform
+     data-in="[[webpage]]"
+     data-out="{{webpageDisplay}}"
+     transform-function="[[clientConfig.transforms.webpage.webpage]]"
+     ></json-transform>
+    
+    <!--Start related entity queries and transforms-->
+    <!--page revision info-->
+    <query-builder 
+      query="{{pageRevisionsQuery}}" 
+      query-template="{{config.queryTemplates.webpageRevisions}}" 
+      field="url" value="[[webpageDisplay.url]]">
+    </query-builder>    
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["webpage"]'
+      query='[[pageRevisionsQuery]]'
+      results="{{pageRevisions}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpageDisplay.pageRevisions}}"
+     transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
+     ></json-transform>
+
+    <!--Related offer info-->
+    <query-builder 
+      query="{{relatedOfferQuery}}" 
+      query-template="{{config.queryTemplates.webpage}}" 
+      field="mainEntityOfPage.uri" value="[[webpageDisplay._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedOfferQuery]]'
+      results="{{relatedOffer}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedOffer]]"
+     data-out="{{relatedRecords.offer}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.offer]]"
+     ></json-transform>
+
+    <!-- End related entity queries-->
 
     <!-- Display Content -->
     <div class="entity">
@@ -88,13 +160,13 @@
           
           <!-- Entity title -->
           <div class="layout horizontal center">
-            <iron-icon class="iron-icon-huge" icon="maps:local-offer"></iron-icon>
+            <iron-icon class="iron-icon-huge" icon="av:web"></iron-icon>
             <section class="flex-auto">
               <div class="paper-font-display1">
-                [[offerDisplay.title]]
+                [[webpageDisplay.url]]
               </div>
               <div class="paper-font-subhead">
-                Posted <time is="relative-time" datetime$="[[offerDisplay.date]]"></time>
+                Posted <time is="relative-time" datetime$="[[webpageDisplay.date]]"></time>
               </div>
             </section>
             
@@ -123,59 +195,34 @@
                 <section class="what">
                   
                   <div class="what-section">
-                    <dl class="flex-8">
-                      <dt class="body">Description:</dt><dd>[[offerDisplay.body]]</dd>
-                    </dl>
-                    
-                    <div class="h-divider"></div>
-                    
-                    <dl class="flex-4">
-                      <dt class="prices">Prices:</dt>
-                      <template is="dom-repeat" items="[[offerDisplay.prices]]" as="price">
-                        <dd>[[price.amount]] for [[price.billingIncrement]] [[price.unitCode]]</dd>
-                      </template>
+                    <dl class="flex-12">
+                      <dt class="body">Title:</dt><dd>[[webpageDisplay.title]]</dd>
                     </dl>
                   </div>
-              
-                  <hr>
+                  
+                  <div class="h-divider"></div>
                   
                   <div class="what-section">
-              
+                    <dl class="flex-12">
+                      <dt class="body">Description:</dt><dd>[[webpageDisplay.body]]</dd>
+                    </dl>
+                  </div>
+
+                  <div class="h-divider"></div>
+                  
+                  <div class="what-section">
+                    <dl class="flex-6">
+                      <dt class="address">Address:</dt>
+                      <dd>[[webpageDisplay.address.formattedAddress]]</dd>
+                    </dl>
                     <div class="h-divider"></div>
-                    
-                    <dl class="flex">
+                    <dl class="flex-6">
                       <dt class="publisher layout horizontal center entity-webpage-font">
                         <iron-icon icon="av:web"></iron-icon>
                         Publisher:
                       </dt>
                       <!-- TO DO: Make these links to their entity pages -->
-                      <dd>[[offerDisplay.publisher]]</dd>
-                    </dl>
-              
-                    <div class="h-divider"></div>
-                    
-                    <dl class="flex">
-                      <dt class="phones layout horizontal center entity-phone-font">
-                        <iron-icon icon="communication:phone"></iron-icon>
-                        Phone Numbers:
-                      </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <template is="dom-repeat" items="[[offerDisplay.phones]]" as="phone">
-                        <dd><phone-formatter input="[[phone]]"></phone-formatter></dd>
-                      </template>
-                    </dl>
-              
-                    <div class="h-divider"></div>
-                    
-                    <dl class="flex">
-                      <dt class="emails layout horizontal center entity-email-font">
-                        <iron-icon icon="communication:email"></iron-icon>
-                        Emails:
-                      </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <template is="dom-repeat" items="[[offerDisplay.emails]]" as="email">
-                        <dd>[[email]]</dd>
-                      </template>
+                      <dd>[[webpageDisplay.publisher]]</dd>  
                     </dl>
                   </div>
                   
@@ -183,39 +230,6 @@
               </paper-material>
               
               <div class="h-divider"></div>
-              
-              <!-- Who section -->
-              <paper-material class="flex">
-                <section class="who">
-                  
-                  <!-- Single person detail layout -->
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
-                    <div>[[offerDisplay.person.name]]</div>
-                  </div>
-                  <div class="layout horizontal">
-                    <dl class="flex">
-                      <dt class="age">Age:</dt><dd>[[offerDisplay.person.age]]</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="ethnicity">Ethnicity:</dt><dd>[[offerDisplay.person.ethnicity]]</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="eye-color">Eye Color:</dt><dd>[[offerDisplay.person.eyeColor]]</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="hair-color">Hair Color:</dt><dd>[[offerDisplay.person.hairColor]]</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="height">Height:</dt><dd>[[offerDisplay.person.height]] cm</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="weight">Weight:</dt><dd>[[offerDisplay.person.weight]] kg</dd>
-                    </dl>
-                  </div>
-                  
-                </section>
-              </paper-material>
               
               <div class="h-divider"></div>
 
@@ -233,28 +247,21 @@
             <div class="v-divider"></div>
             
             <div class="h-divider"></div>
-
-            <!-- Map section -->
-            <paper-material class="flex layout vertical">
-              
-              <!-- Address -->
-              <section class="where-header flex-none content">
+            <!-- Timeline -->
+            <paper-material class="flex">
+              <section class="when">
                 <div class="paper-font-title layout horizontal start center">
-                  <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                  <div>[[offerDisplay.address.formattedAddress]]</div>
+                  <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                  <div>
+                    Revisions to this page between {{minXValue}} and {{maxXValue}}
+                  </div>
                 </div>
+                <bar-chart y-axis-label="" data='[[webpageDisplay.pageRevisions]]' 
+                  chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
+                  min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                </bar-chart>
               </section>
-              
-              <!-- Leaflet map -->
-              <section class="where flex-auto">
-                <template is="dom-if" if="{{offerDisplay.geo}}">
-                  <leaflet-map latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}" zoom="10">
-                    <leaflet-marker latitude="{{offerDisplay.geo.lat}}" longitude="{{offerDisplay.geo.lon}}"></leaflet-marker> 
-                  </leaflet-map> 
-                </template>
-              </section>
-              
-            </paper-material>
+            </paper-material>            
 
           </div>
           
@@ -263,16 +270,14 @@
           <div class="content">
           
             <!-- Offer list -->
-            <template is="dom-if" if="{{relatedRecords}}">
-              <section class="offers flex">
-                <div class="section-header">
-                  <div class="paper-font-title">
-                    [[relatedRecords.offer.length]] offers
-                  </div>
+            <section class="offers flex-none">
+              <div class="section-header">
+                <div class="paper-font-title">
+                  [[relatedRecords.offer.length]] offer(s)
                 </div>
-                <records-list records="[[relatedRecords]]"></records-list>
-              </section>
-            </template>
+              </div>
+              <records-list records="[[relatedRecords]]"></records-list>
+            </section>
             
             <!-- Related entities? -->
             <section class="relations flex"></section>
@@ -304,6 +309,11 @@
         app.params[paramPair[0]] =  paramPair[1];
       }
     };
+
+    app.getURLParams();
+
+    app.webpageDisplay ={};
+    app.relatedRecords = {};
 
   })(document);
   </script>

@@ -32,6 +32,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
+  /* globals describe, before, fixture, expect, it */
+  /* jshint -W030 */
+  'use strict';
+
   describe('initial feature-aggregation tests', function() {
     var element;
     var arrayToPassIn;
@@ -71,6 +75,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(element.limit).to.be.equal(5);
     });
 
+    it('showLink defaults to false', function() {
+      expect(element.showLink).to.be.a('boolean');
+      expect(element.showLink).to.be.equal(false);
+    });
+
+    it('linkType defaults to undefined', function() {
+      expect(element.linkType).to.be.equal(undefined);
+    });
+
+    it('linkField defaults to undefined', function() {
+      expect(element.linkField).to.be.equal(undefined);
+    });
+
+    it('createURL returns null if showLink is false', function() {
+      var item = arrayToPassIn[0];
+      var url = element.createURL(item);
+
+      expect(url).to.be.equal(null);
+    });
+
     it('getItemKey returns correct value', function() {
       var item = element.agg[0];
       var result = element.getItemKey(item);
@@ -99,6 +123,124 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   });
 
+  describe('feature-aggregation test -- edge cases for width of bar', function() {
+    var element;
+    var arrayToPassIn;
+
+    before(function() {
+
+      arrayToPassIn = [
+        {age: 24, count: 300},
+        {age: 19, count: 1},
+        {age: 18, count: 0}
+      ];
+
+      element = fixture('feature-aggregation-fixture');
+      element.title = 'Ages';
+      element.agg = arrayToPassIn;
+      element.key = 'age';
+      element.limit = 5;
+      element.showLink = true;
+      
+    });
+
+    it('getWidth returns correct width if calculated width is 0 but count is not', function() {
+      var item = element.agg[1];
+      var result = element.getWidth(item);
+      var calculatedWidth = Math.round((item.count / element.agg[0].count) * 100);
+
+      expect(result).to.be.a('string');
+      expect(calculatedWidth).to.be.equal(0);
+      expect(result).to.be.deep.equal('width: 1%;');
+    });
+
+    it('getWidth returns correct width if item.count is 0', function() {
+      var item = element.agg[2];
+      var result = element.getWidth(item);
+      var calculatedWidth = Math.round((item.count / element.agg[0].count) * 100);
+
+      expect(result).to.be.a('string');
+      expect(calculatedWidth).to.be.equal(0);
+      expect(result).to.be.deep.equal('width: 0%;');
+    });
+
+  });
+
+  describe('feature-aggregation test -- if showLink enabled but linkType/linkField not present', function() {
+    var element;
+    var arrayToPassIn;
+
+    before(function() {
+
+      arrayToPassIn = [
+        {age: 24, count: 4},
+        {age: 18, count: 3}
+      ];
+
+      element = fixture('feature-aggregation-fixture');
+      element.title = 'Ages';
+      element.agg = arrayToPassIn;
+      element.key = 'age';
+      element.limit = 5;
+      element.showLink = true;
+      
+    });
+
+    it('createURL returns null if no linkType/linkField present', function() {
+      var item = arrayToPassIn[0];
+      var url = element.createURL(item);
+
+      expect(url).to.be.equal(null);
+    });
+
+  });
+
+  describe('feature-aggregation test -- if showLink enabled and linkType/linkField present', function() {
+    var element;
+    var arrayToPassIn;
+
+    before(function() {
+
+      arrayToPassIn = [
+        {age: 24, count: 4},
+        {age: 18, count: 3}
+      ];
+
+      element = fixture('feature-aggregation-fixture');
+      element.title = 'Ages';
+      element.agg = arrayToPassIn;
+      element.key = 'age';
+      element.limit = 5;
+      element.showLink = true;
+      element.linkType = 'person';
+      element.linkField = 'age';
+      
+    });
+
+    it('showLink is set correctly', function() {
+      expect(element.showLink).to.be.a('boolean');
+      expect(element.showLink).to.be.equal(true);
+    });
+
+    it('linkType is set correctly', function() {
+      expect(element.linkType).to.be.a('string');
+      expect(element.linkType).to.be.equal('person');
+    });
+
+    it('linkField is set correctly', function() {
+      expect(element.linkField).to.be.a('string');
+      expect(element.linkField).to.be.equal('age');
+    });
+
+    it('createURL returns null if no linkType/linkField present', function() {
+      var item = arrayToPassIn[0];
+      var url = element.createURL(item);
+      var expectedURL = '/person.html?value=24&field=age';
+
+      expect(url).to.be.equal(expectedURL);
+    });
+
+  });
 </script>
 
 </body>

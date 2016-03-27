@@ -74,11 +74,16 @@ var relatedEntityTransform = (function() {
                     region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
                     country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
                 },
-                title: _.get(record, '_source.mainEntityOfPage.name[0]'),
+                title: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
                 publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
                 prices: getOfferSpecificPrices(record),
                 phones: getPhones(record)
             };
+
+            if(obj.phones.length === 0) {
+                obj.phones.push('Phones N/A');
+            }
+
             relatedOffers.push(obj);
         });
         return relatedOffers;
@@ -99,8 +104,8 @@ var relatedEntityTransform = (function() {
             var obj = {
                 _id: record._id,
                 _type: record._type,
-                phone: _.get(record, '_source.name[0]'),
-                numOffers: _.get(record, '_source.owner.length')
+                phone: _.get(record, '_source.name[0]', 'Phone N/A'),
+                numOffers: _.get(record, '_source.owner.length', 0)
             };
             relatedPhones.push(obj);
         });
@@ -122,8 +127,8 @@ var relatedEntityTransform = (function() {
             var obj = {
                 _id: record._id,
                 _type: record._type,
-                email: _.get(record, '_source.name[0]'),
-                numOffers: _.get(record, '_source.owner.length')
+                email: _.get(record, '_source.name[0]', 'Email N/A'),
+                numOffers: _.get(record, '_source.owner.length', 0)
             };
             relatedEmails.push(obj);
         });
@@ -145,8 +150,8 @@ var relatedEntityTransform = (function() {
             var obj = {
                 _id: record._id,
                 _type: record._type,
-                phone: _.get(record, '_source.telephone[0].name[0]'),
-                numOffers: _.get(record, '_source.makesOffer.length')
+                phone: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
+                numOffers: _.get(record, '_source.makesOffer.length', 0)
             };
             relatedSellers.push(obj);
         });
@@ -197,8 +202,8 @@ var relatedEntityTransform = (function() {
             var obj = {
                 _id: record._id,
                 _type: record._type,
-                title: _.get(record, '_source.name[0]'),
-                publisher: _.get(record, '_source.publisher.name[0]'),
+                title: _.get(record, '_source.name[0]', 'Title N/A'),
+                publisher: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description[0]'),
                 addresses: getAddressArray(record),
@@ -232,7 +237,7 @@ var relatedEntityTransform = (function() {
                 _id: record._id,
                 _type: record._type,
                 person: {
-                    name: _.get(record, '_source.name'),
+                    name: _.get(record, '_source.name', 'Name N/A'),
                     eyeColor: _.get(record, '_source.eyeColor'),
                     hairColor: _.get(record, '_source.hairColor'),
                     height: _.get(record, '_source[schema:height]'),

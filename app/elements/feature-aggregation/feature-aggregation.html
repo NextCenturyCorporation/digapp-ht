@@ -11,7 +11,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
-
 <!--
 ### Styling
 The following custom properties and mixins are available for styling:
@@ -76,6 +75,20 @@ Custom property | Description | Default
         text-transform: uppercase;
         margin-bottom: 2px;
       }
+
+      a:link {
+        color: var(--feature-agg-title-color, --primary-text-color);
+        /* color: var(--dark-link-text-color); */
+      }
+
+      a:visited {
+        color: var(--feature-agg-title-color, --primary-text-color);
+        /* color: var(--dark-link-text-color); */
+      }
+
+      a:hover {
+        color: var(--secondary-text-color);
+      }
       
       paper-button{
         font-size: 12px;
@@ -89,7 +102,14 @@ Custom property | Description | Default
           <div class="bar-wrapper">
             <!-- placeholder: displaying bars to illustrate counts for now - might want something different -->
             <div class="bar" style="{{getWidth(item)}}"></div>
-            <div class="bar-title flex">{{getItemKey(item)}} </div>
+            <div class="bar-title flex">
+              <template is="dom-if" if="[[showLink]]">
+                <a href$="[[createURL(item)]]">{{getItemKey(item)}}</a> 
+              </template>
+              <template is="dom-if" if="[[!showLink]]">
+                {{getItemKey(item)}}
+              </template>
+            </div>
             <div class="bar-count flex-none">{{item.count}}</div>
           </div>
         </template>
@@ -123,6 +143,26 @@ Custom property | Description | Default
         canShowMore: {
           type: Boolean,
           value: false
+        },
+        showLink: {
+          type: Boolean,
+          value: false
+        },
+        linkType: {
+          type: String,
+          notify: true
+        },
+        linkField: {
+          type: String,
+          notify: true
+        }
+      },
+      createURL: function(item) {
+        // if showLink is enabled, use linkType and linkField to create URL 
+        if(this.showLink && this.linkType && this.linkField) {
+          return '/' + this.linkType + '.html?value=' + this.getItemKey(item) + '&field=' + this.linkField;
+        } else {
+          return null;
         }
       },
       getItemKey: function(item) {
@@ -134,7 +174,9 @@ Custom property | Description | Default
       getWidth: function(item) {
         // This returns bar widths relative to the highest count item, assuming it's first.
         // Could also sum up all counts and do widths relative to the total.
-        return 'width: ' + Math.round((item.count / this.agg[0].count) * 100) + '%;';
+        // Will return a minimum of 1 as the width if item.count is greater than 0.
+        var widthCalc = Math.round((item.count / this.agg[0].count) * 100);
+        return 'width: ' + (widthCalc === 0 && item.count > 0 ? 1 : widthCalc) + '%;';
       },
       filterToLimit: function() {
         if(!this.itemCount){

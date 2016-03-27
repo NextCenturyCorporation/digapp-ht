@@ -10,57 +10,10 @@
 var commonTransforms = (function(_) {
 
     /**
-    * Path taken by extractPersonField when iterating over an array value
+    * Check for geolocation equality
     */
-    function extractPersonArrayField(person, aggregator, field) {
-        if(person[field]) {
-            _.each(person[field], function(val) {
-                if(aggregator[val]) {
-                    aggregator[val] = aggregator[val] + 1;
-                } else {
-                    aggregator[val] = {
-                        count: 1
-                    };
-                }
-            });
-        }
-
-        return aggregator;
-    }
-
-    /**
-    * Creates person aggregation based on a set of records
-    */
-    function extractPersonField(person, aggregator, field) {
-        if(person[field]) {
-            if(person[field].constructor === Array) {
-                return extractPersonArrayField(person, aggregator, field);
-            } else {
-                if(aggregator[person[field]]) {
-                    aggregator[person[field]] = aggregator[person[field]] + 1;
-                } else {
-                    aggregator[person[field]] = 1;
-                }
-
-                return aggregator;
-            }
-        }
-    }
-
-    /**
-    * Adds names (keyName and count) to key/value pairs.
-    */
-    function unrollAggregator(aggregator, keyName) {
-        var array = [];
-
-        _.each(aggregator, function(count, key) {
-            var obj = {};
-            obj[keyName] = key;
-            obj.count = count;
-            array.push(obj);
-        });
-
-        return array;
+    function isGeolocationEqual(value, other) {
+        return value.lat === other.lat && value.lon === other.lon;
     }
 
     return {
@@ -100,8 +53,10 @@ var commonTransforms = (function(_) {
             var prices = [];
 
             _.each(hits, function(hit) {
-                if(hit._source.priceSpecification) {
-                    _.each(hit._source.priceSpecification, function(price) {
+                var priceArr = _.get(hit, '_source.priceSpecification');
+
+                if(priceArr) {
+                    _.each(priceArr, function(price) {
                         prices.push({
                             amount: price.price,
                             unitCode: price.unitCode,
@@ -189,8 +144,7 @@ var commonTransforms = (function(_) {
                     "city": "hawthorn",
                     "state": "california",
                     "lat": 33.916403,
-                    "lon": -118.352575,
-                    "date": "2012-04-23T18:25:43.511Z"
+                    "lon": -118.352575
                 }
             ]
         */
@@ -207,35 +161,71 @@ var commonTransforms = (function(_) {
                             city: address.addressLocality,
                             state: address.addressRegion,
                             lat: lat,
-                            lon: lon,
-                            date: record._source.validFrom
+                            lon: lon
                         };
                         geos.push(geo);
                     }
                 });
+                // Removing duplicates for better map display
+                geos = _.uniqWith(geos, isGeolocationEqual);
             });
+
             return geos;
         },
-
-        /**
-            "offerTitles": [
-                {"title": "hello world 4", "date": "2012-04-23T18:25:43.511Z"},
-                {"title": "hello world 3", "date": "2012-04-22T18:25:43.511Z"},
-                {"title": "hello world 2 ", "date": "2012-04-21T18:25:43.511Z"},
-                {"title": "hello world 1", "date": "2012-04-20T18:25:43.511Z"}
-            ]
-        */
-        getOfferTitles: function(hits) {
-            var titles = [];
-            _.each(hits, function(hit) {
-                titles.push({
-                    title: hit._source.title,
-                    date: hit._source.validFrom
-                });
-            });
-            return titles;
+        /** build address object:
+        "address": {
+            "locality": "Los Angeles",
+            "region": "California",
+            "country": "US",
+            "formattedAddress": 'Los Angeles, California, US'
         }
+        */
+        getAddress: function(record) {
+            var address = {};
+            address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
+            address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
+            address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
 
+            var formattedAddress = [];
+            if(address.locality) {
+                formattedAddress.push(address.locality);
+            }
+
+            if(address.region) {
+                if(formattedAddress.length > 0) {
+                    formattedAddress.push(', ');
+                }
+                formattedAddress.push(address.region);
+            }
+
+            if(address.country) {
+                if(formattedAddress.length > 0) {
+                    formattedAddress.push(', ');
+                }
+                formattedAddress.push(address.country);
+            }
+
+            address.formattedAddress = formattedAddress.join('');
+
+            if(_.isEmpty(address.formattedAddress)) {
+                address.formattedAddress = 'Address N/A';
+            }
+
+            return address;
+        },
+        /** build an array of strings:
+            example: ["1112223333", "0123456789"]
+        */
+        getArrayOfStrings: function(record, pathToArray, pathToString) {
+            var arrayToReturn = [];
+            var initialArray = _.get(record, pathToArray, []);
+
+            initialArray.forEach(function(element) {
+                arrayToReturn.push(_.get(element, pathToString));
+            });
+
+            return arrayToReturn;
+        }
     };
 
 })(_);
