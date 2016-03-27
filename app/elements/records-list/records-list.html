@@ -193,7 +193,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
 
       <!-- Webpage -->
-      <template is="dom-repeat" items="{{records.webpage}}">
+      <template id="webpageList" is="dom-repeat" items="{{records.webpage}}" filter="filterToLimit">
         <paper-icon-item on-click="toggle" clickable>
           
           <!-- entity type icon -->
@@ -232,9 +232,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-material>
         </iron-collapse> 
       </template>
+      <div class="layout horizontal center-center" hidden="[[!canShowMore('webpage')]]">
+        <paper-button on-click="showMore" data-type="webpage">Show more webpages</paper-button>
+      </div>
 
       <!-- Offer -->
-      <template is="dom-repeat" items="{{records.offer}}">
+      <template id="offerList" is="dom-repeat" items="{{records.offer}}" filter="filterToLimit">
         <paper-icon-item on-click="toggle" on-mouseover="fireMapEvent" clickable>
           
           <!-- entity type icon -->
@@ -278,6 +281,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-material>
         </iron-collapse>
       </template>
+      <div class="layout horizontal center-center" hidden="[[!canShowMore('offer')]]">
+        <paper-button on-click="showMore" data-type="offer">Show more offers</paper-button>
+      </div>
 
       <!-- Person -->
       <template is="dom-repeat" items="{{records.service}}">
@@ -334,6 +340,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           records: {
             type: Object,
             observer: 'logRecords'
+          },
+          limit: {
+            type: Number,
+            value: 1
           }
         },
         fireMapEvent: function(e) {
@@ -359,6 +369,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             var id = '#' + event.model.item._type + '-' + event.model.index;
             document.querySelector(id).opened = !document.querySelector(id).opened;
           } 
+        },
+        filterToLimit: function(item) {
+          
+          if(!this.itemCount){
+            this.itemCount = {};
+          }
+          
+          if(!this.itemCount[item._type]){
+            this.itemCount[item._type] = 1;
+          }
+          
+          var canShowMore = this.canShowMore(item._type);
+          
+          if(canShowMore){
+            return false;
+          } else {
+            this.itemCount[item._type] += 1;
+            return true;
+          }
+        },
+        showMore: function(e) {
+          e.preventDefault();
+          
+          // Get the type to show more of
+          var type = e.target.attributes['data-type'].value;
+          
+          if(!this.originalLimit){
+            this.originalLimit = {};
+          }
+          if(!this.limits){
+            this.limits = {};
+          }
+          
+          if(this.limits[type]){
+            this.originalLimit[type] = this.limits[type];
+          } else {
+            this.originalLimit[type] = this.limit;
+          }
+          
+          this.limits[type] = 9999;
+          
+          this.$[type+'List'].render();
+        },
+        canShowMore: function(type) {
+          var limit;
+          if(this.limits && this.limits[type]){
+            limit = this.limits[type];
+          } else {
+            limit = this.limit;
+          }
+          
+          if(this.itemCount && this.itemCount[type] > limit){
+            return false;
+          } else {
+            return true;
+          }
         }
       });
     })();
