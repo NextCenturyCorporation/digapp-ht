@@ -57,7 +57,10 @@
       query="[[ejsQuery]]"
       results="{{ecsResult}}"
       last-error="{{error}}"
-      result-count="{{resultCount}}">
+      result-count="{{resultCount}}"
+      aggregations="{{buildArray(nameAgg)}}"
+      filters="{{buildArray(nameFilter)}}"
+      >
     </elastic-client-search>
 
     <results-parser
@@ -100,7 +103,24 @@
         <paper-header-panel drawer>
           <section>
             Facets
-            <p>{{toJSON(records.phone)}}</p>
+
+            <elastic-client-aggregation-builder
+              name="nameAgg"
+              field="name"
+              ejs-aggregation="{{nameAgg}}"
+              type="terms">
+            </elastic-client-aggregation-builder>
+
+            <elastic-client-checkbox-list
+              buckets="[[ecsResult.aggregations.nameAgg.buckets]]"
+              field="name"
+              ejs-filter="{{nameFilter}}"
+              combination-type="or"
+            >
+            </elastic-client-checkbox-list>
+
+            <p>{{toJSON(nameFilter)}}</p>
+
           </section>
         </paper-header-panel>
 
@@ -136,6 +156,7 @@
         var app = document.querySelector('#app');
 
         app.toJSON = function(ejs) {
+            console.log(JSON.stringify(ejs));
             return JSON.stringify(ejs);
         }
 
@@ -148,6 +169,12 @@
             seller: seller,
             webpage: webpage
           }
+        }
+
+        app.buildArray = function() {
+          return _.filter(arguments, function(arg) {
+            return arg !== undefined;
+          });
         }
     })(document);
 
