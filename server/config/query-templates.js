@@ -34,7 +34,8 @@ module.exports = {
             // Where: Map showing offers by location
             'offers_by_city': {
                 'terms': {
-                    'field': 'availableAtOrFrom.address.addressLocality'
+                    'field': 'availableAtOrFrom.address.addressLocality',
+                    'size': 0
                 }
             }
         }
@@ -55,27 +56,32 @@ module.exports = {
         "aggs" : {
             "people_names": {
                 "terms": {
-                    "field": "name"
+                    "field": "name",
+                    "size": 0
                 }
             },
             "people_ages": {
                 "terms": {
-                    "field": "personAge"
+                    "field": "personAge",
+                    "size": 0
                 }
             },
             "people_ethnicities": {
                 "terms": {
-                    "field": "ethnicity"
+                    "field": "ethnicity",
+                    "size": 0
                 }
             },
             "people_eye_colors": {
                 "terms": {
-                    "field": "eyeColor"
+                    "field": "eyeColor",
+                    "size": 0
                 }
             },
             "people_hair_color": {
                 "terms": {
-                    "field": "hairColor"
+                    "field": "hairColor",
+                    "size": 0
                 }
             }
         }
@@ -90,7 +96,8 @@ module.exports = {
         "aggs" : {
             "related_phones" : {
                 "terms" : { 
-                    "field" : "telephone.name" 
+                    "field" : "telephone.name",
+                    "size": 0
                 },
                 "aggs" : {
                     // Timeline similarities
@@ -104,12 +111,14 @@ module.exports = {
             },
             "related_emails" : {
                 "terms" : { 
-                    "field" : "email.name" 
+                    "field" : "email.name",
+                    "size": 0
                 }          
             },
             "related_websites" : {
                 "terms" : { 
-                    "field" : "makesOffer.mainEntityOfPage.publisher.name" 
+                    "field" : "makesOffer.mainEntityOfPage.publisher.name",
+                    "size": 0
                 }          
             }
         }
@@ -136,7 +145,8 @@ module.exports = {
             },
             "offer_locs_by_seller" : {
                 "terms" : { 
-                    "field" : "availableAtOrFrom.address.addressLocality" 
+                    "field" : "availableAtOrFrom.address.addressLocality",
+                    "size": 0
                 }      
             }        
         }
@@ -176,7 +186,8 @@ module.exports = {
         "aggs":{
             "seller_assoc_numbers": {
                 "terms": {
-                    "field": "telephone.name"
+                    "field": "telephone.name",
+                    "size": 0
                 }
             }
         }
@@ -194,7 +205,8 @@ module.exports = {
         "aggs":{
             "seller_assoc_emails": {
                 "terms": {
-                    "field" : "email.name"
+                    "field" : "email.name",
+                    "size": 0
                 }
             }
         }
@@ -213,27 +225,32 @@ module.exports = {
         "aggs" : {
             "people_names": {
                 "terms": {
-                    "field": "name"
+                    "field": "name",
+                    "size": 0
                 }
             },
             "people_ages": {
                 "terms": {
-                    "field": "personAge"
+                    "field": "personAge",
+                    "size": 0
                 }
             },
             "people_ethnicities": {
                 "terms": {
-                    "field": "ethnicity"
+                    "field": "ethnicity",
+                    "size": 0
                 }
             },
             "people_eye_colors": {
                 "terms": {
-                    "field": "eyeColor"
+                    "field": "eyeColor",
+                    "size": 0
                 }
             },
             "people_hair_color": {
                 "terms": {
-                    "field": "hairColor"
+                    "field": "hairColor",
+                    "size": 0
                 }
             }
         }
@@ -254,7 +271,8 @@ module.exports = {
             },
             "offer_locs_by_seller" : {
                 "terms" : { 
-                    "field" : "availableAtOrFrom.address.addressLocality" 
+                    "field" : "availableAtOrFrom.address.addressLocality",
+                    "size": 0
                 }
             }
         }
@@ -305,7 +323,8 @@ module.exports = {
             "aggs":{
                 "assoc_numbers": {
                     "terms": {
-                        "field": "telephone.name"
+                        "field": "telephone.name",
+                        "size": 0
                     }
                 }
             }
@@ -326,7 +345,8 @@ module.exports = {
             "aggs":{
                 "assoc_emails": {
                     "terms": {
-                        "field": "email.name"
+                        "field": "email.name",
+                        "size": 0
                     }
                 }
             }
@@ -354,18 +374,21 @@ module.exports = {
             },
             "locs_for_person" : {
                 "terms" : {
-                    "field" : "availableAtOrFrom.address.addressLocality" 
+                    "field" : "availableAtOrFrom.address.addressLocality",
+                    "size": 0
                 }
             },
             // adding to get aggregate of all phones and emails
             "phones_for_person": {
                 "terms" : {
-                    "field" : "seller.telephone.name"
+                    "field" : "seller.telephone.name",
+                    "size": 0
                 }
             },
             "emails_for_person": {
                 "terms" : {
-                    "field" : "seller.email.name"
+                    "field" : "seller.email.name",
+                    "size": 0
                 }
             }
         }
