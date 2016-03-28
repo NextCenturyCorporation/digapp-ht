@@ -311,7 +311,10 @@ gulp.task('mockup', ['styles', 'elements', 'images'], function () {
 });
 
 // Build and serve the output from the dist build
-gulp.task('serve:dist', ['default'], function () {
+gulp.task('serve:dist', ['default', 'nodemon'], function () {
+  var proxyOptions = url.parse('http://localhost:9000/config');
+  proxyOptions.route = '/config';
+
   browserSync({
     port: 5001,
     notify: false,
@@ -329,7 +332,7 @@ gulp.task('serve:dist', ['default'], function () {
     //       will present a certificate warning in the browser.
     // https: true,
     server: 'dist',
-    middleware: [ historyApiFallback() ]
+    middleware: [ proxy(proxyOptions), historyApiFallback() ]
   });
 });
 
