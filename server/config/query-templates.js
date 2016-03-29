@@ -3,17 +3,13 @@
 module.exports = {
 
   QUERY_TEMPLATES: {
-    // phone/email page queries
-    // TODO: make common query if all entities use a match query to start
-    phoneOrEmail: {
-        query: {
-            filtered:{
-                query:{
-                    match:{ '{{field}}' : '{{value}}' }
-                }
-            }
+    // Common query used among entities
+    commonMatchQuery: {
+        query:{
+            match:{ '{{field}}' : '{{value}}' }
         }
     },
+    // phone/email page specific queries
     phoneOrEmailOfferAgg: {
         query: {
           filtered:{
@@ -124,11 +120,6 @@ module.exports = {
         }
     },
     // offer page queries
-    offer: {
-        query: {
-            match:{ '{{field}}' : '{{value}}' }
-        }
-    },
     // not being used yet on offer
     offerSellerAgg: {
         "query": {
@@ -166,11 +157,6 @@ module.exports = {
         pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
     },
     // seller entity queries
-    seller: {
-        query: {
-            match:{ '{{field}}' : '{{value}}' }
-        }
-    },
     // phone and email aggregations might be able to be performed together when
     // entity resolution is done on seller
     sellerPhoneAggs: {
@@ -278,11 +264,6 @@ module.exports = {
         }
     },
     // webpage entity queries
-    webpage: {
-        query: {
-            match:{ '{{field}}' : '{{value}}' }
-        }
-    },
     webpageRevisions: {
         "query": {
             "filtered": {
@@ -303,11 +284,6 @@ module.exports = {
         }
     },
     // person entity queries
-    person: {
-        query: {
-            match:{ '{{field}}' : '{{value}}' }
-        }
-    },
     // same agg is done under seller
     personRelatedPhones: {
         query: {
@@ -392,11 +368,6 @@ module.exports = {
                 }
             }
         }
-    },
-    relatedEntityQuery: {
-        query: {
-            match:{ '{{field}}' : '{{value}}' }
-        }
     }
-}
+  }
 };
