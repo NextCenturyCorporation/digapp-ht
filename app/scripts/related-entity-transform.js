@@ -6,6 +6,7 @@
 /* exported relatedEntityTransform */
 var relatedEntityTransform = (function() {
 
+    // TODO: change summary structure in comments, fix unit tests
     function getOfferSpecificPrices(record) {
         /** build price array:
 
@@ -28,17 +29,6 @@ var relatedEntityTransform = (function() {
             prices.push(price);
         });
         return prices;
-    }
-
-    function getPhones(record) {
-        /** build phone array:
-            "phones": ["1234567890", "0123456789"] */
-        var phones = [];
-        var phoneArr = _.get(record, '_source.seller.telephone', []);
-        phoneArr.forEach(function(phoneElem) {
-            phones.push(_.get(phoneElem, 'name[0]'));
-        });
-        return phones;
     }
 
     function getOfferSummary(record) {
@@ -66,22 +56,21 @@ var relatedEntityTransform = (function() {
         var offerObj = {
             _id: record._id,
             _type: record._type,
-
-            date: _.get(record, '_source.validFrom'),
-            address: {
-                locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
-                country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
-            },
-            title: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
-            publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
-            prices: getOfferSpecificPrices(record),
-            phones: getPhones(record)
+            title: _.get(record, '_source.seller.telephone[0].name[0]', 'Phone N/A'),
+            subtitle: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
+            details: {
+                date: _.get(record, '_source.validFrom'),
+                address: {
+                    locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
+                    region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
+                    country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
+                },
+                
+                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
+                prices: getOfferSpecificPrices(record)
+            }
         };
 
-        if(offerObj.phones.length === 0) {
-            offerObj.phones.push('Phones N/A');
-        }
         return offerObj;
     }
 
@@ -98,8 +87,8 @@ var relatedEntityTransform = (function() {
         var phoneObj = {
             _id: record._id,
             _type: record._type,
-            phone: _.get(record, '_source.name[0]', 'Phone N/A'),
-            numOffers: _.get(record, '_source.owner.length', 0)
+            title: _.get(record, '_source.name[0]', 'Phone N/A'),
+            subtitle: _.get(record, '_source.owner.length', 0) + ' offer(s)'
         };
         return phoneObj;
     }
@@ -117,8 +106,8 @@ var relatedEntityTransform = (function() {
         var emailObj = {
             _id: record._id,
             _type: record._type,
-            email: _.get(record, '_source.name[0]', 'Email N/A'),
-            numOffers: _.get(record, '_source.owner.length', 0)
+            title: _.get(record, '_source.name[0]', 'Email N/A'),
+            subtitle: _.get(record, '_source.owner.length', 0)
         };
         return emailObj;
     }
@@ -136,8 +125,8 @@ var relatedEntityTransform = (function() {
         var sellerObj = {
             _id: record._id,
             _type: record._type,
-            phone: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
-            numOffers: _.get(record, '_source.makesOffer.length', 0)
+            title: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
+            subtitle: _.get(record, '_source.makesOffer.length', 0) + ' offer(s)'
         };
         return sellerObj;
     }
@@ -184,12 +173,15 @@ var relatedEntityTransform = (function() {
         var webpageObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.name[0]', 'Title N/A'),
-            publisher: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
-            url: _.get(record, '_source.url'),
-            body: _.get(record, '_source.description[0]'),
-            addresses: getAddressArray(record),
-            date: _.get(record, '_source.dateCreated')
+            title: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
+            subtitle: _.get(record, '_source.name[0]', 'Title N/A'),
+            details: {
+                url: _.get(record, '_source.url'),
+                body: _.get(record, '_source.description[0]'),
+                addresses: getAddressArray(record),
+                date: _.get(record, '_source.dateCreated')             
+            }
+
         };
         return webpageObj;
     }
@@ -213,15 +205,15 @@ var relatedEntityTransform = (function() {
         */
         var serviceObj = {
             _id: record._id,
-            _type: record._type,
-            person: {
-                name: _.get(record, '_source.name', 'Name N/A'),
+            _type: 'person', // hardcode 'person' value for now
+            title: _.get(record, '_source.name', 'Name N/A'),
+            subtitle: 'Age: ' + _.get(record, '_source.personAge[0]', 'N/A'),
+            details: {
                 eyeColor: _.get(record, '_source.eyeColor'),
                 hairColor: _.get(record, '_source.hairColor'),
                 height: _.get(record, '_source[schema:height]'),
                 weight: _.get(record, '_source[schema:weight]'),
                 ethnicity: _.get(record, '_source.ethnicity'),
-                age: _.get(record, '_source.personAge[0]')
             }
         };
         return serviceObj;
@@ -286,7 +278,6 @@ var relatedEntityTransform = (function() {
         results: function(data) {
             var newData = [];
             if(data && data.hits && data.hits.hits.length > 0) {
-                // TODO: generalize output
                 _.each(data.hits.hits, function(record) {
                     switch(record._type) {
                         case 'email': newData.push(getEmailSummary(record));
@@ -304,7 +295,6 @@ var relatedEntityTransform = (function() {
                     }
                 });
             }
-            console.log(newData);
             return newData;
         }
     };

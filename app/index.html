@@ -34,6 +34,11 @@
   <span id="browser-sync-binding"></span>
 
   <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data 
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
+
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
@@ -63,11 +68,11 @@
       >
     </elastic-client-search>
 
-    <results-parser
-      es-results="[[ecsResult.hits.hits]]"
-      divided-results="{{dividedResult}}"
-      formatted-result="{{records}}"
-    ></results-parser>
+    <json-transform
+     data-in="{{ecsResult}}"
+     data-out="{{records}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.results]]"
+     ></json-transform>
 
     <paper-header-panel class="flex" mode="waterfall">
 
@@ -147,10 +152,10 @@
             <div class="h-divider"></div>
             <paper-material>
               <section>
-                <records-list
-                  records="{{buildRecordsObject(records.email, records.service, records.phone, records.offer, records.seller, records.webpage)}}"
+                <display-records
+                  records="{{records}}"
                   new-tab="true">
-                </records-list>
+                </display-records>
               </section>
             </paper-material>
           </section>
@@ -164,6 +169,7 @@
 
   <script>
     (function(document) {
+        /* globals _ */
         var app = document.querySelector('#app');
 
         app.buildRecordsObject = function(email, service, phone, offer, seller, webpage) {
@@ -182,12 +188,13 @@
             return arg !== undefined;
           });
         };
-    })(document);
 
-    var clearSearchInput = function() {
-        var input = document.querySelector("elastic-client-input");
-        input.clear();
-    };
+        app.clearSearchInput = function() {
+          var input = document.querySelector('elastic-client-input');
+          input.clear();
+        };
+
+    })(document);
   </script>
 </body>
 
