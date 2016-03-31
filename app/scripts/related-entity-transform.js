@@ -41,9 +41,9 @@ var relatedEntityTransform = (function() {
         return phones;
     }
 
-    function getOfferSummaries(records) {
-        /**  build offer summary array:
-            "offer": [{
+    function getOfferSummary(record) {
+        /**  build offer summary record:
+            {
                 "_id": "1",
                 "_type": "offer",
                 "date": "2012-04-23T18:25:43.511Z",
@@ -61,101 +61,85 @@ var relatedEntityTransform = (function() {
                     "date": "2012-04-23T18:25:43.511Z"
                 }],
                 "phones": ["1234567890", "0123456789"]
-            }]
-        */
-        var relatedOffers = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                date: _.get(record, '_source.validFrom'),
-                address: {
-                    locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                    region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
-                    country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
-                },
-                title: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
-                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
-                prices: getOfferSpecificPrices(record),
-                phones: getPhones(record)
-            };
-
-            if(obj.phones.length === 0) {
-                obj.phones.push('Phones N/A');
             }
+        */
+        var offerObj = {
+            _id: record._id,
+            _type: record._type,
 
-            relatedOffers.push(obj);
-        });
-        return relatedOffers;
+            date: _.get(record, '_source.validFrom'),
+            address: {
+                locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
+                region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
+                country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
+            },
+            title: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
+            publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
+            prices: getOfferSpecificPrices(record),
+            phones: getPhones(record)
+        };
+
+        if(offerObj.phones.length === 0) {
+            offerObj.phones.push('Phones N/A');
+        }
+        return offerObj;
     }
 
-    function getPhoneSummaries(records) {
+    function getPhoneSummary(record) {
         /**
-            build phone summary array:
-            "phone": [{
+            build phone summary object:
+            {
                 "_id": "1",
                 "_type": "phone",
                 "phone": "1234567890",
                 "numOffers": 2
-            }]
+            }
         */
-        var relatedPhones = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                phone: _.get(record, '_source.name[0]', 'Phone N/A'),
-                numOffers: _.get(record, '_source.owner.length', 0)
-            };
-            relatedPhones.push(obj);
-        });
-        return relatedPhones;
+        var phoneObj = {
+            _id: record._id,
+            _type: record._type,
+            phone: _.get(record, '_source.name[0]', 'Phone N/A'),
+            numOffers: _.get(record, '_source.owner.length', 0)
+        };
+        return phoneObj;
     }
 
-    function getEmailSummaries(records) {
+    function getEmailSummary(record) {
         /**
-            build email summary array:
-            "email": [{
+            build email summary object:
+            {
                 "_id": "1",
                 "_type": "email",
                 "email": "abc@xyz.com",
                 "numOffers": 2
-            }]
+            }
         */
-        var relatedEmails = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                email: _.get(record, '_source.name[0]', 'Email N/A'),
-                numOffers: _.get(record, '_source.owner.length', 0)
-            };
-            relatedEmails.push(obj);
-        });
-        return relatedEmails;
+        var emailObj = {
+            _id: record._id,
+            _type: record._type,
+            email: _.get(record, '_source.name[0]', 'Email N/A'),
+            numOffers: _.get(record, '_source.owner.length', 0)
+        };
+        return emailObj;
     }
 
-    function getSellerSummaries(records) {
+    function getSellerSummary(record) {
         /**
-            build seller summary array:
-            "seller": [{
+            build seller summary object:
+            {
                 "_id": "1",
                 "_type": "seller",
                 "phone": "1234567890",
                 "numOffers": 2
-            }]
+            }
         */
-        var relatedSellers = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                phone: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
-                numOffers: _.get(record, '_source.makesOffer.length', 0)
-            };
-            relatedSellers.push(obj);
-        });
-        return relatedSellers;
+        var sellerObj = {
+            _id: record._id,
+            _type: record._type,
+            phone: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
+            numOffers: _.get(record, '_source.makesOffer.length', 0)
+        };
+        return sellerObj;
     }
 
     function getAddressArray(record) {
@@ -180,9 +164,9 @@ var relatedEntityTransform = (function() {
         return addresses;
     }
 
-    function getWebpageSummaries(records) {
-        /*  build webpage summary array:
-            "webpage": [{
+    function getWebpageSummary(record) {
+        /*  build webpage summary object:
+            {
                 "_id": "1",
                 "_type": "webpage",
                 "title": "*Hello World -- google.com",
@@ -195,29 +179,25 @@ var relatedEntityTransform = (function() {
                     "region": "California"
                 }],
                 "date": "2012-04-23T18:25:43.511Z"
-            }]
+            }
         */
-        var relatedWebpages = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                title: _.get(record, '_source.name[0]', 'Title N/A'),
-                publisher: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
-                url: _.get(record, '_source.url'),
-                body: _.get(record, '_source.description[0]'),
-                addresses: getAddressArray(record),
-                date: _.get(record, '_source.dateCreated')
-            };
-            relatedWebpages.push(obj);
-        });
-        return relatedWebpages;
+        var webpageObj = {
+            _id: record._id,
+            _type: record._type,
+            title: _.get(record, '_source.name[0]', 'Title N/A'),
+            publisher: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
+            url: _.get(record, '_source.url'),
+            body: _.get(record, '_source.description[0]'),
+            addresses: getAddressArray(record),
+            date: _.get(record, '_source.dateCreated')
+        };
+        return webpageObj;
     }
 
-    function getServiceSummaries(records) {
+    function getServiceSummary(record) {
         /*
-            build service summary array:
-            "service": [{
+            build service summary object:
+            {
                 "_id": "1",
                 "_type": "service",
                 "person": {
@@ -229,26 +209,22 @@ var relatedEntityTransform = (function() {
                     "ethnicity": "white",
                     "age": 20
                 }
-            }]
+            }
         */
-        var relatedServices = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                person: {
-                    name: _.get(record, '_source.name', 'Name N/A'),
-                    eyeColor: _.get(record, '_source.eyeColor'),
-                    hairColor: _.get(record, '_source.hairColor'),
-                    height: _.get(record, '_source[schema:height]'),
-                    weight: _.get(record, '_source[schema:weight]'),
-                    ethnicity: _.get(record, '_source.ethnicity'),
-                    age: _.get(record, '_source.personAge[0]')                    
-                }
-            };
-            relatedServices.push(obj);
-        });
-        return relatedServices;
+        var serviceObj = {
+            _id: record._id,
+            _type: record._type,
+            person: {
+                name: _.get(record, '_source.name', 'Name N/A'),
+                eyeColor: _.get(record, '_source.eyeColor'),
+                hairColor: _.get(record, '_source.hairColor'),
+                height: _.get(record, '_source[schema:height]'),
+                weight: _.get(record, '_source[schema:weight]'),
+                ethnicity: _.get(record, '_source.ethnicity'),
+                age: _.get(record, '_source.personAge[0]')
+            }
+        };
+        return serviceObj;
     }
 
     return {
@@ -256,43 +232,79 @@ var relatedEntityTransform = (function() {
         offer: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
-                newData = getOfferSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newData.push(getOfferSummary(record));
+                });
             }
             return newData;
         },
         phone: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
-                newData = getPhoneSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newData.push(getPhoneSummary(record));
+                });
             }
             return newData;
         },
         email: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
-                newData = getEmailSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newData.push(getEmailSummary(record));
+                });
             }
             return newData;
         },
         seller: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
-                newData = getSellerSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newData.push(getSellerSummary(record));
+                });
             }
             return newData;
         },
         service: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
-                newData = getServiceSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newData.push(getServiceSummary(record));
+                });
             }
             return newData;
         },
         webpage: function(data) {
             var newData = [];
             if(data.hits.hits.length > 0) {
-                newData = getWebpageSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newData.push(getWebpageSummary(record));
+                });
             }
+            return newData;
+        },
+        results: function(data) {
+            var newData = [];
+            if(data && data.hits && data.hits.hits.length > 0) {
+                // TODO: generalize output
+                _.each(data.hits.hits, function(record) {
+                    switch(record._type) {
+                        case 'email': newData.push(getEmailSummary(record));
+                            break;
+                        case 'adultservice': newData.push(getServiceSummary(record));
+                            break;
+                        case 'phone': newData.push(getPhoneSummary(record));
+                            break;
+                        case 'offer': newData.push(getOfferSummary(record));
+                            break;
+                        case 'seller': newData.push(getSellerSummary(record));
+                            break;
+                        case 'webpage': newData.push(getWebpageSummary(record));
+                            break;
+                    }
+                });
+            }
+            console.log(newData);
             return newData;
         }
     };
