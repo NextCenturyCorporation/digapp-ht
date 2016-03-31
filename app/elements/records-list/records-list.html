@@ -8,7 +8,6 @@ Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../lodash.html">
 
 <dom-module id="records-list">
   <template>
@@ -122,7 +121,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <paper-listbox>
 
       <!-- Phone -->
-      <template is="dom-repeat" items="{{records.phone}}" filter="filterToLimit">
+      <template is="dom-repeat" items="{{records.phone}}">
         <paper-icon-item>
 
           <!-- entity type icon -->
@@ -144,12 +143,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </a>
         </paper-icon-item>
       </template>
-      <div class="layout horizontal center-center" hidden="[[!canShowMoreButton.phone]]">
-        <paper-button on-click="showMore" data-type="phone">Show more phones</paper-button>
-      </div>
 
       <!-- Email -->
-      <template is="dom-repeat" items="{{records.email}}" filter="filterToLimit">
+      <template is="dom-repeat" items="{{records.email}}">
         <paper-icon-item>
 
           <!-- entity type icon -->
@@ -171,12 +167,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </a>
         </paper-icon-item>
       </template>
-      <div class="layout horizontal center-center" hidden="[[!canShowMoreButton.email]]">
-        <paper-button on-click="showMore" data-type="email">Show more emails</paper-button>
-      </div>
 
       <!-- Seller -->
-      <template is="dom-repeat" items="{{records.seller}}" filter="filterToLimit">
+      <template is="dom-repeat" items="{{records.seller}}">
         <paper-icon-item>
 
           <!-- entity type icon -->
@@ -198,12 +191,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </a>
         </paper-icon-item>
       </template>
-      <div class="layout horizontal center-center" hidden="[[!canShowMoreButton.seller]]">
-        <paper-button on-click="showMore" data-type="seller">Show more sellers</paper-button>
-      </div>
 
       <!-- Webpage -->
-      <template id="webpageList" is="dom-repeat" items="{{records.webpage}}" filter="filterToLimit">
+      <template is="dom-repeat" items="{{records.webpage}}">
         <paper-icon-item on-click="toggle" clickable>
 
           <!-- entity type icon -->
@@ -242,12 +232,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-material>
         </iron-collapse>
       </template>
-      <div class="layout horizontal center-center" hidden="[[!canShowMoreButton.webpage]]">
-        <paper-button on-click="showMore" data-type="webpage">Show more webpages</paper-button>
-      </div>
 
       <!-- Offer -->
-      <template id="offerList" is="dom-repeat" items="{{records.offer}}" filter="filterToLimit">
+      <template is="dom-repeat" items="{{records.offer}}">
         <paper-icon-item on-click="toggle" clickable>
 
           <!-- entity type icon -->
@@ -291,12 +278,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-material>
         </iron-collapse>
       </template>
-      <div class="layout horizontal center-center" hidden="[[!canShowMoreButton.offer]]">
-        <paper-button on-click="showMore" data-type="offer">Show more offers</paper-button>
-      </div>
 
       <!-- Person -->
-      <template is="dom-repeat" items="{{records.service}}" filter="filterToLimit">
+      <template is="dom-repeat" items="{{records.service}}">
         <paper-icon-item on-click="toggle" clickable>
 
           <!-- entity type icon -->
@@ -336,9 +320,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </paper-material>
         </iron-collapse>
       </template>
-      <div class="layout horizontal center-center" hidden="[[!canShowMoreButton.person]]">
-        <paper-button on-click="showMore" data-type="person">Show more services</paper-button>
-      </div>
 
     </paper-listbox>
   </template>
@@ -346,7 +327,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
     (function () {
       'use strict';
-      /* globals _ */
 
       Polymer({
         is: 'records-list',
@@ -359,26 +339,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           newTab: {
             type: Boolean,
             value: false
-          },
-
-          limit: {
-            type: Number,
-            value: 5
-          },
-          // There has to be a better way of doing this... this should not be overridable
-          // by the user. They're for internal use only, but I need to track them across functions.
-          // There might be a read-only attribute that Polymer supports that would be better?
-          itemCount: {
-            type: Object,
-            value: function() { return {}; }
-          },
-          limits: {
-            type: Object,
-            value: function() { return {}; }
-          },
-          canShowMoreButton: {
-            type: Object,
-            computed: 'computeCanShowMoreButton(records, limit, limits.*)'
           }
         },
         fireMapEvent: function(e) {
@@ -409,81 +369,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             var id = '#' + event.model.item._type + '-' + event.model.index;
             document.querySelector(id).opened = !document.querySelector(id).opened;
           }
-        },
-        filterToLimit: function(item) {
-
-          // Get the entity type from the item
-          var type = item._type;
-
-          // Track the current index/count
-          if(!_.has(this.itemCount, type)){
-            this.itemCount[type] = 1;
-          }
-
-          // Get this entity's defined limit or use the default
-          var limit;
-          if(_.has(this.limits, type)){
-            limit = this.limits[type];
-          } else {
-            limit = this.limit;
-          }
-
-          // If the index is over the limit, hide it
-          if(this.itemCount[type] > limit){
-            return false;
-          } else {
-            this.itemCount[type] += 1;
-            return true;
-          }
-
-        },
-        showMore: function(e) {
-          e.preventDefault();
-
-          // Get the type to show more of
-          var type = e.target.attributes['data-type'].value;
-
-          // For now just show everything after clicking Show More
-          this.limits[type] = 9999;
-
-          // Re-filter the dom-repeat
-          this.$[type+'List'].render();
-
-          // Make sure we trigger a change on the sub-property path
-          // so the Show More button will update
-          this.notifyPath('limits.'+type, this.limits[type]);
-        },
-        computeCanShowMoreButton: function(records, limit, limits) {
-
-          // Limits is supposed to be a change object since it's defined
-          // on a path, but for some reason it's not coming back as one,
-          // so this checks to see if that ever starts working...
-          if(_.has(limits, 'base')){
-            limits = limits.base;
-          }
-
-          var canShowMoreButton = {};
-
-          // Iterate through the known record types
-          _.each(records, function(values, type){
-
-            // Get this type's limit or use the default
-            var typeLimit;
-            if(_.has(limits, type)){
-              typeLimit = limits[type];
-            } else {
-              typeLimit = limit;
-            }
-
-            // If the number of items is greater than the limit, show the Show More button
-            if(values.length > typeLimit){
-              canShowMoreButton[type] = true;
-            } else {
-              canShowMoreButton[type] = false;
-            }
-          });
-
-          return canShowMoreButton;
         }
       });
     })();
