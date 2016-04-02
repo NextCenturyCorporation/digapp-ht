@@ -6,7 +6,6 @@
 /* exported relatedEntityTransform */
 var relatedEntityTransform = (function() {
 
-    // TODO: change summary structure in comments, fix unit tests
     function getOfferSpecificPrices(record) {
         /** build price array:
 
@@ -34,23 +33,25 @@ var relatedEntityTransform = (function() {
     function getOfferSummary(record) {
         /**  build offer summary record:
             {
-                "_id": "1",
+                "_id": "http://someuri",
                 "_type": "offer",
-                "date": "2012-04-23T18:25:43.511Z",
-                "address": {
-                    "country": "United States",
-                    "locality": "Los Angeles",
-                    "region": "California"
-                },
-                "publisher": "backpage.com",
-                "title": "*Hello World -- google.com",
-                "prices": [{
-                    "amount": 250, 
-                    "unitCode": "MIN", 
-                    "billingIncrement": 60, 
-                    "date": "2012-04-23T18:25:43.511Z"
-                }],
-                "phones": ["1234567890", "0123456789"]
+                "title": "1234567890", // just gets first phone number
+                "subtitle": "*Hello World -- google.com", // title of offer
+                "details": {
+                    "date": "2012-04-23T18:25:43.511Z",
+                    "address": {
+                        "country": "United States",
+                        "locality": "Los Angeles",
+                        "region": "California"
+                    },
+                    "publisher": "backpage.com",
+                    "prices": [{
+                        "amount": 250, 
+                        "unitCode": "MIN", 
+                        "billingIncrement": 60, 
+                        "date": "2012-04-23T18:25:43.511Z"
+                    }]
+                }
             }
         */
         var offerObj = {
@@ -78,10 +79,10 @@ var relatedEntityTransform = (function() {
         /**
             build phone summary object:
             {
-                "_id": "1",
+                "_id": "http://someuri",
                 "_type": "phone",
-                "phone": "1234567890",
-                "numOffers": 2
+                "title": "1234567890", // phone number
+                "subtitle": "2 offer(s)" // number of offers
             }
         */
         var phoneObj = {
@@ -97,17 +98,17 @@ var relatedEntityTransform = (function() {
         /**
             build email summary object:
             {
-                "_id": "1",
+                "_id": "http://someuri",
                 "_type": "email",
-                "email": "abc@xyz.com",
-                "numOffers": 2
+                "title": "abc@xyz.com", // email address
+                "subtitle": "2 offer(s)" // number of offers
             }
         */
         var emailObj = {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.name[0]', 'Email N/A'),
-            subtitle: _.get(record, '_source.owner.length', 0)
+            subtitle: _.get(record, '_source.owner.length', 0) + ' offer(s)'
         };
         return emailObj;
     }
@@ -116,10 +117,10 @@ var relatedEntityTransform = (function() {
         /**
             build seller summary object:
             {
-                "_id": "1",
+                "_id": "http://someuri",
                 "_type": "seller",
-                "phone": "1234567890",
-                "numOffers": 2
+                "title": "1234567890", // phone number associated with seller
+                "subtitle": "2 offer(s)" // number of offers
             }
         */
         var sellerObj = {
@@ -156,18 +157,20 @@ var relatedEntityTransform = (function() {
     function getWebpageSummary(record) {
         /*  build webpage summary object:
             {
-                "_id": "1",
+                "_id": "http://someuri",
                 "_type": "webpage",
-                "title": "*Hello World -- google.com",
-                "publisher": "yahoo.com",
-                "url": "http://someurlhere.com",
-                "body": "description text here",
-                "addresses": [{
-                    "country": "United States",
-                    "locality": "Los Angeles",
-                    "region": "California"
-                }],
-                "date": "2012-04-23T18:25:43.511Z"
+                "title": "yahoo.com",   // publisher 
+                "subtitle": "*Hello World -- google.com", // title of webpage
+                "details": {
+                    "url": "http://someurlhere.com",
+                    "body": "description text here",
+                    "addresses": [{
+                        "country": "United States",
+                        "locality": "Los Angeles",
+                        "region": "California"
+                    }],
+                    "date": "2012-04-23T18:25:43.511Z"
+                }
             }
         */
         var webpageObj = {
@@ -188,18 +191,18 @@ var relatedEntityTransform = (function() {
 
     function getServiceSummary(record) {
         /*
-            build service summary object:
+            build service/person summary object:
             {
-                "_id": "1",
-                "_type": "service",
-                "person": {
-                    "name": "Emily", 
+                "_id": "http://someuri",
+                "_type": "person",
+                "title": "Emily", // person name
+                "subtitle": "Age: 20", // age
+                "details": {
                     "eyeColor": "blue",
                     "hairColor": "brown",
                     "height": 64,
                     "weight": 115,
-                    "ethnicity": "white",
-                    "age": 20
+                    "ethnicity": "white"
                 }
             }
         */
@@ -275,6 +278,7 @@ var relatedEntityTransform = (function() {
             }
             return newData;
         },
+        // transform for combined sets of results not seperated by type
         results: function(data) {
             var newData = [];
             if(data && data.hits && data.hits.hits.length > 0) {
