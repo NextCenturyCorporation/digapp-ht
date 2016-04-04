@@ -278,8 +278,8 @@ var relatedEntityTransform = (function() {
             }
             return newData;
         },
-        // transform for combined sets of results not seperated by type
-        results: function(data) {
+        // transform for combined sets of results not separated by type
+        combinedResults: function(data) {
             var newData = [];
             if(data && data.hits && data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
