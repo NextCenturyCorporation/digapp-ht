@@ -241,6 +241,27 @@ module.exports = {
             }
         }
     },
+    sellerPeopleAndOffers: {
+        query: {
+            "query": {
+                "bool": {
+                    "should":  [{
+                        "match": {
+                            "offer.seller.uri": ""
+                        }
+                    },{
+                        "match": {
+                            "adultservice.offers.seller.uri": ""
+                        }
+                    }]
+                }
+            }
+        },
+        pathsToValues: [
+            'query.bool.should[0].match["offer.seller.uri"]', 
+            'query.bool.should[1].match["adultservice.offers.seller.uri"]'
+        ]
+    },
     // TODO: reorganize queries -- duplicate of offerSellerAgg
     offerAggsBySeller: {
         "query": {
