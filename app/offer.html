@@ -109,118 +109,33 @@
      ></json-transform>
     
     <!--Start related entity queries and transforms-->
-    <!--Related seller info-->
+    <!--Related phone, email, sellers, webpages, and people -->
 
-    <query-builder 
-      query="{{relatedSellerQuery}}" 
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="_id" value="[[offerDisplay.sellerId]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedSellerQuery]]'
-      results="{{relatedSeller}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedSeller]]"
-     data-out="{{relatedRecords.seller}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.seller]]"
-     ></json-transform>
-
-
-    <!--Related service info-->
-    <query-builder 
-      query="{{relatedServiceQuery}}" 
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="_id" value="[[offerDisplay.serviceId]]">
-    </query-builder>
+    <bool-query-builder
+      query="{{relatedEntityQuery}}"
+      query-template="{{config.queryTemplates.offerRelatedEntities.query}}"
+      paths-to-values="{{config.queryTemplates.offerRelatedEntities.pathsToValues}}"
+      values="[[getBoolQueryValues(offerDisplay.phones, 
+        offerDisplay.emails, 
+        offerDisplay.sellerId, 
+        offerDisplay.serviceId, 
+        offerDisplay.webpageId)]]">
+    </bool-query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[relatedServiceQuery]]'
-      results="{{relatedService}}"
+      query='[[relatedEntityQuery]]'
+      results="{{relatedResults}}"
       lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[relatedService]]"
-     data-out="{{relatedRecords.service}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.service]]"
+     data-in="[[relatedResults]]"
+     data-out="{{relatedRecords}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
      ></json-transform>
 
-
-    <!--Related webpage info-->
-    <query-builder 
-      query="{{relatedWebpageQuery}}" 
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="_id" value="[[offerDisplay.webpageId]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedWebpageQuery]]'
-      results="{{relatedWebpage}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedWebpage]]"
-     data-out="{{relatedRecords.webpage}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.webpage]]"
-     ></json-transform>
-
-
-    <!--Related phones info-->
-    <query-builder 
-      query="{{relatedPhonesQuery}}" 
-      query-template="{{config.queryTemplates.relatedPhonesOrEmails.query}}" 
-      path-to-value="{{config.queryTemplates.relatedPhonesOrEmails.pathToValueRelativeToQuery}}"
-      value="[[offerDisplay.phones]]">
-    </query-builder>    
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["phone"]'
-      query='[[relatedPhonesQuery]]'
-      results="{{relatedPhones}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedPhones]]"
-     data-out="{{relatedRecords.phone}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.phone]]"
-     ></json-transform>
-
-    <!--Related emails info-->
-    <query-builder 
-      query="{{relatedEmailsQuery}}" 
-      query-template="{{config.queryTemplates.relatedPhonesOrEmails.query}}" 
-      path-to-value="{{config.queryTemplates.relatedPhonesOrEmails.pathToValueRelativeToQuery}}"
-      value="[[offerDisplay.emails]]">
-    </query-builder>    
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["email"]'
-      query='[[relatedEmailsQuery]]'
-      results="{{relatedEmails}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedEmails]]"
-     data-out="{{relatedRecords.email}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.email]]"
-     ></json-transform>
     <!-- End related entity queries-->
 
     <!-- Display Content -->
@@ -456,9 +371,11 @@
       }
     };
 
-    app.getURLParams();
+    app.getBoolQueryValues = function(phone, email, sellerId, personId, webpageId) {
+      return [phone, email, sellerId, personId, webpageId];
+    };
 
-    app.relatedRecords = {};
+    app.getURLParams();
 
   })(document);
   </script>
