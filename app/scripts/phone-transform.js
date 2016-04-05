@@ -49,9 +49,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
                 newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
-                newData.relatedRecords = {
-                    offer: relatedEntityTransform.offer(data)
-                };
+                newData.relatedOffers = relatedEntityTransform.offer(data);
             }
             
             return newData;

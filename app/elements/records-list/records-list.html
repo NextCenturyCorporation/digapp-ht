@@ -7,7 +7,9 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
+
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="records-list">
   <template>
@@ -16,21 +18,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
-
-/*
-      paper-icon-item {
-        border-top: 1px solid var(--dark-divider-opacity);
-      }
-
-      paper-icon-item:first-child {
-        border-top: none;
-      }
-
-      paper-icon-item:hover {
-        background-color: #f2f2f2;
-      }
-*/
-
       img {
         padding: 0 8px 0 0;
       }
@@ -93,6 +80,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .item-title {
         @apply(--paper-font-body2);
+        text-transform: capitalize;
       }
 
       a {
@@ -115,263 +103,124 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-button:hover{
         @apply(--shadow-elevation-3dp);
       }
-
     </style>
-
+    <!--TODO: unit tests? -->
     <paper-listbox>
-
-      <!-- Phone -->
-      <template is="dom-repeat" items="{{records.phone}}">
-        <paper-icon-item>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-phone-font" icon="communication:phone" item-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong><phone-formatter input="[[item.phone]]"></phone-formatter></strong>
-
-            <!-- item details -->
-            <div secondary><strong>[[item.numOffers]]</strong> offer(s)</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item.phone, 'name')}}">
-            <paper-button>open phone</paper-button>
-          </a>
-        </paper-icon-item>
-      </template>
-
-      <!-- Email -->
-      <template is="dom-repeat" items="{{records.email}}">
-        <paper-icon-item>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-email-font" icon="communication:email" item-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong>[[item.email]]</strong>
-
-            <!-- item details -->
-            <div secondary><strong>[[item.numOffers]]</strong> offer(s)</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open email</paper-button>
-          </a>
-        </paper-icon-item>
-      </template>
-
-      <!-- Seller -->
-      <template is="dom-repeat" items="{{records.seller}}">
-        <paper-icon-item>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-seller-font" icon="editor:attach-money" item-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong><phone-formatter input="[[item.phone]]"></phone-formatter></strong>
-
-            <!-- item details -->
-            <div secondary><strong>[[item.numOffers]]</strong> offer(s)</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open seller</paper-button>
-          </a>
-        </paper-icon-item>
-      </template>
-
-      <!-- Webpage -->
-      <template is="dom-repeat" items="{{records.webpage}}">
+      <template is="dom-repeat" items="{{records}}">
         <paper-icon-item on-click="toggle" clickable>
 
           <!-- entity type icon -->
-          <iron-icon class="entity-webpage-font" icon="av:web" item-icon></iron-icon>
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
+          <!-- TODO: make icon component? -->
+          <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+          <template is="dom-if" if="{{item.details}}">
+            <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
+          </template>
 
           <paper-item-body>
-
             <!-- item title -->
-            <strong>{{item.publisher}}</strong>
+            <!--TODO: incorporate phone formatter -->
+            <strong>[[item.title]]</strong>
 
-            <!-- item details -->
-            <div secondary>{{item.title}}</div>
-
+            <!-- item secondary title -->
+            <div secondary>[[item.subtitle]]</div>
           </paper-item-body>
 
           <!-- secondary actions -->
           <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open webpage</paper-button>
+            <paper-button>open [[item._type]]</paper-button>
           </a>
         </paper-icon-item>
-
-        <iron-collapse id="{{createId(item._type, index)}}">
-          <paper-material class="collapse-content">
-            <p><span class="item-title">Title:</span> [[item.title]]</p>
-            <p><span class="item-title">URL:</span> [[item.url]]</p>
-            <p><span class="item-title">Description:</span> [[item.body]]</p>
-            <p>
-              <span class="item-title">Address:</span><br/>
-              <template is="dom-repeat" items="[[item.addresses]]" as="address">
-                <span>[[address.locality]]</span><br/>
+        <template is="dom-if" if="{{item.details}}">
+          <iron-collapse id="{{createId(item._type, index)}}">
+            <paper-material class="collapse-content">
+              <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
+                <p>
+                  <span class="item-title">[[replaceCamelCase(key)]]:</span>
+                  <template is="dom-if" if="[[isValueArray(item, key)]]">
+                    <br/>
+                    <template is="dom-repeat" items="[[getItemValue(item, key)]]" as="value">
+                      <span>[[value]]</span><br/>
+                    </template>
+                  </template>
+                  <template is="dom-if" if="[[!isValueArray(item, key)]]">
+                    [[getItemValue(item, key)]]
+                  </template>
+                </p>
               </template>
-            </p>
-            <p><span class="item-title">Date Created:</span> [[item.date]]</p>
-            <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}"><paper-button raised>open webpage</paper-button></a>
-          </paper-material>
-        </iron-collapse>
+              <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
+                <paper-button raised>open [[item._type]]</paper-button>
+              </a>
+            </paper-material>
+          </iron-collapse>
+        </template>
       </template>
-
-      <!-- Offer -->
-      <template is="dom-repeat" items="{{records.offer}}">
-        <paper-icon-item on-click="toggle" clickable>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-offer-font" icon="maps:local-offer" item-icon></iron-icon>
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong><phone-formatter input="[[item.phones.0]]"></phone-formatter></strong>
-
-            <!-- item details -->
-            <div secondary>{{item.title}}</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open offer</paper-button>
-          </a>
-        </paper-icon-item>
-
-        <!-- offer expanded -->
-        <iron-collapse id="{{createId(item._type, index)}}">
-          <paper-material class="collapse-content">
-            <p><span class="item-title">Title:</span> [[item.title]]</p>
-            <p>
-              <span class="item-title">Address:</span><br/>
-              <span>[[item.address.locality]]</span><br/>
-            </p>
-            <p>
-              <span class="item-title">Price:</span><br/>
-              <template is="dom-repeat" items="[[item.prices]]" as="price">
-                <span>[[price.amount]] ([[price.billingIncrement]] [[price.unitCode]])</span><br/>
-              </template>
-            </p>
-            <p><span class="item-title">Date:</span> [[item.date]]</p>
-
-            <!-- button for details view -->
-            <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}"><paper-button raised>open offer</paper-button></a>
-          </paper-material>
-        </iron-collapse>
-      </template>
-
-      <!-- Person -->
-      <template is="dom-repeat" items="{{records.service}}">
-        <paper-icon-item on-click="toggle" clickable>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-person-font" icon="icons:account-circle" item-icon></iron-icon>
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong>{{item.person.name}}</strong>
-
-            <!-- item details -->
-            <div secondary>Age: {{item.person.age}}</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL('person', item._id, '_id')}}">
-            <paper-button>open person</paper-button>
-          </a>
-        </paper-icon-item>
-
-        <iron-collapse id="{{createId(item._type, index)}}">
-          <paper-material class="collapse-content">
-            <div class="layout horizontal">
-              <div class="flex">
-                <p><span class="item-title">Eye Color:</span> [[item.person.eyeColor]]</p>
-                <p><span class="item-title">Hair Color:</span> [[item.person.hairColor]]</p>
-                <p><span class="item-title">Ethnicity:</span> [[item.person.ethnicity]]</p>
-              </div>
-              <div class="flex">
-                <p><span class="item-title">Height (in cm):</span> [[item.person.height]]</p>
-                <p><span class="item-title">Weight (in kg):</span> [[item.person.weight]]</p>
-              </div>
-            </div>
-            <a target="{{getTarget()}}" href$="{{createURL('person', item._id, '_id')}}"><paper-button raised>open person</paper-button></a>
-          </paper-material>
-        </iron-collapse>
-      </template>
-
     </paper-listbox>
   </template>
-
   <script>
-    (function () {
-      'use strict';
+  (function() {
+    /* globals _ */
+    'use strict';
 
-      Polymer({
-        is: 'records-list',
-        properties: {
-          records: {
-            type: Object,
-            observer: 'logRecords'
-          },
-
-          newTab: {
-            type: Boolean,
-            value: false
-          }
+    Polymer({
+      is: 'records-list',
+      properties: {
+        records: {
+          type: Object,
+          observer: 'logRecords'
         },
-        fireMapEvent: function(e) {
-          var map = document.querySelector('#map');
-          if(map) {
-            map.fire('createPopupEvent', {detail: e.model.item});
-          }
-        },
-        logRecords: function() {
-          console.log('records', this.records);
-        },
-        createURL: function(type, value, field) {
-          return '/' + type + '.html?value=' + value + '&field=' + field;
-        },
-
-        getTarget: function() {
-            return (this.newTab ? '_blank' : '_self');
-        },
-
-        createId: function(type, index) {
-          return type + '-' + index;
-        },
-        toggle: function(event) {
-          var target = Polymer.dom(event).rootTarget;
-
-          // if paper button was clicked, don't toggle
-          if(target.localName !== 'paper-button') {
-            var id = '#' + event.model.item._type + '-' + event.model.index;
-            document.querySelector(id).opened = !document.querySelector(id).opened;
-          }
+        newTab: {
+          type: Boolean,
+          value: false
         }
-      });
-    })();
-  </script>
+      },
+      isValueArray: function(item, key) {
+        var value = this.getItemValue(item, key);
+        return _.isArray(value);
+      },
+      replaceCamelCase: function(key) {
+        return key.replace(/([A-Z])/g, ' $1');
+      },
+      getAllItemKeys: function(item) {
+        return _.keys(item.details);
+      },
+      getItemValue: function(item, key) {
+        return item.details[key];
+      },
+      logRecords: function() {
+        console.log('records', this.records);
+      },
+      createURL: function(type, value, field) {
+        return '/' + type + '.html?value=' + value + '&field=' + field;
+      },
+      getTarget: function() {
+          return (this.newTab ? '_blank' : '_self');
+      },
+      createId: function(type, index) {
+        return type + '-' + index;
+      },
+      toggle: function(event) {
+        var target = Polymer.dom(event).rootTarget;
 
+        // if paper button was clicked, don't toggle
+        if(target.localName !== 'paper-button') {
+          var id = '#' + event.model.item._type + '-' + event.model.index;
+          document.querySelector(id).opened = !document.querySelector(id).opened;
+        }
+      },
+      getIconClass: function(type) {
+        return 'entity-' + type + '-font';
+      },
+      getIcon: function(type) {
+        switch(type) {
+            case 'email': return 'communication:email';
+            case 'person': return 'icons:account-circle';
+            case 'phone': return 'communication:phone';
+            case 'offer': return 'maps:local-offer';
+            case 'seller': return 'editor:attach-money';
+            case 'webpage': return 'av:web';
+        }
+      }
+    });
+  })();
+  </script>
 </dom-module>
