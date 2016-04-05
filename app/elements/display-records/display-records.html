@@ -134,9 +134,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <iron-collapse id="{{createId(item._type, index)}}">
             <paper-material class="collapse-content">
               <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
-                <p><span class="item-title">[[replaceCamelCase(key)]]:</span> [[getItemValue(item, key)]]</p>
+                <p>
+                  <span class="item-title">[[replaceCamelCase(key)]]:</span>
+                  <template is="dom-if" if="[[isValueArray(item, key)]]">
+                    <br/>
+                    <template is="dom-repeat" items="[[getItemValue(item, key)]]" as="value">
+                      <span>[[value]]</span><br/>
+                    </template>
+                  </template>
+                  <template is="dom-if" if="[[!isValueArray(item, key)]]">
+                    [[getItemValue(item, key)]]
+                  </template>
+                </p>
               </template>
-              <!-- TODO: figure out array display (example: address, price) -->
               <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
                 <paper-button raised>open [[item._type]]</paper-button>
               </a>
@@ -162,6 +172,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           value: false
         }
+      },
+      isValueArray: function(item, key) {
+        var value = this.getItemValue(item, key);
+        return _.isArray(value);
       },
       replaceCamelCase: function(key) {
         return key.replace(/([A-Z])/g, ' $1');

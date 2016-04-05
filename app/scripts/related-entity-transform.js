@@ -8,24 +8,12 @@ var relatedEntityTransform = (function() {
 
     function getOfferSpecificPrices(record) {
         /** build price array:
-
-            "prices": [{
-                "amount": 250, 
-                "unitCode": "MIN", 
-                "billingIncrement": 60, 
-                "date": "2012-04-23T18:25:43.511Z"
-            }]
+            "prices": ["250 (60 MIN)"]
         */
         var prices = [];
         var priceArr = _.get(record, '_source.priceSpecification', []);
         priceArr.forEach(function(priceElem) {
-            var price = {
-                amount: priceElem.price, 
-                unitCode: priceElem.unitCode, 
-                billingIncrement: priceElem.billingIncrement, 
-                date: record.validFrom
-            };
-            prices.push(price);
+            prices.push(priceElem.price + ' (' + priceElem.billingIncrement + ' ' + priceElem.unitCode + ')');
         });
         return prices;
     }
@@ -39,18 +27,9 @@ var relatedEntityTransform = (function() {
                 "subtitle": "*Hello World -- google.com", // title of offer
                 "details": {
                     "date": "2012-04-23T18:25:43.511Z",
-                    "address": {
-                        "country": "United States",
-                        "locality": "Los Angeles",
-                        "region": "California"
-                    },
+                    "address": "Los Angeles", // just use locality
                     "publisher": "backpage.com",
-                    "prices": [{
-                        "amount": 250, 
-                        "unitCode": "MIN", 
-                        "billingIncrement": 60, 
-                        "date": "2012-04-23T18:25:43.511Z"
-                    }]
+                    "prices": ["250 (60 MIN)"]
                 }
             }
         */
@@ -61,12 +40,7 @@ var relatedEntityTransform = (function() {
             subtitle: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
             details: {
                 date: _.get(record, '_source.validFrom'),
-                address: {
-                    locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                    region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
-                    country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
-                },
-                
+                address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
                 publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
                 prices: getOfferSpecificPrices(record)
             }
@@ -134,22 +108,17 @@ var relatedEntityTransform = (function() {
 
     function getAddressArray(record) {
         /** build address array:
-            "addresses": [{
-                "country": "United States",
-                "locality": "Los Angeles",
-                "region": "California"
-            }]
+            "addresses": ["Los Angeles"]
         */
         var addresses = [];
         var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
 
         addressesArr.forEach(function(addressElem) {
-            var obj = {
-                locality: _.get(addressElem, 'addressLocality'),
-                region: _.get(addressElem, 'addressRegion'),
-                country: _.get(addressElem, 'addressCountry')
-            };
-            addresses.push(obj);
+            var locality = _.get(addressElem, 'addressLocality');
+
+            if(locality) {
+                addresses.push(locality);
+            }
         });
         return addresses;
     }
@@ -164,11 +133,7 @@ var relatedEntityTransform = (function() {
                 "details": {
                     "url": "http://someurlhere.com",
                     "body": "description text here",
-                    "addresses": [{
-                        "country": "United States",
-                        "locality": "Los Angeles",
-                        "region": "California"
-                    }],
+                    "addresses": ["Los Angeles"],
                     "date": "2012-04-23T18:25:43.511Z"
                 }
             }
