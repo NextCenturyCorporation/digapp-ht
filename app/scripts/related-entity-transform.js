@@ -174,7 +174,7 @@ var relatedEntityTransform = (function() {
         var serviceObj = {
             _id: record._id,
             _type: 'person', // hardcode 'person' value for now
-            title: _.get(record, '_source.name', 'Name N/A'),
+            title: _.get(record, '_source.name[0]', 'Name N/A'),
             subtitle: 'Age: ' + _.get(record, '_source.personAge[0]', 'N/A'),
             details: {
                 eyeColor: _.get(record, '_source.eyeColor'),
