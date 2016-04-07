@@ -103,57 +103,73 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       paper-button:hover{
         @apply(--shadow-elevation-3dp);
       }
+
+      iron-list {
+        height: 500px;
+      }
+
+      .details {
+        display: none;
+      }
+
+      .item.expanded .details {
+        display: block;
+      }
     </style>
-    <paper-listbox>
-      <template is="dom-repeat" items="{{records}}">
-        <paper-icon-item on-click="toggle" clickable>
+    <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changePageNum">
+      <iron-list items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
+        <template>
+          <div class$="[[getClassForItem(item, selected)]]">
+            <paper-icon-item clickable>
 
-          <!-- entity type icon -->
-          <!-- TODO: make icon component? -->
-          <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
-          <template is="dom-if" if="{{item.details}}">
-            <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-          </template>
-
-          <paper-item-body>
-            <!-- item title -->
-            <!-- will not format non-phone number titles -->
-            <strong><phone-formatter input="[[item.title]]"></phone-formatter></strong>
-
-            <!-- item secondary title -->
-            <div secondary>[[item.subtitle]]</div>
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open [[item._type]]</paper-button>
-          </a>
-        </paper-icon-item>
-        <template is="dom-if" if="{{item.details}}">
-          <iron-collapse id="{{createId(item._type, index)}}">
-            <paper-material class="collapse-content">
-              <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
-                <p>
-                  <span class="item-title">[[replaceCamelCase(key)]]:</span>
-                  <template is="dom-if" if="{{isValueArray(item, key)}}" restamp="true">
-                    <br/>
-                    <template is="dom-repeat" items="{{getItemValue(item, key)}}" as="value">
-                      <span>[[value]]</span><br/>
-                    </template>
-                  </template>
-                  <template is="dom-if" if="{{!isValueArray(item, key)}}">
-                    [[getItemValue(item, key)]]
-                  </template>
-                </p>
+              <!-- entity type icon -->
+              <!-- TODO: make icon component? -->
+              <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+              <template is="dom-if" if="{{item.details}}">
+                <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
               </template>
-              <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-                <paper-button raised>open [[item._type]]</paper-button>
+
+              <paper-item-body>
+                <!-- item title -->
+                <!-- will not format non-phone number titles -->
+                <strong><phone-formatter input="[[item.title]]"></phone-formatter></strong>
+
+                <!-- item secondary title -->
+                <div secondary>[[item.subtitle]]</div>
+              </paper-item-body>
+
+              <!-- secondary actions -->
+              <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
+                <paper-button>open [[item._type]]</paper-button>
               </a>
-            </paper-material>
-          </iron-collapse>
+            </paper-icon-item>
+            <template is="dom-if" if="{{item.details}}">
+              <div class="details">
+                <paper-material class="collapse-content">
+                  <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
+                    <p>
+                      <span class="item-title">[[replaceCamelCase(key)]]:</span>
+                      <template is="dom-if" if="{{isValueArray(item, key)}}" restamp="true">
+                        <br/>
+                        <template is="dom-repeat" items="{{getItemValue(item, key)}}" as="value">
+                          <span>[[value]]</span><br/>
+                        </template>
+                      </template>
+                      <template is="dom-if" if="{{!isValueArray(item, key)}}">
+                        [[getItemValue(item, key)]]
+                      </template>
+                    </p>
+                  </template>
+                  <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
+                    <paper-button raised>open [[item._type]]</paper-button>
+                  </a>
+                </paper-material>
+              </iron-collapse>
+            </template>
+          </div>
         </template>
-      </template>
-    </paper-listbox>
+      </iron-list>
+    </iron-scroll-threshold>
   </template>
   <script>
   (function() {
@@ -163,13 +179,75 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'records-list',
       properties: {
-        records: {
-          type: Object
+        /**
+        * Records on current page of query results
+        */
+        currentResults: {
+          type: Array,
+          observer: 'updateRecordsToShow'
+        },
+        /**
+        * Records to display -- currentResults will be pushed onto the array.
+        */
+        recordsToShow: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true
         },
         newTab: {
           type: Boolean,
           value: false
+        },
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
+        },
+        resultsPerPage: {
+          type: Number,
+          value: 25,
+          notify: true
+        },
+        numResults: {
+          type: Number,
+          value: 50,
+          notify: true
+        },
+        numPages: {
+          type: Number,
+          notify: true,
+          computed: 'calcNumPages(numResults, resultsPerPage)'
         }
+      },
+      getClassForItem: function(item, selected) {
+        return selected ? 'item expanded' : 'item';
+      },
+      /**
+      * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
+      * 
+      * If a new query is entered, the page resets to 1, in which case recordsToShow gets reset 
+      * to a blank array before adding the new results. 
+      */
+      updateRecordsToShow: function() {
+        var self = this;
+        if(this.page === 1) {
+          this.recordsToShow = [];
+        }
+        _.each(this.currentResults, function(item) {
+          self.push('recordsToShow', item);
+        });
+        this.$.scrollThreshold.clearTriggers();
+      },
+      changePageNum: function() {
+        if(this.page < this.numPages) {
+          this.page += 1;
+        }
+      },
+      calcNumPages: function(numResults, resultsPerPage) {
+        this.page = 1;
+        return Math.ceil(numResults / resultsPerPage); 
       },
       isValueArray: function(item, key) {
         var value = this.getItemValue(item, key);
@@ -196,18 +274,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       getTarget: function() {
           return (this.newTab ? '_blank' : '_self');
-      },
-      createId: function(type, index) {
-        return type + '-' + index;
-      },
-      toggle: function(event) {
-        var target = Polymer.dom(event).rootTarget;
-
-        // if paper button was clicked, don't toggle
-        if(target.localName !== 'paper-button') {
-          var id = '#' + event.model.item._type + '-' + event.model.index;
-          document.querySelector(id).opened = !document.querySelector(id).opened;
-        }
       },
       getIconClass: function(type) {
         return 'entity-' + type + '-font';
