@@ -34,113 +34,112 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <script>
   /* globals suite, test, expect, setup, fixture, flush */
   /* jshint -W030 */
-  suite('<records-list>', function() {
+  suite('<records-list> default tests', function() {
     var recordsListElem;
 
     setup(function(done) {
       recordsListElem = fixture('records-list-fixture');
-      recordsListElem.records = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
+      recordsListElem.currentResults = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
       flush(function(){
         done();
       });
     });
 
-    test('records should be equal to value specified in setup', function() {
-      expect(recordsListElem.records).to.be.an('array');
-      expect(recordsListElem.records).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
+    test('getClassForItem returns "item" if item not selected', function() {
+      var item = recordsListElem.currentResults[0];
+      var selected = false;
+      expect(recordsListElem.getClassForItem(item, selected)).to.be.equal('item');
     });
 
-    test('expect an paper-icon-item element', function() {
-      expect(document.querySelector('paper-icon-item')).to.exist;
+    test('getClassForItem returns "item expanded" if item selected', function() {
+      var item = recordsListElem.currentResults[0];
+      var selected = true;
+      expect(recordsListElem.getClassForItem(item, selected)).to.be.equal('item expanded');
     });
 
-    test('iron-collapse ids are created based on result of createId method with _type and index passed in', function() {
-      var offerRecord = recordsListElem.records[0];
-      expect(document.querySelector('#' + recordsListElem.createId(offerRecord._type, 0))).to.exist;
-      expect(recordsListElem.createId(offerRecord._type, 0)).to.be.equal('offer-0');
-    });
-    
-    test('createURL returns URL based on parameters passed in', function() {
-      var offerRecord = recordsListElem.records[0];
-      var result = recordsListElem.createURL(offerRecord._type, offerRecord._id, '_id');
-      var expectedURL = '/' + offerRecord._type + '.html?value=' + offerRecord._id + '&field=_id';
-
-      expect(result).to.be.equal(expectedURL);
+    test('page, resultsPerPage and numResults set to defaults', function() {
+      expect(recordsListElem.page).to.be.equal(1);
+      expect(recordsListElem.resultsPerPage).to.be.equal(25);
+      expect(recordsListElem.numResults).to.be.equal(25);
     });
 
-    test('clicking list item opens up expanded view', function() {
-      document.querySelector('paper-icon-item').click();
-      expect(document.querySelector('#offer-0').opened).to.be.true;
+    test('currentResults should be equal to value specified in setup', function() {
+      expect(recordsListElem.currentResults).to.be.an('array');
+      expect(recordsListElem.currentResults).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
     });
 
-    test('clicking anywhere besides paper-button in expanded view will collapse expanded view', function() {
-      document.querySelector('paper-icon-item').click();
-      expect(document.querySelector('#offer-0').opened).to.be.true;
-
-      document.querySelector('paper-icon-item').click();
-      expect(document.querySelector('#offer-0').opened).to.be.false;
+    test('recordsToShow should be set to the values in currentResults', function() {
+      expect(recordsListElem.recordsToShow).to.be.an('array');
+      expect(recordsListElem.recordsToShow).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
     });
 
-    test('getItemValue() returns correct value', function() {
-      expect(recordsListElem.getItemValue({title: 'record', details: {address: 'LA'}}, 'address')).to.equal('LA');
+    test('numPages is calculated based on defaults', function() {
+      expect(recordsListElem.numPages).to.be.equal(1);
     });
 
-    test('isValueArray() returns expected boolean values', function() {
-      expect(recordsListElem.isValueArray({title: 'record', details: {key: [1, 2, 3]}}, 'key')).to.be.true;
-      expect(recordsListElem.isValueArray({title: 'record', details: {key: 'not array'}}, 'key')).to.be.false;
-    });
+    test('changePageNum will not increment if all results are shown', function() {
+      var currentPage = recordsListElem.page;
 
-    test('replaceCamelCase() adds spaces to camel cased strings', function() {
-      expect(recordsListElem.replaceCamelCase('stuff')).to.be.equal('stuff');
-      expect(recordsListElem.replaceCamelCase('camelCase')).to.be.equal('camel Case');
-    });
+      recordsListElem.changePageNum();
 
-    test('getAllItemKeys() returns all the keys from the details of the item', function() {
-      var item = {title: 'record', details: {array: [1, 2, 3], address: 'LA', name: 'test'}};
-      expect(recordsListElem.getAllItemKeys(item)).to.be.deep.equal(['array', 'address', 'name']);
+      expect(recordsListElem.page).to.be.equal(currentPage);
     });
-
-    test('getAllItemKeys() results in undefined if no details exist', function() {
-      var item = {title: 'record'};
-      expect(recordsListElem.getAllItemKeys(item)).to.be.undefined;
-    });
-
-    test('getIconClass() returns a class string based on the type passed in', function() {
-      expect(recordsListElem.getIconClass('offer')).to.equal('entity-offer-font');
-    });
-
-    test('getIcon() returns the appropriate icon for the type passed in', function() {
-      expect(recordsListElem.getIcon('email')).to.equal('communication:email');
-      expect(recordsListElem.getIcon('person')).to.equal('icons:account-circle');
-      expect(recordsListElem.getIcon('phone')).to.equal('communication:phone');
-      expect(recordsListElem.getIcon('offer')).to.equal('maps:local-offer');
-      expect(recordsListElem.getIcon('seller')).to.equal('editor:attach-money');
-      expect(recordsListElem.getIcon('webpage')).to.equal('av:web');
-    });
-
-    test('getTarget() returns "_self" since newTab is false', function() {
-      expect(recordsListElem.getTarget()).to.equal('_self');
-    });
-
   });
 
-  suite('<records-list> if newTab is true', function() {
-    var recordsListElem;
+  suite('<records-list> test page changes', function() {
+    var recordsListElem, firstOffer, nextOffer;
 
     setup(function(done) {
+      firstOffer = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
+      nextOffer = {'_id': '2', '_type': 'website', 'title': 'title2', 'details': {'address': 'LA'}};
       recordsListElem = fixture('records-list-fixture');
-      recordsListElem.records = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
-      recordsListElem.newTab = true;
+
+      recordsListElem.currentResults = [firstOffer];
+      recordsListElem.resultsPerPage = 10;
+      recordsListElem.numResults = 300;
       flush(function(){
         done();
       });
     });
 
-    test('getTarget() returns "_blank" since newTab is true', function() {
-      expect(recordsListElem.getTarget()).to.equal('_blank');
+    test('recordsToShow should be set to the values in currentResults', function() {
+      expect(recordsListElem.recordsToShow).to.be.an('array');
+      expect(recordsListElem.recordsToShow).to.be.deep.equal([firstOffer]);
+    });
+
+    test('resultsPerPage and numResults set based on inputs', function() {
+      expect(recordsListElem.resultsPerPage).to.be.equal(10);
+      expect(recordsListElem.numResults).to.be.equal(300);
+    });
+
+    test('page increments by 1 when changePageNum called', function() {
+      var currentPage = recordsListElem.page;
+
+      recordsListElem.changePageNum();
+
+      expect(recordsListElem.page).to.be.equal(currentPage + 1);
+    });
+
+    test('recordsToShow should update based on currentResults', function() {
+      recordsListElem.currentResults = [nextOffer];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(2);
+      expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
+    });
+
+    test('recordsToShow should reset to equal whatever is in currentResults if page is bumped back down to 1', function() {
+      recordsListElem.page = 2;
+      recordsListElem.currentResults = [nextOffer];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(2);
+      expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
+
+      recordsListElem.page = 1;
+      recordsListElem.currentResults = [];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(0);
+      expect(recordsListElem.recordsToShow).to.be.deep.equal([]);
     });
 
   });
+
 </script>
 
 </body>
