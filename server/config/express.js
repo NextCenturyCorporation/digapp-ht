@@ -28,10 +28,12 @@ module.exports = function(app) {
   app.use(cookieParser());
   
   if ('production' === env) {
-    app.use(favicon(path.join(config.root, 'public', 'favicon.ico')));
-    app.use(express.static(path.join(config.root, 'public')));
-    app.set('appPath', path.join(config.root, 'public'));
+    app.use(favicon(path.join(config.root, 'app', 'favicon.ico')));
+    app.use(express.static(path.join(config.root, 'app')));
+    app.set('appPath', path.join(config.root, 'app'));
     app.use(morgan('dev'));
+    app.use(errorHandler()); // Error handler - has to be last
+    app.use('/bower_components', express.static(path.join(config.root, '/bower_components')));
   }
 
   if ('development' === env || 'test' === env) {
