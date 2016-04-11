@@ -18,7 +18,6 @@ module.exports = {
             }
           }
         },
-        size: 40, // TODO: add paging
         'aggs' : {
             // When: Timeline of offers
             'offers_by_date': {

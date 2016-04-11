@@ -19,13 +19,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
-
-      iron-list {
-        height: 500px;
-      }
     </style>
     <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changePageNum">
-      <iron-list items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
+      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
         <template>
           <single-record item="{{item}}" expanded="[[getClassForItem(item, selected)]]"></single-record>
         </template>
@@ -57,6 +53,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true
         },
+        newTab: {
+          type: Boolean,
+          value: false
+        },
         page: {
           type: Number,
           value: 1,
@@ -70,7 +70,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         numResults: {
           type: Number,
           value: 25,
-          notify: true
+          notify: true,
+          observer: 'calculateHeight'
         },
         numPages: {
           type: Number,
@@ -95,7 +96,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _.each(this.currentResults, function(item) {
           self.push('recordsToShow', item);
         });
+
         this.$.scrollThreshold.clearTriggers();
+      },
+      calculateHeight: function() {
+        if(this.numResults > 0) {
+          var maxHeight = 200 * this.numResults;
+          this.$.list.style.height = maxHeight > 500 ? 500 + 'px' : maxHeight + 'px';
+        } else {
+          this.$.list.style.height = '0px';
+        }
       },
       changePageNum: function() {
         if(this.page < this.numPages) {

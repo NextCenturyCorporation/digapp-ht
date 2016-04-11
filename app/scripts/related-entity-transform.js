@@ -190,81 +190,88 @@ var relatedEntityTransform = (function() {
     return {
         // expected data is from an elasticsearch query
         offer: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newData.push(getOfferSummary(record));
+                    newObj.data.push(getOfferSummary(record));
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         phone: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newData.push(getPhoneSummary(record));
+                    newObj.data.push(getPhoneSummary(record));
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         email: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newData.push(getEmailSummary(record));
+                    newObj.data.push(getEmailSummary(record));
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         seller: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newData.push(getSellerSummary(record));
+                    newObj.data.push(getSellerSummary(record));
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         service: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newData.push(getServiceSummary(record));
+                    newObj.data.push(getServiceSummary(record));
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         webpage: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newData.push(getWebpageSummary(record));
+                    newObj.data.push(getWebpageSummary(record));
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         // transform for combined sets of results not separated by type
         combinedResults: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data && data.hits && data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
                     switch(record._type) {
-                        case 'email': newData.push(getEmailSummary(record));
+                        case 'email': newObj.data.push(getEmailSummary(record));
                             break;
-                        case 'adultservice': newData.push(getServiceSummary(record));
+                        case 'adultservice': newObj.data.push(getServiceSummary(record));
                             break;
-                        case 'phone': newData.push(getPhoneSummary(record));
+                        case 'phone': newObj.data.push(getPhoneSummary(record));
                             break;
-                        case 'offer': newData.push(getOfferSummary(record));
+                        case 'offer': newObj.data.push(getOfferSummary(record));
                             break;
-                        case 'seller': newData.push(getSellerSummary(record));
+                        case 'seller': newObj.data.push(getSellerSummary(record));
                             break;
-                        case 'webpage': newData.push(getWebpageSummary(record));
+                        case 'webpage': newObj.data.push(getWebpageSummary(record));
                             break;
                     }
                 });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         }
     };
 
