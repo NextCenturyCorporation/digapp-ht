@@ -19,14 +19,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
+
+      .end-of-list {
+        text-align: center;
+        height: 40px;
+      }
+
+      .end-of-list paper-spinner {
+        width: 16px;
+        height: 16px;
+        margin-right: 10px;
+        margin-top: 10px;
+      }
     </style>
-    <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changePageNum">
+    <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
       <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
         <template>
           <single-record item="{{item}}" expanded="[[getClassForItem(item, selected)]]" new-tab="{{newTab}}"></single-record>
         </template>
       </iron-list>
     </iron-scroll-threshold>
+    <div class="end-of-list">
+      <template is="dom-if" if="{{displayShowMore}}">
+        <paper-button raised on-click="changePageNum">Show More</paper-button>
+      </template>
+      <template is="dom-if" if="{{loading}}">
+        <paper-spinner active="{{loading}}"></paper-spinner>Loading results...
+      </template>
+    </div>
   </template>
   <script>
   (function() {
@@ -40,8 +60,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         * Records on current page of query results
         */
         currentResults: {
-          type: Array,
-          observer: 'updateRecordsToShow'
+          type: Array
         },
         /**
         * Records to display -- currentResults will be pushed onto the array.
@@ -78,6 +97,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Number,
           notify: true,
           computed: 'calcNumPages(numResults, resultsPerPage)'
+        },
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        showMore: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        displayShowMore: {
+          type: Boolean,
+          notify: true,
+          computed: 'calcDisplayShowMore(showMore, loading)'
+        }
+      },
+      observers: [
+        'updateRecordsToShow(currentResults, loading)'
+      ],
+      calcDisplayShowMore: function(showMore, loading) {
+        return showMore && (!loading);
+      },
+      changeShowMore: function() {
+        if(this.numPages > 1 && this.numResults > 0 && this.page !== this.numPages) {
+          this.showMore = true;
         }
       },
       getClassForItem: function(item, selected) {
@@ -91,14 +136,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       */
       updateRecordsToShow: function() {
         var self = this;
-        if(this.page === 1) {
-          this.recordsToShow = [];
-        }
-        _.each(this.currentResults, function(item) {
-          self.push('recordsToShow', item);
-        });
 
-        this.$.scrollThreshold.clearTriggers();
+        if(!this.loading) {
+          if(this.page === 1) {
+            this.recordsToShow = [];
+          }
+
+          _.each(this.currentResults, function(item) {
+            self.push('recordsToShow', item);
+          });
+
+          this.$.scrollThreshold.clearTriggers();
+          this.showMore = false;
+        }
+
       },
       calculateHeight: function() {
         if(this.numResults > 0) {
@@ -109,12 +160,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       changePageNum: function() {
+        this.showMore = false;
         if(this.page < this.numPages) {
           this.page += 1;
         }
       },
       calcNumPages: function(numResults, resultsPerPage) {
-        this.page = 1;
+        if(this.page !== 1) {
+          this.page = 1;
+        }
         return Math.ceil(numResults / resultsPerPage); 
       }
     });

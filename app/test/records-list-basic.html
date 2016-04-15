@@ -63,6 +63,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(recordsListElem.numResults).to.be.equal(25);
     });
 
+    test('loading, showMore, and displayShowMore are all set to false', function() {
+      expect(recordsListElem.loading).to.be.false;
+      expect(recordsListElem.showMore).to.be.false;
+      expect(recordsListElem.displayShowMore).to.be.false;
+    });
+
     test('currentResults should be equal to value specified in setup', function() {
       expect(recordsListElem.currentResults).to.be.an('array');
       expect(recordsListElem.currentResults).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
@@ -101,6 +107,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       recordsListElem.currentResults = [firstOffer];
       recordsListElem.resultsPerPage = 10;
       recordsListElem.numResults = 300;
+      recordsListElem.showMore = false;
       flush(function(){
         done();
       });
@@ -116,18 +123,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(recordsListElem.numResults).to.be.equal(300);
     });
 
+    test('showMore updates to true', function() {
+      recordsListElem.changeShowMore();
+
+      expect(recordsListElem.showMore).to.be.true;
+    });
+
     test('page increments by 1 when changePageNum called', function() {
+      recordsListElem.showMore = true;
       var currentPage = recordsListElem.page;
 
       recordsListElem.changePageNum();
 
       expect(recordsListElem.page).to.be.equal(currentPage + 1);
+      expect(recordsListElem.showMore).to.be.false;
     });
 
-    test('recordsToShow should update based on currentResults', function() {
+    test('recordsToShow should update based on currentResults if not on first page', function() {
+      recordsListElem.showMore = true;
+      recordsListElem.page = 2;
       recordsListElem.currentResults = [nextOffer];
       expect(recordsListElem.recordsToShow.length).to.be.equal(2);
       expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
+      expect(recordsListElem.showMore).to.be.false;
+    });
+
+    test('recordsToShow should not update if loading is set to true', function() {
+      recordsListElem.loading = true;
+      recordsListElem.currentResults = [nextOffer];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(1);
+      expect(recordsListElem.recordsToShow[0]).to.be.equal(firstOffer);
     });
 
     test('recordsToShow should reset to equal whatever is in currentResults if page is bumped back down to 1', function() {
@@ -144,7 +169,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   });
 
-  suite('<records-list> height if only one result', function() {
+  suite('<records-list> if only one result', function() {
     var recordsListElem;
 
     setup(function(done) {
@@ -154,6 +179,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       flush(function(){
         done();
       });
+    });
+
+    test('showMore does not update to true', function() {
+      recordsListElem.changeShowMore();
+
+      expect(recordsListElem.showMore).to.be.false;
     });
 
     test('list height will be set to a maximum of 200 pixels if there is only one record', function() {
