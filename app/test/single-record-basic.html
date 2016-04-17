@@ -1,0 +1,125 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>single-record</title>
+
+  <script src="../../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/single-record/single-record.html">
+
+</head>
+<body>
+
+<test-fixture id="single-record-fixture">
+  <template>
+    <single-record></single-record>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, expect, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('<single-record>', function() {
+    var singleRecordElem;
+
+    setup(function(done) {
+      singleRecordElem = fixture('single-record-fixture');
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
+      singleRecordElem.expanded = 'item';
+      flush(function(){
+        done();
+      });
+    });
+
+    test('expect an paper-icon-item element', function() {
+      expect(document.querySelector('paper-icon-item')).to.exist;
+    });
+
+    test('getItemValue() returns correct value', function() {
+      expect(singleRecordElem.getItemValue({title: 'record', details: {address: 'LA'}}, 'address')).to.equal('LA');
+    });
+
+    test('isValueArray() returns expected boolean values', function() {
+      expect(singleRecordElem.isValueArray({title: 'record', details: {key: [1, 2, 3]}}, 'key')).to.be.true;
+      expect(singleRecordElem.isValueArray({title: 'record', details: {key: 'not array'}}, 'key')).to.be.false;
+    });
+
+    test('replaceCamelCase() adds spaces to camel cased strings', function() {
+      expect(singleRecordElem.replaceCamelCase('stuff')).to.be.equal('stuff');
+      expect(singleRecordElem.replaceCamelCase('camelCase')).to.be.equal('camel Case');
+    });
+
+    test('getAllItemKeys() returns all the keys from the details of the item', function() {
+      var item = {title: 'record', details: {array: [1, 2, 3], address: 'LA', name: 'test'}};
+      expect(singleRecordElem.getAllItemKeys(item)).to.be.deep.equal(['array', 'address', 'name']);
+    });
+
+    test('getAllItemKeys() results in undefined if no details exist', function() {
+      var item = {title: 'record'};
+      expect(singleRecordElem.getAllItemKeys(item)).to.be.undefined;
+    });
+
+    test('createURL returns URL based on parameters passed in', function() {
+      var item = singleRecordElem.item;
+      var result = singleRecordElem.createURL(item._type, item._id, '_id');
+      var expectedURL = '/' + item._type + '.html?value=' + item._id + '&field=_id';
+
+      expect(result).to.be.equal(expectedURL);
+    });
+
+    test('getIconClass() returns a class string based on the type passed in', function() {
+      expect(singleRecordElem.getIconClass('offer')).to.equal('entity-offer-font');
+    });
+
+    test('getIcon() returns the appropriate icon for the type passed in', function() {
+      expect(singleRecordElem.getIcon('email')).to.equal('communication:email');
+      expect(singleRecordElem.getIcon('person')).to.equal('icons:account-circle');
+      expect(singleRecordElem.getIcon('phone')).to.equal('communication:phone');
+      expect(singleRecordElem.getIcon('offer')).to.equal('maps:local-offer');
+      expect(singleRecordElem.getIcon('seller')).to.equal('editor:attach-money');
+      expect(singleRecordElem.getIcon('webpage')).to.equal('av:web');
+    });
+
+    test('getTarget() returns "_self" since newTab is false', function() {
+      expect(singleRecordElem.target).to.equal('_self');
+    });
+
+  });
+
+  suite('<single-record> if newTab is true', function() {
+    var singleRecordElem;
+
+    setup(function(done) {
+      singleRecordElem = fixture('single-record-fixture');
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
+      singleRecordElem.expanded = 'item';
+      singleRecordElem.newTab = true;
+      flush(function(){
+        done();
+      });
+    });
+
+    test('getTarget() returns "_blank" since newTab is true', function() {
+      expect(singleRecordElem.target).to.equal('_blank');
+    });
+
+  });
+</script>
+
+</body>
+</html>

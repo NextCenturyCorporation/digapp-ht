@@ -1,0 +1,225 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="single-record">
+  <template>
+    <style include="icon-styles"></style>
+    <style>
+      :host {
+        display: block;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      
+      img {
+        padding: 0 8px 0 0;
+      }
+
+      [secondary]{
+        white-space: normal;
+      }
+
+      paper-icon-item[clickable]{
+        cursor: pointer;
+      }
+
+      paper-icon-item[clickable] iron-icon[collapse-icon],
+      paper-icon-item[clickable]:hover iron-icon{
+        display: none;
+      }
+
+      paper-icon-item[clickable]:hover iron-icon[collapse-icon]{
+        display: block;
+      }
+
+      paper-icon-item:hover{
+        background-color: rgba(0,0,0,0.05)
+      }
+
+      paper-item-body,
+      paper-item-body > *{
+        overflow: visible;
+      }
+
+      paper-item-body {
+        min-height: 44px;
+        padding: 10px 0;
+      }
+
+      .collapse-content {
+        padding: 4px 20px 20px;
+        margin-bottom: 12px;
+        @apply(--paper-font-body1);
+        background: #fff;
+      }
+
+      .item-title {
+        @apply(--paper-font-body2);
+        text-transform: capitalize;
+      }
+
+      a {
+        color: var(--primary-text-color);;
+        text-decoration: none;
+      }
+
+      .reveal {
+        visibility: hidden;
+      }
+
+      paper-icon-item:hover .reveal{
+        visibility: visible;
+      }
+
+      paper-button{
+        font-size: 14px;
+      }
+
+      paper-button:hover{
+        @apply(--shadow-elevation-3dp);
+      }
+
+      .details {
+        display: none;
+      }
+
+      .item.expanded .details {
+        display: block;
+      }
+    </style>
+    <div class$="[[expanded]]">
+      <paper-icon-item clickable$="{{item.details}}" on-tap="checkEventSource">
+
+        <!-- entity type icon -->
+        <!-- TODO: make icon component? -->
+        <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+        <template is="dom-if" if="{{item.details}}">
+          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
+        </template>
+
+        <paper-item-body>
+          <!-- item title -->
+          <!-- will not format non-phone number titles -->
+          <strong><phone-formatter input="[[item.title]]"></phone-formatter></strong>
+
+          <!-- item secondary title -->
+          <div secondary>[[item.subtitle]]</div>
+        </paper-item-body>
+
+        <!-- secondary actions -->
+        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id')}}">
+          <paper-button>open [[item._type]]</paper-button>
+        </a>
+      </paper-icon-item>
+      <template is="dom-if" if="{{item.details}}">
+        <div class="details">
+          <paper-material class="collapse-content">
+            <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
+              <p>
+                <span class="item-title">[[replaceCamelCase(key)]]:</span>
+                <template is="dom-if" if="{{isValueArray(item, key)}}" restamp="true">
+                  <br/>
+                  <template is="dom-repeat" items="{{getItemValue(item, key)}}" as="value">
+                    <span>[[value]]</span><br/>
+                  </template>
+                </template>
+                <template is="dom-if" if="{{!isValueArray(item, key)}}">
+                  [[getItemValue(item, key)]]
+                </template>
+              </p>
+            </template>
+            <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id')}}">
+              <paper-button raised>open [[item._type]]</paper-button>
+            </a>
+          </paper-material>
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+  (function() {
+    /* globals _ */
+    'use strict';
+
+    Polymer({
+      is: 'single-record',
+
+      properties: {
+        item: {
+          type: Object,
+          notify: true
+        },
+        expanded: {
+          type: String,
+          notify: true
+        },
+        newTab: {
+          type: Object,
+          value: false,
+          notify: true
+        },
+        target: {
+          type: String,
+          notify: true,
+          computed: 'getTarget(newTab)'
+        }
+      },
+      checkEventSource: function(event) {
+        var target = Polymer.dom(event).rootTarget;
+        // if paper button was clicked, stop propagation up the DOM tree
+        if(target.localName === 'paper-button') {
+          event.stopImmediatePropagation();
+        }
+      },
+      getItemValue: function(item, key) {
+        if(item.details && item.details[key]) {
+          return item.details[key];
+        } 
+      },
+      isValueArray: function(item, key) {
+        var value = this.getItemValue(item, key);
+        return _.isArray(value);
+      },
+      replaceCamelCase: function(key) {
+        return key.replace(/([A-Z])/g, ' $1');
+      },
+      getAllItemKeys: function(item) {
+        if(item.details) {
+          return _.keys(item.details);
+        }
+      },
+      logRecords: function() {
+        console.log('records', this.records);
+      },
+      createURL: function(type, value, field) {
+        return '/' + type + '.html?value=' + value + '&field=' + field;
+      },
+      getIconClass: function(type) {
+        return 'entity-' + type + '-font';
+      },
+      getIcon: function(type) {
+        switch(type) {
+            case 'email': return 'communication:email';
+            case 'person': return 'icons:account-circle';
+            case 'phone': return 'communication:phone';
+            case 'offer': return 'maps:local-offer';
+            case 'seller': return 'editor:attach-money';
+            case 'webpage': return 'av:web';
+        }
+      },
+      getTarget: function(newTab) {
+        return (newTab ? '_blank' : '_self');
+      }
+    });
+  })();
+  </script>
+</dom-module>

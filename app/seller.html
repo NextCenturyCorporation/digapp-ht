@@ -171,48 +171,30 @@
      transform-function="[[clientConfig.transforms.seller.relatedEmails]]"
      ></json-transform>
 
-    <!-- Related offers (full list) -->
-    <query-builder 
-      query="{{relatedOfferQuery}}" 
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="seller.uri" value="[[sellerDisplay.seller._id]]">
-    </query-builder>
+    <!-- Related offers and people (full list) -->
+    <bool-query-builder
+      query="{{relatedEntityQuery}}"
+      query-template="{{config.queryTemplates.sellerPeopleAndOffers.query}}"
+      paths-to-values="{{config.queryTemplates.sellerPeopleAndOffers.pathsToValues}}"
+      value="[[sellerDisplay.seller._id]]">
+    </bool-query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[relatedOfferQuery]]'
-      results="{{relatedOffers}}"
-      elastic-type='["offer"]'
-      lastError="{{error}}">
+      query='[[relatedEntityQuery]]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      results="{{relatedResults}}"
+      elastic-type='["offer", "adultservice"]'
+      lastError="{{error}}"
+      loading="{{relatedEntitiesLoading}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[relatedOffers]]"
-     data-out="{{relatedRecords.offer}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.offer]]"
-     ></json-transform>
-
-    <!-- Related people (full list) -->
-    <query-builder 
-      query="{{relatedServiceQuery}}" 
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="offers.seller.uri" value="[[sellerDisplay.seller._id]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedServiceQuery]]'
-      results="{{relatedService}}"
-      elastic-type='["adultservice"]'
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedService]]"
-     data-out="{{relatedRecords.service}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.service]]"
+     data-in="[[relatedResults]]"
+     data-out="{{relatedRecords}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
      ></json-transform>
 
     <!-- Related people (aggs) -->
@@ -360,7 +342,11 @@
                       Related items
                     </div>
                   </div>
-                  <records-list records="[[relatedRecords]]"></records-list>
+                  <records-list
+                    current-results="[[relatedRecords.data]]" page="{{pageNum}}" 
+                    results-per-page="{{pageSize}}" num-results="{{relatedRecords.count}}"
+                    loading="{{relatedEntitiesLoading}}">
+                  </records-list>
                 </section>
               </paper-material>
             </div>
@@ -451,7 +437,6 @@
 
     app.getURLParams();
     app.sellerDisplay = {};
-    app.relatedRecords = {};
 
   })(document);
   </script>

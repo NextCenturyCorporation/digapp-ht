@@ -34,55 +34,165 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <script>
   /* globals suite, test, expect, setup, fixture, flush */
   /* jshint -W030 */
-  suite('<records-list>', function() {
+  suite('<records-list> default tests', function() {
     var recordsListElem;
 
     setup(function(done) {
       recordsListElem = fixture('records-list-fixture');
-      recordsListElem.records = {'offer': [{'_id': '1', '_type': 'offer'}]};
+      recordsListElem.currentResults = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
       flush(function(){
         done();
       });
     });
 
-    test('records should be equal to key/values specified in setup', function() {
-      expect(recordsListElem.records).to.be.an('object');
-      expect(recordsListElem.records).to.be.deep.equal({'offer': [{'_id': '1', '_type': 'offer'}]});
+    test('getClassForItem returns "item" if item not selected', function() {
+      var item = recordsListElem.currentResults[0];
+      var selected = false;
+      expect(recordsListElem.getClassForItem(item, selected)).to.be.equal('item');
     });
 
-    test('expect an paper-icon-item element', function() {
-      expect(document.querySelector('paper-icon-item')).to.exist;
+    test('getClassForItem returns "item expanded" if item selected', function() {
+      var item = recordsListElem.currentResults[0];
+      var selected = true;
+      expect(recordsListElem.getClassForItem(item, selected)).to.be.equal('item expanded');
     });
 
-    test('iron-collapse ids are created based on result of createId method with _type and index passed in', function() {
-      var offerRecord = recordsListElem.records.offer[0];
-      expect(document.querySelector('#' + recordsListElem.createId(offerRecord._type, 0))).to.exist;
-      expect(recordsListElem.createId(offerRecord._type, 0)).to.be.equal('offer-0');
-    });
-    
-    test('createURL returns URL based on parameters passed in', function() {
-      var offerRecord = recordsListElem.records.offer[0];
-      var result = recordsListElem.createURL(offerRecord._type, offerRecord._id, '_id');
-      var expectedURL = '/' + offerRecord._type + '.html?value=' + offerRecord._id + '&field=_id';
-
-      expect(result).to.be.equal(expectedURL);
+    test('page, resultsPerPage and numResults set to defaults', function() {
+      expect(recordsListElem.page).to.be.equal(1);
+      expect(recordsListElem.resultsPerPage).to.be.equal(25);
+      expect(recordsListElem.numResults).to.be.equal(25);
     });
 
-    test('clicking list item opens up expanded view', function() {
-      document.querySelector('paper-icon-item').click();
-      expect(document.querySelector('#offer-0').opened).to.be.true;
+    test('loading, showMore, and displayShowMore are all set to false', function() {
+      expect(recordsListElem.loading).to.be.false;
+      expect(recordsListElem.showMore).to.be.false;
+      expect(recordsListElem.displayShowMore).to.be.false;
     });
 
-    test('clicking anywhere besides paper-button in expanded view will collapse expanded view', function() {
-      document.querySelector('paper-icon-item').click();
-      expect(document.querySelector('#offer-0').opened).to.be.true;
-
-      document.querySelector('paper-icon-item').click();
-      expect(document.querySelector('#offer-0').opened).to.be.false;
+    test('currentResults should be equal to value specified in setup', function() {
+      expect(recordsListElem.currentResults).to.be.an('array');
+      expect(recordsListElem.currentResults).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
     });
 
+    test('recordsToShow should be set to the values in currentResults', function() {
+      expect(recordsListElem.recordsToShow).to.be.an('array');
+      expect(recordsListElem.recordsToShow).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
+    });
+
+    test('numPages is calculated based on defaults', function() {
+      expect(recordsListElem.numPages).to.be.equal(1);
+    });
+
+    test('changePageNum will not increment if all results are shown', function() {
+      var currentPage = recordsListElem.page;
+
+      recordsListElem.changePageNum();
+
+      expect(recordsListElem.page).to.be.equal(currentPage);
+    });
+
+    test('list height will be set to a maximum of 500 pixels if there are many records', function() {
+      expect(recordsListElem.$.list.style.height).to.be.equal('500px');
+    });
+  });
+
+  suite('<records-list> test page changes', function() {
+    var recordsListElem, firstOffer, nextOffer;
+
+    setup(function(done) {
+      firstOffer = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
+      nextOffer = {'_id': '2', '_type': 'website', 'title': 'title2', 'details': {'address': 'LA'}};
+      recordsListElem = fixture('records-list-fixture');
+
+      recordsListElem.currentResults = [firstOffer];
+      recordsListElem.resultsPerPage = 10;
+      recordsListElem.numResults = 300;
+      recordsListElem.showMore = false;
+      flush(function(){
+        done();
+      });
+    });
+
+    test('recordsToShow should be set to the values in currentResults', function() {
+      expect(recordsListElem.recordsToShow).to.be.an('array');
+      expect(recordsListElem.recordsToShow).to.be.deep.equal([firstOffer]);
+    });
+
+    test('resultsPerPage and numResults set based on inputs', function() {
+      expect(recordsListElem.resultsPerPage).to.be.equal(10);
+      expect(recordsListElem.numResults).to.be.equal(300);
+    });
+
+    test('showMore updates to true', function() {
+      recordsListElem.changeShowMore();
+
+      expect(recordsListElem.showMore).to.be.true;
+    });
+
+    test('page increments by 1 when changePageNum called', function() {
+      recordsListElem.showMore = true;
+      var currentPage = recordsListElem.page;
+
+      recordsListElem.changePageNum();
+
+      expect(recordsListElem.page).to.be.equal(currentPage + 1);
+      expect(recordsListElem.showMore).to.be.false;
+    });
+
+    test('recordsToShow should update based on currentResults if not on first page', function() {
+      recordsListElem.showMore = true;
+      recordsListElem.page = 2;
+      recordsListElem.currentResults = [nextOffer];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(2);
+      expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
+      expect(recordsListElem.showMore).to.be.false;
+    });
+
+    test('recordsToShow should not update if loading is set to true', function() {
+      recordsListElem.loading = true;
+      recordsListElem.currentResults = [nextOffer];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(1);
+      expect(recordsListElem.recordsToShow[0]).to.be.equal(firstOffer);
+    });
+
+    test('recordsToShow should reset to equal whatever is in currentResults if page is bumped back down to 1', function() {
+      recordsListElem.page = 2;
+      recordsListElem.currentResults = [nextOffer];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(2);
+      expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
+
+      recordsListElem.page = 1;
+      recordsListElem.currentResults = [];
+      expect(recordsListElem.recordsToShow.length).to.be.equal(0);
+      expect(recordsListElem.recordsToShow).to.be.deep.equal([]);
+    });
 
   });
+
+  suite('<records-list> if only one result', function() {
+    var recordsListElem;
+
+    setup(function(done) {
+      recordsListElem = fixture('records-list-fixture');
+      recordsListElem.currentResults = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
+      recordsListElem.numResults = 1;
+      flush(function(){
+        done();
+      });
+    });
+
+    test('showMore does not update to true', function() {
+      recordsListElem.changeShowMore();
+
+      expect(recordsListElem.showMore).to.be.false;
+    });
+
+    test('list height will be set to a maximum of 200 pixels if there is only one record', function() {
+      expect(recordsListElem.$.list.style.height).to.be.equal('200px');
+    });
+  });
+
+
 </script>
 
 </body>

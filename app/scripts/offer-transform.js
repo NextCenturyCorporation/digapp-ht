@@ -58,7 +58,6 @@ var offerTransform = (function(_, commonTransforms) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
-                
                 newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
                 newData.address = commonTransforms.getAddress(data.hits.hits[0]._source);
                 newData.geo = getGeolocation(data.hits.hits[0]._source);

@@ -7,371 +7,171 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
+
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
+<link rel="import" href="../../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="records-list">
   <template>
-    <style include="icon-styles"></style>
     <style>
       :host {
         display: block;
       }
 
-/*
-      paper-icon-item {
-        border-top: 1px solid var(--dark-divider-opacity);
+      .end-of-list {
+        text-align: center;
+        height: 40px;
       }
 
-      paper-icon-item:first-child {
-        border-top: none;
+      .end-of-list paper-spinner {
+        width: 16px;
+        height: 16px;
+        margin-right: 10px;
+        margin-top: 10px;
       }
-
-      paper-icon-item:hover {
-        background-color: #f2f2f2;
-      }
-*/
-
-      img {
-        padding: 0 8px 0 0;
-      }
-
-      [secondary]{
-        white-space: normal;
-      }
-
-      [count]{
-        font-size: 12px;
-        line-height: 18px;
-        color: var(--secondary-text-color);
-      }
-
-      paper-icon-item[clickable]{
-        cursor: pointer;
-      }
-
-      paper-icon-item[clickable] iron-icon[collapse-icon],
-      paper-icon-item[clickable]:hover iron-icon{
-        display: none;
-      }
-
-      paper-icon-item[clickable]:hover iron-icon[collapse-icon]{
-        display: block;
-      }
-
-      paper-icon-item:hover{
-        background-color: rgba(0,0,0,0.05)
-      }
-
-      paper-item-body,
-      paper-item-body > *{
-        overflow: visible;
-      }
-
-      iron-collapse:not(.iron-collapse-opened) {
-        overflow: hidden;
-      }
-
-      paper-item-body {
-        min-height: 44px;
-        padding: 10px 0;
-      }
-
-      .lineclamp {
-         overflow: hidden;
-         text-overflow: ellipsis;
-         display: -webkit-box;
-         -webkit-line-clamp: 2; /* number of lines to show */
-         -webkit-box-orient: vertical;
-      }
-
-      .collapse-content {
-        padding: 4px 20px 20px;
-        margin-bottom: 12px;
-        @apply(--paper-font-body1);
-        background: #fff;
-      }
-
-      .item-title {
-        @apply(--paper-font-body2);
-      }
-
-      a {
-        color: var(--primary-text-color);;
-        text-decoration: none;
-      }
-
-      .reveal{
-        visibility: hidden;
-      }
-
-      paper-icon-item:hover .reveal{
-        visibility: visible;
-      }
-
-      paper-button{
-        font-size: 14px;
-      }
-
-      paper-button:hover{
-        @apply(--shadow-elevation-3dp);
-      }
-
     </style>
-
-    <paper-listbox>
-
-      <!-- Phone -->
-      <template is="dom-repeat" items="{{records.phone}}">
-        <paper-icon-item>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-phone-font" icon="communication:phone" item-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong><phone-formatter input="[[item.phone]]"></phone-formatter></strong>
-
-            <!-- item details -->
-            <div secondary><strong>[[item.numOffers]]</strong> offer(s)</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item.phone, 'name')}}">
-            <paper-button>open phone</paper-button>
-          </a>
-        </paper-icon-item>
+    <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
+      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
+        <template>
+          <single-record item="{{item}}" expanded="[[getClassForItem(item, selected)]]" new-tab="{{newTab}}"></single-record>
+        </template>
+      </iron-list>
+    </iron-scroll-threshold>
+    <div class="end-of-list">
+      <template is="dom-if" if="{{displayShowMore}}">
+        <paper-button raised on-click="changePageNum">Show More</paper-button>
       </template>
-
-      <!-- Email -->
-      <template is="dom-repeat" items="{{records.email}}">
-        <paper-icon-item>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-email-font" icon="communication:email" item-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong>[[item.email]]</strong>
-
-            <!-- item details -->
-            <div secondary><strong>[[item.numOffers]]</strong> offer(s)</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open email</paper-button>
-          </a>
-        </paper-icon-item>
+      <template is="dom-if" if="{{loading}}">
+        <paper-spinner active="{{loading}}"></paper-spinner>Loading results...
       </template>
-
-      <!-- Seller -->
-      <template is="dom-repeat" items="{{records.seller}}">
-        <paper-icon-item>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-seller-font" icon="editor:attach-money" item-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong><phone-formatter input="[[item.phone]]"></phone-formatter></strong>
-
-            <!-- item details -->
-            <div secondary><strong>[[item.numOffers]]</strong> offer(s)</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open seller</paper-button>
-          </a>
-        </paper-icon-item>
-      </template>
-
-      <!-- Webpage -->
-      <template is="dom-repeat" items="{{records.webpage}}">
-        <paper-icon-item on-click="toggle" clickable>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-webpage-font" icon="av:web" item-icon></iron-icon>
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong>{{item.publisher}}</strong>
-
-            <!-- item details -->
-            <div secondary>{{item.title}}</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open webpage</paper-button>
-          </a>
-        </paper-icon-item>
-
-        <iron-collapse id="{{createId(item._type, index)}}">
-          <paper-material class="collapse-content">
-            <p><span class="item-title">Title:</span> [[item.title]]</p>
-            <p><span class="item-title">URL:</span> [[item.url]]</p>
-            <p><span class="item-title">Description:</span> [[item.body]]</p>
-            <p>
-              <span class="item-title">Address:</span><br/>
-              <template is="dom-repeat" items="[[item.addresses]]" as="address">
-                <span>[[address.locality]]</span><br/>
-              </template>
-            </p>
-            <p><span class="item-title">Date Created:</span> [[item.date]]</p>
-            <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}"><paper-button raised>open webpage</paper-button></a>
-          </paper-material>
-        </iron-collapse>
-      </template>
-
-      <!-- Offer -->
-      <template is="dom-repeat" items="{{records.offer}}">
-        <paper-icon-item on-click="toggle" clickable>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-offer-font" icon="maps:local-offer" item-icon></iron-icon>
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong><phone-formatter input="[[item.phones.0]]"></phone-formatter></strong>
-
-            <!-- item details -->
-            <div secondary>{{item.title}}</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}">
-            <paper-button>open offer</paper-button>
-          </a>
-        </paper-icon-item>
-
-        <!-- offer expanded -->
-        <iron-collapse id="{{createId(item._type, index)}}">
-          <paper-material class="collapse-content">
-            <p><span class="item-title">Title:</span> [[item.title]]</p>
-            <p>
-              <span class="item-title">Address:</span><br/>
-              <span>[[item.address.locality]]</span><br/>
-            </p>
-            <p>
-              <span class="item-title">Price:</span><br/>
-              <template is="dom-repeat" items="[[item.prices]]" as="price">
-                <span>[[price.amount]] ([[price.billingIncrement]] [[price.unitCode]])</span><br/>
-              </template>
-            </p>
-            <p><span class="item-title">Date:</span> [[item.date]]</p>
-
-            <!-- button for details view -->
-            <a target="{{getTarget()}}" href$="{{createURL(item._type, item._id, '_id')}}"><paper-button raised>open offer</paper-button></a>
-          </paper-material>
-        </iron-collapse>
-      </template>
-
-      <!-- Person -->
-      <template is="dom-repeat" items="{{records.service}}">
-        <paper-icon-item on-click="toggle" clickable>
-
-          <!-- entity type icon -->
-          <iron-icon class="entity-person-font" icon="icons:account-circle" item-icon></iron-icon>
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-
-          <paper-item-body>
-
-            <!-- item title -->
-            <strong>{{item.person.name}}</strong>
-
-            <!-- item details -->
-            <div secondary>Age: {{item.person.age}}</div>
-
-          </paper-item-body>
-
-          <!-- secondary actions -->
-          <a class="reveal" target="{{getTarget()}}" href$="{{createURL('person', item._id, '_id')}}">
-            <paper-button>open person</paper-button>
-          </a>
-        </paper-icon-item>
-
-        <iron-collapse id="{{createId(item._type, index)}}">
-          <paper-material class="collapse-content">
-            <div class="layout horizontal">
-              <div class="flex">
-                <p><span class="item-title">Eye Color:</span> [[item.person.eyeColor]]</p>
-                <p><span class="item-title">Hair Color:</span> [[item.person.hairColor]]</p>
-                <p><span class="item-title">Ethnicity:</span> [[item.person.ethnicity]]</p>
-              </div>
-              <div class="flex">
-                <p><span class="item-title">Height (in cm):</span> [[item.person.height]]</p>
-                <p><span class="item-title">Weight (in kg):</span> [[item.person.weight]]</p>
-              </div>
-            </div>
-            <a target="{{getTarget()}}" href$="{{createURL('person', item._id, '_id')}}"><paper-button raised>open person</paper-button></a>
-          </paper-material>
-        </iron-collapse>
-      </template>
-
-    </paper-listbox>
+    </div>
   </template>
-
   <script>
-    (function () {
-      'use strict';
+  (function() {
+    /* globals _ */
+    'use strict';
 
-      Polymer({
-        is: 'records-list',
-        properties: {
-          records: {
-            type: Object,
-            observer: 'logRecords'
+    Polymer({
+      is: 'records-list',
+      properties: {
+        /**
+        * Records on current page of query results
+        */
+        currentResults: {
+          type: Array
+        },
+        /**
+        * Records to display -- currentResults will be pushed onto the array.
+        */
+        recordsToShow: {
+          type: Array,
+          value: function() {
+            return [];
           },
-
-          newTab: {
-            type: Boolean,
-            value: false
-          }
+          notify: true
         },
-        fireMapEvent: function(e) {
-          var map = document.querySelector('#map');
-          if(map) {
-            map.fire('createPopupEvent', {detail: e.model.item});
-          }
+        newTab: {
+          type: Boolean,
+          value: false,
+          notify: true
         },
-        logRecords: function() {
-          console.log('records', this.records);
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
         },
-        createURL: function(type, value, field) {
-          return '/' + type + '.html?value=' + value + '&field=' + field;
+        resultsPerPage: {
+          type: Number,
+          value: 25,
+          notify: true
         },
-
-        getTarget: function() {
-            return (this.newTab ? '_blank' : '_self');
+        numResults: {
+          type: Number,
+          value: 25,
+          notify: true,
+          observer: 'calculateHeight'
         },
-
-        createId: function(type, index) {
-          return type + '-' + index;
+        numPages: {
+          type: Number,
+          notify: true,
+          computed: 'calcNumPages(numResults, resultsPerPage)'
         },
-        toggle: function(event) {
-          var target = Polymer.dom(event).rootTarget;
-
-          // if paper button was clicked, don't toggle
-          if(target.localName !== 'paper-button') {
-            var id = '#' + event.model.item._type + '-' + event.model.index;
-            document.querySelector(id).opened = !document.querySelector(id).opened;
-          }
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        showMore: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        displayShowMore: {
+          type: Boolean,
+          notify: true,
+          computed: 'calcDisplayShowMore(showMore, loading)'
         }
-      });
-    })();
-  </script>
+      },
+      observers: [
+        'updateRecordsToShow(currentResults, loading)'
+      ],
+      calcDisplayShowMore: function(showMore, loading) {
+        return showMore && (!loading);
+      },
+      changeShowMore: function() {
+        if(this.numPages > 1 && this.numResults > 0 && this.page !== this.numPages) {
+          this.showMore = true;
+        }
+      },
+      getClassForItem: function(item, selected) {
+        return selected ? 'item expanded' : 'item';
+      },
+      /**
+      * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
+      * 
+      * If a new query is entered, the page resets to 1, in which case recordsToShow gets reset 
+      * to a blank array before adding the new results. 
+      */
+      updateRecordsToShow: function() {
+        var self = this;
 
+        if(!this.loading) {
+          if(this.page === 1) {
+            this.recordsToShow = [];
+          }
+
+          _.each(this.currentResults, function(item) {
+            self.push('recordsToShow', item);
+          });
+
+          this.$.scrollThreshold.clearTriggers();
+          this.showMore = false;
+        }
+
+      },
+      calculateHeight: function() {
+        if(this.numResults > 0) {
+          var maxHeight = 200 * this.numResults;
+          this.$.list.style.height = maxHeight > 500 ? 500 + 'px' : maxHeight + 'px';
+        } else {
+          this.$.list.style.height = '0px';
+        }
+      },
+      changePageNum: function() {
+        this.showMore = false;
+        if(this.page < this.numPages) {
+          this.page += 1;
+        }
+      },
+      calcNumPages: function(numResults, resultsPerPage) {
+        if(this.page !== 1) {
+          this.page = 1;
+        }
+        return Math.ceil(numResults / resultsPerPage); 
+      }
+    });
+  })();
+  </script>
 </dom-module>

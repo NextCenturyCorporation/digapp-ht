@@ -8,292 +8,270 @@ var relatedEntityTransform = (function() {
 
     function getOfferSpecificPrices(record) {
         /** build price array:
-
-            "prices": [{
-                "amount": 250, 
-                "unitCode": "MIN", 
-                "billingIncrement": 60, 
-                "date": "2012-04-23T18:25:43.511Z"
-            }]
+            "prices": ["250 (60 MIN)"]
         */
         var prices = [];
         var priceArr = _.get(record, '_source.priceSpecification', []);
         priceArr.forEach(function(priceElem) {
-            var price = {
-                amount: priceElem.price, 
-                unitCode: priceElem.unitCode, 
-                billingIncrement: priceElem.billingIncrement, 
-                date: record.validFrom
-            };
-            prices.push(price);
+            prices.push(priceElem.price + ' (' + priceElem.billingIncrement + ' ' + priceElem.unitCode + ')');
         });
         return prices;
     }
 
-    function getPhones(record) {
-        /** build phone array:
-            "phones": ["1234567890", "0123456789"] */
-        var phones = [];
-        var phoneArr = _.get(record, '_source.seller.telephone', []);
-        phoneArr.forEach(function(phoneElem) {
-            phones.push(_.get(phoneElem, 'name[0]'));
-        });
-        return phones;
-    }
-
-    function getOfferSummaries(records) {
-        /**  build offer summary array:
-            "offer": [{
-                "_id": "1",
+    function getOfferSummary(record) {
+        /**  build offer summary record:
+            {
+                "_id": "http://someuri",
                 "_type": "offer",
-                "date": "2012-04-23T18:25:43.511Z",
-                "address": {
-                    "country": "United States",
-                    "locality": "Los Angeles",
-                    "region": "California"
-                },
-                "publisher": "backpage.com",
-                "title": "*Hello World -- google.com",
-                "prices": [{
-                    "amount": 250, 
-                    "unitCode": "MIN", 
-                    "billingIncrement": 60, 
-                    "date": "2012-04-23T18:25:43.511Z"
-                }],
-                "phones": ["1234567890", "0123456789"]
-            }]
-        */
-        var relatedOffers = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                date: _.get(record, '_source.validFrom'),
-                address: {
-                    locality: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                    region: _.get(record, '_source.availableAtOrFrom.address[0].addressRegion'),
-                    country: _.get(record, '_source.availableAtOrFrom.address[0].addressCountry')
-                },
-                title: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
-                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
-                prices: getOfferSpecificPrices(record),
-                phones: getPhones(record)
-            };
-
-            if(obj.phones.length === 0) {
-                obj.phones.push('Phones N/A');
+                "title": "1234567890", // just gets first phone number
+                "subtitle": "*Hello World -- google.com", // title of offer
+                "details": {
+                    "date": "2012-04-23T18:25:43.511Z",
+                    "address": "Los Angeles", // just use locality
+                    "publisher": "backpage.com",
+                    "prices": ["250 (60 MIN)"]
+                }
             }
+        */
+        var offerObj = {
+            _id: record._id,
+            _type: record._type,
+            title: _.get(record, '_source.seller.telephone[0].name[0]', 'Phone N/A'),
+            subtitle: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
+            details: {
+                date: _.get(record, '_source.validFrom'),
+                address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
+                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
+                prices: getOfferSpecificPrices(record)
+            }
+        };
 
-            relatedOffers.push(obj);
-        });
-        return relatedOffers;
+        return offerObj;
     }
 
-    function getPhoneSummaries(records) {
+    function getPhoneSummary(record) {
         /**
-            build phone summary array:
-            "phone": [{
-                "_id": "1",
+            build phone summary object:
+            {
+                "_id": "http://someuri",
                 "_type": "phone",
-                "phone": "1234567890",
-                "numOffers": 2
-            }]
+                "title": "1234567890", // phone number
+                "subtitle": "2 offer(s)" // number of offers
+            }
         */
-        var relatedPhones = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                phone: _.get(record, '_source.name[0]', 'Phone N/A'),
-                numOffers: _.get(record, '_source.owner.length', 0)
-            };
-            relatedPhones.push(obj);
-        });
-        return relatedPhones;
+        var phoneObj = {
+            _id: record._id,
+            _type: record._type,
+            title: _.get(record, '_source.name[0]', 'Phone N/A'),
+            subtitle: _.get(record, '_source.owner.length', 0) + ' offer(s)'
+        };
+        return phoneObj;
     }
 
-    function getEmailSummaries(records) {
+    function getEmailSummary(record) {
         /**
-            build email summary array:
-            "email": [{
-                "_id": "1",
+            build email summary object:
+            {
+                "_id": "http://someuri",
                 "_type": "email",
-                "email": "abc@xyz.com",
-                "numOffers": 2
-            }]
+                "title": "abc@xyz.com", // email address
+                "subtitle": "2 offer(s)" // number of offers
+            }
         */
-        var relatedEmails = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                email: _.get(record, '_source.name[0]', 'Email N/A'),
-                numOffers: _.get(record, '_source.owner.length', 0)
-            };
-            relatedEmails.push(obj);
-        });
-        return relatedEmails;
+        var emailObj = {
+            _id: record._id,
+            _type: record._type,
+            title: _.get(record, '_source.name[0]', 'Email N/A'),
+            subtitle: _.get(record, '_source.owner.length', 0) + ' offer(s)'
+        };
+        return emailObj;
     }
 
-    function getSellerSummaries(records) {
+    function getSellerSummary(record) {
         /**
-            build seller summary array:
-            "seller": [{
-                "_id": "1",
+            build seller summary object:
+            {
+                "_id": "http://someuri",
                 "_type": "seller",
-                "phone": "1234567890",
-                "numOffers": 2
-            }]
+                "title": "1234567890", // phone number associated with seller
+                "subtitle": "2 offer(s)" // number of offers
+            }
         */
-        var relatedSellers = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                phone: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
-                numOffers: _.get(record, '_source.makesOffer.length', 0)
-            };
-            relatedSellers.push(obj);
-        });
-        return relatedSellers;
+        var sellerObj = {
+            _id: record._id,
+            _type: record._type,
+            title: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
+            subtitle: _.get(record, '_source.makesOffer.length', 0) + ' offer(s)'
+        };
+        return sellerObj;
     }
 
     function getAddressArray(record) {
         /** build address array:
-            "addresses": [{
-                "country": "United States",
-                "locality": "Los Angeles",
-                "region": "California"
-            }]
+            "addresses": ["Los Angeles"]
         */
         var addresses = [];
         var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
 
         addressesArr.forEach(function(addressElem) {
-            var obj = {
-                locality: _.get(addressElem, 'addressLocality'),
-                region: _.get(addressElem, 'addressRegion'),
-                country: _.get(addressElem, 'addressCountry')
-            };
-            addresses.push(obj);
+            var locality = _.get(addressElem, 'addressLocality');
+
+            if(locality) {
+                addresses.push(locality);
+            }
         });
         return addresses;
     }
 
-    function getWebpageSummaries(records) {
-        /*  build webpage summary array:
-            "webpage": [{
-                "_id": "1",
+    function getWebpageSummary(record) {
+        /*  build webpage summary object:
+            {
+                "_id": "http://someuri",
                 "_type": "webpage",
-                "title": "*Hello World -- google.com",
-                "publisher": "yahoo.com",
-                "url": "http://someurlhere.com",
-                "body": "description text here",
-                "addresses": [{
-                    "country": "United States",
-                    "locality": "Los Angeles",
-                    "region": "California"
-                }],
-                "date": "2012-04-23T18:25:43.511Z"
-            }]
+                "title": "yahoo.com",   // publisher 
+                "subtitle": "*Hello World -- google.com", // title of webpage
+                "details": {
+                    "url": "http://someurlhere.com",
+                    "body": "description text here",
+                    "addresses": ["Los Angeles"],
+                    "date": "2012-04-23T18:25:43.511Z"
+                }
+            }
         */
-        var relatedWebpages = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                title: _.get(record, '_source.name[0]', 'Title N/A'),
-                publisher: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
+        var webpageObj = {
+            _id: record._id,
+            _type: record._type,
+            title: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
+            subtitle: _.get(record, '_source.name[0]', 'Title N/A'),
+            details: {
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description[0]'),
                 addresses: getAddressArray(record),
-                date: _.get(record, '_source.dateCreated')
-            };
-            relatedWebpages.push(obj);
-        });
-        return relatedWebpages;
+                date: _.get(record, '_source.dateCreated')             
+            }
+
+        };
+        return webpageObj;
     }
 
-    function getServiceSummaries(records) {
+    function getServiceSummary(record) {
         /*
-            build service summary array:
-            "service": [{
-                "_id": "1",
-                "_type": "service",
-                "person": {
-                    "name": "Emily", 
+            build service/person summary object:
+            {
+                "_id": "http://someuri",
+                "_type": "person",
+                "title": "Emily", // person name
+                "subtitle": "Age: 20", // age
+                "details": {
                     "eyeColor": "blue",
                     "hairColor": "brown",
                     "height": 64,
                     "weight": 115,
-                    "ethnicity": "white",
-                    "age": 20
+                    "ethnicity": "white"
                 }
-            }]
+            }
         */
-        var relatedServices = [];
-        records.forEach(function(record) {
-            var obj = {
-                _id: record._id,
-                _type: record._type,
-                person: {
-                    name: _.get(record, '_source.name', 'Name N/A'),
-                    eyeColor: _.get(record, '_source.eyeColor'),
-                    hairColor: _.get(record, '_source.hairColor'),
-                    height: _.get(record, '_source[schema:height]'),
-                    weight: _.get(record, '_source[schema:weight]'),
-                    ethnicity: _.get(record, '_source.ethnicity'),
-                    age: _.get(record, '_source.personAge[0]')                    
-                }
-            };
-            relatedServices.push(obj);
-        });
-        return relatedServices;
+        var serviceObj = {
+            _id: record._id,
+            _type: 'person', // hardcode 'person' value for now
+            title: _.get(record, '_source.name[0]', 'Name N/A'),
+            subtitle: 'Age: ' + _.get(record, '_source.personAge[0]', 'N/A'),
+            details: {
+                eyeColor: _.get(record, '_source.eyeColor'),
+                hairColor: _.get(record, '_source.hairColor'),
+                height: _.get(record, '_source[schema:height]'),
+                weight: _.get(record, '_source[schema:weight]'),
+                ethnicity: _.get(record, '_source.ethnicity'),
+            }
+        };
+        return serviceObj;
     }
 
     return {
         // expected data is from an elasticsearch query
         offer: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
-                newData = getOfferSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newObj.data.push(getOfferSummary(record));
+                });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         phone: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
-                newData = getPhoneSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newObj.data.push(getPhoneSummary(record));
+                });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         email: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
-                newData = getEmailSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newObj.data.push(getEmailSummary(record));
+                });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         seller: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
-                newData = getSellerSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newObj.data.push(getSellerSummary(record));
+                });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         service: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
-                newData = getServiceSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newObj.data.push(getServiceSummary(record));
+                });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
         },
         webpage: function(data) {
-            var newData = [];
+            var newObj = {data: [], count: 0};
             if(data.hits.hits.length > 0) {
-                newData = getWebpageSummaries(data.hits.hits);
+                _.each(data.hits.hits, function(record) {
+                    newObj.data.push(getWebpageSummary(record));
+                });
+                newObj.count = data.hits.total;
             }
-            return newData;
+            return newObj;
+        },
+        // transform for combined sets of results not separated by type
+        combinedResults: function(data) {
+            var newObj = {data: [], count: 0};
+            if(data && data.hits && data.hits.hits.length > 0) {
+                _.each(data.hits.hits, function(record) {
+                    switch(record._type) {
+                        case 'email': newObj.data.push(getEmailSummary(record));
+                            break;
+                        case 'adultservice': newObj.data.push(getServiceSummary(record));
+                            break;
+                        case 'phone': newObj.data.push(getPhoneSummary(record));
+                            break;
+                        case 'offer': newObj.data.push(getOfferSummary(record));
+                            break;
+                        case 'seller': newObj.data.push(getSellerSummary(record));
+                            break;
+                        case 'webpage': newObj.data.push(getWebpageSummary(record));
+                            break;
+                    }
+                });
+                newObj.count = data.hits.total;
+            }
+            return newObj;
         }
     };
 

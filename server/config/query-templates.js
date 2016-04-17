@@ -18,7 +18,6 @@ module.exports = {
             }
           }
         },
-        size: 40, // TODO: add paging
         'aggs' : {
             // When: Timeline of offers
             'offers_by_date': {
@@ -156,6 +155,50 @@ module.exports = {
         },
         pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
     },
+    offerRelatedEntities: {
+        query: {
+            "query": {
+                "bool": {
+                    "should":   [{
+                        "filtered" : {
+                            "filter" : {
+                                "terms" : {
+                                    "phone.name": []
+                                }
+                            }
+                        }
+                    },{
+                        "filtered" : {
+                            "filter" : {
+                                "terms" : {
+                                    "email.name": []
+                                }
+                            }
+                        }
+                    },{
+                        "match": {
+                            "_id": ""
+                        }
+                    },{
+                        "match": {
+                            "_id": ""
+                        }
+                    },{
+                        "match": {
+                            "_id": ""
+                        }
+                    }]
+                }
+            }
+        },
+        pathsToValues: [
+            'query.bool.should[0].filtered.filter.terms["phone.name"]', 
+            'query.bool.should[1].filtered.filter.terms["email.name"]',
+            'query.bool.should[2].match._id',
+            'query.bool.should[3].match._id',
+            'query.bool.should[4].match._id'
+        ]
+    },
     // seller entity queries
     // phone and email aggregations might be able to be performed together when
     // entity resolution is done on seller
@@ -240,6 +283,27 @@ module.exports = {
                 }
             }
         }
+    },
+    sellerPeopleAndOffers: {
+        query: {
+            "query": {
+                "bool": {
+                    "should":  [{
+                        "match": {
+                            "offer.seller.uri": ""
+                        }
+                    },{
+                        "match": {
+                            "adultservice.offers.seller.uri": ""
+                        }
+                    }]
+                }
+            }
+        },
+        pathsToValues: [
+            'query.bool.should[0].match["offer.seller.uri"]', 
+            'query.bool.should[1].match["adultservice.offers.seller.uri"]'
+        ]
     },
     // TODO: reorganize queries -- duplicate of offerSellerAgg
     offerAggsBySeller: {

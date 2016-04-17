@@ -34,6 +34,11 @@
   <span id="browser-sync-binding"></span>
 
   <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
+
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
@@ -53,6 +58,9 @@
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
+      index-type="[[esType]]"
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
       elastic-types="[[esTypes]]"
       query="[[ejsQuery]]"
       results="{{ecsResult}}"
@@ -60,14 +68,15 @@
       result-count="{{resultCount}}"
       aggregations="{{buildArray(offerCityAgg, offerNameAgg, offerAgeAgg, offerEyeAgg, offerHairAgg, offerHeightAgg, offerWeightAgg)}}"
       filters="[[buildStarArray(offerCityFilter.*, offerNameFilter.*)]]"
+      loading="{{loading}}"
       >
     </elastic-client-search>
 
-    <results-parser
-      es-results="[[ecsResult.hits.hits]]"
-      divided-results="{{dividedResult}}"
-      formatted-result="{{records}}"
-    ></results-parser>
+    <json-transform
+     data-in="{{ecsResult}}"
+     data-out="{{records}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
+     ></json-transform>
 
     <paper-header-panel class="flex" mode="waterfall">
 
@@ -114,7 +123,7 @@
               </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerCityAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerCityAgg.offerCityAgg.buckets]]"
               field="availableAtOrFrom.address.addressLocality"
               ejs-filter="{{offerCityFilter}}"
               combination-type="or">
@@ -130,7 +139,7 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerNameAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerNameAgg.offerNameAgg.buckets]]"
               field="itemOffered.name"
               ejs-filter="{{offerNameFilter}}"
               combination-type="or">
@@ -146,7 +155,7 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerAgeAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerAgeAgg.offerAgeAgg.buckets]]"
               field="itemOffered.personAge"
               ejs-filter="{{offerAgeFilter}}"
               combination-type="or">
@@ -162,7 +171,7 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerEyeAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerEyeAgg.offerEyeAgg.buckets]]"
               field="itemOffered.eyeColor"
               ejs-filter="{{offerEyeFilter}}"
               combination-type="or">
@@ -178,7 +187,7 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerHairAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerHairAgg.offerHairAgg.buckets]]"
               field="itemOffered.hairColor"
               ejs-filter="{{offerHairFilter}}"
               combination-type="or">
@@ -194,7 +203,7 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerWeightAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerWeightAgg.offerWeightAgg.buckets]]"
               field="itemOffered[schema:weight]"
               ejs-filter="{{offerWeightFilter}}"
               combination-type="or">
@@ -210,7 +219,7 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerHeightAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerHeightAgg.offerHeightAgg.buckets]]"
               field="itemOffered[schema:height]"
               ejs-filter="{{offerHeightFilter}}"
               combination-type="or">
@@ -224,17 +233,18 @@
         <paper-header-panel main>
           <section>
             <div class="search-results-header">
-              <div class="paper-font-title flex">{{resultCount}} results</div>
+              <div class="paper-font-title flex">{{records.count}} results</div>
               <div class="flex-none">
                 <!-- Place search controls or view options here -->
+               <!--  <pagination-elem current-page="{{pageNum}}" num-results="{{resultCount}}" results-per-page="{{pageSize}}"></pagination-elem> -->
               </div>
             </div>
             <div class="h-divider"></div>
             <paper-material>
               <section>
                 <records-list
-                  records="{{buildRecordsObject(records.email, records.service, records.phone, records.offer, records.seller, records.webpage)}}"
-                  new-tab="true">
+                  current-results="{{records.data}}" new-tab="true" page="{{pageNum}}"
+                  results-per-page="{{pageSize}}" num-results="{{records.count}}" loading="{{loading}}">
                 </records-list>
               </section>
             </paper-material>
@@ -249,6 +259,7 @@
 
   <script>
     (function(document) {
+        /* globals _ */
         var app = document.querySelector('#app');
 
         app.buildRecordsObject = function(email, service, phone, offer, seller, webpage) {
@@ -276,12 +287,13 @@
             return (arg.base ? arg.base : arg.path);
           });
         };
-    })(document);
 
-    var clearSearchInput = function() {
-        var input = document.querySelector("elastic-client-input");
-        input.clear();
-    };
+        app.clearSearchInput = function() {
+          var input = document.querySelector('elastic-client-input');
+          input.clear();
+        };
+
+    })(document);
   </script>
 </body>
 

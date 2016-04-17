@@ -46,9 +46,7 @@ var personTransform = (function(_, commonTransforms, relatedEntityTransform) {
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
                 newData.prices = commonTransforms.getPrices(data.hits.hits);
-                newData.relatedRecords = {
-                    offer: relatedEntityTransform.offer(data)
-                };
+                newData.relatedOffers = relatedEntityTransform.offer(data);
             }
 
             if(data.aggregations) {

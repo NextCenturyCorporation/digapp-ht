@@ -15,9 +15,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style>
       :host {
         display: block;
+        --paper-input-container-input-color: #727272;
+        --paper-input-container-focus-color: #727272;
       }
     </style>
-    <div>
+    <template is="dom-if" if="[[hasPages]]">
       <label>Go to page:</label>
       <paper-dropdown-menu>
         <paper-menu class="dropdown-content" attr-for-selected="value" selected="{{currentPage}}">
@@ -26,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </template> 
         </paper-menu>
       </paper-dropdown-menu>
-     </div>
+    </template>
   </template>
   <script>
   (function() {
@@ -38,12 +40,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         currentPage: {
           type: Number,
           value: 1,
-          notify: true,
-          observer: 'changeOffset'
-        },
-        currentOffset: {
-          type: Number,
-          value: 0,
           notify: true
         },
         numResults: {
@@ -60,25 +56,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           computed: 'calcNumPages(numResults, resultsPerPage)'
         },
         pages: {
-          type: Array, 
+          type: Array,
+          value: function() {
+            return [];
+          },
           notify: true
+        },
+        hasPages: {
+          type: Boolean,
+          notify: true,
+          computed: 'displayPages(numPages)'
         }
       },
+      displayPages: function() {
+        return this.numPages > 1;
+      },
       calcNumPages: function(numResults, resultsPerPage) {
-        this.currentPage = 1;
+        if(this.currentPage !== 1) {
+          this.currentPage = 1;
+        }
         this.createPageArray(Math.ceil(numResults / resultsPerPage));
         return Math.ceil(numResults / resultsPerPage); 
       },
-      changeOffset: function() {
-        this.currentOffset = (this.currentPage - 1) * this.resultsPerPage;
-      },
       createPageArray: function(numPages) {
-        var arr = [];
+        if(this.pages.length > 0) {
+          this.pages = [];
+        }
 
         for(var i = this.currentPage; i <=  numPages; i++) {
-          arr.push(i);
+          this.push('pages', i);
         }
-        this.pages = arr.slice();
       }
     });
   })();
