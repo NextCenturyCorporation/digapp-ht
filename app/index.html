@@ -35,7 +35,7 @@
 
   <template is="dom-bind" id="app">
 
-    <!-- exposes clientConfig object which is a container for data 
+    <!-- exposes clientConfig object which is a container for data
       transform functions -->
     <client-config config="{{clientConfig}}"></client-config>
 
@@ -67,7 +67,7 @@
       last-error="{{error}}"
       result-count="{{resultCount}}"
       aggregations="{{buildArray(offerCityAgg, offerNameAgg, offerAgeAgg, offerEyeAgg, offerHairAgg, offerHeightAgg, offerWeightAgg)}}"
-      filters="{{buildArray(offerCityFilter)}}"
+      filters="[[buildStarArray(offerCityFilter.*, offerNameFilter.*, offerAgeFilter.*, offerEyeFilter.*, offerHairFilter.*, offerHeightFilter.*, offerWeightFilter.*)]]"
       loading="{{loading}}"
       >
     </elastic-client-search>
@@ -123,7 +123,8 @@
               </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerCityAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerCityAgg.offerCityAgg.buckets]]"
+              filter-name="offerCityAgg"
               field="availableAtOrFrom.address.addressLocality"
               ejs-filter="{{offerCityFilter}}"
               combination-type="or">
@@ -139,7 +140,8 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerNameAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerNameAgg.offerNameAgg.buckets]]"
+              filter-name="offerNameAgg"
               field="itemOffered.name"
               ejs-filter="{{offerNameFilter}}"
               combination-type="or">
@@ -149,13 +151,15 @@
             <p><h4>Age</h4>
             <elastic-client-aggregation-builder
               name="offerAgeAgg"
+              filter-name="offerNameAgg"
               field="itemOffered.personAge"
               ejs-aggregation="{{offerAgeAgg}}"
               type="terms">
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerAgeAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerAgeAgg.offerAgeAgg.buckets]]"
+              filter-name="offerAgeAgg"
               field="itemOffered.personAge"
               ejs-filter="{{offerAgeFilter}}"
               combination-type="or">
@@ -171,7 +175,8 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerEyeAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerEyeAgg.offerEyeAgg.buckets]]"
+              filter-name="offerEyeAgg"
               field="itemOffered.eyeColor"
               ejs-filter="{{offerEyeFilter}}"
               combination-type="or">
@@ -187,7 +192,8 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerHairAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerHairAgg.offerHairAgg.buckets]]"
+              filter-name="offerHairAgg"
               field="itemOffered.hairColor"
               ejs-filter="{{offerHairFilter}}"
               combination-type="or">
@@ -203,7 +209,8 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerWeightAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerWeightAgg.offerWeightAgg.buckets]]"
+              filter-name="offerWeightAgg"
               field="itemOffered[schema:weight]"
               ejs-filter="{{offerWeightFilter}}"
               combination-type="or">
@@ -219,7 +226,8 @@
             </elastic-client-aggregation-builder>
 
             <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerHeightAgg.buckets]]"
+              buckets="[[ecsResult.aggregations.offerHeightAgg.offerHeightAgg.buckets]]"
+              filter-name="offerHeightAgg"
               field="itemOffered[schema:height]"
               ejs-filter="{{offerHeightFilter}}"
               combination-type="or">
@@ -243,7 +251,7 @@
             <paper-material>
               <section>
                 <records-list
-                  current-results="{{records.data}}" new-tab="true" page="{{pageNum}}" 
+                  current-results="{{records.data}}" new-tab="true" page="{{pageNum}}"
                   results-per-page="{{pageSize}}" num-results="{{records.count}}" loading="{{loading}}">
                 </records-list>
               </section>
@@ -276,6 +284,15 @@
         app.buildArray = function() {
           return _.filter(arguments, function(arg) {
             return arg !== undefined;
+          });
+        };
+
+        app.buildStarArray = function() {
+          var filtered = _.filter(arguments, function(arg) {
+            return arg.base !== undefined;
+          });
+          return _.map(filtered, function(arg) {
+            return (arg.base ? arg.base : arg.path);
           });
         };
 
