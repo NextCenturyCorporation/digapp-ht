@@ -18,7 +18,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
       .img-viewer {
         flex: auto;
-        height: 130px;
         width: 0px;
         overflow-x: scroll; 
         overflow-y: hidden;
@@ -29,11 +28,70 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         height: 100px;
         margin: 5px;
       }
+      paper-dialog {
+        margin: 0px;
+        background-color: transparent;
+        box-shadow: none;
+      }
+      .gallery {
+        display: inline-block;
+      }
+      .gallery-toggle {
+        max-height: 50px;
+        max-width: 50px;
+        color: #ffffff;
+      }
+      iron-image {
+        --iron-image-width: 100%;
+        --iron-image-height: 100%;
+        padding: 0px;
+        margin: 0px;
+      }
+      iron-icon {
+        --iron-icon-height: 32px;
+        --iron-icon-width: 32px;
+        --iron-icon-fill-color: #ffffff;
+      }
+      .gallery > paper-button {
+        color: #ffffff;
+      }
+      .gallery-footer {
+        @apply(--layout-horizontal);
+        @apply(--layout-end-justified);
+        margin: 0px;
+      }
+      paper-button[disabled] {
+        background-color: transparent;
+      }
+      paper-button[disabled] > iron-icon {
+        display: none;
+      }
     </style>
     <div class="horizontal layout scroll">
       <div class="img-viewer">
-        <template is="dom-repeat" items="{{photos}}">
-          <iron-image class="img-viewer-thumb" src="{{item}}" sizing="contain"></iron-image>
+        <template is="dom-repeat" items="{{images}}">
+          <paper-button data-dialog="{{item}}" on-click="clickThumbnail">
+            <iron-image class="img-viewer-thumb" 
+              src="{{item}}" sizing="contain">
+            </iron-image> 
+          </paper-button>
+          <paper-dialog id="{{item}}" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation"
+            class="gallery">
+            <div class="layout horizontal center-justified self-center">
+               <paper-button class="gallery-toggle self-center" disabled="{{!hasPrevious(index)}}" on-click="clickPrevious">
+                <iron-icon icon="image:navigate-before"></iron-icon>
+              </paper-button>
+              <iron-image src="{{item}}" class="center-justified self-center"></iron-image>
+              <paper-button class="gallery-toggle self-center" disabled="{{!hasNext(index)}}" on-click="clickNext">
+                <iron-icon icon="image:navigate-next"></iron-icon>
+              </paper-button>
+            </div>
+            <div class="gallery-footer">
+              <paper-button class="gallery-toggle" on-click="clickClose">
+                <iron-icon icon="clear"></iron-icon>
+              </paper-button>
+            </div>
+          </paper-dialog>
         </template>
       </div>
     </div>
@@ -46,14 +104,60 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'image-viewer',
 
       properties: {
-        photos: {
+        images: {
           type: Array,
           value: function() {
             return [];
           },
           notify: true
         }
+      },
+      hasPrevious: function(index) {
+        if(index - 1  < 0) {
+          return false;
+        } else {
+          return true;
+        }
+      },
+      hasNext: function(index) {
+        if(index + 1 >= this.images.length) {
+          return false;
+        } else {
+          return true;
+        }
+      },
+      openDialog: function(dialogId) {
+        document.getElementById(dialogId).open();
+      },
+      closeDialog: function(dialogId) {
+        document.getElementById(dialogId).close();
+      },
+      clickThumbnail: function(event) {
+        this.openDialog(event.model.item);
+
+        // event.model.item gives you image url
+        //event.stopImmediatePropagation();
+      },
+      clickClose: function(event) {
+        this.closeDialog(event.model.item);
+      },
+      clickPrevious: function(event) {
+        this.closeDialog(event.model.item);
+
+        var prevIndex = event.model.index - 1;
+        var prevItem = this.images[prevIndex];
+
+        this.openDialog(prevItem);
+      },
+      clickNext: function(event) {
+        this.closeDialog(event.model.item);
+        
+        var nextIndex = event.model.index + 1;
+        var nextItem = this.images[nextIndex];
+
+        this.openDialog(nextItem);
       }
+
     });
   })();
   </script>
