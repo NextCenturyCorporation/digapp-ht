@@ -72,12 +72,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <div class="img-viewer">
           <template is="dom-repeat" items="{{images}}">
             <paper-button data-dialog="{{item}}" on-click="clickThumbnail">
-              <iron-image class="img-viewer-thumb"
-                src="{{item}}" sizing="contain">
+              <iron-image class="img-viewer-thumb" src="{{item}}" sizing="contain">
               </iron-image>
             </paper-button>
-            <paper-dialog id="{{item}}" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation"
-              class="gallery">
+            <paper-dialog id="{{item}}" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation" class="gallery">
               <div class="layout horizontal center-justified self-center">
                  <paper-button class="gallery-toggle self-center" disabled="{{!hasPrevious(index)}}" on-click="clickPrevious">
                   <iron-icon icon="image:navigate-before"></iron-icon>
@@ -135,16 +133,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       openDialog: function(dialogId) {
+        /* Appending paper dialog to body when opened -- workaround for 
+           unexpected behavior with overlays, which should be placed directly in 
+           the body tag whenever possible:
+           https://github.com/PolymerElements/polymer-starter-kit/issues/154
+           https://github.com/PolymerElements/paper-dialog/issues/79#issuecomment-201681529
+        */
+        var body = Polymer.dom(document).querySelector('body');
+        var firstChildOfBody = Polymer.dom(body).firstChild;
+        var dialogToOpen = document.getElementById(dialogId);
+        var currentParentOfDialog = Polymer.dom(dialogToOpen).parentNode;
+
+        currentParentOfDialog.removeChild(dialogToOpen);
+        body.insertBefore(dialogToOpen, firstChildOfBody);
+
         document.getElementById(dialogId).open();
       },
       closeDialog: function(dialogId) {
         document.getElementById(dialogId).close();
+        
+        var body =  Polymer.dom(document).querySelector('body');
+        var dialogToClose = document.getElementById(dialogId);
+        var newParent = Polymer.dom(this.root).querySelector('.img-viewer');
+
+        body.removeChild(dialogToClose);
+        newParent.appendChild(dialogToClose);
       },
       clickThumbnail: function(event) {
         this.openDialog(event.model.item);
-
-        // event.model.item gives you image url
-        //event.stopImmediatePropagation();
       },
       clickClose: function(event) {
         this.closeDialog(event.model.item);
