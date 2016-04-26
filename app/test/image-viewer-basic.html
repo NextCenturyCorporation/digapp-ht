@@ -33,15 +33,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <script>
   /* globals suite, test, expect, setup, fixture */
+  /* jshint -W030 */
   suite('image-viewer tests', function() {
     var element;
 
     setup(function() {
       element = fixture('image-viewer-fixture');
+      element.images = ['url1.gif', 'url2.gif'];
     });
 
-    test('photos is an array', function() {
-      expect(element.photos).to.be.an('Array');
+    test('images is an array', function() {
+      expect(element.images).to.be.an('Array');
+      expect(element.images).to.deep.equal(['url1.gif', 'url2.gif']);
+    });
+
+    test('hasImages returns correct values', function() {
+      expect(element.hasImages(element.images)).to.be.true;
+      expect(element.hasImages(null)).to.be.false;
+      expect(element.hasImages([])).to.be.false;
+      expect(element.hasImages(['hasImgURL'])).to.be.true;
+    });
+
+    test('createDialogElement creates a full-size-image-view element with appropriate values', function() {
+      var eventToPassIn = document.createEvent('UIEvent');
+      eventToPassIn.model = {item: 'url1.gif', index: 0};
+      element.createDialogElement(eventToPassIn);
+
+      var createdElement = document.querySelector('full-size-image-view');
+
+      expect(createdElement).to.exist;
+      expect(createdElement.images).to.deep.equal(element.images);
+      expect(createdElement.currentImage).to.deep.equal(eventToPassIn.model.item);
+      expect(createdElement.currentIndex).to.deep.equal(eventToPassIn.model.index);
     });
 
   });
