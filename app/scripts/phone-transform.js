@@ -20,7 +20,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         */
         var telephone = {};
         telephone._id = _.get(record, 'uri');
-        telephone.number = _.get(record, 'name[0]');
+        telephone.number = _.get(record, 'name');
         telephone.type = 'Cell';
         telephone.origin = _.get(record, 'owner[0].makesOffer[0].availableAtOrFrom.address[0].addressLocality');
         //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
@@ -44,7 +44,6 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             if(data.hits.hits.length > 0) {
                 var aggs = data.aggregations;
 
-                newData.prices = commonTransforms.getPrices(data.hits.hits);
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
                 newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');

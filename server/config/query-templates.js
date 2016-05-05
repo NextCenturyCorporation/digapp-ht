@@ -57,25 +57,13 @@ module.exports = {
             },
             "people_ages": {
                 "terms": {
-                    "field": "personAge",
+                    "field": "age",
                     "size": 0
                 }
             },
             "people_ethnicities": {
                 "terms": {
                     "field": "ethnicity",
-                    "size": 0
-                }
-            },
-            "people_eye_colors": {
-                "terms": {
-                    "field": "eyeColor",
-                    "size": 0
-                }
-            },
-            "people_hair_color": {
-                "terms": {
-                    "field": "hairColor",
                     "size": 0
                 }
             }

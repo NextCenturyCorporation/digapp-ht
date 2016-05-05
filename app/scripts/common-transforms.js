@@ -13,7 +13,7 @@ var commonTransforms = (function(_) {
     * Check for geolocation equality
     */
     function isGeolocationEqual(value, other) {
-        return value.lat === other.lat && value.lon === other.lon;
+        return value.latitude === other.latitude && value.longitude === other.longitude;
     }
 
     return {
@@ -35,40 +35,7 @@ var commonTransforms = (function(_) {
             });
             return buckets;
         },
-        /**
-        * Get price information from offers and create array of price objects:
-        * 
-        *    "prices": [
-        *        {"amount": 250,
-        *        "unitCode": "MIN",
-        *        "billingIncrement": 60,
-        *        "date": "2012-04-23T18:25:43.511Z"},
-        *        {"amount": 250,
-        *        "unitCode": "MIN",
-        *        "billingIncrement": 60,
-        *        "date": "2012-04-15T18:25:43.511Z"}
-        *    ],
-        */
-        getPrices: function(hits) {
-            var prices = [];
 
-            _.each(hits, function(hit) {
-                var priceArr = _.get(hit, '_source.priceSpecification');
-
-                if(priceArr) {
-                    _.each(priceArr, function(price) {
-                        prices.push({
-                            amount: price.price,
-                            unitCode: price.unitCode,
-                            billingIncrement: price.billingIncrement,
-                            date: hit._source.validFrom
-                        });
-                    });
-                }
-            });
-
-            return prices;
-        },
         /**
             Get people aggregation info:
          
@@ -77,13 +44,6 @@ var commonTransforms = (function(_) {
                     {"name": "Emily", "count": 14},
                     {"name": "Erin", "count": 12},
                     {"name": "Jane", "count": 3}
-                ],
-                "eyeColors": [
-                    {"color": "blue", "count": 7},
-                    {"color": "brown", "count": 4}
-                ],
-                "hairColors": [{"color": "brown", "count": 7},
-                    {"color": "brown", "count": 4}
                 ],
                 "ethnicities": [
                     {"ethnicity": "white", "count": 19}
@@ -96,8 +56,6 @@ var commonTransforms = (function(_) {
         getPeople: function(aggs) {
             var people = {
                 names: this.transformBuckets(aggs.people_names.buckets, 'name'),
-                eyeColors: this.transformBuckets(aggs.people_eye_colors.buckets, 'color'),
-                hairColors: this.transformBuckets(aggs.people_hair_color.buckets, 'color'),
                 ethnicities: this.transformBuckets(aggs.people_ethnicities.buckets, 'ethnicity'),
                 ages: this.transformBuckets(aggs.people_ages.buckets, 'age')
             };
@@ -109,8 +67,8 @@ var commonTransforms = (function(_) {
                 {
                     "city": "hawthorn",
                     "state": "california",
-                    "lat": 33.916403, 
-                    "lon": -118.352575,
+                    "latitude": 33.916403, 
+                    "longitude": -118.352575,
                     "date": "2012-04-23T18:25:43.511Z"
                 }
             ] 
@@ -120,15 +78,15 @@ var commonTransforms = (function(_) {
             _.each(hits, function(hit) {
                 var location = hit._source.availableAtOrFrom;
                 if(location) {
-                    var lat = _.get(location, 'geo.lat');
-                    var lon = _.get(location, 'geo.lon');
+                    var latitude = _.get(location, 'geo.latitude');
+                    var longitude = _.get(location, 'geo.longitude');
 
                     _.each(location.address, function(address) {
                         locations.push({
                             city: address.addressLocality,
                             state: address.addressRegion,
-                            lat: lat,
-                            lon: lon,
+                            latitude: latitude,
+                            longitude: longitude,
                             date: hit._source.validFrom
                         });
                     });
@@ -138,13 +96,13 @@ var commonTransforms = (function(_) {
             return locations;
         },
         /**
-            where lat and lon are required: 
+            where latitude and longitude are required: 
             "geoCoordinates": [
                 {
                     "city": "hawthorn",
                     "state": "california",
-                    "lat": 33.916403,
-                    "lon": -118.352575
+                    "latitude": 33.916403,
+                    "longitude": -118.352575
                 }
             ]
         */
@@ -153,15 +111,15 @@ var commonTransforms = (function(_) {
 
             records.forEach(function(record) {
                 var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
-                var lat = _.get(record, '_source.availableAtOrFrom.geo.lat');
-                var lon = _.get(record, '_source.availableAtOrFrom.geo.lon');
+                var latitude = _.get(record, '_source.availableAtOrFrom.geo.latitude');
+                var longitude = _.get(record, '_source.availableAtOrFrom.geo.longitude');
                 addresses.forEach(function(address) {
-                    if (lat && lon) {
+                    if (latitude && longitude) {
                         var geo = {
                             city: address.addressLocality,
                             state: address.addressRegion,
-                            lat: lat,
-                            lon: lon
+                            latitude: latitude,
+                            longitude: longitude
                         };
                         geos.push(geo);
                     }
@@ -176,15 +134,13 @@ var commonTransforms = (function(_) {
         "address": {
             "locality": "Los Angeles",
             "region": "California",
-            "country": "US",
-            "formattedAddress": 'Los Angeles, California, US'
+            "formattedAddress": 'Los Angeles, California'
         }
         */
         getAddress: function(record) {
             var address = {};
             address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
             address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
-            address.country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
 
             var formattedAddress = [];
             if(address.locality) {
@@ -196,13 +152,6 @@ var commonTransforms = (function(_) {
                     formattedAddress.push(', ');
                 }
                 formattedAddress.push(address.region);
-            }
-
-            if(address.country) {
-                if(formattedAddress.length > 0) {
-                    formattedAddress.push(', ');
-                }
-                formattedAddress.push(address.country);
             }
 
             address.formattedAddress = formattedAddress.join('');
