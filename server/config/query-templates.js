@@ -40,12 +40,8 @@ module.exports = {
     // and that ethnicity is missing from offer type
     phoneOrEmailPeopleAgg: {
         "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        "{{field}}": "{{value}}"
-                    }
-                }
+            "match": {
+                "{{field}}": "{{value}}"
             }
         },
         "aggs" : {
