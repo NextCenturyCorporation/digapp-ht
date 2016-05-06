@@ -6,18 +6,6 @@
 /* exported relatedEntityTransform */
 var relatedEntityTransform = (function() {
 
-    function getOfferSpecificPrices(record) {
-        /** build price array:
-            "prices": ["250 (60 MIN)"]
-        */
-        var prices = [];
-        var priceArr = _.get(record, '_source.priceSpecification', []);
-        priceArr.forEach(function(priceElem) {
-            prices.push(priceElem.price + ' (' + priceElem.billingIncrement + ' ' + priceElem.unitCode + ')');
-        });
-        return prices;
-    }
-
     function getOfferSummary(record) {
         /**  build offer summary record:
             {
@@ -28,21 +16,19 @@ var relatedEntityTransform = (function() {
                 "details": {
                     "date": "2012-04-23T18:25:43.511Z",
                     "address": "Los Angeles", // just use locality
-                    "publisher": "backpage.com",
-                    "prices": ["250 (60 MIN)"]
+                    "publisher": "backpage.com"
                 }
             }
         */
         var offerObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.seller.telephone[0].name[0]', 'Phone N/A'),
-            subtitle: _.get(record, '_source.mainEntityOfPage.name[0]', 'Title N/A'),
+            title: _.get(record, '_source.seller.telephone.name', 'Phone N/A'),
+            subtitle: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
             details: {
                 date: _.get(record, '_source.validFrom'),
                 address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]'),
-                prices: getOfferSpecificPrices(record)
+                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]')
             }
         };
 
@@ -147,7 +133,7 @@ var relatedEntityTransform = (function() {
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description[0]'),
                 addresses: getAddressArray(record),
-                date: _.get(record, '_source.dateCreated')             
+                date: _.get(record, '_source.dateCreated')
             }
 
         };
