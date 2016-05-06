@@ -11,12 +11,14 @@ module.exports = {
     },
     // phone/email page specific queries
     phoneOrEmailOfferAgg: {
-        query: {
-          filtered:{
-            query:{
-                match:{ '{{field}}' : '{{value}}' }
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        "{{field}}": "{{value}}"
+                    }
+                }
             }
-          }
         },
         'aggs' : {
             // When: Timeline of offers
@@ -40,8 +42,12 @@ module.exports = {
     // and that ethnicity is missing from offer type
     phoneOrEmailPeopleAgg: {
         "query": {
-            "match": {
-                "{{field}}": "{{value}}"
+            "filtered": {
+                "filter": {
+                    "term": {
+                        "{{field}}": "{{value}}"
+                    }
+                }
             }
         },
         "aggs" : {
