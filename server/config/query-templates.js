@@ -345,7 +345,7 @@ module.exports = {
                 "filtered": {
                     "filter": {
                         "terms": {
-                            "telephone.name": []
+                            "seller.telephone.name": []
                         }
                     }
                 }
@@ -353,13 +353,13 @@ module.exports = {
             "aggs":{
                 "assoc_numbers": {
                     "terms": {
-                        "field": "telephone.name",
+                        "field": "seller.telephone.name",
                         "size": 0
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name"]'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["seller.telephone.name"]'
     },
     personRelatedEmails: {
         query: {
@@ -367,7 +367,7 @@ module.exports = {
                 "filtered": {
                     "filter": {
                         "terms": {
-                            "email.name": []
+                            "seller.email.name": []
                         }
                     }
                 }
@@ -375,13 +375,13 @@ module.exports = {
             "aggs":{
                 "assoc_emails": {
                     "terms": {
-                        "field": "email.name",
+                        "field": "seller.email.name",
                         "size": 0
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name"]'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["seller.email.name"]'
     },
     // used on other entity views as well (w/different aggregation names)
     personOfferAgg: {
@@ -394,7 +394,6 @@ module.exports = {
                 }
             }
         },
-        size: 40, // TODO: add paging
         "aggs": {
             "offers_with_person" : {
                 "date_histogram": {
@@ -411,13 +410,13 @@ module.exports = {
             // adding to get aggregate of all phones and emails
             "phones_for_person": {
                 "terms" : {
-                    "field" : "seller.telephone.name",
+                    "field" : "offer.seller.telephone.name",
                     "size": 0
                 }
             },
             "emails_for_person": {
                 "terms" : {
-                    "field" : "seller.email.name",
+                    "field" : "offer.seller.email.name",
                     "size": 0
                 }
             }

@@ -28,7 +28,7 @@ var relatedEntityTransform = (function() {
             details: {
                 date: _.get(record, '_source.validFrom'),
                 address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
-                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name[0]')
+                publisher: _.get(record, '_source.mainEntityOfPage.publisher.name')
             }
         };
 
@@ -149,8 +149,6 @@ var relatedEntityTransform = (function() {
                 "title": "Emily", // person name
                 "subtitle": "Age: 20", // age
                 "details": {
-                    "eyeColor": "blue",
-                    "hairColor": "brown",
                     "height": 64,
                     "weight": 115,
                     "ethnicity": "white"
@@ -160,13 +158,11 @@ var relatedEntityTransform = (function() {
         var serviceObj = {
             _id: record._id,
             _type: 'person', // hardcode 'person' value for now
-            title: _.get(record, '_source.name[0]', 'Name N/A'),
-            subtitle: 'Age: ' + _.get(record, '_source.personAge[0]', 'N/A'),
+            title: _.get(record, '_source.name', 'Name N/A'),
+            subtitle: 'Age: ' + _.get(record, '_source.age', 'N/A'),
             details: {
-                eyeColor: _.get(record, '_source.eyeColor'),
-                hairColor: _.get(record, '_source.hairColor'),
-                height: _.get(record, '_source[schema:height]'),
-                weight: _.get(record, '_source[schema:weight]'),
+                height: _.get(record, '_source.height'),
+                weight: _.get(record, '_source.weight'),
                 ethnicity: _.get(record, '_source.ethnicity'),
             }
         };
