@@ -345,7 +345,7 @@ module.exports = {
                 "filtered": {
                     "filter": {
                         "terms": {
-                            "seller.telephone.name": []
+                            "telephone.name": []
                         }
                     }
                 }
@@ -353,13 +353,13 @@ module.exports = {
             "aggs":{
                 "assoc_numbers": {
                     "terms": {
-                        "field": "seller.telephone.name",
+                        "field": "telephone.name",
                         "size": 0
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["seller.telephone.name"]'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name"]'
     },
     personRelatedEmails: {
         query: {
@@ -367,7 +367,7 @@ module.exports = {
                 "filtered": {
                     "filter": {
                         "terms": {
-                            "seller.email.name": []
+                            "email.name": []
                         }
                     }
                 }
@@ -375,13 +375,13 @@ module.exports = {
             "aggs":{
                 "assoc_emails": {
                     "terms": {
-                        "field": "seller.email.name",
+                        "field": "email.name",
                         "size": 0
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["seller.email.name"]'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name"]'
     },
     // used on other entity views as well (w/different aggregation names)
     personOfferAgg: {
