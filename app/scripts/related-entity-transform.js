@@ -127,11 +127,11 @@ var relatedEntityTransform = (function() {
         var webpageObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.publisher.name[0]', 'Publisher N/A'),
-            subtitle: _.get(record, '_source.name[0]', 'Title N/A'),
+            title: _.get(record, '_source.publisher.name', 'Publisher N/A'),
+            subtitle: _.get(record, '_source.name', 'Title N/A'),
             details: {
                 url: _.get(record, '_source.url'),
-                body: _.get(record, '_source.description[0]'),
+                body: _.get(record, '_source.description'),
                 addresses: getAddressArray(record),
                 date: _.get(record, '_source.dateCreated')
             }
