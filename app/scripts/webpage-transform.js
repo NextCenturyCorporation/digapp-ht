@@ -18,9 +18,9 @@ var webpageTransform = (function(_, commonTransforms) {
                 newData._id = _.get(data.hits.hits[0], '_id');
                 newData.date = _.get(data.hits.hits[0]._source, 'dateCreated');
                 newData.address = commonTransforms.getAddress(data.hits.hits[0]._source.mainEntity);
-                newData.title = _.get(data.hits.hits[0]._source, 'name[0]');
-                newData.publisher = _.get(data.hits.hits[0]._source, 'publisher.name[0]');
-                newData.body = _.get(data.hits.hits[0]._source, 'description[0]');
+                newData.title = _.get(data.hits.hits[0]._source, 'name');
+                newData.publisher = _.get(data.hits.hits[0]._source, 'publisher.name');
+                newData.body = _.get(data.hits.hits[0]._source, 'description');
                 newData.url = _.get(data.hits.hits[0]._source, 'url');
             }
 
