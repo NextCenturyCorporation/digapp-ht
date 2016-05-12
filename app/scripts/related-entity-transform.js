@@ -86,7 +86,7 @@ var relatedEntityTransform = (function() {
         var sellerObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.telephone[0].name[0]', 'Phone N/A'),
+            title: _.get(record, '_source.telephone.name', 'Phone N/A'),
             subtitle: _.get(record, '_source.makesOffer.length', 0) + ' offer(s)'
         };
         return sellerObj;

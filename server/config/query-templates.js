@@ -224,7 +224,7 @@ module.exports = {
         "aggs":{
             "seller_assoc_emails": {
                 "terms": {
-                    "field" : "email.name",
+                    "field" : "email.name.raw",
                     "size": 0
                 }
             }
@@ -250,25 +250,13 @@ module.exports = {
             },
             "people_ages": {
                 "terms": {
-                    "field": "personAge",
+                    "field": "age",
                     "size": 0
                 }
             },
             "people_ethnicities": {
                 "terms": {
                     "field": "ethnicity",
-                    "size": 0
-                }
-            },
-            "people_eye_colors": {
-                "terms": {
-                    "field": "eyeColor",
-                    "size": 0
-                }
-            },
-            "people_hair_color": {
-                "terms": {
-                    "field": "hairColor",
                     "size": 0
                 }
             }
