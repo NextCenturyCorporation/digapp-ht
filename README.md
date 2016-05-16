@@ -32,8 +32,7 @@ Web application for searching and exploring entity graphs in Elasticsearch indic
         ELASTIC_CONFIG:'{"host":"http://vinisvr:9200"}',
         ELASTIC_INDEX:'dhtcat1op'
     };
-
-```
+  ```
 ### Development workflow
 
 #### Serve / watch
