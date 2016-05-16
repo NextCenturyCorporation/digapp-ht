@@ -72,5 +72,5 @@ Web apps built with Polymer Starter Kit come configured with support for [Web Co
 
 [Read more](https://github.com/Polymer/web-component-tester#html-suites) about using Web Component tester.
 
-
+Fork Test
 
