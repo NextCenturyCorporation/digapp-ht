@@ -1,4 +1,4 @@
-# digapp-ht
+# digapp-ht TEST
 Web application for searching and exploring entity graphs in Elasticsearch indices
 
 ## Overview
