@@ -12,8 +12,11 @@ Web application for searching and exploring entity graphs in Elasticsearch indic
 * elastic search server with ht data index.  See elastic.co
 
 ## Installation
-1. clone this repo
-2. cd digapp-ht && npm install && bower install
+* clone this repo
+* 
+  ```sh
+    cd digapp-ht && npm install && bower install
+  ```
 
 ## Getting started
 * create digapp-ht/server/config/local.env.js with contents that look like:
