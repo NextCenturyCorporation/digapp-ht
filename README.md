@@ -33,7 +33,7 @@ Web application for searching and exploring entity graphs in Elasticsearch indic
         ELASTIC_INDEX:'dhtcat1op'
     };
   ```
-### Development workflow
+## Development workflow
 
 #### Serve / watch
 
