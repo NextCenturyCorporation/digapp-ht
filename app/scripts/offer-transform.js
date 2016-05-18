@@ -19,8 +19,8 @@ var offerTransform = (function(_, commonTransforms) {
         if no latitude && longitude, return undefined 
         */
         var geo;
-        var latitude = _.get(record, 'availableAtOrFrom.geo.latitude');
-        var longitude = _.get(record, 'availableAtOrFrom.geo.longitude');
+        var latitude = _.get(record, 'availableAtOrFrom.address[0].geo.lat');
+        var longitude = _.get(record, 'availableAtOrFrom.address[0].geo.lon');
 
         if(latitude && longitude) {
             geo = {};
