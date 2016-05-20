@@ -254,6 +254,19 @@ var relatedEntityTransform = (function() {
                 newObj.count = data.hits.total;
             }
             return newObj;
+        },
+
+        cityResults: function(data) {
+            if(data && data.aggregations && data.aggregations.webpageCityAgg && data.aggregations.webpageCityAgg.webpageCityAgg.buckets) {
+                _.each(data.aggregations.webpageCityAgg.webpageCityAgg.buckets, function(record) {
+                    keys = record.key.split(':');
+                    //record['key'] = keys[0] + ',' + keys[1];
+                    record['text'] = keys[0];
+
+
+                });
+            }
+            return data;
         }
     };
 
