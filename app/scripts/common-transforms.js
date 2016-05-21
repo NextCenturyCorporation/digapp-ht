@@ -111,15 +111,15 @@ var commonTransforms = (function(_) {
 
             records.forEach(function(record) {
                 var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
-                var latitude = _.get(record, '_source.availableAtOrFrom.geo.latitude');
-                var longitude = _.get(record, '_source.availableAtOrFrom.geo.longitude');
+                //var latitude = _.get(record, '_source.availableAtOrFrom.address[0].geo.latitude');
+                //var longitude = _.get(record, '_source.availableAtOrFrom.address[0].geo.longitude');
                 addresses.forEach(function(address) {
                     if (latitude && longitude) {
                         var geo = {
                             city: address.addressLocality,
                             state: address.addressRegion,
-                            latitude: latitude,
-                            longitude: longitude
+                            latitude: address.geo.latitude,
+                            longitude: address.geo.longitude
                         };
                         geos.push(geo);
                     }

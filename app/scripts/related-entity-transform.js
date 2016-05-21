@@ -101,13 +101,17 @@ var relatedEntityTransform = (function() {
 
         addressesArr.forEach(function(addressElem) {
             var locality = _.get(addressElem, 'addressLocality');
+            var region = _.get(addressElem, 'addressRegion');
+            var country = _.get(addressElem, 'addressCountry');
 
             if(locality) {
-                addresses.push(locality);
+                address = locality + ', ' + region + ', ' + country
+                addresses.push(address);
             }
         });
         return addresses;
     }
+
 
     function getWebpageSummary(record) {
         /*  build webpage summary object:
@@ -120,6 +124,10 @@ var relatedEntityTransform = (function() {
                     "url": "http://someurlhere.com",
                     "body": "description text here",
                     "addresses": ["Los Angeles"],
+                    """if phone exists"""
+                    "phone": "<phonenumber>",
+                    """if email exists"""
+                    "email": "<email>"
                     "date": "2012-04-23T18:25:43.511Z"
                 }
             }
@@ -133,10 +141,18 @@ var relatedEntityTransform = (function() {
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description'),
                 addresses: getAddressArray(record),
-                date: _.get(record, '_source.dateCreated')
+                _sortedKeys: ['url', 'body', 'addresses', 'phone', 'email', 'date']
             }
 
         };
+        if (_.get(record, '_source.mainEntity.seller.telephone.name') != undefined) {
+            webpageObj.details.phone = _.get(record, '_source.mainEntity.seller.telephone.name')
+        }
+        if (_.get(record, '_source.mainEntity.seller.email.name') != undefined) {
+            webpageObj.details.email = _.get(record, '_source.mainEntity.seller.email.name')
+        }
+        webpageObj.details.date = _.get(record, '_source.dateCreated')
+
         return webpageObj;
     }
 
@@ -262,8 +278,6 @@ var relatedEntityTransform = (function() {
                     keys = record.key.split(':');
                     //record['key'] = keys[0] + ',' + keys[1];
                     record['text'] = keys[0];
-
-
                 });
             }
             return data;
