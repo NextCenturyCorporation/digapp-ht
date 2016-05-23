@@ -273,14 +273,28 @@ var relatedEntityTransform = (function() {
         },
 
         cityResults: function(data) {
-            if(data && data.aggregations && data.aggregations.webpageCityAgg && data.aggregations.webpageCityAgg.webpageCityAgg.buckets) {
+            var newObject = {};
+
+           if(data && data.aggregations && data.aggregations.webpageCityAgg && data.aggregations.webpageCityAgg.webpageCityAgg.buckets) {
+                newObject.aggregations = {};
+                newObject.aggregations.webpageCityAgg = {};
+                newObject.aggregations.webpageCityAgg.webpageCityAgg = {};
+                newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets = [];
                 _.each(data.aggregations.webpageCityAgg.webpageCityAgg.buckets, function(record) {
+
+                    newObj = {};
+                    newObj.key = record.key;
                     keys = record.key.split(':');
+                    newObj.text = keys[0];
+                    newObj.doc_count = record.doc_count;
+                    
+                    newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets.push(newObj);
                     //record['key'] = keys[0] + ',' + keys[1];
-                    record['text'] = keys[0];
+                    // record['text'] = keys[0];
                 });
             }
-            return data;
+            // console.log(data);
+            return newObject;
         }
     };
 
