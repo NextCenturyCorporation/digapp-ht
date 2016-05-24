@@ -15,9 +15,22 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             if(data.hits.hits.length > 0) {
                 newData._id = _.get(data.hits.hits[0], '_id');
-                newData.telephone = _.get(data.hits.hits[0]._source, 'telephone.name');
-                newData.emailAddress = _.get(data.hits.hits[0]._source, 'email.name');
+                newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
+                newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
                 newData.title = 'Seller (' + (newData.telephone || newData.emailAddress || 'Info N/A') + ')';
+            }
+
+            return newData;
+        },
+        phoneEmails: function(data) {
+            var newData = [];
+
+            if(data.hits.hits.length > 0) {
+                
+                telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
+                emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
+                
+                newData = commonTransforms.combineArrays(telephone, emailAddress);
             }
 
             return newData;
