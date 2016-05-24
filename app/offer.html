@@ -96,6 +96,7 @@
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
       query='[[offerQuery]]'
       results="{{offer}}"
       lastError="{{error}}">
@@ -105,9 +106,10 @@
     <json-transform
      data-in="[[offer]]"
      data-out="{{offerDisplay}}"
-     transform-function="[[clientConfig.transforms.offer]]"
+     transform-function="[[clientConfig.transforms.offer.offer]]"
      ></json-transform>
     
+    <!-- Get the seller Object -->
      <query-builder 
       query="{{sellerQuery}}" 
       query-template="{{config.queryTemplates.commonMatchQuery}}"
@@ -117,6 +119,7 @@
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
+      elastic-type='["seller"]'
       query='[[sellerQuery]]'
       results="{{seller}}"
       lastError="{{error}}">
@@ -128,6 +131,7 @@
      transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
      ></json-transform>
 
+     <!-- Get revisions of the webpage for  Revision Graph -->
      <query-builder 
       query="{{pageRevisionsQuery}}" 
       query-template="{{config.queryTemplates.webpageRevisions}}" 
@@ -149,7 +153,33 @@
      transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
      ></json-transform>
 
-    <!-- End related entity queries-->
+     <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpageDisplay}}"
+     transform-function="[[clientConfig.transforms.webpage.webpage]]"
+     ></json-transform>
+
+    <!-- Get all offers with same webpage url -->
+    <query-builder
+      query="{{mainEntityOfPageQuery}}"
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="mainEntityOfPage.url" value="[[offerDisplay.webpageUrl]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
+      query='[[mainEntityOfPageQuery]]'
+      results="{{offersWithSameUrlES}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offersWithSameUrlES]]"
+     data-out="{{offersWithSameUrl}}"
+     transform-function="[[clientConfig.transforms.offer.revisions]]"
+     ></json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -225,7 +255,7 @@
                       </dt>
                       <dd>
                         <records-list
-                          current-results="[[offerDisplay.phones]]">
+                          current-results="[[webpageDisplay.phones]]">
                         </records-list>
                       </dd>
                      
@@ -245,7 +275,7 @@
                       </dt>
                       <dd>
                         <records-list
-                          current-results="[[offerDisplay.emails]]">
+                          current-results="[[webpageDisplay.emails]]">
                         </records-list>
                       </dd>
                     </dl>
@@ -354,18 +384,37 @@
               <div class="h-divider"></div>
 
               <paper-material class="flex">
-                <section class="when">
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                      <div>
-                        Revisions to this page between {{minXValue}} and {{maxXValue}}
+                <div class="flex layout vertical">
+                  <section class="when">
+                      <div class="paper-font-title layout horizontal start center">
+                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                        <div>
+                          Revisions to this page between {{minXValue}} and {{maxXValue}}
+                        </div>
                       </div>
-                    </div>
-                    <bar-chart y-axis-label="" data='[[webpagePageRevisions]]' 
-                      chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                      min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                    </bar-chart>
-                </section>
+                      <bar-chart y-axis-label="" data='[[webpagePageRevisions]]' 
+                        chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
+                        min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                      </bar-chart>
+                  </section>
+
+                  <div class="h-divider"></div>
+                  <div class="v-divider"></div>
+
+                  <paper-material class="flex">
+                    <section>
+                      <div class="section-header">
+                        <div class="paper-font-title">
+                          Revisions
+                        </div>
+                      </div>
+                      <records-list
+                        current-results="[[offersWithSameUrl]]">
+                      </records-list>
+                    </section>
+                  </paper-material>
+
+                </div>
               </paper-material>
               
             </div>

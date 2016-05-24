@@ -96,7 +96,10 @@ var offerTransform = (function(_, commonTransforms) {
 
             if(data.hits.hits.length > 0) {
                 data.hits.hits.forEach(function(elem) {
-                    newData.push(parseOffer(elem));
+                    offer = parseOffer(elem._source);
+                    offer._id = elem._id;
+                    offer._type = 'offer';
+                    newData.push(offer);
                 });
             }
 
