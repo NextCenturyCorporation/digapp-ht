@@ -60,7 +60,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             geos.push(geo)
         });
         // Removing duplicates for better map display
-        geos = _.uniqWith(geos, commonTransforms.isGeolocationEqual);
+        //geos = _.uniqWith(geos, commonTransforms.isGeolocationEqual);
         return geos;
     }
 
@@ -107,7 +107,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
             }
         
-            return newData;
+            return newData.offerLocation;
         },
         people: function(data) {
             var newData = {};
