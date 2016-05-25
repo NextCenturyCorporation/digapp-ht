@@ -96,6 +96,7 @@
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
       query='[[offerQuery]]'
       results="{{offer}}"
       lastError="{{error}}">
@@ -105,41 +106,80 @@
     <json-transform
      data-in="[[offer]]"
      data-out="{{offerDisplay}}"
-     transform-function="[[clientConfig.transforms.offer]]"
+     transform-function="[[clientConfig.transforms.offer.offer]]"
      ></json-transform>
     
-    <!--Start related entity queries and transforms-->
-    <!--Related phone, email, sellers, webpages, and people -->
-
-    <bool-query-builder
-      query="{{relatedEntityQuery}}"
-      query-template="{{config.queryTemplates.offerRelatedEntities.query}}"
-      paths-to-values="{{config.queryTemplates.offerRelatedEntities.pathsToValues}}"
-      values="[[getBoolQueryValues(offerDisplay.phones, 
-        offerDisplay.emails, 
-        offerDisplay.sellerId, 
-        offerDisplay.serviceId, 
-        offerDisplay.webpageId)]]">
-    </bool-query-builder>
+    <!-- Get the seller Object -->
+     <query-builder 
+      query="{{sellerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[offerDisplay.sellerId]]">
+    </query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      query='[[relatedEntityQuery]]'
-      results="{{relatedResults}}"
-      lastError="{{error}}"
-      loading="{{relatedEntitiesLoading}}">
+      elastic-type='["seller"]'
+      query='[[sellerQuery]]'
+      results="{{seller}}"
+      lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[relatedResults]]"
-     data-out="{{relatedRecords}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
      ></json-transform>
 
-    <!-- End related entity queries-->
+     <!-- Get revisions of the webpage for  Revision Graph -->
+     <query-builder 
+      query="{{pageRevisionsQuery}}" 
+      query-template="{{config.queryTemplates.webpageRevisions}}" 
+      field="url" value="[[offerDisplay.webpageUrl]]">
+    </query-builder>    
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["webpage"]'
+      query='[[pageRevisionsQuery]]'
+      results="{{pageRevisions}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpagePageRevisions}}"
+     transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
+     ></json-transform>
+
+     <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpageDisplay}}"
+     transform-function="[[clientConfig.transforms.webpage.webpage]]"
+     ></json-transform>
+
+    <!-- Get all offers with same webpage url -->
+    <query-builder
+      query="{{mainEntityOfPageQuery}}"
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="mainEntityOfPage.url" value="[[offerDisplay.webpageUrl]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
+      query='[[mainEntityOfPageQuery]]'
+      results="{{offersWithSameUrlES}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offersWithSameUrlES]]"
+     data-out="{{offersWithSameUrl}}"
+     transform-function="[[clientConfig.transforms.offer.revisions]]"
+     ></json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -200,7 +240,12 @@
                       <!-- TO DO: Make these links to their entity pages -->
                       <dd>[[offerDisplay.publisher]]</dd>
                     </dl>
-              
+                  </div>
+
+                  <hr>
+
+                  <div class="what-section">
+
                     <div class="h-divider"></div>
                     
                     <dl class="flex">
@@ -208,12 +253,19 @@
                         <iron-icon icon="communication:phone"></iron-icon>
                         Phone Numbers:
                       </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <template is="dom-repeat" items="[[offerDisplay.phones]]" as="phone">
-                        <dd><phone-formatter input="[[phone]]"></phone-formatter></dd>
-                      </template>
+                      <dd>
+                        <records-list
+                          current-results="[[webpageDisplay.phones]]">
+                        </records-list>
+                      </dd>
+                     
                     </dl>
-              
+                  </div>
+
+                  <hr>
+
+                  <div class="what-section">
+
                     <div class="h-divider"></div>
                     
                     <dl class="flex">
@@ -221,10 +273,11 @@
                         <iron-icon icon="communication:email"></iron-icon>
                         Emails:
                       </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <template is="dom-repeat" items="[[offerDisplay.emails]]" as="email">
-                        <dd>[[email]]</dd>
-                      </template>
+                      <dd>
+                        <records-list
+                          current-results="[[webpageDisplay.emails]]">
+                        </records-list>
+                      </dd>
                     </dl>
                   </div>
                   
@@ -233,8 +286,63 @@
               
               <div class="h-divider"></div>
               
-              <!-- Who section -->
+              <!-- Seller section -->
+              
               <paper-material class="flex">
+                <section class="who">
+                  <div class="who">
+                    <div class="paper-font-title">
+                      Seller
+                    </div>
+                  </div>
+                  <records-list
+                    current-results="[[sellerPhoneEmails]]">
+                  </records-list>
+                </section>
+              </paper-material>
+            
+
+
+              <div class="h-divider"></div>
+              
+              
+
+            </div>
+
+            <div class="v-divider"></div>
+            
+            <!-- Map section -->
+            <paper-material class="flex layout vertical">
+                
+                <!-- Address -->
+                <section class="where-header flex-none content">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[offerDisplay.address.formattedAddress]]</div>
+                  </div>
+                </section>
+                
+                <!-- Leaflet map -->
+                <section class="where flex-auto">
+                  <template is="dom-if" if="{{offerDisplay.geo}}">
+                    <leaflet-map latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]" zoom="10">
+                      <leaflet-marker latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]"></leaflet-marker> 
+                    </leaflet-map> 
+                  </template>
+                </section>
+            </paper-material>
+
+            <div class="h-divider"></div>
+          </div>
+          
+          <div class="h-divider"></div>
+          <div class="v-divider"></div>
+
+          <div class="content">
+            <div class="flex layout horizontal">
+
+              <!-- AdultService section -->
+              <paper-material class="flex layout vertical">
                 <section class="who">
                   
                   <!-- Single person detail layout -->
@@ -264,82 +372,54 @@
                   </div>
                   
                 </section>
-              </paper-material>
               
-              <div class="h-divider"></div>
-
-              <!-- Photos section -->
-              <!-- TO DO: Hook up with data -->
-              <paper-material>
                 <section class="photos">
                   <!-- Display a single row of images and provide a way to expand to see more -->
                   (photos section)
                 </section>
               </paper-material>
 
-            </div>
+              <div class="v-divider"></div>
 
-            <div class="v-divider"></div>
-            
-            <div class="h-divider"></div>
+              <div class="h-divider"></div>
 
-            <!-- Map section -->
-            <paper-material class="flex layout vertical">
-              
-              <!-- Address -->
-              <section class="where-header flex-none content">
-                <div class="paper-font-title layout horizontal start center">
-                  <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                  <div>[[offerDisplay.address.formattedAddress]]</div>
+              <paper-material class="flex">
+                <div class="flex layout vertical">
+                  <section class="when">
+                      <div class="paper-font-title layout horizontal start center">
+                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                        <div>
+                          Revisions to this page between {{minXValue}} and {{maxXValue}}
+                        </div>
+                      </div>
+                      <bar-chart y-axis-label="" data='[[webpagePageRevisions]]' 
+                        chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
+                        min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                      </bar-chart>
+                  </section>
+
+                  <div class="h-divider"></div>
+                  <div class="v-divider"></div>
+
+                  <paper-material class="flex">
+                    <section>
+                      <div class="section-header">
+                        <div class="paper-font-title">
+                          Revisions
+                        </div>
+                      </div>
+                      <records-list
+                        current-results="[[offersWithSameUrl]]">
+                      </records-list>
+                    </section>
+                  </paper-material>
+
                 </div>
-              </section>
-              
-              <!-- Leaflet map -->
-              <section class="where flex-auto">
-                <template is="dom-if" if="{{offerDisplay.geo}}">
-                  <leaflet-map latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]" zoom="10">
-                    <leaflet-marker latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]"></leaflet-marker> 
-                  </leaflet-map> 
-                </template>
-              </section>
-              
-            </paper-material>
-
-          </div>
-          
-          <div class="h-divider"></div>
-        
-          <div class="content">
-          
-            <!-- Offer list -->
-            <div class="flex">
-              <paper-material class="related-entities-wrapper">
-                <section class="related-entities">
-                  <div class="section-header">
-                    <div class="paper-font-title">
-                      Related items
-                    </div>
-                  </div>
-                  <records-list
-                    current-results="[[relatedRecords.data]]" page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" num-results="{{relatedRecords.count}}"
-                    loading="{{relatedEntitiesLoading}}">
-                  </records-list>
-                </section>
               </paper-material>
+              
             </div>
-          
-            <div class="v-divider"></div>
-            
-            <!-- Related entities? -->
-            <div class="flex">
-              <section class="relations"></section>
-            </div>
-
           </div>
-          
         </div>
-
       </paper-header-panel>
     </div>
   </template>

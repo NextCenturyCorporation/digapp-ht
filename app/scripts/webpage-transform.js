@@ -22,6 +22,31 @@ var webpageTransform = (function(_, commonTransforms) {
                 newData.publisher = _.get(data.hits.hits[0]._source, 'publisher.name');
                 newData.body = _.get(data.hits.hits[0]._source, 'description');
                 newData.url = _.get(data.hits.hits[0]._source, 'url');
+                mentions = _.get(data.hits.hits[0]._source, 'mentions');
+                newData.phones = [];
+                newData.emails = [];
+                mentions.forEach(function(elem) {
+                    type = 'none';
+                    if(elem.indexOf('phone') != -1) {
+                        type = 'phone'
+                    } else if(elem.indexOf('email') != -1) {
+                        type = 'email'
+                    }
+                    if(type != 'none') {
+                        idx = elem.lastIndexOf("/")
+                        text = elem.substring(idx+1)
+                        var newObj = {
+                            _id: elem,
+                            _type: type,
+                            title:  text,
+                            subtitle: ''
+                        }
+                        if(type == 'phone')
+                            newData.phones.push(newObj);
+                        else if(type == 'email')
+                            newData.emails.push(newObj);
+                    }
+                });
             }
 
             return newData;

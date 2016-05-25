@@ -174,6 +174,42 @@ var commonTransforms = (function(_) {
             });
 
             return arrayToReturn;
+        },
+
+        getClickableObjectArr: function (records, type) {
+            var result = [];
+            if(records) {
+                if(records.constructor === Array) {
+                    records.forEach(function(record) {
+                        if(record.name) {
+                            var obj = {
+                                _id: record.uri,
+                                _type: type,
+                                title: record.name,
+                                subtitle: ''
+                            };
+                            result.push(obj);
+                        }
+                    });
+                } else {
+                    var obj = {
+                        _id: records.uri,
+                        _type: type,
+                        title: records.name,
+                        subtitle: ''
+                    };
+                    result.push(obj);
+                }
+            }
+            
+            return result;
+        },
+
+        combineArrays: function(arr1, arr2) {
+            arr2.forEach(function(elem) {
+                arr1.push(elem);
+            });
+            return arr1;
         }
     };
 

@@ -50,27 +50,35 @@ var offerTransform = (function(_, commonTransforms) {
         return person;
     }
 
+    function parseOffer(record) {
+        var newData = {};
+        
+        newData.date = _.get(record, 'validFrom');
+        newData.address = commonTransforms.getAddress(record);
+        newData.geo = getGeolocation(record);
+        newData.person = getPerson(record);
+        newData.title = _.get(record, 'title', 'Title N/A');
+        newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
+        newData.body = _.get(record, 'mainEntityOfPage.description');
+        //newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name');
+        //newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name');
+        // only get one of each for now
+        newData.emails = commonTransforms.getClickableObjectArr(_.get(record, 'seller.email'), 'email');
+        newData.phones = commonTransforms.getClickableObjectArr(_.get(record, 'seller.telephone'), 'phone');
+        newData.sellerId = _.get(record, 'seller.uri');
+        newData.serviceId = _.get(record, 'itemOffered.uri');
+        newData.webpageId = _.get(record, 'mainEntityOfPage.uri');
+        newData.webpageUrl = _.get(record, 'mainEntityOfPage.url');
+        
+        return newData;
+    }
     return {
         // expected data is from an elasticsearch 
         offer: function(data) {
             var newData = {};
 
             if(data.hits.hits.length > 0) {
-                newData.date = _.get(data.hits.hits[0]._source, 'validFrom');
-                newData.address = commonTransforms.getAddress(data.hits.hits[0]._source);
-                newData.geo = getGeolocation(data.hits.hits[0]._source);
-                newData.person = getPerson(data.hits.hits[0]._source);
-                newData.title = _.get(data.hits.hits[0]._source, 'title', 'Title N/A');
-                newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name');
-                newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description');
-                //newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name');
-                //newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name');
-                // only get one of each for now
-                newData.emails = [_.get(data.hits.hits[0]._source, 'seller.email.name', '')];
-                newData.phones = [_.get(data.hits.hits[0]._source, 'seller.telephone.name', '')];
-                newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
-                newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
-                newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');
+                newData = parseOffer(data.hits.hits[0]._source);
             }
 
             // aggregation data for sparklines -- currently unused
@@ -78,6 +86,21 @@ var offerTransform = (function(_, commonTransforms) {
                 var aggs = data.aggregations;
                 newData.offersBySeller = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
                 newData.offerLocsBySeller = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
+            }
+
+            return newData;
+        },
+
+        revisions: function(data) {
+            var newData = [];
+
+            if(data.hits.hits.length > 0) {
+                data.hits.hits.forEach(function(elem) {
+                    offer = parseOffer(elem._source);
+                    offer._id = elem._id;
+                    offer._type = 'offer';
+                    newData.push(offer);
+                });
             }
 
             return newData;
