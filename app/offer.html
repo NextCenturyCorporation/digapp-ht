@@ -131,6 +131,7 @@
      transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
      ></json-transform>
 
+
      <!-- Get revisions of the webpage for  Revision Graph -->
      <query-builder 
       query="{{pageRevisionsQuery}}" 
@@ -159,18 +160,35 @@
      transform-function="[[clientConfig.transforms.webpage.webpage]]"
      ></json-transform>
 
+     <json-combine
+      data-in1="[[sellerPhoneEmails]]"
+      data-in2="[[webpageDisplay]]"
+      data-out="{{showSeller}}"
+      combine-function="[[clientConfig.transforms.offer.computeShowSeller]]"
+    ></json-combine>
+    
+
+    <json-combine
+      data-in1="[[offerDisplay.webpageUrl]]"
+      data-in2="[[params.value]]"
+      data-out="{{mainEntityOfPageQueryValues}}"
+      combine-function="[[clientConfig.transforms.common.makeJSONArray]]">
+    </json-combine>
+
     <!-- Get all offers with same webpage url -->
-    <query-builder
-      query="{{mainEntityOfPageQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="mainEntityOfPage.url" value="[[offerDisplay.webpageUrl]]">
-    </query-builder>
+    <bool-query-builder
+      query="{{offerRevisionsQuery}}"
+      query-template="{{config.queryTemplates.offerRevisions.query}}"
+      paths-to-values="{{config.queryTemplates.offerRevisions.pathsToValues}}"
+      values="[[mainEntityOfPageQueryValues]]">
+      >
+    </bool-query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["offer"]'
-      query='[[mainEntityOfPageQuery]]'
+      query='[[offerRevisionsQuery]]'
       results="{{offersWithSameUrlES}}"
       lastError="{{error}}">
     </elastic-search>
@@ -287,20 +305,20 @@
               <div class="h-divider"></div>
               
               <!-- Seller section -->
-              
-              <paper-material class="flex">
-                <section class="who">
-                  <div class="who">
-                    <div class="paper-font-title">
-                      Seller
+              <template is="dom-if" if="{{showSeller}}">
+                <paper-material class="flex">
+                  <section class="who">
+                    <div class="who">
+                      <div class="paper-font-title">
+                        Seller
+                      </div>
                     </div>
-                  </div>
-                  <records-list
-                    current-results="[[sellerPhoneEmails]]">
-                  </records-list>
-                </section>
-              </paper-material>
-            
+                    <records-list
+                      current-results="[[sellerPhoneEmails]]">
+                    </records-list>
+                  </section>
+                </paper-material>
+              </template>
 
 
               <div class="h-divider"></div>
@@ -348,27 +366,35 @@
                   <!-- Single person detail layout -->
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
-                    <div>[[offerDisplay.person.name]]</div>
+                    <div>[[offerDisplay.person.title]]</div>
                   </div>
                   <div class="layout horizontal">
-                    <dl class="flex">
-                      <dt class="age">Age:</dt>
-                      <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
-                        <dd>[[age]]</dd>
-                      </template>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="ethnicity">Ethnicity:</dt>
-                      <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
-                        <dd>[[ethnicity]]</dd>
-                      </template>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="height">Height:</dt><dd>[[offerDisplay.person.height]] cm</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="weight">Weight:</dt><dd>[[offerDisplay.person.weight]] kg</dd>
-                    </dl>
+                    <template is="dom-if" if="{{offerDisplay.person.ages}}">
+                      <dl class="flex">
+                        <dt class="age">Age:</dt>
+                        <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
+                          <dd>[[age]]</dd>
+                        </template>
+                      </dl>
+                    </template>
+                    <template is="dom-if" if="{{offerDisplay.person.ethnicities}}">
+                      <dl class="flex">
+                        <dt class="ethnicity">Ethnicity:</dt>
+                        <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
+                          <dd>[[ethnicity]]</dd>
+                        </template>
+                      </dl>
+                    </template>
+                    <template is="dom-if" if="{{offerDisplay.person.height}}">
+                      <dl class="flex">
+                        <dt class="height">Height:</dt><dd>[[offerDisplay.person.height]] cm</dd>
+                      </dl>
+                    </template>
+                    <template is="dom-if" if="{{offerDisplay.person.weight}}">
+                      <dl class="flex">
+                        <dt class="weight">Weight:</dt><dd>[[offerDisplay.person.weight]] kg</dd>
+                      </dl>
+                    </template>
                   </div>
                   
                 </section>
@@ -398,22 +424,23 @@
                       </bar-chart>
                   </section>
 
-                  <div class="h-divider"></div>
-                  <div class="v-divider"></div>
+                  <template is="dom-if" if="{{offersWithSameUrl.length}}">
+                    <div class="h-divider"></div>
+                    <div class="v-divider"></div>
 
-                  <paper-material class="flex">
-                    <section>
-                      <div class="section-header">
-                        <div class="paper-font-title">
-                          Revisions
+                    <paper-material class="flex">
+                      <section>
+                        <div class="section-header">
+                          <div class="paper-font-title">
+                            Revisions
+                          </div>
                         </div>
-                      </div>
-                      <records-list
-                        current-results="[[offersWithSameUrl]]">
-                      </records-list>
-                    </section>
-                  </paper-material>
-
+                        <records-list
+                          current-results="[[offersWithSameUrl]]">
+                        </records-list>
+                      </section>
+                    </paper-material>
+                  </template>
                 </div>
               </paper-material>
               

@@ -9,6 +9,7 @@ module.exports = {
             match:{ '{{field}}' : '{{value}}' }
         }
     },
+
     // phone/email page specific queries
     phoneOrEmailOfferAgg: {
         "query": {
@@ -145,6 +146,7 @@ module.exports = {
         },
         pathToValueRelativeToQuery: 'query.filtered.filter.terms.name.raw'
     },
+
     offerRelatedEntities: {
         query: {
             "query": {
@@ -283,6 +285,27 @@ module.exports = {
             'query.bool.should[1].match["adultservice.offers.seller.uri"]'
         ]
     },
+    offerRevisions: {
+        query: {
+            "query": {
+                "filtered": {
+                    "query": {
+                        "match": { 'mainEntityOfPage.url' : '' }
+                    },
+                    "filter": {
+                        "not": {
+                            "term": { 'uri' : '' }
+                        }
+                   }
+                }
+            }
+        },
+        pathsToValues: [
+            "query.filtered.query.match['mainEntityOfPage.url']",
+            "query.filtered.filter.not.term['uri']"
+        ]
+      
+   },
     // TODO: reorganize queries -- duplicate of offerSellerAgg
     offerAggsBySeller: {
         "query": {

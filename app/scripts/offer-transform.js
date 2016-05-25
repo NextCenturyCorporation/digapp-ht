@@ -47,6 +47,18 @@ var offerTransform = (function(_, commonTransforms) {
         person.height = _.get(record, 'itemOffered.height');
         person.weight = _.get(record, 'itemOffered.weight');
         person.ages = _.get(record, 'itemOffered.age');
+
+        title = (person.name != 'Name N/A')? person.name : "";
+        sep = (title == "")? "": ", ";
+        if(person.ages) {
+            title += sep + person.ages[0]
+            sep = ", "
+        }
+        if(person.ethnicities) {
+            title += sep + person.ethnicities[0]
+            sep = ", "
+        }
+        person.title = title;
         return person;
     }
 
@@ -104,6 +116,13 @@ var offerTransform = (function(_, commonTransforms) {
             }
 
             return newData;
+        },
+
+        computeShowSeller: function(sellerPhoneEmails, webpageData) {
+            webpagePhonesLen = (webpageData.phones)? webpageData.phones.length: 0;
+            webpageEmailsLen = (webpageData.emails)? webpageData.emails.length: 0;
+
+            return sellerPhoneEmails.length != (webpageEmailsLen + webpagePhonesLen);
         }
     };
 
