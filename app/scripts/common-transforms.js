@@ -125,7 +125,7 @@ var commonTransforms = (function(_) {
                     }
                 });
                 // Removing duplicates for better map display
-                geos = _.uniqWith(geos, isGeolocationEqual);
+                geos = _.q(geos, isGeolocationEqual);
             });
 
             return geos;

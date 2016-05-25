@@ -105,7 +105,7 @@ var relatedEntityTransform = (function() {
             var country = _.get(addressElem, 'addressCountry');
 
             if(locality) {
-                address = locality + ', ' + region + ', ' + country
+                var address = locality + ', ' + region + ', ' + country;
                 addresses.push(address);
             }
         });
@@ -145,13 +145,13 @@ var relatedEntityTransform = (function() {
             }
 
         };
-        if (_.get(record, '_source.mainEntity.seller.telephone.name') != undefined) {
-            webpageObj.details.phone = _.get(record, '_source.mainEntity.seller.telephone.name')
+        if (_.get(record, '_source.mainEntity.seller.telephone.name') !== undefined) {
+            webpageObj.details.phone = _.get(record, '_source.mainEntity.seller.telephone.name');
         }
-        if (_.get(record, '_source.mainEntity.seller.email.name') != undefined) {
-            webpageObj.details.email = _.get(record, '_source.mainEntity.seller.email.name')
+        if (_.get(record, '_source.mainEntity.seller.email.name') !== undefined) {
+            webpageObj.details.email = _.get(record, '_source.mainEntity.seller.email.name');
         }
-        webpageObj.details.date = _.get(record, '_source.dateCreated')
+        webpageObj.details.date = _.get(record, '_source.dateCreated');
 
         return webpageObj;
     }
@@ -282,9 +282,9 @@ var relatedEntityTransform = (function() {
                 newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets = [];
                 _.each(data.aggregations.webpageCityAgg.webpageCityAgg.buckets, function(record) {
 
-                    newObj = {};
+                    var newObj = {};
                     newObj.key = record.key;
-                    keys = record.key.split(':');
+                    var keys = record.key.split(':');
                     newObj.text = keys[0];
                     newObj.doc_count = record.doc_count;
                     
