@@ -9,6 +9,22 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
+    function getOffers(record) {
+        offers = [];
+        if(record.owner) {
+            _.each(record.owner, function(item) {
+
+                if(item.makesOffer) {
+                    _.each(item.makesOffer, function(offer) {
+                        offers.push(offer.uri) 
+                    });
+                }
+            
+          });
+        }
+        return offers;
+    }
+
     function getTelephone(record) {
         /** build telephone object:
         'telephone': {
@@ -21,11 +37,31 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         var telephone = {};
         telephone._id = _.get(record, 'uri');
         telephone.number = _.get(record, 'name');
-        telephone.type = 'Cell';
-        telephone.origin = _.get(record, 'owner[0].makesOffer[0].availableAtOrFrom.address[0].addressLocality');
+        telephone.origin = getOffers(record);
         //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
 
         return telephone;
+    }
+
+    function getGeoFromKeys(record) {
+        
+        var geos = [];
+        _.each(record, function(key) {
+            geoData = key.key.split(':');
+            count = key.doc_count;
+            var geo = {
+                        city: geoData[0],
+                        state: geoData[1],
+                        country: geoData[2],
+                        longitude: geoData[3],
+                        latitude: geoData[4],
+                        count: count
+                    };
+            geos.push(geo)
+        });
+        // Removing duplicates for better map display
+        geos = _.uniqWith(geos, commonTransforms.isGeolocationEqual);
+        return geos;
     }
 
     return {
@@ -51,6 +87,26 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.relatedOffers = relatedEntityTransform.offer(data);
             }
             
+            return newData;
+        },
+        offerTimelineData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+                newData.offerTimeline = commonTransforms.transformBuckets(aggs.offersPhone.offerTimeline.buckets, 'date', 'key_as_string');
+            }
+        
+            return newData;
+        },
+        offerLocationData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+                newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
+            }
+        
             return newData;
         },
         people: function(data) {

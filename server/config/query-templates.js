@@ -10,6 +10,49 @@ module.exports = {
         }
     },
 
+    // query for offer timeline on phone.html
+    offerTimeline: {
+       "aggs": {
+          "offersPhone": {
+             "filter": {
+                "term": {
+                   "{{field}}": "{{value}}"
+                }
+             },
+             "aggs": {
+                "offerTimeline": {
+                   "date_histogram": {
+                      "field": "validFrom",
+                      "interval": "day"
+                   }
+                }
+             }
+          }
+       },
+       "size": 0
+    },
+    //offer locations for phone.html
+    offerLocation:{
+      "aggs": {
+        "phone": {
+          "filter": {
+            "term": {
+              "{{field}}": "{{value}}"
+            }
+          },
+          "aggs": {
+            "city": {
+              "terms": {
+                "field": "availableAtOrFrom.address.key",
+                "size": 0
+              }
+            }
+          }
+        }
+      },
+      "size": 0
+    },
+
     // phone/email page specific queries
     phoneOrEmailOfferAgg: {
         "query": {
