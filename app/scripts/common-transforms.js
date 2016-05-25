@@ -210,6 +210,10 @@ var commonTransforms = (function(_) {
                 arr1.push(elem);
             });
             return arr1;
+        },
+
+        makeJSONArray: function(val1, val2) {
+            return [val1, val2];
         }
     };
 
