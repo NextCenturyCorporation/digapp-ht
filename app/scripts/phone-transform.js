@@ -25,6 +25,16 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return offers;
     }
 
+    function getSellerId(record) {
+        sellerId = '';
+        if(record.owner) {
+            //phone will one seller 
+            sellerId = record.owner[0].uri;
+        }
+
+        return sellerId;
+    }
+
     function getTelephone(record) {
         /** build telephone object:
         'telephone': {
@@ -38,6 +48,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         telephone._id = _.get(record, 'uri');
         telephone.number = _.get(record, 'name');
         telephone.origin = getOffers(record);
+        telephone.sellerId = getSellerId(record);
         //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
 
         return telephone;
@@ -75,21 +86,6 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             
             return newData;
         },
-        // offerData: function(data) {
-        //     var newData = {};
-
-        //     if(data.hits.hits.length > 0) {
-        //         var aggs = data.aggregations;
-
-        //         //newData.locations = commonTransforms.getLocations(data.hits.hits);
-        //         //newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
-        //         //newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
-        //         //newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
-        //         //newData.relatedOffers = relatedEntityTransform.offer(data);
-        //     }
-            
-        //     return newData;
-        // },
         offerTimelineData: function(data) {
             var newData = {};
 
@@ -118,6 +114,18 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             }
             
             return newData;
+        },
+        computeShowSeller: function(seller, phone) {
+            sellerOut = [];
+            _.each(seller, function(record) {
+                if(record.title !== phone) {
+                    sellerOut.push(record);
+                }   
+            });
+            if(sellerOut.length > 0) {
+                return sellerOut;    
+            }
+            return undefined;
         },
         seller: function(data) {
             var newData = {};

@@ -82,31 +82,6 @@
      transform-function="[[clientConfig.transforms.phone.telephone]]"
      ></json-transform>
 
-    <!-- phoneDisplay.offerData query and transform 
-    <query-builder 
-      query="{{offerAggQuery}}" 
-      query-template="{{config.queryTemplates.phoneOrEmailOfferAgg}}"
-      field="offer.seller.telephone.uri" value="[[phoneDisplay.telephone._id]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerAggQuery]]'
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      results="{{offerAggs}}"
-      elastic-type='["offer"]'
-      lastError="{{error}}"
-      loading="{{offersLoading}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[offerAggs]]"
-     data-out="{{phoneDisplay.offerData}}"
-     transform-function="[[clientConfig.transforms.phone.offerData]]"
-     ></json-transform> -->
-
     <!-- phoneDisplay.people query and transform -->
     <query-builder 
       query="{{peopleAggQuery}}" 
@@ -129,29 +104,34 @@
      transform-function="[[clientConfig.transforms.phone.people]]"
      ></json-transform>
 
-    <!-- phoneDisplay.seller query and transform -->
-    <query-builder 
-      query="{{sellerAggQuery}}" 
-      query-template="{{config.queryTemplates.phoneOrEmailSellerAgg}}"
-      field="telephone.uri" value="[[phoneDisplay.telephone._id]]">
+     <!-- Get the seller Object -->
+     <query-builder 
+      query="{{sellerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[phoneDisplay.telephone.sellerId]]">
     </query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[sellerAggQuery]]'
-      results="{{sellerAggs}}"
       elastic-type='["seller"]'
+      query='[[sellerQuery]]'
+      results="{{seller}}"
       lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[sellerAggs]]"
-     data-out="{{phoneDisplay.seller}}"
-     transform-function="[[clientConfig.transforms.phone.seller]]"
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
      ></json-transform>
 
-
+    <json-combine
+      data-in1="[[sellerPhoneEmails]]"
+      data-in2="[[phoneDisplay.telephone.number]]"
+      data-out="{{showSeller}}"
+      combine-function="[[clientConfig.transforms.phone.computeShowSeller]]"
+    ></json-combine>
 
      <!--START CHANGE BY AS 
      build the query for offer timeline -->
@@ -266,7 +246,24 @@
               </paper-material>
               
               <div class="h-divider"></div>
+              
+              <!-- Seller section -->
+              <template is="dom-if" if="{{showSeller}}">
+                <paper-material class="flex">
+                  <section class="who">
+                    <div class="who">
+                      <div class="paper-font-title">
+                        Seller
+                      </div>
+                    </div>
+                    <records-list
+                      current-results="[[showSeller]]">
+                    </records-list>
+                  </section>
+                </paper-material>
+              </template>
 
+              <div class="h-divider"></div>
               <!-- Photos section -->
               <!-- TO DO: Hook up with data -->
               <paper-material>
@@ -332,61 +329,15 @@
 
             <div class="v-divider"></div>
 
-            <!-- Relations section -->
+            <!-- Relations section 
+            CHANGE BY AS - ADD SOMETHING MEANINGFUL OR REMOVE LATER-->
             <div class="flex">
               <paper-material>
                 <section class="relations">
 
-          <!--         <div class="section-header">
-                    <div class="paper-font-title flex">Other related items</div>
- -->
-                    <!-- Related items summary -->
-                    <div class="layout horizontal">
 
-                      <!-- TO DO: Hook up these two with data and show in related entity list -->
-    <!--
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-seller-font" icon="editor:attach-money"></iron-icon>
-                        <div class="paper-font-title">5</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-person-font" icon="icons:account-circle"></iron-icon>
-                        <div class="paper-font-title">20</div>
-                      </div>
-    -->
-<!-- 
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-phone-font" icon="communication:phone"></iron-icon>
-                        <div class="paper-font-title">[[phoneDisplay.seller.relatedPhones.length]]</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-email-font" icon="communication:email"></iron-icon>
-                        <div class="paper-font-title">[[phoneDisplay.seller.relatedEmails.length]]</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-webpage-font" icon="av:web"></iron-icon>
-                        <div class="paper-font-title">[[phoneDisplay.seller.relatedWebsites.length]]</div>
-                      </div>
-                    </div>
-                  </div>
-
- -->                  <!-- Related items list, would prefer to use this -->
-                  <!-- These would work better as a unified list, sorted by co-occurances -->
-    <!--
-                  <records-list records="[[phoneDisplay.seller.relatedEmails]]"></records-list>
-                  <records-list records="[[phoneDisplay.seller.relatedPhones]]"></records-list>
-                  <records-list records="[[phoneDisplay.seller.relatedWebsites]]"></records-list>
-    -->
-
-                  <!-- Related items summary -->
-                  <!-- Would like to use a list as shown above, instead -->
-<!--                   <feature-aggregation title="Co-occurring Emails" key="email" agg="[[phoneDisplay.seller.relatedEmails]]"
-                    show-link="true" link-type="email" link-field="name"></feature-aggregation>
-                  <feature-aggregation title="Co-occurring Phones" key="number" agg="[[phoneDisplay.seller.relatedPhones]]"
-                    show-link="true" link-type="phone" link-field="name"></feature-aggregation>
-                  <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[phoneDisplay.seller.relatedWebsites]]"></feature-aggregation>
-
- -->                </section>
+    
+               </section>
               </paper-material>
             </div>
 
