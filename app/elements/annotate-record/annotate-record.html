@@ -1,0 +1,181 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="annotate-record">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <!-- Search for an existing annotation record -->
+    <elastic-search 
+      client="[[client]]"
+      index="[[annotationIndex]]"
+      query="{{buildAnnotationQuery(item)}}"
+      results="{{originalSearchResult}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <!-- TODO: visually indicate annotation status (if annotation exists) -->
+    <!-- Trigger create/update -->
+    <paper-icon-button 
+      id="interesting" icon="icons:add-circle-outline" 
+      title="Mark Interesting" on-click="initCreateOrUpdate">
+    </paper-icon-button>
+    <paper-icon-button 
+      id="not-interesting" icon="icons:remove-circle-outline" 
+      title="Mark Not Interesting" on-click="initCreateOrUpdate">
+    </paper-icon-button>
+
+    <!-- Create or update annotation -->
+    <elastic-update
+      client="[[client]]"
+      index="[[annotationIndex]]"
+      elastic-type="[[annotationType]]"
+      id="{{getAnnotationId(annotationResult)}}"
+      body='{{annotationUpdateBody}}'
+      results="{{annotationResult}}"
+      lastError="{{error}}">
+    </elastic-update>
+    <elastic-create
+      client="[[client]]"
+      index="[[annotationIndex]]"
+      elastic-type="annotation"
+      body='{{annotationCreateBody}}'
+      results="{{annotationResult}}"
+      lastError="{{error}}">
+    </elastic-create>
+
+  </template>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'annotate-record',
+
+      properties: {
+        /**
+         * the elasticsearch client
+         */
+        client: {
+          type: Object
+        },
+        /**
+         * the elastic index (database name)
+         */
+        annotationIndex: {
+          type: String
+        },
+        /**
+         * the elastic type (optional -- leave empty for all types)
+         */
+        annotationType: {
+          type: String
+        },
+        /**
+         * the record to add an associated annotation for, 
+         * based on current user and uri of the record
+         */        
+        item: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * where the result of the original search for an existing annotation 
+         * is stored (if found), or the result of a successful creation or update
+         */
+        annotationResult: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * original result of query to find if there is an existing annotation
+         * record
+         */
+        originalSearchResult: {
+          type: Object,
+          observer: 'transformOrigResult'
+        },
+        /**
+         * Document info to pass into elastic-create component
+         */
+        annotationCreateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * Info to update annotation and pass into elastic-update
+         * component
+         */
+        annotationUpdateBody: {
+          type: Object,
+          readOnly: true
+        }
+      },
+      getAnnotationId: function(annotationResult) {
+        return (annotationResult ? annotationResult._id : undefined);
+      },
+      buildAnnotationQuery: function(item) {
+        // clear body for create/update components to ensure a
+        // create or update isn't triggered yet
+        this._setAnnotationCreateBody(undefined);
+        this._setAnnotationUpdateBody(undefined);
+
+        // TODO: make part of query template?
+        return {
+            query: {
+                bool : {
+                    must : [
+                        {
+                            term : { uri : item._id }
+                        },
+                        {
+                            term : { user : 'mockUser' }
+                        }
+                    ]
+                }
+            }
+        };
+      },
+      transformOrigResult: function() {
+        if(this.originalSearchResult && this.originalSearchResult.hits.hits.length > 0) {
+          this._setAnnotationResult(this.originalSearchResult.hits.hits[0]);
+        }
+      },
+      initCreateOrUpdate: function() {
+        /*jshint camelcase: false */
+        if(this.annotationResult && this.annotationResult._id) {
+          this._setAnnotationUpdateBody({
+            doc: {
+              is_valuable: this.isItemValuable(event)
+            }
+          });
+        } else {
+          this._setAnnotationCreateBody({
+            uri: this.item._id, 
+            user: 'mockUser', 
+            is_valuable: this.isItemValuable(event)
+          });
+        }
+        /*jshint camelcase: true */
+      },
+      isItemValuable: function(event) {
+        return event.target._iconName === 'add-circle-outline' ? true : false;
+      }
+
+
+    });
+  })();
+  </script>
+</dom-module>
