@@ -43,6 +43,8 @@ var all = {
     elasticConfig: process.env.ELASTIC_CONFIG || '{"host": "http://localhost:9200"}',
     elasticIndex: process.env.ELASTIC_INDEX || 'mockads',
     elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
+    annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
+    annotationType: process.env.ANNOTATION_TYPE || 'annotation',
     queryTemplates: templates.QUERY_TEMPLATES || '{}'
  
 };
