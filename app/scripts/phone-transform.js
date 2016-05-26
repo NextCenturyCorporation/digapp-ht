@@ -75,21 +75,21 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             
             return newData;
         },
-        offerData: function(data) {
-            var newData = {};
+        // offerData: function(data) {
+        //     var newData = {};
 
-            if(data.hits.hits.length > 0) {
-                var aggs = data.aggregations;
+        //     if(data.hits.hits.length > 0) {
+        //         var aggs = data.aggregations;
 
-                newData.locations = commonTransforms.getLocations(data.hits.hits);
-                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
-                //newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
-                newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
-                newData.relatedOffers = relatedEntityTransform.offer(data);
-            }
+        //         //newData.locations = commonTransforms.getLocations(data.hits.hits);
+        //         //newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
+        //         //newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
+        //         //newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
+        //         //newData.relatedOffers = relatedEntityTransform.offer(data);
+        //     }
             
-            return newData;
-        },
+        //     return newData;
+        // },
         offerTimelineData: function(data) {
             var newData = {};
 
