@@ -55,7 +55,8 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
                         country: geoData[2],
                         longitude: geoData[3],
                         latitude: geoData[4],
-                        count: count
+                        count: count,
+                        name: geoData[0] + ", " + geoData[1]
                     };
             geos.push(geo)
         });
@@ -82,7 +83,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
-                newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
+                //newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
                 newData.relatedOffers = relatedEntityTransform.offer(data);
             }
@@ -107,7 +108,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
             }
         
-            return newData.offerLocation;
+            return newData;
         },
         people: function(data) {
             var newData = {};
