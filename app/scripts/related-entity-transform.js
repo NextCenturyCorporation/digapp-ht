@@ -23,8 +23,8 @@ var relatedEntityTransform = (function() {
         var offerObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.seller.telephone.name', 'Phone N/A'),
-            subtitle: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
+            subtitle: _.get(record, '_source.seller.telephone.name', 'Phone N/A'),
+            title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
             details: {
                 date: _.get(record, '_source.validFrom'),
                 address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
