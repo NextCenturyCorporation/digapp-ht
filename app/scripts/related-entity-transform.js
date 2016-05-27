@@ -2,9 +2,9 @@
  * transform elastic search related entity query to display format.  See data-model.json
  */
 
-/* globals _ */
+/* globals _, commonTransforms */
 /* exported relatedEntityTransform */
-var relatedEntityTransform = (function() {
+var relatedEntityTransform = (function(_, commonTransforms) {
 
     function getOfferSummary(record) {
         /**  build offer summary record:
@@ -20,10 +20,19 @@ var relatedEntityTransform = (function() {
                 }
             }
         */
+        var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
+        var phone = '';
+        if (mentions) {
+            var phones = commonTransforms.getEmailAndPhoneFromMentions(mentions).phones;
+            if(phones && phones.length > 0) {
+                phone = phones[0].title;
+            }
+        }
         var offerObj = {
             _id: record._id,
             _type: record._type,
-            subtitle: _.get(record, '_source.seller.telephone.name', 'Phone N/A'),
+            subtitle: phone,
+            //subtitle: _.get(record, '_source.seller.telephone.name', 'Phone N/A'),
             title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
             details: {
                 date: _.get(record, '_source.validFrom'),
@@ -298,6 +307,6 @@ var relatedEntityTransform = (function() {
         }
     };
 
-})();
+})(_, commonTransforms);
 
 
