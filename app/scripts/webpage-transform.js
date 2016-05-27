@@ -26,30 +26,6 @@ var webpageTransform = (function(_, commonTransforms) {
                 var extractedMentions = commonTransforms.getEmailAndPhoneFromMentions(mentions);
                 newData.phones = extractedMentions.phones;
                 newData.emails = extractedMentions.emails;
-                // newData.phones = [];
-                // newData.emails = [];
-                // mentions.forEach(function(elem) {
-                //     type = 'none';
-                //     if(elem.indexOf('phone') != -1) {
-                //         type = 'phone'
-                //     } else if(elem.indexOf('email') != -1) {
-                //         type = 'email'
-                //     }
-                //     if(type != 'none') {
-                //         idx = elem.lastIndexOf("/")
-                //         text = elem.substring(idx+1)
-                //         var newObj = {
-                //             _id: elem,
-                //             _type: type,
-                //             title:  text,
-                //             subtitle: ''
-                //         }
-                //         if(type == 'phone')
-                //             newData.phones.push(newObj);
-                //         else if(type == 'email')
-                //             newData.emails.push(newObj);
-                //     }
-                // });
             }
 
             return newData;
