@@ -106,6 +106,13 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         
             return newData;
         },
+        phoneOffersData: function(data) {
+            var newData = {};
+            if(data.hits.hits.length > 0) {
+               newData.relatedOffers = relatedEntityTransform.offer(data); 
+            }
+            return newData;
+        },
         people: function(data) {
             var newData = {};
 
