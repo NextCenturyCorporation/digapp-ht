@@ -21,18 +21,32 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             }
         */
         var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
-        var phone = '';
+        var phoneAndEmails = '';
         if (mentions) {
             var phones = commonTransforms.getEmailAndPhoneFromMentions(mentions).phones;
-            if(phones && phones.length > 0) {
-                phone = phones[0].title;
+            var emails = commonTransforms.getEmailAndPhoneFromMentions(mentions).emails;
+            if(phones && phones.length > 0 && emails && emails.length > 0) {
+                joined = phones.concat(emails);
+                _.each(joined, function(val) {
+                    phoneAndEmails += val.title + ", ";
+                });
             }
+            else if(phones && phones.length > 0) {
+                _.each(phones, function(val) {
+                    phoneAndEmails += val.title + ", ";
+                });
+            }
+            else if(emails && emails.length > 0) {
+                _.each(emails, function(val) {
+                    phoneAndEmails += val.title + ", ";
+                });
+            }
+            phoneAndEmails = phoneAndEmails.substring(0, phoneAndEmails.lastIndexOf(','));
         }
         var offerObj = {
             _id: record._id,
             _type: record._type,
-            subtitle: phone,
-            //subtitle: _.get(record, '_source.seller.telephone.name', 'Phone N/A'),
+            subtitle: phoneAndEmails,
             title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
             details: {
                 date: _.get(record, '_source.validFrom'),
