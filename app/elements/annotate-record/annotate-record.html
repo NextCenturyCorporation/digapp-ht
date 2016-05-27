@@ -16,6 +16,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
+      paper-icon-button {
+        color: var(--light-primary-color);
+
+      }
+      paper-icon-button[selected] {
+        color: var(--primary-color);
+      }
     </style>
     <!-- Search for an existing annotation record -->
     <elastic-search 
@@ -26,14 +33,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       lastError="{{error}}">
     </elastic-search>
 
-    <!-- TODO: visually indicate annotation status (if annotation exists) -->
     <!-- Trigger create/update -->
     <paper-icon-button 
-      id="interesting" icon="icons:add-circle-outline" 
+      id="interestBtn" icon="icons:add-circle-outline"
       title="Mark Interesting" on-click="initCreateOrUpdate">
     </paper-icon-button>
     <paper-icon-button 
-      id="not-interesting" icon="icons:remove-circle-outline" 
+      id="notOfInterestBtn" icon="icons:remove-circle-outline"
       title="Mark Not Interesting" on-click="initCreateOrUpdate">
     </paper-icon-button>
 
@@ -93,20 +99,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
-         * where the result of the original search for an existing annotation 
-         * is stored (if found), or the result of a successful creation or update
-         */
-        annotationResult: {
-          type: Object,
-          readOnly: true
-        },
-        /**
-         * original result of query to find if there is an existing annotation
-         * record
+         * original result of query to find if there is an existing
+         * annotation record
          */
         originalSearchResult: {
           type: Object,
           observer: 'transformOrigResult'
+        },
+        /**
+         * where the result of the original search for an existing
+         * annotation is stored (if found), or the result of a
+         * successful creation or update
+         */
+        annotationResult: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Where to store the is_valuable flag chosen by the user.
+         */
+        isItemOfInterest: {
+          type: Boolean,
+          observer: 'styleSelectedButton',
+          notify: true
         },
         /**
          * Document info to pass into elastic-create component
@@ -122,6 +137,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         annotationUpdateBody: {
           type: Object,
           readOnly: true
+        }
+      },
+      styleSelectedButton: function() {
+        if(this.isItemOfInterest) {
+          Polymer.dom(this.$.interestBtn).setAttribute('selected', true);
+          Polymer.dom(this.$.notOfInterestBtn).removeAttribute('selected');
+        } else {
+          Polymer.dom(this.$.notOfInterestBtn).setAttribute('selected', true);
+          Polymer.dom(this.$.interestBtn).removeAttribute('selected');
         }
       },
       getAnnotationId: function(annotationResult) {
@@ -151,31 +175,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       transformOrigResult: function() {
         if(this.originalSearchResult && this.originalSearchResult.hits.hits.length > 0) {
-          this._setAnnotationResult(this.originalSearchResult.hits.hits[0]);
+          this.annotationResult = this.originalSearchResult.hits.hits[0];
+          /*jshint camelcase: false */
+          this.isItemOfInterest = this.annotationResult._source.is_valuable;
+          /*jshint camelcase: true */
         }
       },
       initCreateOrUpdate: function() {
+        this.isItemOfInterest = event.target._iconName === 'add-circle-outline' ? true : false;
+
         /*jshint camelcase: false */
         if(this.annotationResult && this.annotationResult._id) {
           this._setAnnotationUpdateBody({
             doc: {
-              is_valuable: this.isItemValuable(event)
+              is_valuable: this.isItemOfInterest
             }
           });
         } else {
           this._setAnnotationCreateBody({
             uri: this.item._id, 
             user: 'mockUser', 
-            is_valuable: this.isItemValuable(event)
+            is_valuable: this.isItemOfInterest
           });
         }
         /*jshint camelcase: true */
-      },
-      isItemValuable: function(event) {
-        return event.target._iconName === 'add-circle-outline' ? true : false;
       }
-
-
     });
   })();
   </script>
