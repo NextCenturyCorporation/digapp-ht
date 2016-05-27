@@ -225,6 +225,17 @@ var commonTransforms = (function(_) {
                 if(type != 'none') {
                     idx = elem.lastIndexOf("/")
                     text = elem.substring(idx+1)
+                    var countryCode = '';
+                    if (type === 'phone') {
+                        if(text.indexOf('-') !== -1) {
+                            var idx2 = text.indexOf('-');
+                            text = text.substring(idx2+1);
+                            var cc = text.substring(0,idx2);
+                            if (cc.length < 5) {
+                                countryCode = cc;
+                            }
+                        }
+                    }
                     var newObj = {
                         _id: elem,
                         _type: type,
