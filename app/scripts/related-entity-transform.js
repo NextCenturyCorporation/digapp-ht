@@ -43,13 +43,20 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             }
             phoneAndEmails = phoneAndEmails.substring(0, phoneAndEmails.lastIndexOf(','));
         }
+
+        var validFromDate = _.get(record, '_source.validFrom');
+        var datePhoneEmail = phoneAndEmails;
+        if(validFromDate) {
+            datePhoneEmail = validFromDate + ', ' + phoneAndEmails;
+        }
+
         var offerObj = {
             _id: record._id,
             _type: record._type,
-            subtitle: phoneAndEmails,
+            subtitle: datePhoneEmail,
             title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
             details: {
-                date: _.get(record, '_source.validFrom'),
+                description: _.get(record, '_source.mainEntityOfPage.description'),
                 address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
                 publisher: _.get(record, '_source.mainEntityOfPage.publisher.name')
             }
