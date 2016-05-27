@@ -229,8 +229,8 @@ var commonTransforms = (function(_) {
                     if (type === 'phone') {
                         if(text.indexOf('-') !== -1) {
                             var idx2 = text.indexOf('-');
-                            text = text.substring(idx2+1);
                             var cc = text.substring(0,idx2);
+                            text = text.substring(idx2+1);
                             if (cc.length < 5) {
                                 countryCode = cc;
                             }
