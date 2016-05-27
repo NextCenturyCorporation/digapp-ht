@@ -3,7 +3,7 @@
 module.exports = {
 
   QUERY_TEMPLATES: {
-    // annotation query
+    // annotation query -- using 'mockUser' for now until user support is added
     annotationQuery: {
         query: {
             query: {
