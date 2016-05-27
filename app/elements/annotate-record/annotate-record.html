@@ -66,6 +66,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
   (function() {
     'use strict';
+    /* globals _ */
 
     Polymer({
       is: 'annotate-record',
@@ -89,6 +90,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         annotationType: {
           type: String
+        },
+        /**
+         * query template to use to create annotation query
+         */
+        queryTemplate: {
+          type: Object
         },
         /**
          * the record to add an associated annotation for, 
@@ -120,7 +127,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         isItemOfInterest: {
           type: Boolean,
-          observer: 'styleSelectedButton',
+          observer: 'styleButtons',
           notify: true
         },
         /**
@@ -139,7 +146,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           readOnly: true
         }
       },
-      styleSelectedButton: function() {
+      styleButtons: function() {
         if(this.isItemOfInterest === true) {
           Polymer.dom(this.$.interestBtn).setAttribute('selected', true);
           Polymer.dom(this.$.notOfInterestBtn).removeAttribute('selected');
@@ -155,26 +162,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getAnnotationId: function(annotationResult) {
         return (annotationResult ? annotationResult._id : undefined);
       },
+      getValuesForQuery: function(item) {
+        return [item._id];
+      },
       buildAnnotationQuery: function(item) {
         // clear body for create/update components to ensure a
         // create or update isn't triggered yet
+        var self = this;
+
         this._setAnnotationCreateBody(undefined);
         this._setAnnotationUpdateBody(undefined);
 
-        return {
-            query: {
-                bool : {
-                    must : [
-                        {
-                            term : { uri : item._id }
-                        },
-                        {
-                            term : { user : 'mockUser' }
-                        }
-                    ]
-                }
-            }
-        };
+        var values = self.getValuesForQuery(item);
+        var paths = self.queryTemplate.pathsToValues;
+
+        _.each(paths, function(path, count) {
+          var value = values[count];
+
+          if(value) {
+            _.set(self.queryTemplate.query, path, value);
+          }
+        });
+
+        return {query: this.queryTemplate.query.query};
+
       },
       transformOrigResult: function() {
         if(this.originalSearchResult && this.originalSearchResult.hits.hits.length > 0) {

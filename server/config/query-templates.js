@@ -3,6 +3,26 @@
 module.exports = {
 
   QUERY_TEMPLATES: {
+    // annotation query
+    annotationQuery: {
+        query: {
+            query: {
+                bool : {
+                    must : [
+                        {
+                            term : { uri : "" }
+                        },
+                        {
+                            term : { user : 'mockUser' }
+                        }
+                    ]
+                }
+            }
+        },
+        pathsToValues: [
+            'query.bool.must[0].term.uri'//, 'query.bool.must[1].term.user'
+        ]
+    },
     // Common query used among entities
     commonMatchQuery: {
         query:{
