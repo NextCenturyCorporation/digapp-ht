@@ -146,6 +146,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             _type: record._type,
             title: _.get(record, '_source.name', 'Title N/A'),
             subtitle: _.get(record, '_source.publisher.name', 'Publisher N/A'),
+            offer: _.get(record, '_source.mainEntity.uri'),
             details: {
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description'),
@@ -248,9 +249,16 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         },
         webpage: function(data) {
             var newObj = {data: [], count: 0};
-            if(data.hits.hits.length > 0) {
+            if(data && data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
-                    newObj.data.push(getWebpageSummary(record));
+                    var webpageSummary = getWebpageSummary(record);
+                    //We do not want to show webpage page, but instead direct
+                    //to offer. The below handles that.
+                    if(webpageSummary.offer) {
+                        webpageSummary._type = "offer";
+                        webpageSummary._id = webpageSummary.offer;
+                    }
+                    newObj.data.push(webpageSummary);
                 });
                 newObj.count = data.hits.total;
             }
