@@ -25,15 +25,6 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return offers;
     }
 
-    function getSellerId(record) {
-        sellerId = '';
-        if(record.owner) {
-            //phone will one seller 
-            sellerId = record.owner[0].uri;
-        }
-
-        return sellerId;
-    }
 
     function getTelephone(record) {
         /** build telephone object:
@@ -48,32 +39,10 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         telephone._id = _.get(record, 'uri');
         telephone.number = _.get(record, 'name');
         telephone.origin = getOffers(record);
-        telephone.sellerId = getSellerId(record);
+        telephone.sellerId = commonTransforms.getSellerId(record);
         //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
 
         return telephone;
-    }
-
-    function getGeoFromKeys(record) {
-        
-        var geos = [];
-        _.each(record, function(key) {
-            geoData = key.key.split(':');
-            count = key.doc_count;
-            var geo = {
-                        city: geoData[0],
-                        state: geoData[1],
-                        country: geoData[2],
-                        longitude: geoData[3],
-                        latitude: geoData[4],
-                        count: count,
-                        name: geoData[0] + ", " + geoData[1]
-                    };
-            geos.push(geo)
-        });
-        // Removing duplicates for better map display
-        //geos = _.uniqWith(geos, commonTransforms.isGeolocationEqual);
-        return geos;
     }
 
     return {
@@ -87,30 +56,14 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             return newData;
         },
         offerTimelineData: function(data) {
-            var newData = {};
-
-            if(data.hits.hits.length > 0) {
-                var aggs = data.aggregations;
-                newData.offerTimeline = commonTransforms.transformBuckets(aggs.offersPhone.offerTimeline.buckets, 'date', 'key_as_string');
-            }
-        
-            return newData;
+            return commonTransforms.offerTimelineData(data);
         },
         offerLocationData: function(data) {
-            var newData = {};
-
-            if(data.hits.hits.length > 0) {
-                var aggs = data.aggregations;
-                newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
-            }
-        
-            return newData;
+            return commonTransforms.offerLocationData(data);
         },
         phoneOffersData: function(data) {
             var newData = {};
-            if(data.hits.hits.length > 0) {
-               newData.relatedOffers = relatedEntityTransform.offer(data); 
-            }
+            newData.relatedOffers = relatedEntityTransform.offer(data); 
             return newData;
         },
         people: function(data) {
