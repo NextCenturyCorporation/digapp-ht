@@ -62,6 +62,22 @@ var offerTransform = (function(_, commonTransforms) {
         return person;
     }
 
+    function getPrice(record) {
+        var result = '';
+        prices = _.get(record, 'priceSpecification');
+        if(prices) {
+            sep = ""
+            prices.forEach(function(elem) {
+                price = elem['name'];
+                if(price != '-per-min') {
+                    result = result + sep + price;
+                    sep = ", ";
+                }
+            });
+        }
+        return result;
+    }
+
     function parseOffer(record) {
         var newData = {};
         
@@ -69,6 +85,7 @@ var offerTransform = (function(_, commonTransforms) {
         newData.address = commonTransforms.getAddress(record);
         newData.geo = getGeolocation(record);
         newData.person = getPerson(record);
+        newData.price = getPrice(record);
         newData.title = _.get(record, 'title', 'Title N/A');
         newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
         newData.body = _.get(record, 'mainEntityOfPage.description');
