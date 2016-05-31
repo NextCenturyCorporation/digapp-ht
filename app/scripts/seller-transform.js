@@ -19,13 +19,23 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
                 newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
                 var title = undefined;
+                var numPhoneEmails = 0;
                 if(newData.telephone.length > 0) {
                     title = newData.telephone[0].title;
+                    numPhoneEmails += newData.telephone.length;
                 }
                 if(newData.emailAddress.length > 0) {
                     title += ", " + newData.emailAddress[0].title;
+                    numPhoneEmails += newData.emailAddress.length;
                 }
-                newData.title = 'Seller (' + (title || 'Info N/A') + ')';
+                if(numPhoneEmails > 2) {
+                    numPhoneEmails = numPhoneEmails - 2;
+                    newData.title = 'Seller ' + title + ' (' + numPhoneEmails + ' more)...';
+                }
+                else {
+                    newData.title = 'Seller (' + (title || 'Info N/A') + ')';
+                }
+                
                 newData.subtitle = '';
             }
 
