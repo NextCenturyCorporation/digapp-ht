@@ -215,39 +215,41 @@ var commonTransforms = (function(_) {
             var newData = {};
             newData.phones = [];
             newData.emails = [];
-            mentions.forEach(function(elem) {
-                type = 'none';
-                if(elem.indexOf('phone') != -1) {
-                    type = 'phone'
-                } else if(elem.indexOf('email') != -1) {
-                    type = 'email'
-                }
-                if(type != 'none') {
-                    idx = elem.lastIndexOf("/")
-                    text = elem.substring(idx+1)
-                    var countryCode = '';
-                    if (type === 'phone') {
-                        if(text.indexOf('-') !== -1) {
-                            var idx2 = text.indexOf('-');
-                            text = text.substring(idx2+1);
-                            var cc = text.substring(0,idx2);
-                            if (cc.length < 5) {
-                                countryCode = cc;
+            if(mentions) {
+                mentions.forEach(function(elem) {
+                    type = 'none';
+                    if(elem.indexOf('phone') != -1) {
+                        type = 'phone'
+                    } else if(elem.indexOf('email') != -1) {
+                        type = 'email'
+                    }
+                    if(type != 'none') {
+                        idx = elem.lastIndexOf("/")
+                        text = elem.substring(idx+1)
+                        var countryCode = '';
+                        if (type === 'phone') {
+                            if(text.indexOf('-') !== -1) {
+                                var idx2 = text.indexOf('-');
+                                text = text.substring(idx2+1);
+                                var cc = text.substring(0,idx2);
+                                if (cc.length < 5) {
+                                    countryCode = cc;
+                                }
                             }
                         }
+                        var newObj = {
+                            _id: elem,
+                            _type: type,
+                            title:  text,
+                            subtitle: ''
+                        }
+                        if(type == 'phone')
+                            newData.phones.push(newObj);
+                        else if(type == 'email')
+                            newData.emails.push(newObj);
                     }
-                    var newObj = {
-                        _id: elem,
-                        _type: type,
-                        title:  text,
-                        subtitle: ''
-                    }
-                    if(type == 'phone')
-                        newData.phones.push(newObj);
-                    else if(type == 'email')
-                        newData.emails.push(newObj);
-                }
-            });
+                });
+            }
             return newData;
         },
         makeJSONArray: function(val1, val2) {

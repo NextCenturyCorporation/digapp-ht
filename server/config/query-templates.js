@@ -333,7 +333,7 @@ module.exports = {
             "query": {
                 "filtered": {
                     "query": {
-                        "match": { 'mainEntityOfPage.url' : '' }
+                        "match": { 'mainEntityOfPage.url.raw' : '' }
                     },
                     "filter": {
                         "not": {
@@ -344,7 +344,7 @@ module.exports = {
             }
         },
         pathsToValues: [
-            "query.filtered.query.match['mainEntityOfPage.url']",
+            "query.filtered.query.match['mainEntityOfPage.url.raw']",
             "query.filtered.filter.not.term['uri']"
         ]
       

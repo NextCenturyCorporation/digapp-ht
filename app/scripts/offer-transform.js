@@ -42,6 +42,8 @@ var offerTransform = (function(_, commonTransforms) {
         }
         */
         var person = {};
+        person._id = _.get(record, 'itemOffered.uri');
+        person._type = "provider";
         person.name = _.get(record, 'itemOffered.name', 'Name N/A');
         person.ethnicities = _.get(record, 'itemOffered.ethnicity');
         person.height = _.get(record, 'itemOffered.height');
