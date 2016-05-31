@@ -11,12 +11,14 @@ module.exports = {
     },
     // phone/email page specific queries
     phoneOrEmailOfferAgg: {
-        query: {
-          filtered:{
-            query:{
-                match:{ '{{field}}' : '{{value}}' }
+        "query": {
+            "filtered": {
+                "filter": {
+                    "term": {
+                        "{{field}}": "{{value}}"
+                    }
+                }
             }
-          }
         },
         'aggs' : {
             // When: Timeline of offers
@@ -51,31 +53,19 @@ module.exports = {
         "aggs" : {
             "people_names": {
                 "terms": {
-                    "field": "name",
+                    "field": "name.raw",
                     "size": 0
                 }
             },
             "people_ages": {
                 "terms": {
-                    "field": "personAge",
+                    "field": "age",
                     "size": 0
                 }
             },
             "people_ethnicities": {
                 "terms": {
                     "field": "ethnicity",
-                    "size": 0
-                }
-            },
-            "people_eye_colors": {
-                "terms": {
-                    "field": "eyeColor",
-                    "size": 0
-                }
-            },
-            "people_hair_color": {
-                "terms": {
-                    "field": "hairColor",
                     "size": 0
                 }
             }
@@ -91,7 +81,7 @@ module.exports = {
         "aggs" : {
             "related_phones" : {
                 "terms" : { 
-                    "field" : "telephone.name",
+                    "field" : "telephone.name.raw",
                     "size": 0
                 },
                 "aggs" : {
@@ -106,7 +96,7 @@ module.exports = {
             },
             "related_emails" : {
                 "terms" : { 
-                    "field" : "email.name",
+                    "field" : "email.name.raw",
                     "size": 0
                 }          
             },
@@ -147,13 +137,13 @@ module.exports = {
                 "filtered" : {
                     "filter" : {
                         "terms" : { 
-                            "name": []
+                            "name.raw": []
                         }
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms.name'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms.name.raw'
     },
     offerRelatedEntities: {
         query: {
@@ -163,7 +153,7 @@ module.exports = {
                         "filtered" : {
                             "filter" : {
                                 "terms" : {
-                                    "phone.name": []
+                                    "phone.name.raw": []
                                 }
                             }
                         }
@@ -171,7 +161,7 @@ module.exports = {
                         "filtered" : {
                             "filter" : {
                                 "terms" : {
-                                    "email.name": []
+                                    "email.name.raw": []
                                 }
                             }
                         }
@@ -192,8 +182,8 @@ module.exports = {
             }
         },
         pathsToValues: [
-            'query.bool.should[0].filtered.filter.terms["phone.name"]', 
-            'query.bool.should[1].filtered.filter.terms["email.name"]',
+            'query.bool.should[0].filtered.filter.terms["phone.name.raw"]', 
+            'query.bool.should[1].filtered.filter.terms["email.name.raw"]',
             'query.bool.should[2].match._id',
             'query.bool.should[3].match._id',
             'query.bool.should[4].match._id'
@@ -215,7 +205,7 @@ module.exports = {
         "aggs":{
             "seller_assoc_numbers": {
                 "terms": {
-                    "field": "telephone.name",
+                    "field": "telephone.name.raw",
                     "size": 0
                 }
             }
@@ -234,7 +224,7 @@ module.exports = {
         "aggs":{
             "seller_assoc_emails": {
                 "terms": {
-                    "field" : "email.name",
+                    "field" : "email.name.raw",
                     "size": 0
                 }
             }
@@ -254,31 +244,19 @@ module.exports = {
         "aggs" : {
             "people_names": {
                 "terms": {
-                    "field": "name",
+                    "field": "name.raw",
                     "size": 0
                 }
             },
             "people_ages": {
                 "terms": {
-                    "field": "personAge",
+                    "field": "age",
                     "size": 0
                 }
             },
             "people_ethnicities": {
                 "terms": {
                     "field": "ethnicity",
-                    "size": 0
-                }
-            },
-            "people_eye_colors": {
-                "terms": {
-                    "field": "eyeColor",
-                    "size": 0
-                }
-            },
-            "people_hair_color": {
-                "terms": {
-                    "field": "hairColor",
                     "size": 0
                 }
             }
@@ -355,7 +333,7 @@ module.exports = {
                 "filtered": {
                     "filter": {
                         "terms": {
-                            "telephone.name": []
+                            "telephone.name.raw": []
                         }
                     }
                 }
@@ -363,13 +341,13 @@ module.exports = {
             "aggs":{
                 "assoc_numbers": {
                     "terms": {
-                        "field": "telephone.name",
+                        "field": "telephone.name.raw",
                         "size": 0
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name"]'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name.raw"]'
     },
     personRelatedEmails: {
         query: {
@@ -377,7 +355,7 @@ module.exports = {
                 "filtered": {
                     "filter": {
                         "terms": {
-                            "email.name": []
+                            "email.name.raw": []
                         }
                     }
                 }
@@ -385,13 +363,13 @@ module.exports = {
             "aggs":{
                 "assoc_emails": {
                     "terms": {
-                        "field": "email.name",
+                        "field": "email.name.raw",
                         "size": 0
                     }
                 }
             }
         },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name"]'
+        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name.raw"]'
     },
     // used on other entity views as well (w/different aggregation names)
     personOfferAgg: {
@@ -404,7 +382,6 @@ module.exports = {
                 }
             }
         },
-        size: 40, // TODO: add paging
         "aggs": {
             "offers_with_person" : {
                 "date_histogram": {
@@ -421,13 +398,13 @@ module.exports = {
             // adding to get aggregate of all phones and emails
             "phones_for_person": {
                 "terms" : {
-                    "field" : "seller.telephone.name",
+                    "field" : "offer.seller.telephone.name.raw",
                     "size": 0
                 }
             },
             "emails_for_person": {
                 "terms" : {
-                    "field" : "seller.email.name",
+                    "field" : "offer.seller.email.name.raw",
                     "size": 0
                 }
             }

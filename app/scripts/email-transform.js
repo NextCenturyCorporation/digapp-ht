@@ -18,7 +18,7 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
     function getEmail(record) {
         var email = {};
         email._id = _.get(record, 'uri');
-        email.emailAddress = _.get(record, 'name[0]');
+        email.emailAddress = _.get(record, 'name');
 
         return email;
     }
@@ -40,7 +40,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
             if(data.hits.hits.length > 0) {
                 var aggs = data.aggregations;
 
-                newData.prices = commonTransforms.getPrices(data.hits.hits);
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
                 newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');

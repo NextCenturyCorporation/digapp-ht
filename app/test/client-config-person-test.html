@@ -4,8 +4,8 @@
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
   <title>client-config</title>
 
-  <script src="../../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
-  <script src="../../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
   <script src="data/service-result.js" type="text/javascript"></script>
   <script src="data/offer-aggregations.js" type="text/javascript"></script>
   <script src="data/seller-aggregations.js" type="text/javascript"></script>
@@ -55,13 +55,10 @@
       assert.isObject(dataOut);
       assert.isString(dataOut._id);
       assert.equal(dataOut.name, 'Jan');
-      assert.equal(dataOut.age, '24');
       assert.equal(dataOut.weight, '115');
       assert.equal(dataOut.height, '64');
-      // following not yet available in data
-      assert.equal(dataOut.ethnicity, undefined);
-      assert.equal(dataOut.eyeColor, undefined);
-      assert.equal(dataOut.hairColor, undefined);
+      assert.deepEqual(dataOut.age, ['24']);
+      assert.deepEqual(dataOut.ethnicity, ['white']);
     });
 
   });
@@ -84,10 +81,7 @@
       assert.equal(dataOut.age, undefined);
       assert.equal(dataOut.weight, undefined);
       assert.equal(dataOut.height, undefined);
-      // following not yet available in data
       assert.equal(dataOut.ethnicity, undefined);
-      assert.equal(dataOut.eyeColor, undefined);
-      assert.equal(dataOut.hairColor, undefined);
     });
   });
 
@@ -126,14 +120,14 @@
 
       offerAggCopy = {
         hits : {
-          total: 32,
+          total: 2,
           hits: offerAgg.hits.hits
         },
         aggregations : {
           locs_for_person: offerAgg.aggregations.offers_by_city,
           offers_with_person: offerAgg.aggregations.offers_by_date,
           phones_for_person: {
-            buckets: [{key: '1234567890', count: 32}]
+            buckets: [{key: '1234567890', count: 2}]
           },
           emails_for_person: {
             buckets: [{key: 'abc@xyz.com', count: 1}]
@@ -159,34 +153,26 @@
     });
 
     test('defines location items', function() {
-      assert.equal(dataOut.locations.length, 10);
-      assert.equal(dataOut.locations[3].city, 'Los Angeles');
-      expect(dataOut.locations[3].state).to.not.exist;
-      assert.equal(dataOut.locations[3].lat, 34.0522);
-      assert.equal(dataOut.locations[3].lon, -118.244);
-      assert.equal(dataOut.locations[3].date, '2014-10-28T21:44:00');
+      assert.equal(dataOut.locations.length, 2);
+      assert.equal(dataOut.locations[1].city, 'Los Angeles');
+      expect(dataOut.locations[1].state).to.not.exist;
+      assert.equal(dataOut.locations[1].latitude, '45.5591154');
+      assert.equal(dataOut.locations[1].longitude, '-122.6585183');
+      assert.equal(dataOut.locations[1].date, '2015-10-10T19:56:48');
     });
 
     test('defines geo coordinates', function() {
       // creates unique list of geocoordinates
       assert.isArray(dataOut.geoCoordinates);
-      assert.equal(dataOut.geoCoordinates.length, 3);
-      assert.equal(dataOut.geoCoordinates[2].lat, '33.6805');
-      assert.equal(dataOut.geoCoordinates[2].lon, '-117.86');
-    });
-
-    test('defines prices array', function() {
-      expect(dataOut.prices).to.be.an('Array');
-      assert.equal(dataOut.prices.length, 12);
-      assert.equal(dataOut.prices[1].amount, 200);
-      assert.equal(dataOut.prices[4].unitCode, 'MIN');
-      assert.equal(dataOut.prices[2].billingIncrement, 60);
+      assert.equal(dataOut.geoCoordinates.length, 1);
+      assert.equal(dataOut.geoCoordinates[0].latitude, '45.5591154');
+      assert.equal(dataOut.geoCoordinates[0].longitude, '-122.6585183');
     });
 
     test('defines related offers object', function() {
       assert.isObject(dataOut.relatedOffers);
       assert.isArray(dataOut.relatedOffers.data);
-      assert.equal(dataOut.relatedOffers.count, 32);
+      assert.equal(dataOut.relatedOffers.count, 2);
     });
 
     test('defines offers with information specified in data-model', function() {
@@ -195,11 +181,9 @@
       assert.equal(dataOut.relatedOffers.data[0].title, '1234567890');
       assert.isString(dataOut.relatedOffers.data[0].subtitle);
       assert.isObject(dataOut.relatedOffers.data[0].details);
-      assert.equal(dataOut.relatedOffers.data[0].details.date, '2014-10-30T22:37:00');
-      assert.equal(dataOut.relatedOffers.data[3].details.address, 'Los Angeles');
+      assert.equal(dataOut.relatedOffers.data[0].details.date, '2015-11-06T22:15:08');
+      assert.equal(dataOut.relatedOffers.data[0].details.address, 'Los Angeles');
       assert.isString(dataOut.relatedOffers.data[0].details.publisher);
-      assert.isArray(dataOut.relatedOffers.data[8].details.prices);
-      assert.equal(dataOut.relatedOffers.data[8].details.prices[0], '250 (60 MIN)');
     });
 
     test('defines cities agg array', function() {
@@ -208,8 +192,8 @@
     });
 
     test('defines cities items', function() {
-      assert.equal(dataOut.offerCities.length, 3);
-      assert.deepEqual(dataOut.offerCities[2], {city: 'San Fernando Valley', count: 10});
+      assert.equal(dataOut.offerCities.length, 2);
+      assert.deepEqual(dataOut.offerCities[0], {city: 'Los Angeles', count: 1});
     });
 
     test('defines dates agg array', function() {
@@ -218,9 +202,9 @@
     });
 
     test('defines dates items', function() {
-      assert.equal(dataOut.offerDates.length, 1);
+      assert.equal(dataOut.offerDates.length, 2);
       assert.equal(dataOut.offerDates[0].date, '2014-10-27T00:00:00.000Z');
-      assert.equal(dataOut.offerDates[0].count, 32);
+      assert.equal(dataOut.offerDates[0].count, 1);
     });
 
     test('defines an array of phone numbers', function () {
@@ -294,7 +278,7 @@
       assert.isArray(dataout);
       assert.equal(dataout.length, 1);
       assert.equal(dataout[0].number, '1234567890');
-      assert.equal(dataout[0].count, 32);
+      assert.equal(dataout[0].count, 1);
     });
   });
 

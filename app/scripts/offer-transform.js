@@ -12,20 +12,20 @@ var offerTransform = (function(_, commonTransforms) {
     function getGeolocation(record) {
         /** build geolocation object:
         "geo": { 
-            "lat": 33.916403, 
-            "lon": -118.352575
+            "latitude": 33.916403, 
+            "longitude": -118.352575
         }
         
-        if no lat && lon, return undefined 
+        if no latitude && longitude, return undefined 
         */
         var geo;
-        var lat = _.get(record, 'availableAtOrFrom.geo.lat');
-        var lon = _.get(record, 'availableAtOrFrom.geo.lon');
+        var latitude = _.get(record, 'availableAtOrFrom.geo.latitude');
+        var longitude = _.get(record, 'availableAtOrFrom.geo.longitude');
 
-        if(lat && lon) {
+        if(latitude && longitude) {
             geo = {};
-            geo.lat = lat;
-            geo.lon = lon;
+            geo.latitude = latitude;
+            geo.longitude = longitude;
         }
 
         return geo;
@@ -34,21 +34,19 @@ var offerTransform = (function(_, commonTransforms) {
     function getPerson(record) {
         /** build person object:
         "person": {
-            "name": "Emily", 
-            "eyeColor": "blue",
-            "hairColor": "brown",
+            "name": "Emily",
+            "ethnicities": ["white"],
             "height": 64,
             "weight": 115,
-            "age": 20
+            "ages": [20]
         }
         */
         var person = {};
         person.name = _.get(record, 'itemOffered.name', 'Name N/A');
-        person.eyeColor = _.get(record, 'itemOffered.eyeColor');
-        person.hairColor = _.get(record, 'itemOffered.hairColor');
-        person.height = _.get(record, 'itemOffered[schema:height]');
-        person.weight = _.get(record, 'itemOffered[schema:weight]');
-        person.age = _.get(record, 'itemOffered.personAge');
+        person.ethnicities = _.get(record, 'itemOffered.ethnicity');
+        person.height = _.get(record, 'itemOffered.height');
+        person.weight = _.get(record, 'itemOffered.weight');
+        person.ages = _.get(record, 'itemOffered.age');
         return person;
     }
 
@@ -63,11 +61,13 @@ var offerTransform = (function(_, commonTransforms) {
                 newData.geo = getGeolocation(data.hits.hits[0]._source);
                 newData.person = getPerson(data.hits.hits[0]._source);
                 newData.title = _.get(data.hits.hits[0]._source, 'title', 'Title N/A');
-                newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name[0]');
-                newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description[0]');
-                newData.prices = commonTransforms.getPrices([data.hits.hits[0]]);
-                newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name[0]');
-                newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name[0]');
+                newData.publisher = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.publisher.name');
+                newData.body = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.description');
+                //newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name');
+                //newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name');
+                // only get one of each for now
+                newData.emails = [_.get(data.hits.hits[0]._source, 'seller.email.name', '')];
+                newData.phones = [_.get(data.hits.hits[0]._source, 'seller.telephone.name', '')];
                 newData.sellerId = _.get(data.hits.hits[0]._source, 'seller.uri');
                 newData.serviceId = _.get(data.hits.hits[0]._source, 'itemOffered.uri');
                 newData.webpageId = _.get(data.hits.hits[0]._source, 'mainEntityOfPage.uri');

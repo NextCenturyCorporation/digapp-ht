@@ -4,6 +4,7 @@ var path = require('path');
 var _ = require('lodash');
 var pjson = require('../../../package.json');
 var templates = require('../query-templates.js');
+var elasticTypes = require('../elastic-types.js');
 
 function requiredProcessEnv(name) {
     if(!process.env[name]) {
@@ -41,6 +42,7 @@ var all = {
 
     elasticConfig: process.env.ELASTIC_CONFIG || '{"host": "http://localhost:9200"}',
     elasticIndex: process.env.ELASTIC_INDEX || 'mockads',
+    elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
     queryTemplates: templates.QUERY_TEMPLATES || '{}'
  
 };

@@ -15,6 +15,7 @@ module.exports = function(app) {
         res.status(200).send({
             elasticConfig: JSON.parse(config.elasticConfig),
             elasticIndex: config.elasticIndex,
+            elasticTypes: config.elasticTypes,
             appVersion: config.appVersion,
             queryTemplates: config.queryTemplates
         });

@@ -15,8 +15,8 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             if(data.hits.hits.length > 0) {
                 newData._id = _.get(data.hits.hits[0], '_id');
-                newData.telephone = _.get(data.hits.hits[0]._source, 'telephone[0].name[0]');
-                newData.emailAddress = _.get(data.hits.hits[0]._source, 'email[0].name[0]');
+                newData.telephone = _.get(data.hits.hits[0]._source, 'telephone.name');
+                newData.emailAddress = _.get(data.hits.hits[0]._source, 'email.name');
                 newData.title = 'Seller (' + (newData.telephone || newData.emailAddress || 'Info N/A') + ')';
             }
 
@@ -37,7 +37,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             if(data.hits.hits.length > 0 && data.aggregations) {
                 var aggs = data.aggregations;
 
-                newData.prices = commonTransforms.getPrices(data.hits.hits);
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
                 newData.offerCities = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');

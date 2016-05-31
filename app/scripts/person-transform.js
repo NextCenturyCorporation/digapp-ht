@@ -30,11 +30,9 @@ var personTransform = (function(_, commonTransforms, relatedEntityTransform) {
                 newData._id = _.get(data.hits.hits[0], '_id');
                 newData.name = _.get(data.hits.hits[0]._source, 'name', 'Name N/A');
                 newData.ethnicity = _.get(data.hits.hits[0]._source, 'ethnicity');
-                newData.eyeColor = _.get(data.hits.hits[0]._source, 'eyeColor');
-                newData.hairColor = _.get(data.hits.hits[0]._source, 'hairColor');
-                newData.height = _.get(data.hits.hits[0]._source, '[schema:height]');
-                newData.weight = _.get(data.hits.hits[0]._source, '[schema:weight]');
-                newData.age = _.get(data.hits.hits[0]._source, 'personAge');
+                newData.height = _.get(data.hits.hits[0]._source, 'height');
+                newData.weight = _.get(data.hits.hits[0]._source, 'weight');
+                newData.age = _.get(data.hits.hits[0]._source, 'age');
             }
 
             return newData;
@@ -45,7 +43,6 @@ var personTransform = (function(_, commonTransforms, relatedEntityTransform) {
             if(data.hits.hits.length > 0) {
                 newData.locations = commonTransforms.getLocations(data.hits.hits);
                 newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
-                newData.prices = commonTransforms.getPrices(data.hits.hits);
                 newData.relatedOffers = relatedEntityTransform.offer(data);
             }
 

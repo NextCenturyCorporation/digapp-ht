@@ -17,7 +17,7 @@
   <!-- endbuild-->
 
   <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
-  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <!-- endbuild -->
 
   <!-- will be replaced with elements/elements.vulcanized.html -->
@@ -66,10 +66,10 @@
       results="{{ecsResult}}"
       last-error="{{error}}"
       result-count="{{resultCount}}"
-      aggregations="{{buildArray(offerCityAgg, offerNameAgg, offerAgeAgg, offerEyeAgg, offerHairAgg, offerHeightAgg, offerWeightAgg)}}"
-      filters="[[buildStarArray(offerCityFilter.*, offerNameFilter.*, offerAgeFilter.*, offerEyeFilter.*, offerHairFilter.*, offerHeightFilter.*, offerWeightFilter.*)]]"
-      loading="{{loading}}"
-      >
+      aggregations="{{buildArray(webpageCityAgg, phoneAgg)}}"
+      filters="[[buildStarArray(webpageCityFilter.*, phoneFilter.*)]]"
+      sort="{{sort}}"
+      loading="{{loading}}">
     </elastic-client-search>
 
     <json-transform
@@ -84,11 +84,9 @@
       <paper-toolbar>
         <img src="images/dig-logo-original.png" alt="">
         <div class="drawer-spacer"></div>
-        <iron-icon icon="icons:search"></iron-icon>
         <div class="v-divider"></div>
         <elastic-type-selector
-          client="[[esclient]]"
-          index="[[config.elasticIndex]]"
+          available-types="{{config.elasticTypes}}"
           elastic-types="{{esTypes}}"
         ></elastic-type-selector>
         <div class="v-divider"></div>
@@ -102,139 +100,61 @@
             </elastic-client-input>
         </div>
 
-        <paper-icon-button icon="clear" onclick="clearSearchInput()"></paper-icon-button>
-
       </paper-toolbar>
 
       <paper-drawer-panel>
 
         <!-- Sidebar on left side -->
         <paper-header-panel drawer>
-          <section>
-            <h3>Facets</h3>
+          <iron-pages attr-for-selected="data-type" selected="{{esTypes.0}}">
+            <section data-type="webpage">
+              <!--TODO: create different sort for all types + different elastic-client-searches for all types -->
+              <elastic-sort-input sort-string="{{offerSortString}}" field="validFrom"></elastic-sort-input>
+              <elastic-sort input-string="{{offerSortString}}" sort="{{sort}}"></elastic-sort-input>
 
-            <p>
-              <h4>City</h4>
+              <p>
+                <h4>City</h4>
+                <elastic-client-aggregation-builder
+                  name="webpageCityAgg"
+                  field="mainEntity.availableAtOrFrom.address.addressLocality"
+                  ejs-aggregation="{{webpageCityAgg}}"
+                  type="terms">
+                </elastic-client-aggregation-builder>
+
+              <elastic-client-checkbox-list
+                buckets="[[ecsResult.aggregations.webpageCityAgg.webpageCityAgg.buckets]]"
+                filter-name="webpageCityAgg"
+                field="mainEntity.availableAtOrFrom.address.addressLocality"
+                ejs-filter="{{webpageCityFilter}}"
+                combination-type="or">
+              </elastic-client-checkbox-list>
+              </p>
+
+              <p><h4>Telephone</h4>
               <elastic-client-aggregation-builder
-                name="offerCityAgg"
-                field="availableAtOrFrom.address.addressLocality"
-                ejs-aggregation="{{offerCityAgg}}"
+                name="phoneAgg"
+                field="mainEntity.seller.telephone.name"
+                ejs-aggregation="{{phoneAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerCityAgg.offerCityAgg.buckets]]"
-              filter-name="offerCityAgg"
-              field="availableAtOrFrom.address.addressLocality"
-              ejs-filter="{{offerCityFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
+              <elastic-client-checkbox-list
+                buckets="[[ecsResult.aggregations.phoneAgg.phoneAgg.buckets]]"
+                filter-name="phoneAgg"
+                field="mainEntity.seller.telephone.name"
+                ejs-filter="{{phoneFilter}}"
+                combination-type="or">
+              </elastic-client-checkbox-list>
+              </p>
 
-            <p><h4>Name</h4>
-            <elastic-client-aggregation-builder
-              name="offerNameAgg"
-              field="itemOffered.name"
-              ejs-aggregation="{{offerNameAgg}}"
-              type="terms">
-            </elastic-client-aggregation-builder>
-
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerNameAgg.offerNameAgg.buckets]]"
-              filter-name="offerNameAgg"
-              field="itemOffered.name"
-              ejs-filter="{{offerNameFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
-
-            <p><h4>Age</h4>
-            <elastic-client-aggregation-builder
-              name="offerAgeAgg"
-              filter-name="offerNameAgg"
-              field="itemOffered.personAge"
-              ejs-aggregation="{{offerAgeAgg}}"
-              type="terms">
-            </elastic-client-aggregation-builder>
-
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerAgeAgg.offerAgeAgg.buckets]]"
-              filter-name="offerAgeAgg"
-              field="itemOffered.personAge"
-              ejs-filter="{{offerAgeFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
-
-            <p><h4>Eye Color</h4>
-            <elastic-client-aggregation-builder
-              name="offerEyeAgg"
-              field="itemOffered.eyeColor"
-              ejs-aggregation="{{offerEyeAgg}}"
-              type="terms">
-            </elastic-client-aggregation-builder>
-
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerEyeAgg.offerEyeAgg.buckets]]"
-              filter-name="offerEyeAgg"
-              field="itemOffered.eyeColor"
-              ejs-filter="{{offerEyeFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
-
-            <p><h4>Hair Color</h4>
-            <elastic-client-aggregation-builder
-              name="offerHairAgg"
-              field="itemOffered.hairColor"
-              ejs-aggregation="{{offerHairAgg}}"
-              type="terms">
-            </elastic-client-aggregation-builder>
-
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerHairAgg.offerHairAgg.buckets]]"
-              filter-name="offerHairAgg"
-              field="itemOffered.hairColor"
-              ejs-filter="{{offerHairFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
-
-            <p><h4>Weight</h4>
-            <elastic-client-aggregation-builder
-              name="offerWeightAgg"
-              field="itemOffered[schema:weight]"
-              ejs-aggregation="{{offerWeightAgg}}"
-              type="terms">
-            </elastic-client-aggregation-builder>
-
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerWeightAgg.offerWeightAgg.buckets]]"
-              filter-name="offerWeightAgg"
-              field="itemOffered[schema:weight]"
-              ejs-filter="{{offerWeightFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
-
-            <p><h4>Height</h4>
-            <elastic-client-aggregation-builder
-              name="offerHeightAgg"
-              field="itemOffered[schema:height]"
-              ejs-aggregation="{{offerHeightAgg}}"
-              type="terms">
-            </elastic-client-aggregation-builder>
-
-            <elastic-client-checkbox-list
-              buckets="[[ecsResult.aggregations.offerHeightAgg.offerHeightAgg.buckets]]"
-              filter-name="offerHeightAgg"
-              field="itemOffered[schema:height]"
-              ejs-filter="{{offerHeightFilter}}"
-              combination-type="or">
-            </elastic-client-checkbox-list>
-            </p>
-
-          </section>
+            </section>
+            <section data-type="phone">phone</section>
+            <section data-type="email">email</section>
+            <section data-type="adultservice">provider</section>
+            <section data-type="seller">seller</section>
+            <section data-type="webpage">webpage</section>
+            <section data-type=''>ALL</section>
+          </iron-pages>
         </paper-header-panel>
 
         <!-- Main content on right side -->
@@ -244,7 +164,6 @@
               <div class="paper-font-title flex">{{records.count}} results</div>
               <div class="flex-none">
                 <!-- Place search controls or view options here -->
-               <!--  <pagination-elem current-page="{{pageNum}}" num-results="{{resultCount}}" results-per-page="{{pageSize}}"></pagination-elem> -->
               </div>
             </div>
             <div class="h-divider"></div>
@@ -294,11 +213,6 @@
           return _.map(filtered, function(arg) {
             return (arg.base ? arg.base : arg.path);
           });
-        };
-
-        app.clearSearchInput = function() {
-          var input = document.querySelector('elastic-client-input');
-          input.clear();
         };
 
     })(document);
