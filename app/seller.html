@@ -105,98 +105,7 @@
      ></json-transform>
     
     <!--Start related entity queries and transforms-->
-    <!--Related offerData info-->
-    <query-builder 
-      query="{{offerAggQuery}}" 
-      query-template="{{config.queryTemplates.offerAggsBySeller}}"
-      field="seller.uri" value="[[sellerDisplay.seller._id]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerAggQuery]]'
-      results="{{offerData}}"
-      elastic-type='["offer"]'
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[offerData]]"
-     data-out="{{sellerDisplay.offerData}}"
-     transform-function="[[clientConfig.transforms.seller.offerData]]"
-     ></json-transform>
-
-    <!--Related phones info-->
-    <query-builder 
-      query="{{sellerPhoneAggs}}" 
-      query-template="{{config.queryTemplates.sellerPhoneAggs}}"
-      field="telephone.name.raw" value="[[sellerDisplay.seller.telephone]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[sellerPhoneAggs]]'
-      results="{{relatedPhones}}"
-      elastic-type='["seller"]'
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedPhones]]"
-     data-out="{{sellerDisplay.relatedPhones}}"
-     transform-function="[[clientConfig.transforms.seller.relatedPhones]]"
-     ></json-transform>
-
-    <!--Related emails info-->
-    <query-builder 
-      query="{{sellerEmailAggs}}" 
-      query-template="{{config.queryTemplates.sellerEmailAggs}}"
-      field="email.name.raw" value="[[sellerDisplay.seller.emailAddress]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[sellerEmailAggs]]'
-      results="{{relatedEmails}}"
-      elastic-type='["seller"]'
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedEmails]]"
-     data-out="{{sellerDisplay.relatedEmails}}"
-     transform-function="[[clientConfig.transforms.seller.relatedEmails]]"
-     ></json-transform>
-
-    <!-- Related offers and people (full list) -->
-    <bool-query-builder
-      query="{{relatedEntityQuery}}"
-      query-template="{{config.queryTemplates.sellerPeopleAndOffers.query}}"
-      paths-to-values="{{config.queryTemplates.sellerPeopleAndOffers.pathsToValues}}"
-      value="[[sellerDisplay.seller._id]]">
-    </bool-query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[relatedEntityQuery]]'
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      results="{{relatedResults}}"
-      elastic-type='["offer", "adultservice"]'
-      lastError="{{error}}"
-      loading="{{relatedEntitiesLoading}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedResults]]"
-     data-out="{{relatedRecords}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
-     ></json-transform>
-
+    
     <!-- Related people (aggs) -->
     <query-builder 
       query="{{relatedServiceAggQuery}}" 
@@ -220,6 +129,82 @@
      ></json-transform>
 
     <!-- End related entity queries-->
+
+    <!--
+      build the query for offer timeline 
+    -->
+     <query-builder 
+      query="{{offerTimelineQuery}}" 
+      query-template="{{config.queryTemplates.offerTimeline}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerTimelineQuery]]'
+      results="{{offerTimelineAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offerTimelineAggs]]"
+     data-out="{{sellerDisplay.offerTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.offerTimelineData]]"
+     ></json-transform>
+
+    <!--
+      build the query for offer locations 
+    -->
+     <query-builder 
+      query="{{offerLocationQuery}}" 
+      query-template="{{config.queryTemplates.offerLocation}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerLocationQuery]]'
+      results="{{offerLocationAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offerLocationAggs]]"
+     data-out="{{sellerDisplay.offerLocation}}"
+     transform-function="[[clientConfig.transforms.seller.offerLocationData]]"
+     ></json-transform>
+
+    <!--
+      Get all the offers for this phone
+     -->
+    <query-builder 
+      query="{{sellerOffersQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query='[[sellerOffersQuery]]'
+      results="{{sellerOffers}}"
+      elastic-type='["offer"]'
+      loading="{{offersLoading}}"
+      lastError="{{error}}">
+
+    </elastic-search>
+
+    <json-transform
+     data-in="[[sellerOffers]]"
+     data-out="{{sellerDisplay.sellerOffers}}"
+     transform-function="[[clientConfig.transforms.seller.sellerOffersData]]"
+     ></json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -260,7 +245,7 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[sellerDisplay.offerData.offerDates]]' 
+                  <bar-chart y-axis-label="" data='[[sellerDisplay.offerTimeline.offerTimeline]]' 
                     chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count" 
                     min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </bar-chart>
@@ -310,19 +295,19 @@
                 <div class="paper-font-title layout horizontal start center">
                   <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
                   <!-- Likely to be only one location for seller for now until entity resolution is done -->
-                  <div>[[sellerDisplay.offerData.geoCoordinates.length]] location(s)</div>
+                  <div>[[sellerDisplay.offerLocation.offerLocation.length]] location(s)</div>
                 </div>
               </section>
               
               <!-- Leaflet map -->
               <section class="where flex-auto">
-                <leaflet-wrapper map-data="{{sellerDisplay.offerData.geoCoordinates}}">
+                <leaflet-wrapper map-data="{{sellerDisplay.offerLocation.offerLocation}}">
                 </leaflet-wrapper>
               </section>
               
               <!-- City summary -->
               <section class="where-details flex-none">
-                <feature-aggregation title="Offers per city" key="city" agg="[[sellerDisplay.offerData.offerCities]]"></feature-aggregation>
+                <feature-aggregation title="Offers per city" key="city" agg="[[sellerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
               </section>
               
             </paper-material>
@@ -334,18 +319,19 @@
           <div class="content">
           
             <!-- Offer list -->
+            <!-- Offer list -->
             <div class="flex">
               <paper-material class="related-entities-wrapper">
                 <section class="related-entities">
                   <div class="section-header">
                     <div class="paper-font-title">
-                      Related items
+                      [[sellerDisplay.sellerOffers.relatedOffers.count]] offer(s)
                     </div>
                   </div>
                   <records-list
-                    current-results="[[relatedRecords.data]]" page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" num-results="{{relatedRecords.count}}"
-                    loading="{{relatedEntitiesLoading}}">
+                    current-results="[[sellerDisplay.sellerOffers.relatedOffers.data]]" page="{{pageNum}}" 
+                    results-per-page="{{pageSize}}" num-results="{{sellerDisplay.sellerOffers.relatedOffers.count}}" 
+                    loading="{{offersLoading}}">
                   </records-list>
                 </section>
               </paper-material>
@@ -360,48 +346,6 @@
 
                   <div class="section-header">
                    <div class="paper-font-title flex">Other related items</div>
-
-                    <!-- Related items summary -->
-                    <div class="layout horizontal">
-
-                      <!-- TO DO: Hook up these two with data and show in related entity list -->
-    <!--
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-seller-font" icon="editor:attach-money"></iron-icon>
-                        <div class="paper-font-title">5</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-person-font" icon="icons:account-circle"></iron-icon>
-                        <div class="paper-font-title">20</div>
-                      </div>
-    -->
-
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-phone-font" icon="communication:phone"></iron-icon>
-                        <div class="paper-font-title">[[sellerDisplay.relatedPhones.length]]</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-email-font" icon="communication:email"></iron-icon>
-                        <div class="paper-font-title">[[sellerDisplay.relatedEmails.length]]</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Related items list, would prefer to use this -->
-                  <!-- These would work better as a unified list, sorted by co-occurances -->
-    <!--
-                  <records-list records="[[phoneDisplay.seller.relatedEmails]]"></records-list>
-                  <records-list records="[[phoneDisplay.seller.relatedPhones]]"></records-list>
-    -->
-
-                  <!-- Related items summary -->
-                  <!-- Would like to use a list as shown above, instead -->
-                  <feature-aggregation title="Co-occurring Emails" key="email" agg="[[sellerDisplay.relatedEmails]]"
-                    show-link="true" link-type="email" link-field="name">
-                  </feature-aggregation>
-                  <feature-aggregation title="Co-occurring Phones" key="number" agg="[[sellerDisplay.relatedPhones]]" 
-                    show-link="true" link-type="phone" link-field="name">
-                  </feature-aggregation>
 
                 </section>
               </paper-material>

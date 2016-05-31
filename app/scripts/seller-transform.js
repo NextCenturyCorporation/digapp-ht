@@ -15,9 +15,18 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             if(data.hits.hits.length > 0) {
                 newData._id = _.get(data.hits.hits[0], '_id');
+                newData._type = _.get(data.hits.hits[0], '_type');
                 newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
                 newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-                newData.title = 'Seller (' + (newData.telephone || newData.emailAddress || 'Info N/A') + ')';
+                var title = undefined;
+                if(newData.telephone.length > 0) {
+                    title = newData.telephone[0].title;
+                }
+                if(newData.emailAddress.length > 0) {
+                    title += ", " + newData.emailAddress[0].title;
+                }
+                newData.title = 'Seller (' + (title || 'Info N/A') + ')';
+                newData.subtitle = '';
             }
 
             return newData;
@@ -33,6 +42,17 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData = commonTransforms.combineArrays(telephone, emailAddress);
             }
 
+            return newData;
+        },
+        offerTimelineData: function(data) {
+            return commonTransforms.offerTimelineData(data);
+        },
+        offerLocationData: function(data) {
+            return commonTransforms.offerLocationData(data);
+        },
+        sellerOffersData: function(data) {
+            var newData = {};
+            newData.relatedOffers = relatedEntityTransform.offer(data); 
             return newData;
         },
         people: function(data) {
