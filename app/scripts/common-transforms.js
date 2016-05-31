@@ -16,6 +16,28 @@ var commonTransforms = (function(_) {
         return value.latitude === other.latitude && value.longitude === other.longitude;
     }
 
+    function getGeoFromKeys(record) {
+        
+        var geos = [];
+        _.each(record, function(key) {
+            geoData = key.key.split(':');
+            count = key.doc_count;
+            var geo = {
+                        city: geoData[0],
+                        state: geoData[1],
+                        country: geoData[2],
+                        longitude: geoData[3],
+                        latitude: geoData[4],
+                        count: count,
+                        name: geoData[0] + ", " + geoData[1]
+                    };
+            geos.push(geo)
+        });
+        // Removing duplicates for better map display
+        //geos = _.uniqWith(geos, commonTransforms.isGeolocationEqual);
+        return geos;
+    }
+
     return {
         /**
         * Changes the key/value names of buckets given from an aggregation
@@ -211,10 +233,40 @@ var commonTransforms = (function(_) {
             });
             return arr1;
         },
+        offerTimelineData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+                newData.offerTimeline = this.transformBuckets(aggs.offersPhone.offerTimeline.buckets, 'date', 'key_as_string');
+            }
+        
+            return newData;
+        },
+        offerLocationData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+                newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
+            }
+        
+            return newData;
+        },
+         getSellerId: function(record) {
+            sellerId = '';
+            if(record.owner) {
+                //phone will one seller 
+                sellerId = record.owner[0].uri;
+            }
+
+            return sellerId;
+        },
         getEmailAndPhoneFromMentions(mentions) {
             var newData = {};
             newData.phones = [];
             newData.emails = [];
+
             if(mentions) {
                 mentions.forEach(function(elem) {
                     type = 'none';
