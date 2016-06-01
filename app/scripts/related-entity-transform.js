@@ -166,7 +166,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.name', 'Title N/A'),
-            subtitle: _.get(record, '_source.publisher.name', 'Publisher N/A'),
+            subtitle: [_.get(record, '_source.publisher.name', 'Publisher N/A')],
             offer: _.get(record, '_source.mainEntity.uri'),
             details: {
                 url: _.get(record, '_source.url'),
@@ -201,6 +201,12 @@ var relatedEntityTransform = (function(_, commonTransforms) {
 
         var xDate = _.get(record, '_source.dateCreated');
         webpageObj.details.date = dateFormat(new Date(xDate), "mmmm dd, yyyy");
+
+        webpageObj.subtitle.push(webpageObj.details.date)
+        if(webpageObj.details.phone)
+            webpageObj.subtitle.push(webpageObj.details.phone)
+        if(webpageObj.details.email)
+            webpageObj.subtitle.push(webpageObj.details.email)
         return webpageObj;
     }
 
