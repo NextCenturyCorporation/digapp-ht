@@ -409,6 +409,17 @@ module.exports = {
                 }
             }
         }
+    },
+
+    imageMatch: {
+        query: {
+            query: {
+                match: {
+                    'isImagePartOf.uri': '{{value}}'
+                }
+            }
+        },
+        path: 'query.match["isImagePartOf.uri"]'
     }
   }
 };
