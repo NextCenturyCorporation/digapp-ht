@@ -176,12 +176,29 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             }
 
         };
-        if (_.get(record, '_source.mainEntity.seller.telephone.name') !== undefined) {
-            webpageObj.details.phone = _.get(record, '_source.mainEntity.seller.telephone.name');
+        var mentions = _.get(record, '_source.mentions');
+        if(mentions) {
+            phoneEmails = commonTransforms.getEmailAndPhoneFromMentions(mentions);
+            if(phoneEmails.phones.length > 0) {
+                var sep = "";
+                phones = "";
+                phoneEmails.phones.forEach(function(phoneObj) {
+                    phones += sep + phoneObj.title;
+                    sep = ", ";
+                });
+                webpageObj.details.phone = phones;
+            }
+            if(phoneEmails.emails.length > 0) {
+                var sep = "";
+                emails = "";
+                phoneEmails.emails.forEach(function(emailObj) {
+                    emails += sep + emailObj.title;
+                    sep = ", ";
+                });
+                webpageObj.details.email = emails;
+            }
         }
-        if (_.get(record, '_source.mainEntity.seller.email.name') !== undefined) {
-            webpageObj.details.email = _.get(record, '_source.mainEntity.seller.email.name');
-        }
+        
         webpageObj.details.date = _.get(record, '_source.dateCreated');
 
         return webpageObj;
