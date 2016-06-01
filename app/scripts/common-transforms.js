@@ -256,8 +256,15 @@ var commonTransforms = (function(_) {
          getSellerId: function(record) {
             sellerId = '';
             if(record.owner) {
-                //phone will one seller 
-                sellerId = record.owner[0].uri;
+
+                if(_.isArray(record.owner)) {
+                    //phone will one seller 
+                    sellerId = record.owner[0].uri;    
+                }
+                else {
+                    sellerId = record.owner.uri;
+                }
+                
             }
 
             return sellerId;
