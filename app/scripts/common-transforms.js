@@ -33,8 +33,6 @@ var commonTransforms = (function(_) {
                     };
             geos.push(geo)
         });
-        // Removing duplicates for better map display
-        //geos = _.uniqWith(geos, commonTransforms.isGeolocationEqual);
         return geos;
     }
 
@@ -133,8 +131,6 @@ var commonTransforms = (function(_) {
 
             records.forEach(function(record) {
                 var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
-                //var latitude = _.get(record, '_source.availableAtOrFrom.address[0].geo.latitude');
-                //var longitude = _.get(record, '_source.availableAtOrFrom.address[0].geo.longitude');
                 addresses.forEach(function(address) {
                     if (latitude && longitude) {
                         var geo = {
@@ -147,7 +143,7 @@ var commonTransforms = (function(_) {
                     }
                 });
                 // Removing duplicates for better map display
-                geos = _.q(geos, isGeolocationEqual);
+                geos = _.uniqWith(geos, isGeolocationEqual);
             });
 
             return geos;
@@ -262,7 +258,7 @@ var commonTransforms = (function(_) {
                     sellerId = record.owner[0].uri;    
                 }
                 else {
-                    sellerId = record.owner.uri;
+                    sellerId = record.owner
                 }
                 
             }

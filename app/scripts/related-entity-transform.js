@@ -347,11 +347,8 @@ var relatedEntityTransform = (function(_, commonTransforms) {
                     newObj.doc_count = record.doc_count;
                     
                     newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets.push(newObj);
-                    //record['key'] = keys[0] + ',' + keys[1];
-                    // record['text'] = keys[0];
                 });
             }
-            // console.log(data);
             return newObject;
         }
     };
