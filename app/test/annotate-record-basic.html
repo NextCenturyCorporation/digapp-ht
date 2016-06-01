@@ -58,7 +58,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('item defined correctly', function() {
-      assert.deepEqual(element.item, {_id: 'someidhere'});
+      // add annotate flag to equality check since buildAnnotationQuery() runs automatically when item is updated
+      assert.deepEqual(element.item, {_id: 'someidhere', annotateQueryBuilt: true});
     });
 
     test('isItemOfInterest is undefined', function() {
@@ -98,9 +99,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('buildAnnotationQuery replaces appropriate values in queryTemplate', function() {
+      var item = {_id: 'someidhere'};
+      var queryToUse = element.buildAnnotationQuery(item);
+
+      assert.equal(queryToUse.query.bool.must[0].term.uri, item._id);
+    });
+
+    test('buildAnnotationQuery will not return a value for element.item, since it previously returned a query for that already', function() {
       var queryToUse = element.buildAnnotationQuery(element.item);
 
-      assert.equal(queryToUse.query.bool.must[0].term.uri, element.item._id);
+      assert.isUndefined(queryToUse);
     });
 
     test('buildAnnotationQuery returns undefined if item is empty/undefined', function() {
