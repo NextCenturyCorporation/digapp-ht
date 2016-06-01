@@ -20,35 +20,32 @@ var relatedEntityTransform = (function(_, commonTransforms) {
                 }
             }
         */
+        var validFromDate = dateFormat(new Date(_.get(record, '_source.validFrom')), "mmmm dd, yyyy");
+        var datePhoneEmail = [];
+        if(validFromDate) {
+            datePhoneEmail.push(validFromDate);
+        }
         var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
-        var phoneAndEmails = '';
+
         if (mentions) {
             var phones = commonTransforms.getEmailAndPhoneFromMentions(mentions).phones;
             var emails = commonTransforms.getEmailAndPhoneFromMentions(mentions).emails;
             if(phones && phones.length > 0 && emails && emails.length > 0) {
-                joined = phones.concat(emails);
-                _.each(joined, function(val) {
-                    phoneAndEmails += val.title + ", ";
-                });
+                //get only first phone and email to show in the subtitle
+                datePhoneEmail.push(phones[0].title);
+                datePhoneEmail.push(emails[0].title);
             }
             else if(phones && phones.length > 0) {
-                _.each(phones, function(val) {
-                    phoneAndEmails += val.title + ", ";
-                });
+                //get only first phone to show in title
+                datePhoneEmail.push(phones[0].title);
             }
             else if(emails && emails.length > 0) {
-                _.each(emails, function(val) {
-                    phoneAndEmails += val.title + ", ";
-                });
+                //get only first email to show in title
+                datePhoneEmail.push(emails[0].title);
             }
-            phoneAndEmails = phoneAndEmails.substring(0, phoneAndEmails.lastIndexOf(','));
         }
 
-        var validFromDate = dateFormat(new Date(_.get(record, '_source.validFrom')), "mmmm dd, yyyy");
-        var datePhoneEmail = phoneAndEmails;
-        if(validFromDate) {
-            datePhoneEmail = validFromDate + ', ' + phoneAndEmails;
-        }
+        
 
         var offerObj = {
             _id: record._id,
