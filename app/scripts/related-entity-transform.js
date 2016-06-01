@@ -44,7 +44,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             phoneAndEmails = phoneAndEmails.substring(0, phoneAndEmails.lastIndexOf(','));
         }
 
-        var validFromDate = _.get(record, '_source.validFrom');
+        var validFromDate = dateFormat(new Date(_.get(record, '_source.validFrom')), "mmmm dd, yyyy");
         var datePhoneEmail = phoneAndEmails;
         if(validFromDate) {
             datePhoneEmail = validFromDate + ', ' + phoneAndEmails;
@@ -182,8 +182,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         if (_.get(record, '_source.mainEntity.seller.email.name') !== undefined) {
             webpageObj.details.email = _.get(record, '_source.mainEntity.seller.email.name');
         }
-        webpageObj.details.date = _.get(record, '_source.dateCreated');
+        var xDate = _.get(record, '_source.dateCreated');
 
+        webpageObj.details.date = dateFormat(new Date(xDate), "mmmm dd, yyyy");
         return webpageObj;
     }
 
