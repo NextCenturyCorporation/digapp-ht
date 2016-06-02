@@ -48,18 +48,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
-      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
-        <template>
-          <single-record item="{{item}}"
-            client="[[client]]"
-            annotation-index="[[annotationIndex]]"
-            annotation-type="[[annotationType]]"
-            annotation-query-template="{{annotationQueryTemplate}}"
-            expanded="[[getClassForItem(item, selected)]]"
-            new-tab="{{newTab}}">
-          </single-record>
-        </template>
-      </iron-list>
+      <template is="dom-repeat" items="{{recordsToShow}}" initial-count="25">
+        <single-record item="{{item}}"
+          client="[[client]]"
+          annotation-index="[[annotationIndex]]"
+          annotation-type="[[annotationType]]"
+          annotation-query-template="{{annotationQueryTemplate}}"
+          expanded="[[getClassForItem(item.selected)]]"
+          new-tab="{{newTab}}"
+          on-tap="toggleSelectRecord">
+        </single-record>
+      </template>
     </iron-scroll-threshold>
     <div class="end-of-list">
       <template is="dom-if" if="{{displayShowMore}}">
@@ -171,7 +170,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.showMore = true;
         }
       },
-      getClassForItem: function(item, selected) {
+      getClassForItem: function(selected) {
         return selected ? 'item expanded' : 'item';
       },
       /**
@@ -194,11 +193,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           this.$.scrollThreshold.clearTriggers();
           
-          var list = document.querySelector('#list');
-          if(list) {
-            list.fire('iron-resize');
-          }
-          
           this.showMore = false;
         }
 
@@ -214,6 +208,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.page = 1;
         }
         return Math.ceil(numResults / resultsPerPage); 
+      },
+      toggleSelectRecord: function(event) {
+        event.model.set('item.selected', !event.model.item.selected);
       }
     });
   })();

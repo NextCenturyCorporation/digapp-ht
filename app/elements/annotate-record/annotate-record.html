@@ -30,7 +30,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <elastic-search 
       client="[[client]]"
       index="[[annotationIndex]]"
-      query="{{buildAnnotationQuery(item)}}"
+      query="{{buildAnnotationQuery(item, queryTemplate)}}"
       results="{{originalSearchResult}}"
       lastError="{{error}}">
     </elastic-search>
@@ -177,10 +177,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getValuesForQuery: function(item) {
         return [item._id];
       },
-      buildAnnotationQuery: function(item) {
+      buildAnnotationQuery: function(item, queryTemplate) {
         // ignore empty items, and don't rerun query if 
         // query for this item has already been run
-        if(!_.isEmpty(item)) {
+
+        if(!_.isEmpty(item) && queryTemplate !== undefined) {
           var self = this;
 
           // clear body for create/update components to ensure a
@@ -190,17 +191,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this._setAnnotationUpdateBody(undefined);
 
           var values = self.getValuesForQuery(item);
-          var paths = self.queryTemplate.pathsToValues;
+          var paths = queryTemplate.pathsToValues;
 
           _.each(paths, function(path, count) {
             var value = values[count];
 
             if(value) {
-              _.set(self.queryTemplate.query, path, value);
+              _.set(queryTemplate.query, path, value);
             }
           });
 
-          return {query: this.queryTemplate.query.query};
+          return {query: queryTemplate.query.query};
         }
       },
       transformOrigResult: function() {
