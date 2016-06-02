@@ -64,6 +64,15 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             }
             
             return newData;
+        },
+        itinerary: function(data){
+            
+            var newData = {};
+            if(data.aggregations){
+                var aggs = data.aggregations;
+                newData.date = commonTransforms.infoBuckets(aggs.phone.timeline.buckets,'date','city','publisher');
+            }
+            return newData;
         }        
     };
 

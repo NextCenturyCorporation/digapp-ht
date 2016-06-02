@@ -35,7 +35,47 @@ var commonTransforms = (function(_) {
             });
             return buckets;
         },
+        /**
+        * Gives two level heirarchies for the aggregrations - and the thir hierarchy as just an info
+        * Example filter level1 by date and level2 by city and pulblisher as info
+           {
+                date:[{
+                    date: 1455657767
+                    city:{
+                        city: "Los Angeles",
+                        info: '"abc.com", "rg.com"''
+                    }
+                },
+    
+           }
+        */
+        infoBuckets: function(buckets,level1,level2,info){
 
+            buckets = _.reduce(buckets, function (results, bucket) {
+                var obj_level1 = {};
+                obj_level1[level1] = bucket.key;
+                if(bucket[level2].buckets.length){
+                    obj_level1[level2] = _.map(bucket[level2].buckets, function(buck){
+                        var obj_level2 = {};
+                        obj_level2[level2] = buck.key;
+                        obj_level2.data = [];
+
+                        var ele = {};
+                        ele.key = 'Info';
+                        ele.value = _.map(buck[info].buckets, function(buc){
+                            return buc.key;
+                        }).join(', ');
+
+                        obj_level2.data.push(ele);
+                        return obj_level2;
+                    });
+                    obj_level1.id = results.length;
+                    results.push(obj_level1);
+                }
+              return results;
+            }, []);
+            return buckets;
+        },
         /**
             Get people aggregation info:
          

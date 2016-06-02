@@ -409,6 +409,43 @@ module.exports = {
                 }
             }
         }
+    },
+
+    itineraryPhone:{
+      "aggs": {
+        "phone": {
+          "filter": {
+            "term": {
+              '{{field}}': '{{value}}'
+            }
+          },
+          "aggs": {
+            "timeline": {
+              "date_histogram": {
+                "field": "validFrom",
+                "interval": "day"
+              },
+              "aggs": {
+                "city": {
+                  "terms": {
+                    "field": "availableAtOrFrom.address.key",
+                    "size": 500
+                  },
+                  "aggs": {
+                    "publisher": {
+                      "terms": {
+                        "field": "mainEntityOfPage.publisher.name.raw",
+                        "size": 500
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "size": 0
     }
   }
 };
