@@ -59,7 +59,6 @@ var commonTransforms = (function(_) {
                         var obj_level2 = {};
                         obj_level2[level2] = buck.key;
                         obj_level2.data = [];
-
                         var ele = {};
                         ele.key = 'Info';
                         ele.value = _.map(buck[info].buckets, function(buc){
