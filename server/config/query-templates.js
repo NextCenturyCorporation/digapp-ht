@@ -6,9 +6,16 @@ module.exports = {
     // Common query used among entities
     commonMatchQuery: {
         query:{
-            match:{ '{{field}}' : '{{value}}' }
+            match:{ '{{field}}' : '{{{value}}}' }
         }
     },
+
+    commonTermQuery: {
+        query:{
+            term:{ '{{field}}' : '{{{value}}}' }
+        }
+    },
+
     // phone/email page specific queries
     phoneOrEmailOfferAgg: {
         "query": {
@@ -409,17 +416,6 @@ module.exports = {
                 }
             }
         }
-    },
-
-    imageMatch: {
-        query: {
-            query: {
-                match: {
-                    'isImagePartOf.uri': '{{value}}'
-                }
-            }
-        },
-        path: 'query.match["isImagePartOf.uri"]'
     }
   }
 };

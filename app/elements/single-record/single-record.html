@@ -119,7 +119,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <!--placeholder for 1st image-->
         <iron-image style="width:50px; height:50px; background: #ddd; margin: 5px;"
           sizing="contain"
-          src="[[imageSrc]]">
+          src="[[item.imageSrc]]">
         </iron-image>
 
         <paper-item-body>
@@ -211,6 +211,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * The field for the image query template.
+         */
+        imageQueryField: {
+          type: String
+        },
+
+        /**
          * The query to find images.
          */
         imageQuery: {
@@ -222,42 +229,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         imageQueryResults: {
           type: Object
-        },
-
-        /**
-         * The URL source of the image for this record.
-         */
-        imageSrc: {
-          type: String
         }
       },
 
       observers: [
-          'createImageQueryOrSaveImageSrc(item, imageQueryTemplate)',
-          'findImageSrcInQueryResults(item, imageQueryResults)'
+          'createImageQuery(item, imageQueryTemplate, imageQueryField)',
+          'findSrcInImageQueryResults(item, imageQueryResults)'
       ],
 
-      createImageQueryOrSaveImageSrc: function(item, imageQueryTemplate) {
-        // Only create the image query if the imageSrc for the item is undefined; otherwise, use the imageSrc for the item.
-        if(item.imageSrc === undefined) {
-          _.set(imageQueryTemplate.query, imageQueryTemplate.path, item._id);
-          this.imageQuery = {
-            query: imageQueryTemplate.query.query
-          };
-        } else {
-          this.imageSrc = item.imageSrc;
-        }
+      createImageQuery: function(item, imageQueryTemplate, imageQueryField) {
+        var view = {
+          field: imageQueryField,
+          value: item._id
+        };
+        this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
       },
 
-      findImageSrcInQueryResults: function(item, imageQueryResults) {
+      findSrcInImageQueryResults: function(item, imageQueryResults) {
         if(imageQueryResults) {
-          // Save the imageSrc in the item so that it can be used again without needing to requery.
           if(imageQueryResults.hits.hits.length > 0) {
-            item.imageSrc = imageQueryResults.hits.hits[0]._source.url;
+              this.set('item.imageSrc', imageQueryResults.hits.hits[0]._source.url);
           } else {
-            item.imageSrc = "";
+              this.set('item.imageSrc', "");
           }
-          this.imageSrc = item.imageSrc;
         }
       },
 
