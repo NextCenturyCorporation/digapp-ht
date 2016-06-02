@@ -1,0 +1,351 @@
+<!doctype html>
+
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Polymer Starter Kit" />
+  <title>DIG</title>
+  <!-- Place favicon.ico in the `app/` directory -->
+
+  <!-- Chrome for Android theme color -->
+  <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+
+  <!-- build:css styles/main.css -->
+  <link rel="stylesheet" href="styles/main.css">
+  <!-- endbuild-->
+
+  <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <!-- endbuild -->
+
+  <!-- will be replaced with elements/elements.vulcanized.html -->
+  <link rel="import" href="elements/elements.html">
+  <!-- endreplace-->
+
+  <!-- For shared styles, shared-styles.html import in elements.html -->
+  <style is="custom-style" include="shared-styles"></style>
+  <style is="custom-style" include="entity-view-styles"></style>
+  <style is="custom-style" include="icon-styles"></style>
+  <style is="custom-style" include="map-styles"></style>
+
+</head>
+
+<body unresolved class="fullbleed layout vertical">
+  <span id="browser-sync-binding"></span>
+  <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data 
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
+    
+    <!--get app configuration from server -->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}"
+      on-response="showConfig">
+    </iron-ajax>
+     
+    <!--initialize new elastic client connection to server
+      esclient can be used throughout the application lifecycle -->
+    <elastic-client 
+      config="[[config.elasticConfig]]"
+      client="{{esclient}}">
+    </elastic-client>
+
+    <!-- Get the provider details -->
+    <query-builder 
+      query="{{providerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[params.value]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[providerQuery]]'
+      elastic-type='["adultservice"]'
+      results="{{provider}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[provider]]"
+     data-out="{{providerDisplay.provider}}"
+     transform-function="[[clientConfig.transforms.provider.provider]]"
+     ></json-transform>
+    
+    <!--
+    Get all Offers for this provider
+    -->
+    <query-builder 
+        query="{{providerOffersQuery}}" 
+        query-template="{{config.queryTemplates.commonMatchQuery}}"
+        field="itemOffered.uri" value="[[params.value]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[providerOffersQuery]]'
+      results="{{providerOffers}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[providerOffers]]"
+     data-out="{{providerDisplay.offers}}"
+     transform-function="[[clientConfig.transforms.relatedEntities.offer]]"
+     ></json-transform>
+
+     <!--
+        build the query for provider locations 
+      -->
+       <query-builder 
+        query="{{providerLocationQuery}}" 
+        query-template="{{config.queryTemplates.offerLocation}}"
+        field="itemOffered.uri" value="[[params.value]]">
+      </query-builder>
+
+      <elastic-search 
+        client="[[esclient]]"
+        index="[[config.elasticIndex]]"
+        query='[[providerLocationQuery]]'
+        results="{{providerLocationAggs}}"
+        elastic-type='["offer"]'
+        lastError="{{error}}">
+      </elastic-search>
+
+      <json-transform
+       data-in="[[providerLocationAggs]]"
+       data-out="{{providerDisplay.offerLocation}}"
+       transform-function="[[clientConfig.transforms.phone.offerLocationData]]"
+       ></json-transform>
+
+    <!--
+    build the query to get seller
+    -->
+    <query-builder 
+      query="{{sellerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[providerDisplay.provider.sellers]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["seller"]'
+      query='[[sellerQuery]]'
+      results="{{seller}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
+     ></json-transform>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerObject}}"
+     transform-function="[[clientConfig.transforms.seller.seller]]"
+     ></json-transform>
+
+    <!-- Display Content -->
+    <div class="entity">
+      <paper-header-panel class="flex" mode="waterfall-tall">
+        
+        <!-- Entity header -->
+        <section class="paper-header layout vertical">
+          
+          <!-- Entity title -->
+          <div class="layout horizontal center">
+            <iron-icon class="iron-icon-huge" icon="icons:account-circle"></iron-icon>
+            <section class="flex-auto">
+              <div class="paper-font-display1">
+                [[providerDisplay.provider.title]]
+              </div>
+            </section>
+            
+            <!-- Places actions performed on the entity here -->
+
+          </div>
+            
+        </section>
+
+        <!-- Entity body -->
+        <div class="entity-page">
+
+          <div class="content">
+            
+            <div class="flex layout vertical">
+              
+              <!-- Photos section -->
+              <!-- TO DO: Hook up with data -->
+              <paper-material class="photos-wrapper">
+                <section class="photos">
+                  <!-- Display a single row of images and provide a way to expand to see more -->
+                  (photos section)
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              
+              <paper-material class="offers-wrapper">
+                <section class="offers">
+                  <div class="section-header">
+                    <div class="paper-font-title">
+                      [[providerDisplay.offers.count]] offer(s)
+                    </div>
+                  </div>
+                  <records-list
+                    current-results="[[providerDisplay.offers.data]]" page="{{pageNum}}" 
+                    results-per-page="{{pageSize}}" num-results="{{providerDisplay.offers.count}}" 
+                    loading="{{offersLoading}}">
+                  </records-list>
+                </section>
+              </paper-material>
+
+              
+              <div class="h-divider"></div>
+
+              
+
+            </div>
+
+            <div class="v-divider"></div>
+            
+            <div class="h-divider"></div>
+
+            <paper-material class="flex layout vertical">
+              
+              <!-- City summary -->
+              <section class="where-header flex-none">
+                <div class="paper-font-title layout horizontal start center">
+                  <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                  <div>[[providerDisplay.offerLocation.offerLocation.length]] location(s)</div>
+                </div>
+              </section>
+              
+              <!-- Leaflet map -->
+              <section class="where flex-auto">
+                <leaflet-wrapper map-data="{{providerDisplay.offerLocation.offerLocation}}">
+                </leaflet-wrapper>
+              </section>
+              
+              <!-- City summary -->
+              <section class="where-details flex-none">
+                <feature-aggregation title="Offers per city" key="name" agg="[[providerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+              </section>
+              
+            </paper-material>
+
+          </div>
+          
+          <div class="h-divider"></div>
+        
+          <div class="content">
+          
+            <!-- Seller -->
+            
+            <div class="flex">
+              <template is="dom-if" if="{{sellerPhoneEmails.length}}">
+                <paper-material class="flex">
+                  <section class="who">
+                    <div class="who">
+                      <div class="paper-font-title">
+                        <single-record item="{{sellerObject}}"></single-record>
+                      </div>
+                    </div>
+                    <records-list
+                      current-results="[[sellerPhoneEmails]]">
+                    </records-list>
+                  </section>
+                </paper-material>
+              </template>
+            </div>
+            
+            <div class="v-divider"></div>
+
+            <!-- Relations section -->
+            <div class="flex">
+              <paper-material>
+                <section class="relations">
+
+                  <div class="section-header">
+                   <div class="paper-font-title flex">People who look Similar</div>
+                  </div>
+
+                  <section class="photos">
+                  <!-- Display a single row of images and provide a way to expand to see more -->
+                  (similar images section)
+                  </section>
+                </section>
+              </paper-material>
+            </div>
+
+          </div>
+          
+        </div>
+
+      </paper-header-panel>
+    </div>
+  </template>
+
+  <script>
+
+  (function(document) {
+    var app = document.querySelector('#app');
+
+    app.showConfig = function (req, res) {
+      console.log('REQ: ', req);
+      console.log('RES: ', res);
+    };
+
+    app.getURLParams = function() {
+      var queryString = window.location.search.slice(1, window.location.search.length);
+      var params = queryString.split('&');
+      app.params = {};
+      for (var i = 0; i < params.length; i++) {
+        var paramPair = params[i].split('=');
+        app.params[paramPair[0]] =  paramPair[1];
+      }
+    };
+
+    app.getURLParams();
+    app.providerDisplay = {};
+
+  })(document);
+  </script>
+
+</body>
+
+</html>

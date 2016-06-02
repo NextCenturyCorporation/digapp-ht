@@ -82,11 +82,11 @@
      transform-function="[[clientConfig.transforms.email.email]]"
      ></json-transform>
 
-    <!-- emailDisplay.offerData query and transform -->
+    <!-- Query and transform for offer timeline -->
     <query-builder 
       query="{{offerAggQuery}}" 
-      query-template="{{config.queryTemplates.phoneOrEmailOfferAgg}}"
-      field="offer.seller.email.uri" value="[[emailDisplay.email._id]]">
+      query-template="{{config.queryTemplates.offerTimeline}}"
+      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
     <elastic-search 
@@ -103,8 +103,95 @@
 
     <json-transform
      data-in="[[offerAggs]]"
-     data-out="{{emailDisplay.offerData}}"
-     transform-function="[[clientConfig.transforms.email.offerData]]"
+     data-out="{{emailDisplay.offerTimeline}}"
+     transform-function="[[clientConfig.transforms.email.offerTimelineData]]"
+     ></json-transform>
+
+      <!--
+        build the query for offer locations 
+      -->
+     <query-builder 
+      query="{{offerLocationQuery}}" 
+      query-template="{{config.queryTemplates.offerLocation}}"
+      field="seller.email.uri" value="[[emailDisplay.email._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerLocationQuery]]'
+      results="{{offerLocationAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offerLocationAggs]]"
+     data-out="{{emailDisplay.offerLocation}}"
+     transform-function="[[clientConfig.transforms.email.offerLocationData]]"
+     ></json-transform>
+
+    <!-- Get the seller Object -->
+     <query-builder 
+      query="{{sellerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[emailDisplay.email.sellerId]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["seller"]'
+      query='[[sellerQuery]]'
+      results="{{seller}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
+     ></json-transform>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerObject}}"
+     transform-function="[[clientConfig.transforms.seller.seller]]"
+     ></json-transform>
+
+    <json-combine
+      data-in1="[[sellerPhoneEmails]]"
+      data-in2="[[emailDisplay.email.emailAddress]]"
+      data-out="{{showSeller}}"
+      combine-function="[[clientConfig.transforms.email.computeShowSeller]]"
+    ></json-combine>
+
+    <!--
+        Get all the offers for this email
+    -->
+    <query-builder 
+      query="{{emailOffersQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query='[[emailOffersQuery]]'
+      results="{{emailOffers}}"
+      elastic-type='["offer"]'
+      loading="{{offersLoading}}"
+      lastError="{{error}}">
+
+    </elastic-search>
+
+    <json-transform
+     data-in="[[emailOffers]]"
+     data-out="{{emailDisplay.emailOffers}}"
+     transform-function="[[clientConfig.transforms.email.emailOffersData]]"
      ></json-transform>
 
     <!-- emailDisplay.people query and transform -->
@@ -127,28 +214,6 @@
      data-in="[[peopleAggs]]"
      data-out="{{emailDisplay.people}}"
      transform-function="[[clientConfig.transforms.email.people]]"
-     ></json-transform>
-
-    <!-- emailDisplay.seller query and transform -->
-    <query-builder 
-      query="{{sellerAggQuery}}" 
-      query-template="{{config.queryTemplates.phoneOrEmailSellerAgg}}"
-      field="email.uri" value="[[emailDisplay.email.uri]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[sellerAggQuery]]'
-      results="{{sellerAggs}}"
-      elastic-type='["seller"]'
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[sellerAggs]]"
-     data-out="{{emailDisplay.seller}}"
-     transform-function="[[clientConfig.transforms.email.seller]]"
      ></json-transform>
 
     <!-- Main Content -->
@@ -187,7 +252,7 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[emailDisplay.offerData.offerDates]]' 
+                  <bar-chart y-axis-label="" data='[[emailDisplay.offerTimeline.offerTimeline]]' 
                     chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
                     min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </bar-chart>
@@ -210,6 +275,24 @@
                 </section>
               </paper-material>
               
+              <div class="h-divider"></div>
+              
+              <!-- Seller section -->
+              <template is="dom-if" if="{{showSeller}}">
+                <paper-material class="flex">
+                  <section class="who">
+                    <div class="who">
+                      <div class="paper-font-title">
+                        <single-record item="{{sellerObject}}"></single-record>
+                      </div>
+                    </div>
+                    <records-list
+                      current-results="[[showSeller]]">
+                    </records-list>
+                  </section>
+                </paper-material>
+              </template>
+
               <div class="h-divider"></div>
 
               <!-- Photos section -->
@@ -234,19 +317,19 @@
               <section class="where-header flex-none">
                 <div class="paper-font-title layout horizontal start center">
                   <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                  <div>[[emailDisplay.offerData.geoCoordinates.length]] location(s)</div>
+                  <div>[[emailDisplay.offerLocation.offerLocation.length]] location(s)</div>
                 </div>
               </section>
               
               <!-- Leaflet map -->
               <section class="where flex-auto">
-                <leaflet-wrapper map-data="{{emailDisplay.offerData.geoCoordinates}}">
+                <leaflet-wrapper map-data="{{emailDisplay.offerLocation.offerLocation}}">
                 </leaflet-wrapper>
               </section>
               
               <!-- City summary -->
               <section class="where-details flex-none">
-                <feature-aggregation title="Offers per city" key="city" agg="[[emailDisplay.offerData.offerCities]]"></feature-aggregation>
+                <feature-aggregation title="Offers per city" key="name" agg="[[emailDisplay.offerLocation.offerLocation]]"></feature-aggregation>
               </section>
               
             </paper-material>
@@ -263,12 +346,12 @@
                 <section class="related-entities">
                   <div class="section-header">
                     <div class="paper-font-title">
-                      [[emailDisplay.offerData.relatedOffers.count]] offer(s)
+                      [[emailDisplay.emailOffers.relatedOffers.count]] offer(s)
                     </div>
                   </div>
                   <records-list
-                    current-results="[[emailDisplay.offerData.relatedOffers.data]]" page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" num-results="{{emailDisplay.offerData.relatedOffers.count}}"
+                    current-results="[[emailDisplay.emailOffers.relatedOffers.data]]" page="{{pageNum}}" 
+                    results-per-page="{{pageSize}}" num-results="{{emailDisplay.emailOffers.relatedOffers.count}}"
                     loading="{{offersLoading}}">
                   </records-list>
                 </section>
@@ -282,55 +365,7 @@
               <paper-material>
                 <section class="relations">
 
-                  <div class="section-header">
-                    <div class="paper-font-title flex">Other related items</div>
-
-                    <!-- Related items summary -->
-                    <div class="layout horizontal">
-
-                      <!-- TO DO: Hook up these two with data and show in related entity list -->
-    <!--
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-seller-font" icon="editor:attach-money"></iron-icon>
-                        <div class="paper-font-title">5</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-person-font" icon="icons:account-circle"></iron-icon>
-                        <div class="paper-font-title">20</div>
-                      </div>
-    -->
-
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-phone-font" icon="communication:phone"></iron-icon>
-                        <div class="paper-font-title">[[emailDisplay.seller.relatedPhones.length]]</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-email-font" icon="communication:email"></iron-icon>
-                        <div class="paper-font-title">[[emailDisplay.seller.relatedEmails.length]]</div>
-                      </div>
-                      <div class="summary-badge layout horizontal flex">
-                        <iron-icon class="entity-webpage-font" icon="av:web"></iron-icon>
-                        <div class="paper-font-title">[[emailDisplay.seller.relatedWebsites.length]]</div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Related items list, would prefer to use this -->
-                  <!-- These would work better as a unified list, sorted by co-occurances -->
-    <!--
-                  <records-list records="[[emailDisplay.seller.relatedEmails]]"></records-list>
-                  <records-list records="[[emailDisplay.seller.relatedPhones]]"></records-list>
-                  <records-list records="[[emailDisplay.seller.relatedWebsites]]"></records-list>
-    -->
-
-                  <!-- Related items summary -->
-                  <!-- Would like to use a list as shown above, instead -->
-                  <feature-aggregation title="Co-occurring Emails" key="email" agg="[[emailDisplay.seller.relatedEmails]]"
-                    show-link="true" link-type="email" link-field="name"></feature-aggregation>
-                  <feature-aggregation title="Co-occurring Phones" key="number" agg="[[emailDisplay.seller.relatedPhones]]"
-                    show-link="true" link-type="phone" link-field="name"></feature-aggregation>
-                  <feature-aggregation title="Co-occurring Websites" key="webSite" agg="[[emailDisplay.seller.relatedWebsites]]"></feature-aggregation>
-
+                  
                 </section>
               </paper-material>
             </div>

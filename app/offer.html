@@ -96,6 +96,7 @@
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
       query='[[offerQuery]]'
       results="{{offer}}"
       lastError="{{error}}">
@@ -105,41 +106,98 @@
     <json-transform
      data-in="[[offer]]"
      data-out="{{offerDisplay}}"
-     transform-function="[[clientConfig.transforms.offer]]"
+     transform-function="[[clientConfig.transforms.offer.offer]]"
      ></json-transform>
     
-    <!--Start related entity queries and transforms-->
-    <!--Related phone, email, sellers, webpages, and people -->
+    <!-- Get the seller Object -->
+     <query-builder 
+      query="{{sellerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[offerDisplay.sellerId]]">
+    </query-builder>
 
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["seller"]'
+      query='[[sellerQuery]]'
+      results="{{seller}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
+     ></json-transform>
+
+
+     <!-- Get revisions of the webpage for  Revision Graph -->
+     <query-builder 
+      query="{{pageRevisionsQuery}}" 
+      query-template="{{config.queryTemplates.webpageRevisions}}" 
+      field="url.raw" value="[[offerDisplay.webpageUrl]]">
+    </query-builder>    
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["webpage"]'
+      query='[[pageRevisionsQuery]]'
+      results="{{pageRevisions}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpagePageRevisions}}"
+     transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
+     ></json-transform>
+
+     <json-transform
+     data-in="[[pageRevisions]]"
+     data-out="{{webpageDisplay}}"
+     transform-function="[[clientConfig.transforms.webpage.webpage]]"
+     ></json-transform>
+
+     <json-combine
+      data-in1="[[sellerPhoneEmails]]"
+      data-in2="[[webpageDisplay]]"
+      data-out="{{showSeller}}"
+      combine-function="[[clientConfig.transforms.offer.computeShowSeller]]"
+    ></json-combine>
+    
+
+    <json-combine
+      data-in1="[[offerDisplay.webpageUrl]]"
+      data-in2="[[params.value]]"
+      data-out="{{mainEntityOfPageQueryValues}}"
+      combine-function="[[clientConfig.transforms.common.makeJSONArray]]">
+    </json-combine>
+
+    <!-- Get all offers with same webpage url -->
     <bool-query-builder
-      query="{{relatedEntityQuery}}"
-      query-template="{{config.queryTemplates.offerRelatedEntities.query}}"
-      paths-to-values="{{config.queryTemplates.offerRelatedEntities.pathsToValues}}"
-      values="[[getBoolQueryValues(offerDisplay.phones, 
-        offerDisplay.emails, 
-        offerDisplay.sellerId, 
-        offerDisplay.serviceId, 
-        offerDisplay.webpageId)]]">
+      query="{{offerRevisionsQuery}}"
+      query-template="{{config.queryTemplates.offerRevisions.query}}"
+      paths-to-values="{{config.queryTemplates.offerRevisions.pathsToValues}}"
+      values="[[mainEntityOfPageQueryValues]]">
+      >
     </bool-query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      query='[[relatedEntityQuery]]'
-      results="{{relatedResults}}"
-      lastError="{{error}}"
-      loading="{{relatedEntitiesLoading}}">
+      elastic-type='["offer"]'
+      query='[[offerRevisionsQuery]]'
+      results="{{offersWithSameUrlES}}"
+      lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[relatedResults]]"
-     data-out="{{relatedRecords}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
+     data-in="[[offersWithSameUrlES]]"
+     data-out="{{offersWithSameUrl}}"
+     transform-function="[[clientConfig.transforms.offer.revisions]]"
      ></json-transform>
-
-    <!-- End related entity queries-->
 
     <!-- Display Content -->
     <div class="entity">
@@ -186,6 +244,7 @@
                     
                   </div>
               
+
                   <hr>
                   
                   <div class="what-section">
@@ -198,148 +257,217 @@
                         Publisher:
                       </dt>
                       <!-- TO DO: Make these links to their entity pages -->
-                      <dd>[[offerDisplay.publisher]]</dd>
-                    </dl>
-              
-                    <div class="h-divider"></div>
-                    
-                    <dl class="flex">
-                      <dt class="phones layout horizontal center entity-phone-font">
-                        <iron-icon icon="communication:phone"></iron-icon>
-                        Phone Numbers:
-                      </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <template is="dom-repeat" items="[[offerDisplay.phones]]" as="phone">
-                        <dd><phone-formatter input="[[phone]]"></phone-formatter></dd>
-                      </template>
-                    </dl>
-              
-                    <div class="h-divider"></div>
-                    
-                    <dl class="flex">
-                      <dt class="emails layout horizontal center entity-email-font">
-                        <iron-icon icon="communication:email"></iron-icon>
-                        Emails:
-                      </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <template is="dom-repeat" items="[[offerDisplay.emails]]" as="email">
-                        <dd>[[email]]</dd>
-                      </template>
+                      <dd>[[offerDisplay.webpageUrl]]</dd>
                     </dl>
                   </div>
-                  
+
+                  <template is="dom-if" if="{{offerDisplay.price.length}}">
+                    <hr>
+
+                    <div class="what-section">
+                
+                      <div class="h-divider"></div>
+                      
+                      <dl class="flex">
+                        <dt class="price layout horizontal center entity-webpage-font">
+                          <iron-icon icon="editor:attach-money"></iron-icon>
+                          Price:
+                        </dt>
+                        <!-- TO DO: Make these links to their entity pages -->
+                        <dd>[[offerDisplay.price]]</dd>
+                      </dl>
+                    </div>
+                  </template>
+
+                  <template is="dom-if" if="{{webpageDisplay.phones.length}}">
+                    <hr>
+
+                    <div class="what-section">
+
+                      <div class="h-divider"></div>
+                      
+                      <dl class="flex">
+                        <dt class="phones layout horizontal center entity-phone-font">
+                          <iron-icon icon="communication:phone"></iron-icon>
+                          Phone Numbers:
+                        </dt>
+                        <dd>
+                          <records-list
+                            current-results="[[webpageDisplay.phones]]">
+                          </records-list>
+                        </dd>
+                       
+                      </dl>
+                    </div>
+                  </template>
+
+                  <template is="dom-if" if="{{webpageDisplay.emails.length}}">
+                    <hr>
+
+                    <div class="what-section">
+
+                      <div class="h-divider"></div>
+                      
+                      <dl class="flex">
+                        <dt class="emails layout horizontal center entity-email-font">
+                          <iron-icon icon="communication:email"></iron-icon>
+                          Emails:
+                        </dt>
+                        <dd>
+                          <records-list
+                            current-results="[[webpageDisplay.emails]]">
+                          </records-list>
+                        </dd>
+                      </dl>
+                    </div>
+                  </template>
                 </section>
               </paper-material>
               
               <div class="h-divider"></div>
               
-              <!-- Who section -->
-              <paper-material class="flex">
+              <!-- Seller section -->
+              <template is="dom-if" if="{{showSeller}}">
+                <paper-material class="flex">
+                  <section class="who">
+                    <div class="who">
+                      <div class="paper-font-title">
+                        Seller
+                      </div>
+                    </div>
+                    <records-list
+                      current-results="[[sellerPhoneEmails]]">
+                    </records-list>
+                  </section>
+                </paper-material>
+              </template>
+
+
+              <div class="h-divider"></div>
+              
+              
+
+            </div>
+
+            <div class="v-divider"></div>
+            
+            <!-- Map section -->
+            <paper-material class="flex layout vertical">
+                
+                <!-- Address -->
+                <section class="where-header flex-none content">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[offerDisplay.address.formattedAddress]]</div>
+                  </div>
+                </section>
+                
+                <!-- Leaflet map -->
+                <section class="where flex-auto">
+                  <template is="dom-if" if="{{offerDisplay.geo}}">
+                    <leaflet-map latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]" zoom="10">
+                      <leaflet-marker latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]"></leaflet-marker> 
+                    </leaflet-map> 
+                  </template>
+                </section>
+            </paper-material>
+
+            <div class="h-divider"></div>
+          </div>
+          
+          <div class="h-divider"></div>
+          <div class="v-divider"></div>
+
+          <div class="content">
+            <div class="flex layout horizontal">
+
+              <!-- AdultService section -->
+              <paper-material class="flex layout vertical">
                 <section class="who">
                   
                   <!-- Single person detail layout -->
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
-                    <div>[[offerDisplay.person.name]]</div>
-                  </div>
+                  <single-record item="{{offerDisplay.person}}"></single-record>
+
                   <div class="layout horizontal">
-                    <dl class="flex">
-                      <dt class="age">Age:</dt>
-                      <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
-                        <dd>[[age]]</dd>
-                      </template>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="ethnicity">Ethnicity:</dt>
-                      <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
-                        <dd>[[ethnicity]]</dd>
-                      </template>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="height">Height:</dt><dd>[[offerDisplay.person.height]] cm</dd>
-                    </dl>
-                    <dl class="flex">
-                      <dt class="weight">Weight:</dt><dd>[[offerDisplay.person.weight]] kg</dd>
-                    </dl>
+                    <template is="dom-if" if="{{offerDisplay.person.ages}}">
+                      <dl class="flex">
+                        <dt class="age">Age:</dt>
+                        <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
+                          <dd>[[age]]</dd>
+                        </template>
+                      </dl>
+                    </template>
+                    <template is="dom-if" if="{{offerDisplay.person.ethnicities}}">
+                      <dl class="flex">
+                        <dt class="ethnicity">Ethnicity:</dt>
+                        <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
+                          <dd>[[ethnicity]]</dd>
+                        </template>
+                      </dl>
+                    </template>
+                    <template is="dom-if" if="{{offerDisplay.person.height}}">
+                      <dl class="flex">
+                        <dt class="height">Height:</dt><dd>[[offerDisplay.person.height]] cm</dd>
+                      </dl>
+                    </template>
+                    <template is="dom-if" if="{{offerDisplay.person.weight}}">
+                      <dl class="flex">
+                        <dt class="weight">Weight:</dt><dd>[[offerDisplay.person.weight]] kg</dd>
+                      </dl>
+                    </template>
                   </div>
                   
                 </section>
-              </paper-material>
               
-              <div class="h-divider"></div>
-
-              <!-- Photos section -->
-              <!-- TO DO: Hook up with data -->
-              <paper-material>
                 <section class="photos">
                   <!-- Display a single row of images and provide a way to expand to see more -->
                   (photos section)
                 </section>
+
               </paper-material>
 
-            </div>
+              <div class="v-divider"></div>
 
-            <div class="v-divider"></div>
-            
-            <div class="h-divider"></div>
+              <div class="h-divider"></div>
 
-            <!-- Map section -->
-            <paper-material class="flex layout vertical">
-              
-              <!-- Address -->
-              <section class="where-header flex-none content">
-                <div class="paper-font-title layout horizontal start center">
-                  <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                  <div>[[offerDisplay.address.formattedAddress]]</div>
+              <paper-material class="flex">
+                <div class="flex layout vertical">
+                  <section class="when">
+                      <div class="paper-font-title layout horizontal start center">
+                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                        <div>
+                          Revisions to this page between {{minXValue}} and {{maxXValue}}
+                        </div>
+                      </div>
+                      <bar-chart y-axis-label="" data='[[webpagePageRevisions]]' 
+                        chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
+                        min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                      </bar-chart>
+                  </section>
+
+                  <template is="dom-if" if="{{offersWithSameUrl.length}}">
+                    <div class="h-divider"></div>
+                    <div class="v-divider"></div>
+
+                    <paper-material class="flex">
+                      <section>
+                        <div class="section-header">
+                          <div class="paper-font-title">
+                            Revisions
+                          </div>
+                        </div>
+                        <records-list
+                          current-results="[[offersWithSameUrl]]">
+                        </records-list>
+                      </section>
+                    </paper-material>
+                  </template>
                 </div>
-              </section>
-              
-              <!-- Leaflet map -->
-              <section class="where flex-auto">
-                <template is="dom-if" if="{{offerDisplay.geo}}">
-                  <leaflet-map latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]" zoom="10">
-                    <leaflet-marker latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]"></leaflet-marker> 
-                  </leaflet-map> 
-                </template>
-              </section>
-              
-            </paper-material>
-
-          </div>
-          
-          <div class="h-divider"></div>
-        
-          <div class="content">
-          
-            <!-- Offer list -->
-            <div class="flex">
-              <paper-material class="related-entities-wrapper">
-                <section class="related-entities">
-                  <div class="section-header">
-                    <div class="paper-font-title">
-                      Related items
-                    </div>
-                  </div>
-                  <records-list
-                    current-results="[[relatedRecords.data]]" page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" num-results="{{relatedRecords.count}}"
-                    loading="{{relatedEntitiesLoading}}">
-                  </records-list>
-                </section>
               </paper-material>
+              
             </div>
-          
-            <div class="v-divider"></div>
-            
-            <!-- Related entities? -->
-            <div class="flex">
-              <section class="relations"></section>
-            </div>
-
           </div>
-          
         </div>
-
       </paper-header-panel>
     </div>
   </template>

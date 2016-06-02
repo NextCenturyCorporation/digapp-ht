@@ -22,6 +22,10 @@ var webpageTransform = (function(_, commonTransforms) {
                 newData.publisher = _.get(data.hits.hits[0]._source, 'publisher.name');
                 newData.body = _.get(data.hits.hits[0]._source, 'description');
                 newData.url = _.get(data.hits.hits[0]._source, 'url');
+                var mentions = _.get(data.hits.hits[0]._source, 'mentions');
+                var extractedMentions = commonTransforms.getEmailAndPhoneFromMentions(mentions);
+                newData.phones = extractedMentions.phones;
+                newData.emails = extractedMentions.emails;
             }
 
             return newData;

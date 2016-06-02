@@ -1,7 +1,10 @@
+
 # digapp-ht
-Web application for searching and exploring entity graphs in Elasticsearch indices
+Web application for searching and exploring entity graphs in Elasticsearch indices.
+
 
 ## Overview
+This web application is built primarily with [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components) using the [Polymer](https://github.com/Polymer/polymer) library.  The technology stack also includes [Node.js](https://nodejs.org/en/), [Express.js](http://expressjs.com), [Gulp.js](gulpjs.com), [Elastic Search Client](https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/index.html), [Elastic.js](https://github.com/fullscale/elastic.js/) and many other Bower and NPM javascript modules.  The public web components used in this application and others are located in [DigElements](https://github.com/DigElements).
 
 ## Prerequisites
 * node.js - download and install node.js
@@ -12,8 +15,11 @@ Web application for searching and exploring entity graphs in Elasticsearch indic
 * elastic search server with ht data index.  See elastic.co
 
 ## Installation
-1. clone this repo
-2. cd digapp-ht && npm install && bower install
+* clone this repo
+* 
+  ```sh
+    cd digapp-ht && npm install && bower install
+  ```
 
 ## Getting started
 * create digapp-ht/server/config/local.env.js with contents that look like:
@@ -45,14 +51,14 @@ gulp serve
 This outputs an IP address you can use to locally test and another that can be used on devices connected to your network.
 
 #### Run tests
+To successfully run unit tests, you must have a copy of sample data for the elastic search index that this application
+will use.  These are kept in [dig-data](https://github.com/usc-isi-i2/dig-data/tree/master/sample-datasets/dig2app)
 
 ```sh
 gulp test:local
 ```
 
 This runs the unit tests defined in the `app/test` directory through [web-component-tester](https://github.com/Polymer/web-component-tester).
-
-To run tests Java 7 or higher is required. To update Java go to http://www.oracle.com/technetwork/java/javase/downloads/index.html and download ***JDK*** and install it.
 
 #### Build & Vulcanize
 
@@ -65,9 +71,16 @@ Build and optimize the current project, ready for deployment. This includes vulc
 
 ## Unit Testing
 
-Web apps built with Polymer Starter Kit come configured with support for [Web Component Tester](https://github.com/Polymer/web-component-tester) - Polymer's preferred tool for authoring and running unit tests. This makes testing your element based applications a pleasant experience.
+The client code uses [Web Component Tester](https://github.com/Polymer/web-component-tester) 
 
 [Read more](https://github.com/Polymer/web-component-tester#html-suites) about using Web Component tester.
+Add trivial line
+
+## Contributing
+Pull requests are welcome.  Please fork this repo, then create a topic branch on your forked copy.  Ensure that all unit tests are working **before** and **after** making modifications on your topic branch.  Add necessary unit tests to accompany your feature or bug fix, and then submit a pull request with upstream branch set to the default (master) branch, and downstream branch set to your topic branch on your forked repo.
+
+## Deployment
+
 
 
 

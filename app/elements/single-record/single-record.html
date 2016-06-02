@@ -95,6 +95,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .item.expanded .details {
         display: block;
       }
+
+      .subtitle {
+        padding-right: 30px;
+      }
+      
     </style>
     <div class$="[[expanded]]">
       <paper-icon-item clickable$="{{item.details}}" on-tap="checkEventSource">
@@ -111,7 +116,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <strong>[[item.title]]</strong>
 
           <!-- item secondary title -->
-          <div secondary>[[item.subtitle]]</div>
+          <div secondary>
+            
+            <template is="dom-if" if="{{isArray(item.subtitle)}}">
+              <template is="dom-repeat" items="{{item.subtitle}}" as="value">
+                <span class="subtitle">[[value]]</span>
+              </template>
+            </template>
+            
+            <template is="dom-if" if="{{!isArray(item.subtitle)}}">
+              [[item.subtitle]]
+            </template>
+          </div>
         </paper-item-body>
 
         <!-- secondary actions -->
@@ -174,7 +190,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       checkEventSource: function(event) {
         var target = Polymer.dom(event).rootTarget;
-        // if paper button was clicked, stop propagation up the DOM tree
+        // if paper button was clicked, stop propagation up the DOM tree   
         if(target.localName === 'paper-button') {
           event.stopImmediatePropagation();
         }
@@ -183,6 +199,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if(item.details && item.details[key]) {
           return item.details[key];
         } 
+      },
+      isArray: function(item) {
+        return _.isArray(item);
       },
       isValueArray: function(item, key) {
         var value = this.getItemValue(item, key);
@@ -193,7 +212,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       getAllItemKeys: function(item) {
         if(item.details) {
-          return _.keys(item.details);
+          var sortedKeys = [];
+          var returnKeys = [];
+          if(item.details._sortedKeys) {
+            sortedKeys = item.details._sortedKeys;
+          }
+          else {
+            sortedKeys = _.keys(item.details);
+          } 
+          sortedKeys.forEach(function(x) {
+            if(item.details[x]) {
+              returnKeys.push(x);
+            }
+          });
+          return returnKeys;
         }
       },
       logRecords: function() {
@@ -213,6 +245,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             case 'offer': return 'maps:local-offer';
             case 'seller': return 'editor:attach-money';
             case 'webpage': return 'av:web';
+            case 'provider': return 'icons:account-circle';
         }
       },
       getTarget: function(newTab) {
