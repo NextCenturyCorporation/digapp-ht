@@ -93,6 +93,8 @@ var commonTransforms = (function(_) {
                 }
               return results;
             }, []);
+            console.log(buckets);
+            
             return buckets;
         },
         /**
