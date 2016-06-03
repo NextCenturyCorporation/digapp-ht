@@ -61,6 +61,7 @@ var offerTransform = (function(_, commonTransforms) {
             sep = ", "
         }
         person.title = title;
+        person.show = (title.length > 0)? true: false;
         return person;
     }
 
