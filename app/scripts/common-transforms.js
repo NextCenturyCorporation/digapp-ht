@@ -306,7 +306,7 @@ var commonTransforms = (function(_) {
 
             return sellerId;
         },
-        getEmailAndPhoneFromMentions(mentions) {
+        getEmailAndPhoneFromMentions: function(mentions) {
             var newData = {};
             newData.phones = [];
             newData.emails = [];
