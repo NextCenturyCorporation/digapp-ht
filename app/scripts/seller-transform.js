@@ -25,7 +25,12 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                     numPhoneEmails += newData.telephone.length;
                 }
                 if(newData.emailAddress.length > 0) {
-                    title += ", " + newData.emailAddress[0].title;
+                    if(title) {
+                       title += ", " + newData.emailAddress[0].title;
+                    }
+                    else {
+                        title = newData.emailAddress[0].title;   
+                    }
                     numPhoneEmails += newData.emailAddress.length;
                 }
                 if(numPhoneEmails > 2) {
