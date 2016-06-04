@@ -291,7 +291,7 @@ var commonTransforms = (function(_) {
             return newData;
         },
          getSellerId: function(record) {
-            sellerId = '';
+            var sellerId = '';
             if(record.owner) {
 
                 if(_.isArray(record.owner)) {
