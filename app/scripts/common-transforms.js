@@ -295,7 +295,7 @@ var commonTransforms = (function(_) {
             if(record.owner) {
 
                 if(_.isArray(record.owner)) {
-                    //phone will one seller 
+                    //phone will have one seller 
                     sellerId = record.owner[0].uri;    
                 }
                 else {
