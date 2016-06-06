@@ -8,6 +8,81 @@
 
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
+
+    /**
+        * Gives two level heirarchies for the aggregrations - and the thir hierarchy as just an info
+        * Example filter level1 by date and level2 by city and pulblisher as info
+           {
+                date:[{
+                    date: 1455657767
+                    city:{
+                        city: "Los Angeles",
+                        info: '"abc.com", "rg.com"''
+                    }
+                },
+    
+           }
+    */
+    function infoBuckets(buckets,levelOne,levelTwo,keys,renames){
+        buckets = _.reduce(buckets, function (results, bucket) {
+            var objLevelOne = {};
+            objLevelOne[levelOne] = bucket.key;
+
+            if(bucket[levelTwo].buckets.length){
+                objLevelOne[levelTwo] = _.map(bucket[levelTwo].buckets, function(buck){
+                    var objLevelTwo = {};
+                    objLevelTwo[levelTwo] = buck.key;
+                    objLevelTwo.data = [];
+                    
+                    for(var key in keys){
+                        var ele = {};
+                        ele.key = keys[key];
+                        
+                        if(_.has(renames, ele.key ))
+                            ele.key = renames[ele.key];
+
+                        if(_.has(buck,keys[key])){
+                            if(keys[key] == 'mentions'){
+                                ele.value = _.map(buck[keys[key]].buckets, function(buc){
+                                    return buc.key;
+                                })
+                                phoneAndEmail = commonTransforms.getEmailAndPhoneFromMentions(ele.value);
+
+                                for(var argKey in phoneAndEmail){
+                                    if (phoneAndEmail[argKey].length){
+                                        ele = {}
+                                        if(argKey=="phones")
+                                            ele.key = "Phone";
+                                        else if(argKey=="emails")
+                                            ele.key = "Email";
+
+                                        ele.value = _.map(phoneAndEmail[argKey], function(b){
+                                            return b.title;
+                                        }).join(', ');
+                                        objLevelTwo.data.push(ele);
+                                    }
+                                }
+                            }else{
+                                ele.value = _.map(buck[keys[key]].buckets, function(buc){
+                                    return buc.key;
+                                }).join(', ');
+                                objLevelTwo.data.push(ele);
+                            }
+                        } else{
+                            console.log('Error: '+ keys[key]+' - key not found');
+                        }
+                    }
+                    return objLevelTwo;
+                });
+                objLevelOne.id = results.length;
+                results.push(objLevelOne);
+            }
+          return results;
+        }, []);
+
+        return buckets;
+    }
+
     return {
         // expected data is from an elasticsearch 
         seller: function(data) {
@@ -127,7 +202,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             var newData = {};
             if(data.aggregations){
                 var aggs = data.aggregations;
-                newData.date = commonTransforms.infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher':'Info','mentions':'Email'});
+                newData.date = infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher':'Info'});
             }
             return newData;
         }        

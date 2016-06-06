@@ -36,49 +36,6 @@ var commonTransforms = (function(_) {
         return geos;
     }
 
-    function  getEmailAndPhoneFromMentions(mentions) {
-        var newData = {};
-        newData.phones = [];
-        newData.emails = [];
-
-        if(mentions) {
-            mentions.forEach(function(elem) {
-                type = 'none';
-                if(elem.indexOf('phone') != -1) {
-                    type = 'phone'
-                } else if(elem.indexOf('email') != -1) {
-                    type = 'email'
-                }
-                if(type != 'none') {
-                    idx = elem.lastIndexOf("/")
-                    text = elem.substring(idx+1)
-                    var countryCode = '';
-                    if (type === 'phone') {
-                        if(text.indexOf('-') !== -1) {
-                            var idx2 = text.indexOf('-');
-                            text = text.substring(idx2+1);
-                            var cc = text.substring(0,idx2);
-                            if (cc.length < 5) {
-                                countryCode = cc;
-                            }
-                        }
-                    }
-                    var newObj = {
-                        _id: elem,
-                        _type: type,
-                        title:  text,
-                        subtitle: ''
-                    }
-                    if(type == 'phone')
-                        newData.phones.push(newObj);
-                    else if(type == 'email')
-                        newData.emails.push(newObj);
-                }
-            });
-        }
-        return newData;
-    }
-
     return {
         /**
         * Changes the key/value names of buckets given from an aggregation
@@ -98,77 +55,7 @@ var commonTransforms = (function(_) {
             });
             return buckets;
         },
-        /**
-        * Gives two level heirarchies for the aggregrations - and the thir hierarchy as just an info
-        * Example filter level1 by date and level2 by city and pulblisher as info
-           {
-                date:[{
-                    date: 1455657767
-                    city:{
-                        city: "Los Angeles",
-                        info: '"abc.com", "rg.com"''
-                    }
-                },
-    
-           }
-        */
-        infoBuckets: function(buckets,levelOne,levelTwo,keys,renames){
-            buckets = _.reduce(buckets, function (results, bucket) {
-                var objLevelOne = {};
-                objLevelOne[levelOne] = bucket.key;
 
-                if(bucket[levelTwo].buckets.length){
-                    objLevelOne[levelTwo] = _.map(bucket[levelTwo].buckets, function(buck){
-                        var objLevelTwo = {};
-                        objLevelTwo[levelTwo] = buck.key;
-                        objLevelTwo.data = [];
-                        
-                        for(var key in keys){
-                            var ele = {};
-                            ele.key = keys[key];
-                            
-                            if(_.has(renames, ele.key ))
-                                ele.key = renames[ele.key];
-
-                            if(_.has(buck,keys[key])){
-                                if(keys[key] == 'mentions'){
-                                    ele.value = _.map(buck[keys[key]].buckets, function(buc){
-                                        return buc.key;
-                                    })
-                                    phoneAndEmail = getEmailAndPhoneFromMentions(ele.value);
-                                    if (phoneAndEmail.phones.length){
-                                        ele.key = "Phone"
-                                        ele.value = _.map(phoneAndEmail.phones, function(b){
-                                            return b.title;
-                                        }).join(', ');
-                                        objLevelTwo.data.push(ele);
-                                    }else if(phoneAndEmail.emails.length){
-                                        ele.key = "Email"
-                                        ele.value = _.map(phoneAndEmail.emails, function(b){
-                                            return b.title;
-                                        }).join(', ');
-                                        objLevelTwo.data.push(ele);
-                                    }
-                                }else{
-                                    ele.value = _.map(buck[keys[key]].buckets, function(buc){
-                                        return buc.key;
-                                    }).join(', ');
-                                    objLevelTwo.data.push(ele);
-                                }
-                            } else{
-                                console.log('Error: '+ keys[key]+' - key not found');
-                            }
-                        }
-                        return objLevelTwo;
-                    });
-                    objLevelOne.id = results.length;
-                    results.push(objLevelOne);
-                }
-              return results;
-            }, []);
-
-            return buckets;
-        },
         /**
             Get people aggregation info:
          
