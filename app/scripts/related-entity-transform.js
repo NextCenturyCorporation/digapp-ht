@@ -20,7 +20,11 @@ var relatedEntityTransform = (function(_, commonTransforms) {
                 }
             }
         */
-        var validFromDate = dateFormat(new Date(_.get(record, '_source.validFrom')), "mmmm dd, yyyy");
+        var validFromDateString = _.get(record, '_source.validFrom');
+        var validFromDate = undefined;
+        if(validFromDateString) {
+             validFromDate = dateFormat(new Date(validFromDateString), "mmmm dd, yyyy");
+        }
         var datePhoneEmail = [];
         if(validFromDate) {
             datePhoneEmail.push(validFromDate);
@@ -95,7 +99,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.name', 'Email N/A'),
-            subtitle: _.get(record, '_source.owner[0].makesOffer.length', 0) + ' offer(s)'
+            subtitle: ''
         };
         return emailObj;
     }
@@ -114,7 +118,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.telephone.name', 'Phone N/A'),
-            subtitle: _.get(record, '_source.makesOffer.length', 0) + ' offer(s)'
+            subtitle: ''
         };
         return sellerObj;
     }

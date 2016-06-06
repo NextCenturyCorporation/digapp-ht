@@ -10,6 +10,19 @@ module.exports = {
         }
     },
 
+    commonMatchQueryOfferSorted: {
+        query:{
+            match:{ '{{field}}' : '{{value}}' }
+        },
+        "sort": [
+                  {
+                    "validFrom": {
+                    "order": "desc"
+                }
+            }
+        ] 
+    },
+
     // query for offer timeline on phone.html
     offerTimeline: {
        "aggs": {
