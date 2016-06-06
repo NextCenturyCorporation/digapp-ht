@@ -99,6 +99,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecordElem.target).to.equal('_self');
     });
 
+    test('item.imageSrc is undefined', function() {
+      expect(singleRecordElem.item.imageSrc).to.be.undefined;
+    });
+
+    test('isDefined(item.imageSrc) returns false', function() {
+      expect(singleRecordElem.isDefined(singleRecordElem.item.imageSrc)).to.be.false;
+    });
+
+    test('expect no iron-image element', function() {
+      expect(document.querySelector('iron-image')).to.not.exist;
+    });
   });
 
   suite('<single-record> if newTab is true', function() {
@@ -118,6 +129,80 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecordElem.target).to.equal('_blank');
     });
 
+  });
+
+  suite('<single-record> with imageUrl', function() {
+    var singleRecordElem;
+
+    setup(function(done) {
+      singleRecordElem = fixture('single-record-fixture');
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
+      singleRecordElem.expanded = 'item';
+      singleRecordElem.imageUrl = 'url';
+      flush(function(){
+        done();
+      });
+    });
+
+    test('has imageUrl', function() {
+      expect(singleRecordElem.imageUrl).to.equal('url');
+    });
+
+    test('item.imageSrc equals imageUrl', function() {
+      expect(singleRecordElem.item.imageSrc).to.equal('url');
+    });
+
+    test('isDefined(item.imageSrc) returns true because imageUrl is defined', function() {
+      expect(singleRecordElem.isDefined(singleRecordElem.item.imageSrc)).to.be.true;
+    });
+
+    test('shows an iron-image element', function() {
+      expect(document.querySelector('iron-image')).to.exist;
+    });
+  });
+
+  suite('<single-record> with imageQueryTemplate', function() {
+    var singleRecordElem;
+
+    setup(function(done) {
+      singleRecordElem = fixture('single-record-fixture');
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
+      singleRecordElem.expanded = 'item';
+      singleRecordElem.imageQueryTemplate = {
+        query: {
+          match: {
+            '{{field}}': '{{value}}'
+          }
+        }
+      };
+      singleRecordElem.imageQueryField = 'a';
+      singleRecordElem.imageQueryValue = 'b';
+      flush(function(){
+        done();
+      });
+    });
+
+    test('has imageQueryTemplate', function() {
+      expect(singleRecordElem.imageQueryTemplate).to.be.an('Object');
+      expect(singleRecordElem.imageQueryTemplate.query).to.be.an('Object');
+      expect(singleRecordElem.imageQueryTemplate.query.match).to.be.an('Object');
+      expect(singleRecordElem.imageQueryTemplate.query.match['{{field}}']).to.equal('{{value}}');
+    });
+
+    test('has imageQueryField', function() {
+      expect(singleRecordElem.imageQueryField).to.equal('a');
+    });
+
+    test('has imageQueryValue', function() {
+      expect(singleRecordElem.imageQueryValue).to.equal('b');
+    });
+
+    test('imageQuery was created', function() {
+      expect(singleRecordElem.imageQuery).to.be.an('Object');
+      expect(singleRecordElem.imageQuery.query).to.be.an('Object');
+      expect(singleRecordElem.imageQuery.query.match).to.be.an('Object');
+      expect(singleRecordElem.imageQuery.query.match['a']).to.equal('b');
+    });
   });
 </script>
 

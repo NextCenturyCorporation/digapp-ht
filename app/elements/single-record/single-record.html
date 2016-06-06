@@ -95,12 +95,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .item.expanded .details {
         display: block;
       }
+
+      .subtitle {
+        padding-right: 30px;
+      }
+
+      .entity-icon {
+        margin: 0 16px;
+      }
+
+      .detail-toggle {
+        margin: 0 10px;
+      }
+
+      iron-image {
+        background: #DDD;
+        margin: 10px;
+        height: 50px;
+        width: 50px;
+      }
+
+      .blur {
+        -webkit-filter: blur(3px);
+        filter: blur(3px);
+      }
     </style>
 
     <elastic-search
       client="[[client]]"
       index="[[index]]"
-      elastic-type='["image"]'
+      elastic-type="[[indexTypes]]"
       query="[[imageQuery]]"
       results="{{imageQueryResults}}"
       lastError="{{error}}">
@@ -113,14 +137,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <!-- TODO: make icon component? -->
         <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
         <template is="dom-if" if="{{item.details}}">
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
+          <iron-icon class="iron-icon-big detail-toggle" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
         </template>
 
-        <!--placeholder for 1st image-->
-        <iron-image style="width:50px; height:50px; background: #ddd; margin: 5px;"
-          sizing="contain"
-          src="[[item.imageSrc]]">
-        </iron-image>
+        <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
+          <iron-image class="blur" sizing="contain" src="[[item.imageSrc]]"></iron-image>
+        </template>
 
         <paper-item-body>
           <!-- item title -->
@@ -161,6 +183,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </div>
   </template>
+
   <script>
   (function() {
     /* globals _ */
@@ -204,6 +227,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * The array of elasticsearch index types.
+         */
+        indexTypes: {
+          type: Array
+        },
+
+        /**
          * The query template to find images.
          */
         imageQueryTemplate: {
@@ -214,6 +244,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          * The field for the image query template.
          */
         imageQueryField: {
+          type: String
+        },
+
+        /**
+         * The value for the image query template.
+         */
+        imageQueryValue: {
           type: String
         },
 
@@ -229,22 +266,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         imageQueryResults: {
           type: Object
+        },
+
+        /**
+         * The image URL for the item.  Overrides item.imageSrc.
+         */
+        imageUrl: {
+          type: String
         }
       },
 
       observers: [
-          'createImageQuery(item, imageQueryTemplate, imageQueryField)',
-          'findSrcInImageQueryResults(item, imageQueryResults)'
+          'createImageQuery(item, imageQueryTemplate, imageQueryField, imageQueryValue)',
+          'findSrcInImageQueryResults(item, imageQueryResults)',
+          'updateImageSrcFromImageUrl(item, imageUrl)'
       ],
 
-      createImageQuery: function(item, imageQueryTemplate, imageQueryField) {
+      /**
+       * Sets this.imageQuery using the given variables.
+       */
+      createImageQuery: function(item, imageQueryTemplate, imageQueryField, imageQueryValue) {
         var view = {
           field: imageQueryField,
-          value: item._id
+          value: item[imageQueryValue]
         };
         this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
       },
 
+      /**
+       * Sets item.imageSrc with the image URL from the first hit in the given image query results.
+       */
       findSrcInImageQueryResults: function(item, imageQueryResults) {
         if(imageQueryResults) {
           if(imageQueryResults.hits.hits.length > 0) {
@@ -255,6 +306,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      /**
+       * Sets item.imageSrc with the given image URL.
+       */
+      updateImageSrcFromImageUrl: function(item, imageUrl) {
+        this.set('item.imageSrc', imageUrl);
+      },
+
+      /**
+       * Returns whether the given property is defined.
+       */
+      isDefined: function(property) {
+        return property !== undefined;
+      },
+
       checkEventSource: function(event) {
         var target = Polymer.dom(event).rootTarget;
         // if paper button was clicked, stop propagation up the DOM tree
@@ -262,32 +327,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           event.stopImmediatePropagation();
         }
       },
+
       getItemValue: function(item, key) {
         if(item.details && item.details[key]) {
           return item.details[key];
         } 
       },
+
       isValueArray: function(item, key) {
         var value = this.getItemValue(item, key);
         return _.isArray(value);
       },
+
       replaceCamelCase: function(key) {
         return key.replace(/([A-Z])/g, ' $1');
       },
+
       getAllItemKeys: function(item) {
         if(item.details) {
           return _.keys(item.details);
         }
       },
+
       logRecords: function() {
         console.log('records', this.records);
       },
+
       createURL: function(type, value, field) {
         return '/' + type + '.html?value=' + value + '&field=' + field;
       },
+
       getIconClass: function(type) {
-        return 'entity-' + type + '-font';
+        return 'entity-icon entity-' + type + '-font';
       },
+
       getIcon: function(type) {
         switch(type) {
             case 'email': return 'communication:email';
@@ -298,6 +371,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             case 'webpage': return 'av:web';
         }
       },
+
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
       }
