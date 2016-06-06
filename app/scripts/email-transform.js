@@ -70,7 +70,7 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
             return newData;
         },
         computeShowSeller: function(seller, email) {
-            sellerOut = [];
+            var sellerOut = [];
             _.each(seller, function(record) {
                 if(record.title !== email) {
                     sellerOut.push(record);
