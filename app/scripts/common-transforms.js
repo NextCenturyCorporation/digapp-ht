@@ -335,13 +335,6 @@ var commonTransforms = (function(_) {
             
             return result;
         },
-
-        combineArrays: function(arr1, arr2) {
-            arr2.forEach(function(elem) {
-                arr1.push(elem);
-            });
-            return arr1;
-        },
         offerTimelineData: function(data) {
             var newData = {};
 
@@ -385,15 +378,15 @@ var commonTransforms = (function(_) {
 
             if(mentions) {
                 mentions.forEach(function(elem) {
-                    type = 'none';
+                    var type = 'none';
                     if(elem.indexOf('phone') != -1) {
                         type = 'phone'
                     } else if(elem.indexOf('email') != -1) {
                         type = 'email'
                     }
                     if(type != 'none') {
-                        idx = elem.lastIndexOf("/")
-                        text = elem.substring(idx+1)
+                        var idx = elem.lastIndexOf("/")
+                        var text = elem.substring(idx+1)
                         var countryCode = '';
                         if (type === 'phone') {
                             if(text.indexOf('-') !== -1) {

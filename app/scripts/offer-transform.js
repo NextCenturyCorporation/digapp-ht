@@ -50,8 +50,8 @@ var offerTransform = (function(_, commonTransforms) {
         person.weight = _.get(record, 'itemOffered.weight');
         person.ages = _.get(record, 'itemOffered.age');
 
-        title = (person.name != 'Name N/A')? person.name : "";
-        sep = (title == "")? "": ", ";
+        var title = (person.name != 'Name N/A')? person.name : "";
+        var sep = (title == "")? "": ", ";
         if(person.ages) {
             title += sep + person.ages[0]
             sep = ", "
@@ -67,9 +67,9 @@ var offerTransform = (function(_, commonTransforms) {
 
     function getPrice(record) {
         var result = '';
-        prices = _.get(record, 'priceSpecification');
+        var prices = _.get(record, 'priceSpecification');
         if(prices) {
-            sep = ""
+            var sep = ""
             prices.forEach(function(elem) {
                 price = elem['name'];
                 if(price != '-per-min') {
@@ -139,8 +139,8 @@ var offerTransform = (function(_, commonTransforms) {
         },
 
         computeShowSeller: function(sellerPhoneEmails, webpageData) {
-            webpagePhonesLen = (webpageData.phones)? webpageData.phones.length: 0;
-            webpageEmailsLen = (webpageData.emails)? webpageData.emails.length: 0;
+            var webpagePhonesLen = (webpageData.phones)? webpageData.phones.length: 0;
+            var webpageEmailsLen = (webpageData.emails)? webpageData.emails.length: 0;
 
             return sellerPhoneEmails.length != (webpageEmailsLen + webpagePhonesLen);
         }

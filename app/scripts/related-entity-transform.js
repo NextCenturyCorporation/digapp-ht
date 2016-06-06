@@ -4,7 +4,7 @@
 
 /* globals _, commonTransforms */
 /* exported relatedEntityTransform */
-var relatedEntityTransform = (function(_, commonTransforms) {
+var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
 
     function getOfferSummary(record) {
         /**  build offer summary record:
@@ -357,6 +357,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         }
     };
 
-})(_, commonTransforms);
+})(_, commonTransforms, dateFormat);
 
 

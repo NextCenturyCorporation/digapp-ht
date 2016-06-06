@@ -10,7 +10,7 @@
 var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     function getOffers(record) {
-        offers = [];
+        var offers = [];
         if(record.owner) {
             _.each(record.owner, function(item) {
 
@@ -76,7 +76,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
             return newData;
         },
         computeShowSeller: function(seller, phone) {
-            sellerOut = [];
+            var sellerOut = [];
             _.each(seller, function(record) {
                 if(record.title !== phone) {
                     sellerOut.push(record);

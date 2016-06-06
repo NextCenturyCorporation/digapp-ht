@@ -51,10 +51,19 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             if(data.hits.hits.length > 0) {
                 
-                telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
-                emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
+                var telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
+                var emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
                 
-                newData = commonTransforms.combineArrays(telephone, emailAddress);
+                if(telephone && emailAddress) {
+                    newData = telephone.concat(emailAddress);
+                }
+                else if(telephone) {
+                    newData = telephone;
+                }
+                else if(emailAddress) {
+                    newData = emailAddress;
+                }
+                
             }
 
             return newData;

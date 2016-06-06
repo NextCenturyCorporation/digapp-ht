@@ -3,7 +3,7 @@
  */
 
 /* globals _, commonTransforms */
-/* exported webpageTransform */
+/* exported providerTransform */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope, as well as commonTransforms */
@@ -19,8 +19,8 @@ var providerTransform = (function(_, commonTransforms) {
         person.weight = _.get(record, 'weight');
         person.ages = _.get(record, 'age');
 
-        title = (person.name != 'Name N/A')? person.name : "";
-        sep = (title == "")? "": ", ";
+        var title = (person.name != 'Name N/A')? person.name : "";
+        var sep = (title == "")? "": ", ";
         if(person.ages) {
             title += sep + person.ages[0]
             sep = ", "
