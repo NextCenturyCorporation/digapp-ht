@@ -118,7 +118,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             var newData = {};
             if(data.aggregations){
                 var aggs = data.aggregations;
-                newData.date = commonTransforms.infoBuckets(aggs.phone.timeline.buckets,'date','city','publisher');
+                newData.date = commonTransforms.infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher':'Info','mentions':'Email'});
             }
             return newData;
         }        
