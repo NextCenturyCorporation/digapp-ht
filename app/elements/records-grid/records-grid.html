@@ -9,12 +9,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iron-list/iron-list.html">
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
-<link rel="import" href="../../bower_components/iron-selector/iron-selector.html">
 <link rel="import" href="../lodash.html">
 
-<!-- height will be determined by what's set on parent element -->
 <dom-module id="records-grid">
   <template>
     <style include="icon-styles"></style>
@@ -26,10 +23,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       iron-scroll-threshold {
         height: 100%;
-      }
-
-      iron-list {
-        height: 100%;
+        max-height: 600px;
       }
 
       .end-of-list {
@@ -47,65 +41,51 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-top: 10px;
       }
 
-      .tab {
-        height: 25px;
+      .grid-cell {
+        float: left;
+        height: 30px;
+        width: 33%;
       }
 
-      .tab a {
+      .grid-cell .grid-item {
+        overflow: hidden;
+        padding: 5px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .grid-cell .grid-item a {
         color: var(--primary-text-color);;
+        font-size: 15px;
         text-decoration: none;
       }
 
-      .tabItem {
-          width: 97%;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+      .grid-cell .grid-item iron-icon {
+        height: 18px;
+        width: 18px;
       }
-
-
     </style>
-    <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
-      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" 
-                grid max-physical-count="{{recordsToShow.length}}">
-        <template>
-          <div class="tab" style="width:[[tabWidth]]%">
-            <div class="tabItem">
-              <a new-tab="{{newTab}}" href$="{{createURL(item._type, item._id, '_id')}}">
-                <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
-                <!-- item title -->
-                <strong>[[item.title]]</strong>
-
-                <!-- item secondary title -->
-                <template if="dom-if" if="{{showSubtitle}}">
-                  <div secondary>
-                    <template is="dom-if" if="{{isArray(item.subtitle)}}">
-                      <template is="dom-repeat" items="{{item.subtitle}}" as="value">
-                        <span class="subtitle">[[value]]</span>
-                      </template>
-                    </template>
-                    
-                    <template is="dom-if" if="{{!isArray(item.subtitle)}}">
-                      [[item.subtitle]]
-                    </template>
-                  </div>
-                </template>
-              </a>
-            </div>
+    <iron-scroll-threshold id="scrollThreshold">
+      <template is="dom-repeat" items="{{recordsToShow}}" as="item">
+        <div class="grid-cell">
+          <div class="grid-item">
+            <a href$="{{createURL(item._type, item._id, '_id')}}">
+              <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+              <strong title="[[item.title]]">[[item.title]]</strong>
+            </a>
           </div>
-        </template>
-      </iron-list>
-    </iron-scroll-threshold>
-    <div class="end-of-list">
-      <template is="dom-if" if="{{displayShowMore}}">
-        <paper-button raised on-click="changePageNum">Show More</paper-button>
+        </div>
       </template>
+    </iron-scroll-threshold>
+
+    <div class="end-of-list">
       <template is="dom-if" if="{{loading}}">
         <paper-spinner active="{{loading}}"></paper-spinner>Loading results...
       </template>
     </div>
   </template>
+
   <script>
   (function() {
     /* globals _ */
@@ -120,6 +100,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         currentResults: {
           type: Array
         },
+
         /**
         * Records to display -- currentResults will be pushed onto the array.
         */
@@ -130,132 +111,50 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true
         },
-        newTab: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-        page: {
-          type: Number,
-          value: 1,
-          notify: true
-        },
-        showSubtitle: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-        resultsPerPage: {
-          type: Number,
-          value: 25,
-          notify: true
-        },
-        numResults: {
-          type: Number,
-          value: 25,
-          notify: true
-        },
-        numTabs: {
-          type: Number,
-          value: 3,
-          notify: true
-        },
-        tabWidth: {
-          type: Number,
-          notify: true,
-          computed: 'calcTabWidth(numTabs)'
-        },
-        numPages: {
-          type: Number,
-          notify: true,
-          computed: 'calcNumPages(numResults, resultsPerPage)'
-        },
+
         loading: {
           type: Boolean,
           value: false,
           notify: true
-        },
-        showMore: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-        displayShowMore: {
-          type: Boolean,
-          notify: true,
-          computed: 'calcDisplayShowMore(showMore, loading)'
         }
       },
+
       observers: [
         'updateRecordsToShow(currentResults, loading)'
       ],
-      calcDisplayShowMore: function(showMore, loading) {
-        return showMore && (!loading);
-      },
-      changeShowMore: function() {
-        if(this.numPages > 1 && this.numResults > 0 && this.page !== this.numPages) {
-          this.showMore = true;
-        }
-      },
+
       createURL: function(type, value, field) {
         return '/' + type + '.html?value=' + value + '&field=' + field;
       },
+
       /**
       * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
-      * 
-      * If a new query is entered, the page resets to 1, in which case recordsToShow gets reset 
-      * to a blank array before adding the new results. 
       */
       updateRecordsToShow: function() {
         var self = this;
 
         if(!this.loading) {
-          if(this.page === 1) {
-            this.recordsToShow = [];
-          }
-
           _.each(this.currentResults, function(item) {
             self.push('recordsToShow', item);
           });
 
           this.$.scrollThreshold.clearTriggers();
-          
-          var list = document.querySelector('#list');
-          if(list) {
-            list.fire('iron-resize');
-          }
-          
-          this.changeShowMore();
         }
+      },
 
-      },
-      changePageNum: function() {
-        this.showMore = false;
-        if(this.page < this.numPages) {
-          this.page += 1;
-        }
-      },
-      calcNumPages: function(numResults, resultsPerPage) {
-        if(this.page !== 1) {
-          this.page = 1;
-        }
-        return Math.ceil(numResults / resultsPerPage); 
-      },
-      calcTabWidth: function(numTabs) {
-        return Math.floor(100/numTabs)
-      },
       getIconClass: function(type) {
         return 'entity-' + type + '-font';
       },
+
       getIcon: function(type) {
         switch(type) {
             case 'email': return 'communication:email';
+            case 'offer': return 'maps:local-offer';
             case 'person': return 'icons:account-circle';
             case 'phone': return 'communication:phone';
-            case 'offer': return 'maps:local-offer';
+            case 'provider': return 'icons:account-circle';
             case 'seller': return 'editor:attach-money';
             case 'webpage': return 'av:web';
-            case 'provider': return 'icons:account-circle';
         }
       }
     });
