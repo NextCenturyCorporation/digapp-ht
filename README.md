@@ -1,5 +1,7 @@
+
 # digapp-ht
 Web application for searching and exploring entity graphs in Elasticsearch indices.
+
 
 ## Overview
 This web application is built primarily with [Web Components](https://developer.mozilla.org/en-US/docs/Web/Web_Components) using the [Polymer](https://github.com/Polymer/polymer) library.  The technology stack also includes [Node.js](https://nodejs.org/en/), [Express.js](http://expressjs.com), [Gulp.js](gulpjs.com), [Elastic Search Client](https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/index.html), [Elastic.js](https://github.com/fullscale/elastic.js/) and many other Bower and NPM javascript modules.  The public web components used in this application and others are located in [DigElements](https://github.com/DigElements).

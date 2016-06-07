@@ -1,6 +1,6 @@
 <!--
 @license
-Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
 The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -15,8 +15,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../lodash.html">
 
 <!-- height will be determined by what's set on parent element -->
-<dom-module id="records-list">
+<dom-module id="records-grid">
   <template>
+    <style include="icon-styles"></style>
     <style>
       :host {
         display: block;
@@ -45,11 +46,54 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .end-of-list paper-button {
         margin-top: 10px;
       }
+
+      .tab {
+        height: 25px;
+      }
+
+      .tab a {
+        color: var(--primary-text-color);;
+        text-decoration: none;
+      }
+
+      .tabItem {
+          width: 97%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+
+
     </style>
     <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
-      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
+      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" 
+                grid max-physical-count="{{recordsToShow.length}}">
         <template>
-          <single-record item="{{item}}" expanded="[[getClassForItem(item, selected)]]" new-tab="{{newTab}}"></single-record>
+          <div class="tab" style="width:[[tabWidth]]%">
+            <div class="tabItem">
+              <a new-tab="{{newTab}}" href$="{{createURL(item._type, item._id, '_id')}}">
+                <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+
+                <!-- item title -->
+                <strong>[[item.title]]</strong>
+
+                <!-- item secondary title -->
+                <template if="dom-if" if="{{showSubtitle}}">
+                  <div secondary>
+                    <template is="dom-if" if="{{isArray(item.subtitle)}}">
+                      <template is="dom-repeat" items="{{item.subtitle}}" as="value">
+                        <span class="subtitle">[[value]]</span>
+                      </template>
+                    </template>
+                    
+                    <template is="dom-if" if="{{!isArray(item.subtitle)}}">
+                      [[item.subtitle]]
+                    </template>
+                  </div>
+                </template>
+              </a>
+            </div>
+          </div>
         </template>
       </iron-list>
     </iron-scroll-threshold>
@@ -68,7 +112,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     'use strict';
 
     Polymer({
-      is: 'records-list',
+      is: 'records-grid',
       properties: {
         /**
         * Records on current page of query results
@@ -96,6 +140,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: 1,
           notify: true
         },
+        showSubtitle: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
         resultsPerPage: {
           type: Number,
           value: 25,
@@ -105,6 +154,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Number,
           value: 25,
           notify: true
+        },
+        numTabs: {
+          type: Number,
+          value: 3,
+          notify: true
+        },
+        tabWidth: {
+          type: Number,
+          notify: true,
+          computed: 'calcTabWidth(numTabs)'
         },
         numPages: {
           type: Number,
@@ -138,8 +197,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.showMore = true;
         }
       },
-      getClassForItem: function(item, selected) {
-        return selected ? 'item expanded' : 'item';
+      createURL: function(type, value, field) {
+        return '/' + type + '.html?value=' + value + '&field=' + field;
       },
       /**
       * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
@@ -166,7 +225,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             list.fire('iron-resize');
           }
           
-          this.showMore = false;
+          this.changeShowMore();
         }
 
       },
@@ -181,6 +240,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.page = 1;
         }
         return Math.ceil(numResults / resultsPerPage); 
+      },
+      calcTabWidth: function(numTabs) {
+        return Math.floor(100/numTabs)
+      },
+      getIconClass: function(type) {
+        return 'entity-' + type + '-font';
+      },
+      getIcon: function(type) {
+        switch(type) {
+            case 'email': return 'communication:email';
+            case 'person': return 'icons:account-circle';
+            case 'phone': return 'communication:phone';
+            case 'offer': return 'maps:local-offer';
+            case 'seller': return 'editor:attach-money';
+            case 'webpage': return 'av:web';
+            case 'provider': return 'icons:account-circle';
+        }
       }
     });
   })();

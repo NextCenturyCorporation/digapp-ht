@@ -78,81 +78,105 @@
       client="{{esclient}}">
     </elastic-client>
 
-    <!--look up and build an entity query for the entity specified in the
-      query string for:
-      field: the field in elasticsearch to use in the query
-      value: value of the field above -->
+    <!-- Get the provider details -->
     <query-builder 
-      query="{{webpageQuery}}" 
+      query="{{providerQuery}}" 
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
-    <!--make an search using {{webpageQuery}} and return results -->
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["webpage"]'
-      query='[[webpageQuery]]'
-      results="{{webpage}}"
+      query='[[providerQuery]]'
+      elastic-type='["adultservice"]'
+      results="{{provider}}"
       lastError="{{error}}">
     </elastic-search>
 
-    <!--make generic models for content sections -->
     <json-transform
-     data-in="[[webpage]]"
-     data-out="{{webpageDisplay}}"
-     transform-function="[[clientConfig.transforms.webpage.webpage]]"
+     data-in="[[provider]]"
+     data-out="{{providerDisplay.provider}}"
+     transform-function="[[clientConfig.transforms.provider.provider]]"
      ></json-transform>
     
-    <!--Start related entity queries and transforms-->
-    <!--page revision info-->
+    <!--
+    Get all Offers for this provider
+    -->
     <query-builder 
-      query="{{pageRevisionsQuery}}" 
-      query-template="{{config.queryTemplates.webpageRevisions}}" 
-      field="url" value="[[webpageDisplay.url]]">
-    </query-builder>    
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["webpage"]'
-      query='[[pageRevisionsQuery]]'
-      results="{{pageRevisions}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[pageRevisions]]"
-     data-out="{{webpageDisplay.pageRevisions}}"
-     transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
-     ></json-transform>
-
-    <!--Related offer info-->
-    <query-builder 
-      query="{{relatedOfferQuery}}" 
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="mainEntityOfPage.uri" value="[[webpageDisplay._id]]">
+        query="{{providerOffersQuery}}" 
+        query-template="{{config.queryTemplates.commonMatchQuery}}"
+        field="itemOffered.uri" value="[[params.value]]">
     </query-builder>
 
     <elastic-search 
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[relatedOfferQuery]]'
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      results="{{relatedOfferResults}}"
-      lastError="{{error}}"
-      loading="{{offersLoading}}">
+      query='[[providerOffersQuery]]'
+      results="{{providerOffers}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[relatedOfferResults]]"
-     data-out="{{relatedOffers}}"
+     data-in="[[providerOffers]]"
+     data-out="{{providerDisplay.offers}}"
      transform-function="[[clientConfig.transforms.relatedEntities.offer]]"
      ></json-transform>
 
-    <!-- End related entity queries-->
+     <!--
+        build the query for provider locations 
+      -->
+       <query-builder 
+        query="{{providerLocationQuery}}" 
+        query-template="{{config.queryTemplates.offerLocation}}"
+        field="itemOffered.uri" value="[[params.value]]">
+      </query-builder>
+
+      <elastic-search 
+        client="[[esclient]]"
+        index="[[config.elasticIndex]]"
+        query='[[providerLocationQuery]]'
+        results="{{providerLocationAggs}}"
+        elastic-type='["offer"]'
+        lastError="{{error}}">
+      </elastic-search>
+
+      <json-transform
+       data-in="[[providerLocationAggs]]"
+       data-out="{{providerDisplay.offerLocation}}"
+       transform-function="[[clientConfig.transforms.phone.offerLocationData]]"
+       ></json-transform>
+
+    <!--
+    build the query to get seller
+    -->
+    <query-builder 
+      query="{{sellerQuery}}" 
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[providerDisplay.provider.sellers]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["seller"]'
+      query='[[sellerQuery]]'
+      results="{{seller}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
+     ></json-transform>
+
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerObject}}"
+     transform-function="[[clientConfig.transforms.seller.seller]]"
+     ></json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -163,13 +187,10 @@
           
           <!-- Entity title -->
           <div class="layout horizontal center">
-            <iron-icon class="iron-icon-huge" icon="av:web"></iron-icon>
+            <iron-icon class="iron-icon-huge" icon="icons:account-circle"></iron-icon>
             <section class="flex-auto">
               <div class="paper-font-display1">
-                [[webpageDisplay.url]]
-              </div>
-              <div class="paper-font-subhead">
-                Posted <time is="relative-time" datetime$="[[webpageDisplay.date]]"></time>
+                [[providerDisplay.provider.title]]
               </div>
             </section>
             
@@ -184,110 +205,97 @@
 
           <div class="content">
             
+            <!-- Left pane -->
             <div class="flex layout vertical">
               
-              <!-- What section (item details) -->
-              <paper-material class="flex">
-                <section class="what">
-                  
-                  <div class="what-section">
-                    <dl class="flex-12">
-                      <dt class="body">Title:</dt><dd>[[webpageDisplay.title]]</dd>
-                    </dl>
-                  </div>
-                  
-                  <div class="h-divider"></div>
-                  
-                  <div class="what-section">
-                    <dl class="flex-12">
-                      <dt class="body">Description:</dt><dd>[[webpageDisplay.body]]</dd>
-                    </dl>
-                  </div>
-
-                  <div class="h-divider"></div>
-                  
-                  <div class="what-section">
-                    <dl class="flex-6">
-                      <dt class="address">Address:</dt>
-                      <dd>[[webpageDisplay.address.formattedAddress]]</dd>
-                    </dl>
-                    <div class="h-divider"></div>
-                    <dl class="flex-6">
-                      <dt class="publisher layout horizontal center entity-webpage-font">
-                        <iron-icon icon="av:web"></iron-icon>
-                        Publisher:
-                      </dt>
-                      <!-- TO DO: Make these links to their entity pages -->
-                      <dd>[[webpageDisplay.publisher]]</dd>  
-                    </dl>
-                  </div>
-                  
+              <!-- Photos section -->
+              <!-- TO DO: Hook up with data -->
+              <paper-material class="photos-wrapper">
+                <section class="photos">
+                  <!-- Display a single row of images and provide a way to expand to see more -->
+                  (photos section)
                 </section>
               </paper-material>
+              
+              <!-- Seller -->
+              <template is="dom-if" if="{{sellerPhoneEmails.length}}">
+                <div class="h-divider"></div>
+                <paper-material>
+                  <section class="who">
+                    <div class="who">
+                      <div class="paper-font-title">
+                        <single-record item="{{sellerObject}}"></single-record>
+                      </div>
+                    </div>
+                    <records-grid
+                      current-results="[[sellerPhoneEmails]]">
+                    </records-grid>
+                  </section>
+                </paper-material>
+              </template>
 
+              <div class="h-divider"></div>
+
+              <!-- People who look similar -->
+              <paper-material>
+                <section class="photos wrapper">
+
+                  <div class="section-header">
+                   <div class="paper-font-title flex">People who look Similar</div>
+                  </div>
+
+                  <section class="photos">
+                  <!-- Display a single row of images and provide a way to expand to see more -->
+                  (similar images section)
+                  </section>
+                </section>
+              </paper-material>
             </div>
 
             <div class="v-divider"></div>
             
-            <div class="h-divider"></div>
-            <!-- Timeline -->
-            <paper-material class="flex">
-              <section class="when">
-                <div class="paper-font-title layout horizontal start center">
-                  <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                  <div>
-                    Revisions to this page between {{minXValue}} and {{maxXValue}}
-                  </div>
-                </div>
-                <bar-chart y-axis-label="" data='[[webpageDisplay.pageRevisions]]' 
-                  chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                  min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                </bar-chart>
-              </section>
-            </paper-material>            
-
-          </div>
+            <!-- Right Pane -->
+            <div class="flex layout vertical">
               
-          <div class="h-divider"></div>
+              <paper-material>
+                <!-- City summary -->
+                <section class="where-header flex-none">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[providerDisplay.offerLocation.offerLocation.length]] location(s)</div>
+                  </div>
+                </section>
+                
+                <!-- Leaflet map -->
+                <section class="where flex-auto">
+                  <leaflet-wrapper map-data="{{providerDisplay.offerLocation.offerLocation}}">
+                  </leaflet-wrapper>
+                </section>
+                
+                <!-- City summary -->
+                <section class="where-details flex-none">
+                  <feature-aggregation title="Offers per city" key="name" agg="[[providerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                </section>
+              </paper-material>  
 
-          <!-- Photos section -->
-          <!-- TO DO: Hook up with data -->
-          <paper-material>
-            <section class="photos">
-              <!-- Display a single row of images and provide a way to expand to see more -->
-              (photos section)
-            </section>
-          </paper-material>
-          
-          <div class="h-divider"></div>
-        
-          <div class="content">
-          
-            <!-- Offer list -->
-            <div class="flex">
-              <paper-material class="related-entities-wrapper">
-                <section class="related-entities">
+              <div class="h-divider"></div>
+
+              <!-- Offers by the provider -->
+              <paper-material>
+                <section>
                   <div class="section-header">
                     <div class="paper-font-title">
-                      [[relatedOffers.count]] offer(s)
+                      [[providerDisplay.offers.count]] offer(s)
                     </div>
                   </div>
                   <records-list
-                    current-results="[[relatedOffers.data]]" page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" num-results="{{relatedOffers.count}}"
+                    current-results="[[providerDisplay.offers.data]]" page="{{pageNum}}" 
+                    results-per-page="{{pageSize}}" num-results="{{providerDisplay.offers.count}}" 
                     loading="{{offersLoading}}">
                   </records-list>
                 </section>
               </paper-material>
             </div>
-            
-            <div class="v-divider"></div>
-            
-            <!-- Related entities? -->
-            <div class="flex">
-              <section class="relations"></section>
-            </div>
-
           </div>
           
         </div>
@@ -317,8 +325,7 @@
     };
 
     app.getURLParams();
-
-    app.webpageDisplay ={};
+    app.providerDisplay = {};
 
   })(document);
   </script>

@@ -66,8 +66,8 @@
       results="{{ecsResult}}"
       last-error="{{error}}"
       result-count="{{resultCount}}"
-      aggregations="{{buildArray(webpageCityAgg, phoneAgg)}}"
-      filters="[[buildStarArray(webpageCityFilter.*, phoneFilter.*)]]"
+      aggregations="{{buildArray(webpageCityAgg, phoneAgg, publisherAgg, ageAgg)}}"
+      filters="[[buildStarArray(webpageCityFilter.*, phoneFilter.*, publisherFilter.*, ageFilter.*)]]"
       sort="{{sort}}"
       loading="{{loading}}">
     </elastic-client-search>
@@ -75,7 +75,7 @@
     <json-transform
      data-in="{{ecsResult}}"
      data-out="{{records}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.combinedResults]]"
+     transform-function="[[clientConfig.transforms.relatedEntities.webpage]]"
      ></json-transform>
 
     <paper-header-panel class="flex" mode="waterfall">
@@ -116,15 +116,21 @@
                 <h4>City</h4>
                 <elastic-client-aggregation-builder
                   name="webpageCityAgg"
-                  field="mainEntity.availableAtOrFrom.address.addressLocality"
+                  field="mainEntity.availableAtOrFrom.address.key"
                   ejs-aggregation="{{webpageCityAgg}}"
                   type="terms">
                 </elastic-client-aggregation-builder>
 
+                <json-transform
+                   data-in="{{ecsResult}}"
+                   data-out="{{ecsResultsCity}}"
+                   transform-function="[[clientConfig.transforms.relatedEntities.cityResults]]"
+                   ></json-transform>
+
               <elastic-client-checkbox-list
-                buckets="[[ecsResult.aggregations.webpageCityAgg.webpageCityAgg.buckets]]"
+                buckets="[[ecsResultsCity.aggregations.webpageCityAgg.webpageCityAgg.buckets]]"
                 filter-name="webpageCityAgg"
-                field="mainEntity.availableAtOrFrom.address.addressLocality"
+                field="mainEntity.availableAtOrFrom.address.key"
                 ejs-filter="{{webpageCityFilter}}"
                 combination-type="or">
               </elastic-client-checkbox-list>
@@ -133,7 +139,7 @@
               <p><h4>Telephone</h4>
               <elastic-client-aggregation-builder
                 name="phoneAgg"
-                field="mainEntity.seller.telephone.name"
+                field="mainEntity.seller.telephone.name.raw"
                 ejs-aggregation="{{phoneAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
@@ -141,8 +147,42 @@
               <elastic-client-checkbox-list
                 buckets="[[ecsResult.aggregations.phoneAgg.phoneAgg.buckets]]"
                 filter-name="phoneAgg"
-                field="mainEntity.seller.telephone.name"
+                field="mainEntity.seller.telephone.name.raw"
                 ejs-filter="{{phoneFilter}}"
+                combination-type="or">
+              </elastic-client-checkbox-list>
+              </p>
+
+              <p><h4>Publisher</h4>
+              <elastic-client-aggregation-builder
+                name="publisherAgg"
+                field="publisher.name.raw"
+                ejs-aggregation="{{publisherAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <elastic-client-checkbox-list
+                buckets="[[ecsResult.aggregations.publisherAgg.publisherAgg.buckets]]"
+                filter-name="publisherAgg"
+                field="publisher.name.raw"
+                ejs-filter="{{publisherFilter}}"
+                combination-type="or">
+              </elastic-client-checkbox-list>
+              </p>
+
+              <p><h4>Age</h4>
+              <elastic-client-aggregation-builder
+                name="ageAgg"
+                field="mainEntity.itemOffered.age"
+                ejs-aggregation="{{ageAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <elastic-client-checkbox-list
+                buckets="[[ecsResult.aggregations.ageAgg.ageAgg.buckets]]"
+                filter-name="ageAgg"
+                field="mainEntity.itemOffered.age"
+                ejs-filter="{{ageFilter}}"
                 combination-type="or">
               </elastic-client-checkbox-list>
               </p>
