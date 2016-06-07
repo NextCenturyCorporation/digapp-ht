@@ -68,9 +68,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                                 }).join(', ');
                                 objLevelTwo.data.push(ele);
                             }
-                        } else{
-                            console.log('Error: '+ keys[key]+' - key not found');
-                        }
+                        } 
                     }
                     return objLevelTwo;
                 });
