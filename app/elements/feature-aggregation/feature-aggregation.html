@@ -95,6 +95,7 @@ Custom property | Description | Default
       }
       
     </style>
+
     <section class="feature-set">
       <span class="feature-title">{{title}}</span>
       <div class="agg">
@@ -104,7 +105,7 @@ Custom property | Description | Default
             <div class="bar" style="{{getWidth(item)}}"></div>
             <div class="bar-title flex">
               <template is="dom-if" if="[[showLink]]">
-                <a href$="[[createURL(item)]]">{{getItemKey(item)}}</a> 
+                <a href$="[[createURL(item, blur)]]">{{getItemKey(item)}}</a> 
               </template>
               <template is="dom-if" if="[[!showLink]]">
                 {{getItemKey(item)}}
@@ -119,6 +120,7 @@ Custom property | Description | Default
       </div>
     </section>
   </template>
+
   <script>
   (function() {
     'use strict';
@@ -155,22 +157,38 @@ Custom property | Description | Default
         linkField: {
           type: String,
           notify: true
+        },
+        blur: {
+          type: Boolean
         }
       },
-      createURL: function(item) {
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
+      createURL: function(item, blur) {
         // if showLink is enabled, use linkType and linkField to create URL 
         if(this.showLink && this.linkType && this.linkField) {
-          return '/' + this.linkType + '.html?value=' + this.getItemKey(item) + '&field=' + this.linkField;
-        } else {
-          return null;
+          return '/' + this.linkType + '.html?value=' + this.getItemKey(item) + '&field=' + this.linkField + '&blur=' + blur;
         }
+        return null;
       },
+
       getItemKey: function(item) {
         if(!item[this.key]){
           return 'Unknown';
         }
         return item[this.key];
       },
+
       getWidth: function(item) {
         // This returns bar widths relative to the highest count item, assuming it's first.
         // Could also sum up all counts and do widths relative to the total.
@@ -178,6 +196,7 @@ Custom property | Description | Default
         var widthCalc = Math.round((item.count / this.agg[0].count) * 100);
         return 'width: ' + (widthCalc === 0 && item.count > 0 ? 1 : widthCalc) + '%;';
       },
+
       filterToLimit: function() {
         if(!this.itemCount){
           this.itemCount = 1;
@@ -190,6 +209,7 @@ Custom property | Description | Default
           return true;
         }
       },
+
       showMore: function(e) {
         e.preventDefault();
         this.originalLimit = this.limit;

@@ -71,7 +71,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <template>
           <div class="tab" style="width:[[tabWidth]]%">
             <div class="tabItem">
-              <a new-tab="{{newTab}}" href$="{{createURL(item._type, item._id, '_id')}}">
+              <a new-tab="{{newTab}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
                 <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
                 <!-- item title -->
@@ -184,11 +184,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           notify: true,
           computed: 'calcDisplayShowMore(showMore, loading)'
+        },
+        blur: {
+          type: Boolean
         }
       },
       observers: [
         'updateRecordsToShow(currentResults, loading)'
       ],
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
       calcDisplayShowMore: function(showMore, loading) {
         return showMore && (!loading);
       },
@@ -197,8 +212,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.showMore = true;
         }
       },
-      createURL: function(type, value, field) {
-        return '/' + type + '.html?value=' + value + '&field=' + field;
+      createURL: function(type, value, field, blur) {
+        return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
       },
       /**
       * Gets called when currentResults change. Pushes new results onto the recordsToShow array.

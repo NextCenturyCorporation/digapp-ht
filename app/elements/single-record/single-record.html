@@ -125,11 +125,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         height: 50px;
         width: 50px;
       }
-
-      .blur {
-        -webkit-filter: blur(3px);
-        filter: blur(3px);
-      }
     </style>
 
     <elastic-search
@@ -152,7 +147,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
 
         <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
-          <iron-image class="blur" sizing="contain" src="[[item.imageSrc]]"></iron-image>
+          <iron-image class$="[[getBlurClass(blur)]]" sizing="contain" src="[[item.imageSrc]]"></iron-image>
         </template>
 
         <paper-item-body>
@@ -175,7 +170,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </paper-item-body>
 
         <!-- secondary actions -->
-        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id')}}">
+        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
           <paper-button>open [[item._type]]</paper-button>
         </a>
       </paper-icon-item>
@@ -196,7 +191,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 </template>
               </p>
             </template>
-            <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id')}}">
+            <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
               <paper-button raised>open [[item._type]]</paper-button>
             </a>
           </paper-material>
@@ -294,6 +289,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         imageUrl: {
           type: String
+        },
+
+        /**
+         * Whether to blur the images.
+         */
+        blur: {
+          type: Boolean
         }
       },
 
@@ -302,6 +304,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           'findSrcInImageQueryResults(item, imageQueryResults)',
           'updateImageSrcFromImageUrl(item, imageUrl)'
       ],
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
+      getBlurClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
 
       /**
        * Sets this.imageQuery using the given variables.
@@ -391,8 +408,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         console.log('records', this.records);
       },
 
-      createURL: function(type, value, field) {
-        return '/' + type + '.html?value=' + value + '&field=' + field;
+      createURL: function(type, value, field, blur) {
+        return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
       },
 
       getIconClass: function(type) {

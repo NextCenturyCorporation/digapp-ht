@@ -40,11 +40,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 0px;
         margin: 0px;
       }
-
-      .blur {
-        -webkit-filter: blur(3px);
-        filter: blur(3px);
-      }
     </style>
 
     <template is="dom-if" if="{{hasImages(images)}}">
@@ -53,7 +48,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <div class="img-viewer">
           <template is="dom-repeat" items="{{images}}">
             <paper-button data-dialog="{{item}}" on-click="createDialogElement">
-              <iron-image class="img-viewer-thumb blur" src="{{item}}" sizing="contain">
+              <iron-image class$="img-viewer-thumb [[getBlurClass(blur)]]" src="{{item}}" sizing="contain">
               </iron-image>
             </paper-button>
           </template>
@@ -76,14 +71,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return [];
           },
           notify: true
+        },
+
+        blur: {
+          type: Boolean
         }
       },
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
+      getBlurClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
       stopClickPropagation: function(event) {
         event.stopImmediatePropagation();
       },
+
       hasImages: function(images) {
         return (images && images.length) ? images.length > 0 : false;
       },
+
       createDialogElement: function(event) {
         /* Appending full-size-image-view element with paper-dialog to body when 
            opened -- workaround for unexpected behavior with overlays, which should 

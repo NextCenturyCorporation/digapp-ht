@@ -59,11 +59,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 0px;
         margin: 0px;
       }
-
-      .blur {
-        -webkit-filter: blur(50px);
-        filter: blur(50px);
-      }
     </style>
 
     <paper-dialog id="imageModal" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation" class="gallery">
@@ -74,7 +69,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          <paper-button class="gallery-toggle self-center" disabled="{{!hasPrevious(currentIndex)}}" on-click="clickPrevious">
           <iron-icon icon="image:navigate-before"></iron-icon>
         </paper-button>
-        <iron-image src="{{currentImage}}" class="center-justified self-center blur"></iron-image>
+        <iron-image src="{{currentImage}}" class$="center-justified self-center [[getBlurClass(blur)]]"></iron-image>
         <paper-button class="gallery-toggle self-center" disabled="{{!hasNext(currentIndex)}}" on-click="clickNext">
           <iron-icon icon="image:navigate-next"></iron-icon>
         </paper-button>
@@ -97,18 +92,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true
         },
+
         currentImage: {
           type: String,
           notify: true
         },
+
         currentIndex: {
           type: Number,
           notify: true
-        } 
+        },
+
+        blur: {
+          type: Boolean
+        }
       },
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
+      getBlurClass: function(blur) {
+        return (blur ? 'large-blur' : '');
+      },
+
       attached: function() {
         this.$.imageModal.open();
       },
+
       hasPrevious: function(index) {
         if(index - 1  < 0) {
           return false;
@@ -116,6 +134,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return true;
         }
       },
+
       hasNext: function(index) {
         if(index + 1 >= this.images.length) {
           return false;
@@ -123,16 +142,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return true;
         }
       },
+
       clickPrevious: function() {
         this.currentIndex = this.currentIndex - 1;
         this.currentImage = this.images[this.currentIndex];
         this.$.imageModal.refit();
       },
+
       clickNext: function() {
         this.currentIndex = this.currentIndex + 1;
         this.currentImage = this.images[this.currentIndex];
         this.$.imageModal.refit();
       },
+
       closeDialog: function() {
         this.$.imageModal.close();
         this.remove();
