@@ -2,7 +2,7 @@
  * transform elastic search related entity query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
+/* globals _, commonTransforms, dateFormat */
 /* exported relatedEntityTransform */
 var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
 

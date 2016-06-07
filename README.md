@@ -74,7 +74,6 @@ Build and optimize the current project, ready for deployment. This includes vulc
 The client code uses [Web Component Tester](https://github.com/Polymer/web-component-tester) 
 
 [Read more](https://github.com/Polymer/web-component-tester#html-suites) about using Web Component tester.
-Add trivial line
 
 ## Contributing
 Pull requests are welcome.  Please fork this repo, then create a topic branch on your forked copy.  Ensure that all unit tests are working **before** and **after** making modifications on your topic branch.  Add necessary unit tests to accompany your feature or bug fix, and then submit a pull request with upstream branch set to the default (master) branch, and downstream branch set to your topic branch on your forked repo.
