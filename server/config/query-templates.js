@@ -516,6 +516,12 @@ module.exports = {
                         "field": "mainEntityOfPage.publisher.name.raw",
                         "size": 500
                       }
+                    },
+                    "mentions": {
+                      "terms": {
+                        "field": "mainEntityOfPage.mentions",
+                        "size": 500
+                      }
                     }
                   }
                 }
