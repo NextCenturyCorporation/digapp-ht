@@ -218,7 +218,7 @@ gulp.task('serve', ['styles', 'elements', 'nodemon'], function() {
   proxyOptions.route = '/config';
 
   browserSync({
-    port: 5000,
+    port: 5009,
     notify: false,
     logPrefix: 'DIG',
     snippetOptions: {

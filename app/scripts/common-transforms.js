@@ -16,6 +16,26 @@ var commonTransforms = (function(_) {
         return value.latitude === other.latitude && value.longitude === other.longitude;
     }
 
+    function getGeoFromKeys(record) {
+        
+        var geos = [];
+        _.each(record, function(key) {
+            geoData = key.key.split(':');
+            count = key.doc_count;
+            var geo = {
+                        city: geoData[0],
+                        state: geoData[1],
+                        country: geoData[2],
+                        longitude: geoData[3],
+                        latitude: geoData[4],
+                        count: count,
+                        name: geoData[0] + ", " + geoData[1]
+                    };
+            geos.push(geo)
+        });
+        return geos;
+    }
+
     return {
         /**
         * Changes the key/value names of buckets given from an aggregation
@@ -111,15 +131,13 @@ var commonTransforms = (function(_) {
 
             records.forEach(function(record) {
                 var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
-                var latitude = _.get(record, '_source.availableAtOrFrom.geo.latitude');
-                var longitude = _.get(record, '_source.availableAtOrFrom.geo.longitude');
                 addresses.forEach(function(address) {
                     if (latitude && longitude) {
                         var geo = {
                             city: address.addressLocality,
                             state: address.addressRegion,
-                            latitude: latitude,
-                            longitude: longitude
+                            latitude: address.geo.latitude,
+                            longitude: address.geo.longitude
                         };
                         geos.push(geo);
                     }
@@ -174,6 +192,116 @@ var commonTransforms = (function(_) {
             });
 
             return arrayToReturn;
+        },
+
+        getClickableObjectArr: function (records, type) {
+            var result = [];
+            if(records) {
+                if(records.constructor === Array) {
+                    records.forEach(function(record) {
+                        if(record.name) {
+                            var obj = {
+                                _id: record.uri,
+                                _type: type,
+                                title: record.name,
+                                subtitle: ''
+                            };
+                            result.push(obj);
+                        }
+                    });
+                } else {
+                    var obj = {
+                        _id: records.uri,
+                        _type: type,
+                        title: records.name,
+                        subtitle: ''
+                    };
+                    result.push(obj);
+                }
+            }
+            
+            return result;
+        },
+        offerTimelineData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+                newData.offerTimeline = this.transformBuckets(aggs.offersPhone.offerTimeline.buckets, 'date', 'key_as_string');
+            }
+        
+            return newData;
+        },
+        offerLocationData: function(data) {
+            var newData = {};
+
+            if(data.hits.hits.length > 0) {
+                var aggs = data.aggregations;
+                newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
+            }
+        
+            return newData;
+        },
+         getSellerId: function(record) {
+            var sellerId = '';
+            if(record.owner) {
+
+                if(_.isArray(record.owner)) {
+                    //phone will have one seller 
+                    sellerId = record.owner[0].uri;    
+                }
+                else {
+                    sellerId = record.owner
+                }
+                
+            }
+
+            return sellerId;
+        },
+        getEmailAndPhoneFromMentions: function(mentions) {
+            var newData = {};
+            newData.phones = [];
+            newData.emails = [];
+
+            if(mentions) {
+                mentions.forEach(function(elem) {
+                    var type = 'none';
+                    if(elem.indexOf('phone') != -1) {
+                        type = 'phone'
+                    } else if(elem.indexOf('email') != -1) {
+                        type = 'email'
+                    }
+                    if(type != 'none') {
+                        var idx = elem.lastIndexOf("/")
+                        var text = elem.substring(idx+1)
+                        var countryCode = '';
+                        if (type === 'phone') {
+                            if(text.indexOf('-') !== -1) {
+                                var idx2 = text.indexOf('-');
+                                text = text.substring(idx2+1);
+                                var cc = text.substring(0,idx2);
+                                if (cc.length < 5) {
+                                    countryCode = cc;
+                                }
+                            }
+                        }
+                        var newObj = {
+                            _id: elem,
+                            _type: type,
+                            title:  text,
+                            subtitle: ''
+                        }
+                        if(type == 'phone')
+                            newData.phones.push(newObj);
+                        else if(type == 'email')
+                            newData.emails.push(newObj);
+                    }
+                });
+            }
+            return newData;
+        },
+        makeJSONArray: function(val1, val2) {
+            return [val1, val2];
         }
     };
 

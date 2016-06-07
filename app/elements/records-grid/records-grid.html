@@ -1,6 +1,6 @@
 <!--
 @license
-Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
 The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -15,8 +15,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../lodash.html">
 
 <!-- height will be determined by what's set on parent element -->
-<dom-module id="records-list">
+<dom-module id="records-grid">
   <template>
+    <style include="icon-styles"></style>
     <style>
       :host {
         display: block;
@@ -45,24 +46,57 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .end-of-list paper-button {
         margin-top: 10px;
       }
+
+      .tab {
+        height: 25px;
+      }
+
+      .tab a {
+        color: var(--primary-text-color);;
+        text-decoration: none;
+      }
+
+      .tabItem {
+          width: 97%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+
+
     </style>
-
     <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
-      <template is="dom-repeat" items="{{recordsToShow}}" as="item" initial-count=25>
-        <single-record item="{{item}}"
-          on-tap="toggleSelectRecord"
-          client="[[client]]"
-          index="[[elasticIndex]]"
-          index-types="[[indexTypes]]"
-          image-query-template="[[imageQueryTemplate]]"
-          image-query-field="[[imageQueryField]]"
-          image-query-value="[[imageQueryValue]]"
-          expanded="[[getClassForItem(item.selected)]]"
-          new-tab="{{newTab}}">
-        </single-record>
-      </template>
-    </iron-scroll-threshold>
+      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" 
+                grid max-physical-count="{{recordsToShow.length}}">
+        <template>
+          <div class="tab" style="width:[[tabWidth]]%">
+            <div class="tabItem">
+              <a new-tab="{{newTab}}" href$="{{createURL(item._type, item._id, '_id')}}">
+                <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
+                <!-- item title -->
+                <strong>[[item.title]]</strong>
+
+                <!-- item secondary title -->
+                <template if="dom-if" if="{{showSubtitle}}">
+                  <div secondary>
+                    <template is="dom-if" if="{{isArray(item.subtitle)}}">
+                      <template is="dom-repeat" items="{{item.subtitle}}" as="value">
+                        <span class="subtitle">[[value]]</span>
+                      </template>
+                    </template>
+                    
+                    <template is="dom-if" if="{{!isArray(item.subtitle)}}">
+                      [[item.subtitle]]
+                    </template>
+                  </div>
+                </template>
+              </a>
+            </div>
+          </div>
+        </template>
+      </iron-list>
+    </iron-scroll-threshold>
     <div class="end-of-list">
       <template is="dom-if" if="{{displayShowMore}}">
         <paper-button raised on-click="changePageNum">Show More</paper-button>
@@ -72,14 +106,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </div>
   </template>
-
   <script>
   (function() {
     /* globals _ */
     'use strict';
 
     Polymer({
-      is: 'records-list',
+      is: 'records-grid',
       properties: {
         /**
         * Records on current page of query results
@@ -107,6 +140,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: 1,
           notify: true
         },
+        showSubtitle: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
         resultsPerPage: {
           type: Number,
           value: 25,
@@ -116,6 +154,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Number,
           value: 25,
           notify: true
+        },
+        numTabs: {
+          type: Number,
+          value: 3,
+          notify: true
+        },
+        tabWidth: {
+          type: Number,
+          notify: true,
+          computed: 'calcTabWidth(numTabs)'
         },
         numPages: {
           type: Number,
@@ -136,69 +184,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           notify: true,
           computed: 'calcDisplayShowMore(showMore, loading)'
-        },
-
-        /**
-         * The elasticsearch.Client connected to an elasticsearch server.
-         */
-        client: {
-          type: Object
-        },
-
-        /**
-         * The elasticsearch index.
-         */
-        elasticIndex: {
-          type: String
-        },
-
-        /**
-         * The array of elasticsearch index types.
-         */
-        indexTypes: {
-          type: Array
-        },
-
-        /**
-         * The query template to find images.
-         */
-        imageQueryTemplate: {
-          type: Object
-        },
-
-        /**
-         * The field for the image query template.
-         */
-        imageQueryField: {
-          type: String
-        },
-
-        /**
-         * The value for the image query template.
-         */
-        imageQueryValue: {
-          type: String
         }
       },
-
       observers: [
         'updateRecordsToShow(currentResults, loading)'
       ],
-
       calcDisplayShowMore: function(showMore, loading) {
         return showMore && (!loading);
       },
-
       changeShowMore: function() {
         if(this.numPages > 1 && this.numResults > 0 && this.page !== this.numPages) {
           this.showMore = true;
         }
       },
-
-      getClassForItem: function(selected) {
-        return selected ? 'item expanded' : 'item';
+      createURL: function(type, value, field) {
+        return '/' + type + '.html?value=' + value + '&field=' + field;
       },
-
       /**
       * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
       * 
@@ -218,27 +219,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
 
           this.$.scrollThreshold.clearTriggers();
-          this.showMore = false;
+          
+          var list = document.querySelector('#list');
+          if(list) {
+            list.fire('iron-resize');
+          }
+          
+          this.changeShowMore();
         }
 
       },
-
       changePageNum: function() {
         this.showMore = false;
         if(this.page < this.numPages) {
           this.page += 1;
         }
       },
-
       calcNumPages: function(numResults, resultsPerPage) {
         if(this.page !== 1) {
           this.page = 1;
         }
         return Math.ceil(numResults / resultsPerPage); 
       },
-
-      toggleSelectRecord: function(e) {
-        e.model.set('item.selected', !e.model.item.selected);
+      calcTabWidth: function(numTabs) {
+        return Math.floor(100/numTabs)
+      },
+      getIconClass: function(type) {
+        return 'entity-' + type + '-font';
+      },
+      getIcon: function(type) {
+        switch(type) {
+            case 'email': return 'communication:email';
+            case 'person': return 'icons:account-circle';
+            case 'phone': return 'communication:phone';
+            case 'offer': return 'maps:local-offer';
+            case 'seller': return 'editor:attach-money';
+            case 'webpage': return 'av:web';
+            case 'provider': return 'icons:account-circle';
+        }
       }
     });
   })();

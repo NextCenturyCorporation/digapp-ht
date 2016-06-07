@@ -108,6 +108,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin: 0 10px;
       }
 
+      paper-item-body {
+        max-width: 80%;
+      }
+
+      paper-item-body strong {
+          width: 100%;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+      }
+
       iron-image {
         background: #DDD;
         margin: 10px;
@@ -146,11 +157,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         <paper-item-body>
           <!-- item title -->
-          <!-- will not format non-phone number titles -->
-          <strong><phone-formatter input="[[item.title]]"></phone-formatter></strong>
+          <strong>[[item.title]]</strong>
 
           <!-- item secondary title -->
-          <div secondary>[[item.subtitle]]</div>
+          <div secondary>
+            
+            <template is="dom-if" if="{{isArray(item.subtitle)}}">
+              <template is="dom-repeat" items="{{item.subtitle}}" as="value">
+                <span class="subtitle">[[value]]</span>
+              </template>
+            </template>
+            
+            <template is="dom-if" if="{{!isArray(item.subtitle)}}">
+              [[item.subtitle]]
+            </template>
+          </div>
         </paper-item-body>
 
         <!-- secondary actions -->
@@ -322,7 +343,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       checkEventSource: function(event) {
         var target = Polymer.dom(event).rootTarget;
-        // if paper button was clicked, stop propagation up the DOM tree
+        // if paper button was clicked, stop propagation up the DOM tree   
         if(target.localName === 'paper-button') {
           event.stopImmediatePropagation();
         }
@@ -332,6 +353,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if(item.details && item.details[key]) {
           return item.details[key];
         } 
+      },
+
+      isArray: function(item) {
+        return _.isArray(item);
       },
 
       isValueArray: function(item, key) {
@@ -345,7 +370,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       getAllItemKeys: function(item) {
         if(item.details) {
-          return _.keys(item.details);
+          var sortedKeys = [];
+          var returnKeys = [];
+          if(item.details._sortedKeys) {
+            sortedKeys = item.details._sortedKeys;
+          }
+          else {
+            sortedKeys = _.keys(item.details);
+          } 
+          sortedKeys.forEach(function(x) {
+            if(item.details[x]) {
+              returnKeys.push(x);
+            }
+          });
+          return returnKeys;
         }
       },
 
@@ -364,9 +402,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getIcon: function(type) {
         switch(type) {
             case 'email': return 'communication:email';
+            case 'offer': return 'maps:local-offer';
             case 'person': return 'icons:account-circle';
             case 'phone': return 'communication:phone';
-            case 'offer': return 'maps:local-offer';
+            case 'provider': return 'icons:account-circle';
             case 'seller': return 'editor:attach-money';
             case 'webpage': return 'av:web';
         }
