@@ -36,7 +36,9 @@ This web application is built primarily with [Web Components](https://developer.
 
     module.exports = {
         ELASTIC_CONFIG:'{"host":"http://vinisvr:9200"}',
-        ELASTIC_INDEX:'dhtcat1op'
+        ELASTIC_INDEX:'dhtcat1op',
+        ANNOTATION_INDEX: 'dig-annotations',
+        ANNOTATION_TYPE: 'annotation'
     };
   ```
   
