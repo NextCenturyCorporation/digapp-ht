@@ -9,9 +9,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
 
 <dom-module id="image-query-and-display">
   <template>
+    <style>
+      iron-scroll-threshold {
+        /* The height of 5 rows of images. */
+        max-height: 660px;
+      }
+
+      .end-of-list {
+        margin-top: 10px;
+        text-align: center;
+      }
+
+      .end-of-list paper-spinner {
+        height: 16px;
+        width: 16px;
+        margin-right: 10px;
+      }
+
+      .load-text {
+        /* Match the height of the Show More button. */
+        line-height: 41px;
+      }
+    </style>
+
     <query-builder
       query="{{imageQuery}}"
       query-template="[[imageQueryTemplate]]"
@@ -24,6 +48,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       index="[[index]]"
       elastic-type="[[indexTypes]]"
       query="[[imageQuery]]"
+      page="{{page}}"
+      page-size="[[pageSize]]"
+      loading="{{loading}}"
       results="{{imageQueryResults}}"
       lastError="{{error}}">
     </elastic-search>
@@ -31,10 +58,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <json-transform
       data-in="[[imageQueryResults]]"
       data-out="{{imageResults}}"
-      transform-function="[[imageTransform]]"
+      transform-function="[[imageTransform]]">
     </json-transform>
 
-    <image-viewer images="[[imageResults]]"></image-viewer>
+    <div class="paper-font-title">[[getTitle(images.length, numberOfResults)]]</div>
+
+    <iron-scroll-threshold id="scrollThreshold">
+      <image-viewer id="imageViewer" images="[[images]]"></image-viewer>
+    </iron-scroll-threshold>
+
+    <div class="end-of-list">
+      <template is="dom-if" if="{{showMore}}">
+        <paper-button raised on-click="nextPage">Show More</paper-button>
+      </template>
+      <template is="dom-if" if="{{loading}}">
+        <paper-spinner active="true"></paper-spinner>
+        <span class="load-text">Loading Results...</span>
+      </template>
+    </div>
   </template>
 
   <script>
@@ -76,7 +117,91 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         imageResults: {
           type: Array,
           notify: true
+        },
+
+        images: {
+          type: Array,
+          notify: true
+        },
+
+        numberOfResults: {
+          type: Number,
+          notify: true
+        },
+
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
+        },
+
+        pageSize: {
+          type: Number,
+          value: 25,
+          notify: true
+        },
+
+        numberOfPages: {
+          type: Number,
+          notify: true,
+          computed: 'calculateNumberOfPages(pageSize, numberOfResults)'
+        },
+
+        showMore: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
         }
+      },
+
+      observers: [
+        'updateImages(imageResults, loading)'
+      ],
+
+      getTitle: function(count, numberOfResults) {
+        if(numberOfResults) {
+          var title = numberOfResults + ' image' + (numberOfResults === 1 ? '' : 's');
+          if(count && count < numberOfResults) {
+            return count + ' of ' + title;
+          }
+          return title;
+        }
+        return 'No images';
+      },
+
+      nextPage: function() {
+        this.set('showMore', false);
+        if(this.page < this.numberOfPages) {
+          this.set('page', this.page + 1);
+        }
+      },
+
+      updateImages: function(imageResults, loading) {
+        this.set('numberOfResults', imageResults.total);
+
+        if(!loading) {
+          if(this.page === 1) {
+            this.set('images', []);
+          }
+
+          var self = this;
+          imageResults.array.forEach(function(item) {
+            // Use push to notify image-viewer.
+            self.push('images', item);
+          });
+
+          this.set('showMore', (this.numberOfPages > 1 && this.numberOfResults > 0 && this.page !== this.numberOfPages));
+        }
+      },
+
+      calculateNumberOfPages: function(pageSize, numberOfResults) {
+        return Math.ceil(numberOfResults / pageSize);
       }
     });
   })();
