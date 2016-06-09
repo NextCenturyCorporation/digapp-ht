@@ -21,9 +21,9 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             }
         */
         var validFromDateString = _.get(record, '_source.validFrom');
-        var validFromDate = undefined;
+        var validFromDate;
         if(validFromDateString) {
-             validFromDate = dateFormat(new Date(validFromDateString), "mmmm dd, yyyy");
+             validFromDate = dateFormat(new Date(validFromDateString), 'mmmm dd, yyyy');
         }
         var datePhoneEmail = [];
         if(validFromDate) {
@@ -48,8 +48,6 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 datePhoneEmail.push(emails[0].title);
             }
         }
-
-        
 
         var offerObj = {
             _id: record._id,
@@ -179,35 +177,33 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         };
         var mentions = _.get(record, '_source.mentions');
         if(mentions) {
-            phoneEmails = commonTransforms.getEmailAndPhoneFromMentions(mentions);
+            var phoneEmails = commonTransforms.getEmailAndPhoneFromMentions(mentions);
             if(phoneEmails.phones.length > 0) {
-                var sep = "";
-                phones = "";
-                phoneEmails.phones.forEach(function(phoneObj) {
-                    phones += sep + phoneObj.title;
-                    sep = ", ";
+                var phones = '';
+                phoneEmails.phones.forEach(function(phoneObj, index) {
+                    phones += (index > 0 ? ', ' : '') + phoneObj.title;
                 });
                 webpageObj.details.phone = phones;
             }
             if(phoneEmails.emails.length > 0) {
-                var sep = "";
-                emails = "";
-                phoneEmails.emails.forEach(function(emailObj) {
-                    emails += sep + emailObj.title;
-                    sep = ", ";
+                var emails = '';
+                phoneEmails.emails.forEach(function(emailObj, index) {
+                    emails += (index > 0 ? ', ' : '') + emailObj.title;
                 });
                 webpageObj.details.email = emails;
             }
         }
 
         var xDate = _.get(record, '_source.dateCreated');
-        webpageObj.details.date = dateFormat(new Date(xDate), "mmmm dd, yyyy");
+        webpageObj.details.date = dateFormat(new Date(xDate), 'mmmm dd, yyyy');
 
-        webpageObj.subtitle.push(webpageObj.details.date)
-        if(webpageObj.details.phone)
-            webpageObj.subtitle.push(webpageObj.details.phone)
-        if(webpageObj.details.email)
-            webpageObj.subtitle.push(webpageObj.details.email)
+        webpageObj.subtitle.push(webpageObj.details.date);
+        if(webpageObj.details.phone) {
+            webpageObj.subtitle.push(webpageObj.details.phone);
+        }
+        if(webpageObj.details.email) {
+            webpageObj.subtitle.push(webpageObj.details.email);
+        }
         return webpageObj;
     }
 
@@ -241,8 +237,8 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     }
 
     function getNameFromUri(uri, type) {
-        var idx = uri.lastIndexOf("/")
-        var text = uri.substring(idx+1)
+        var idx = uri.lastIndexOf('/');
+        var text = uri.substring(idx+1);
         var countryCode = '';
         if (type === 'phone') {
             if(text.indexOf('-') !== -1) {
@@ -317,7 +313,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                     //We do not want to show webpage page, but instead direct
                     //to offer. The below handles that.
                     if(webpageSummary.offer) {
-                        webpageSummary._type = "offer";
+                        webpageSummary._type = 'offer';
                         webpageSummary._id = webpageSummary.offer;
                     }
                     newObj.data.push(webpageSummary);
@@ -350,6 +346,8 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             }
             return newObj;
         },
+        // TODO: seperate file for aggregation transforms?
+        /*jshint camelcase: false */
         cityResults: function(data) {
             var newObject = {};
 
@@ -379,17 +377,42 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 newObject.aggregations.phoneAgg.phoneAgg = {};
                 newObject.aggregations.phoneAgg.phoneAgg.buckets = [];
                 _.each(data.aggregations.phoneAgg.phoneAgg.buckets, function(record) {
-                    if(record.key.indexOf('phone') != -1) {
+                    if(record.key.indexOf('phone') !== -1) {
                         var newObj = {};
                         newObj.key = record.key;
                         newObj.text = getNameFromUri(record.key, 'phone');
                         newObj.doc_count = record.doc_count;
                         newObject.aggregations.phoneAgg.phoneAgg.buckets.push(newObj);
-                }
+
+                        if(newObject.aggregations.phoneAgg.phoneAgg.buckets.length === 10) {
+                            return false;
+                        }
+                    }
                 });
             }
-         return newObject;   
+            return newObject;
+        },
+        mentionsEmailResults: function(data) {
+            var emailResultsObj = {};
+            if(data && data.aggregations && data.aggregations.emailAgg && data.aggregations.emailAgg.emailAgg.buckets) {
+                emailResultsObj = {aggregations: {emailAgg: {emailAgg: {buckets: []}}}};
+                _.each(data.aggregations.emailAgg.emailAgg.buckets, function(record) {
+                    if(record.key.indexOf('email') !== -1) {
+                        var newObj = {};
+                        newObj.key = record.key;
+                        newObj.text = getNameFromUri(record.key, 'email');
+                        newObj.doc_count = record.doc_count;
+                        emailResultsObj.aggregations.emailAgg.emailAgg.buckets.push(newObj);
+
+                        if(emailResultsObj.aggregations.emailAgg.emailAgg.buckets.length === 10) {
+                            return false;
+                        }
+                    }
+                });
+            }
+            return emailResultsObj;
         }
+        /*jshint camelcase: true */
     };
 
 })(_, commonTransforms, dateFormat);
