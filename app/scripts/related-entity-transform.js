@@ -201,9 +201,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         }
 
         var xDate = _.get(record, '_source.dateCreated');
-        webpageObj.details.date = dateFormat(new Date(xDate), "mmmm dd, yyyy");
-
-        webpageObj.subtitle.push(webpageObj.details.date)
+        webpageObj.subtitle.push(dateFormat(new Date(xDate), "mmmm dd, yyyy"));
         if(webpageObj.details.phone)
             webpageObj.subtitle.push(webpageObj.details.phone)
         if(webpageObj.details.email)
