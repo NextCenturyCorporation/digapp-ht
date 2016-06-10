@@ -352,6 +352,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             var newObject = {};
 
            if(data && data.aggregations && data.aggregations.webpageCityAgg && data.aggregations.webpageCityAgg.webpageCityAgg.buckets) {
+
                 newObject.aggregations = {};
                 newObject.aggregations.webpageCityAgg = {};
                 newObject.aggregations.webpageCityAgg.webpageCityAgg = {};
@@ -370,33 +371,33 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             return newObject;
         },
         mentionsPhoneResults: function(data) {
-            var newObject = {};
-            if(data && data.aggregations && data.aggregations.phoneAgg && data.aggregations.phoneAgg.phoneAgg.buckets) {
-                newObject.aggregations = {};
-                newObject.aggregations.phoneAgg = {};
-                newObject.aggregations.phoneAgg.phoneAgg = {};
-                newObject.aggregations.phoneAgg.phoneAgg.buckets = [];
-                _.each(data.aggregations.phoneAgg.phoneAgg.buckets, function(record) {
+            var phoneResultsObj = {};
+            if(data && data.aggregations && data.aggregations.phoneEmailAgg && data.aggregations.phoneEmailAgg.phoneEmailAgg.buckets) {
+                phoneResultsObj = {aggregations: {phoneAgg: {phoneAgg: {buckets: []}}}};
+                _.each(data.aggregations.phoneEmailAgg.phoneEmailAgg.buckets, function(record) {
                     if(record.key.indexOf('phone') !== -1) {
                         var newObj = {};
                         newObj.key = record.key;
                         newObj.text = getNameFromUri(record.key, 'phone');
                         newObj.doc_count = record.doc_count;
-                        newObject.aggregations.phoneAgg.phoneAgg.buckets.push(newObj);
+                        phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.push(newObj);
 
-                        if(newObject.aggregations.phoneAgg.phoneAgg.buckets.length === 10) {
+                        // since phoneEmailAgg returns all buckets, return only the
+                        // first 10 for now until the show more button is added
+                        // for filters
+                        if(phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.length === 10) {
                             return false;
                         }
                     }
                 });
             }
-            return newObject;
+            return phoneResultsObj;
         },
         mentionsEmailResults: function(data) {
             var emailResultsObj = {};
-            if(data && data.aggregations && data.aggregations.emailAgg && data.aggregations.emailAgg.emailAgg.buckets) {
+            if(data && data.aggregations && data.aggregations.phoneEmailAgg && data.aggregations.phoneEmailAgg.phoneEmailAgg.buckets) {
                 emailResultsObj = {aggregations: {emailAgg: {emailAgg: {buckets: []}}}};
-                _.each(data.aggregations.emailAgg.emailAgg.buckets, function(record) {
+                _.each(data.aggregations.phoneEmailAgg.phoneEmailAgg.buckets, function(record) {
                     if(record.key.indexOf('email') !== -1) {
                         var newObj = {};
                         newObj.key = record.key;
@@ -404,6 +405,9 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                         newObj.doc_count = record.doc_count;
                         emailResultsObj.aggregations.emailAgg.emailAgg.buckets.push(newObj);
 
+                        // since phoneEmailAgg returns all buckets, return only the
+                        // first 10 for now until the show more button is added
+                        // for filters
                         if(emailResultsObj.aggregations.emailAgg.emailAgg.buckets.length === 10) {
                             return false;
                         }
