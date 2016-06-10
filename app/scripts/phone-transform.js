@@ -16,7 +16,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
                 if(item.makesOffer) {
                     _.each(item.makesOffer, function(offer) {
-                        offers.push(offer.uri) 
+                        offers.push(offer.uri);
                     });
                 }
             
