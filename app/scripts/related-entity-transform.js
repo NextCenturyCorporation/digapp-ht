@@ -23,7 +23,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         var validFromDateString = _.get(record, '_source.validFrom');
         var validFromDate = undefined;
         if(validFromDateString) {
-             validFromDate = dateFormat(new Date(validFromDateString), "mmmm dd, yyyy");
+             validFromDate = dateFormat(new Date(validFromDateString), 'mmmm dd, yyyy');
         }
         var datePhoneEmail = [];
         if(validFromDate) {
@@ -179,33 +179,32 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         };
         var mentions = _.get(record, '_source.mentions');
         if(mentions) {
-            phoneEmails = commonTransforms.getEmailAndPhoneFromMentions(mentions);
+            var phoneEmails = commonTransforms.getEmailAndPhoneFromMentions(mentions);
             if(phoneEmails.phones.length > 0) {
-                var sep = "";
-                phones = "";
-                phoneEmails.phones.forEach(function(phoneObj) {
-                    phones += sep + phoneObj.title;
-                    sep = ", ";
+                var phones = '';
+                phoneEmails.phones.forEach(function(phoneObj, index) {
+                    phones += (index > 0 ? ', ' : '') + phoneObj.title;
                 });
                 webpageObj.details.phone = phones;
             }
             if(phoneEmails.emails.length > 0) {
-                var sep = "";
-                emails = "";
-                phoneEmails.emails.forEach(function(emailObj) {
-                    emails += sep + emailObj.title;
-                    sep = ", ";
+                var emails = '';
+                phoneEmails.emails.forEach(function(emailObj, index) {
+                    emails += (index > 0 ? ', ' : '') + emailObj.title;
                 });
                 webpageObj.details.email = emails;
             }
         }
 
         var xDate = _.get(record, '_source.dateCreated');
-        webpageObj.subtitle.push(dateFormat(new Date(xDate), "mmmm dd, yyyy"));
-        if(webpageObj.details.phone)
-            webpageObj.subtitle.push(webpageObj.details.phone)
-        if(webpageObj.details.email)
-            webpageObj.subtitle.push(webpageObj.details.email)
+        webpageObj.subtitle.push(dateFormat(new Date(xDate), 'mmmm dd, yyyy'));
+
+        if(webpageObj.details.phone) {
+            webpageObj.subtitle.push(webpageObj.details.phone);
+        }
+        if(webpageObj.details.email) {
+            webpageObj.subtitle.push(webpageObj.details.email);
+        }
         return webpageObj;
     }
 
@@ -238,22 +237,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         return serviceObj;
     }
 
-    function getNameFromUri(uri, type) {
-        var idx = uri.lastIndexOf("/")
-        var text = uri.substring(idx+1)
-        var countryCode = '';
-        if (type === 'phone') {
-            if(text.indexOf('-') !== -1) {
-                var idx2 = text.indexOf('-');
-                text = text.substring(idx2+1);
-                var cc = text.substring(0,idx2);
-                if (cc.length < 5) {
-                    countryCode = cc;
-                }
-            }
-        }
-        return text;
-    }
+
 
     return {
         // expected data is from an elasticsearch query
@@ -315,7 +299,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                     //We do not want to show webpage page, but instead direct
                     //to offer. The below handles that.
                     if(webpageSummary.offer) {
-                        webpageSummary._type = "offer";
+                        webpageSummary._type = 'offer';
                         webpageSummary._id = webpageSummary.offer;
                     }
                     newObj.data.push(webpageSummary);
@@ -361,7 +345,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                     var newObj = {};
                     newObj.key = record.key;
                     var keys = record.key.split(':');
-                    newObj.text = keys[0] + ', ' + keys[1];
+                    newObj.text = keys[0];
                     newObj.doc_count = record.doc_count;
                     
                     newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets.push(newObj);
