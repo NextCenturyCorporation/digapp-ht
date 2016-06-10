@@ -363,7 +363,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                     var newObj = {};
                     newObj.key = record.key;
                     var keys = record.key.split(':');
-                    newObj.text = keys[0];
+                    newObj.text = keys[0] + ', ' + keys[1];
                     newObj.doc_count = record.doc_count;
                     
                     newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets.push(newObj);
