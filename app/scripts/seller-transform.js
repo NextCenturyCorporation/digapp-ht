@@ -78,6 +78,11 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           return results;
         }, []);
 
+        // Sort newest first.
+        buckets.sort(function(a, b) {
+          return b.date - a.date;
+        });
+
         return buckets;
     }
 
