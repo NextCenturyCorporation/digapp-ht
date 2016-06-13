@@ -49,7 +49,7 @@ module.exports = {
         ] 
     },
 
-    // query for offer timeline on phone.html
+    // query for offer timeline on phone.html, email.html, and seller.html
     offerTimeline: {
        "aggs": {
           "offersPhone": {
@@ -91,35 +91,6 @@ module.exports = {
       },
       "size": 0
     },
-
-    // phone/email page specific queries
-    phoneOrEmailOfferAgg: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        "{{field}}": "{{value}}"
-                    }
-                }
-            }
-        },
-        'aggs' : {
-            // When: Timeline of offers
-            'offers_by_date': {
-                'date_histogram': {
-                    'field': 'validFrom',
-                    'interval': 'week'
-                }
-            },
-            // Where: Map showing offers by location
-            'offers_by_city': {
-                'terms': {
-                    'field': 'availableAtOrFrom.address.addressLocality',
-                    'size': 0
-                }
-            }
-        }
-    },
     // Who: Give a sense of who is using this phone/email
     // note that in current index, aggregations on hair color, eye color, and ethnicity come back empty
     // and that ethnicity is missing from offer type
@@ -151,43 +122,6 @@ module.exports = {
                     "field": "ethnicity",
                     "size": 0
                 }
-            }
-        }
-    },
-    // Relations
-    phoneOrEmailSellerAgg: {
-        "query": {
-            "match": {
-                "{{field}}": "{{value}}"
-            }   
-        },
-        "aggs" : {
-            "related_phones" : {
-                "terms" : { 
-                    "field" : "telephone.name.raw",
-                    "size": 0
-                },
-                "aggs" : {
-                    // Timeline similarities
-                    "related_phone_timelines": {
-                        "date_histogram": {
-                            "field": "makesOffer.validFrom",
-                            "interval": "week"
-                        }
-                    } 
-                }   
-            },
-            "related_emails" : {
-                "terms" : { 
-                    "field" : "email.name.raw",
-                    "size": 0
-                }          
-            },
-            "related_websites" : {
-                "terms" : { 
-                    "field" : "makesOffer.mainEntityOfPage.publisher.name",
-                    "size": 0
-                }          
             }
         }
     },
