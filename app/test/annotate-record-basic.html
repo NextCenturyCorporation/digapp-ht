@@ -27,8 +27,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <annotate-record annotation-index="dig-annotations" annotation-type="annotation"
       query-template='{"query": {"query": {"bool" : {"must" : [{"term" : { "uri" : "" }},
-        {"term" : { "user" : "mockUser" }}]}}}, "pathsToValues": ["query.bool.must[0].term.uri"]}'
-      client='{}' item='{"_id": "someidhere"}'>
+        {"term" : { "user" : "" }}]}}}, "pathsToValues": ["query.bool.must[0].term.uri", "query.bool.must[1].term.user"]}'
+      client='{}' item='{"_id": "someidhere"}' current-user="mockUser">
     </annotate-record>
   </template>
 </test-fixture>
@@ -77,6 +77,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(element.disableButtons);
     });
 
+    test('currentUser is expected value', function() {
+      assert.equal(element.currentUser, 'mockUser');
+    });
+
     test('annotationTypeAsArray is expected value', function() {
       assert.deepEqual(element.annotationTypeAsArray, ['annotation']);
     });
@@ -109,28 +113,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.getAnnotationId(undefined), undefined);
     });
 
-    test('getValuesForQuery returns item._id in an array', function() {
-      assert.deepEqual(element.getValuesForQuery(element.item), ['someidhere']);
+    test('getValuesForQuery returns item._id and currentUser in an array', function() {
+      assert.deepEqual(element.getValuesForQuery(element.item, element.currentUser), ['someidhere', 'mockUser']);
     });
 
     test('buildAnnotationQuery replaces appropriate values in queryTemplate', function() {
-      var queryToUse = element.buildAnnotationQuery(element.item, element.queryTemplate);
+      var queryToUse = element.buildAnnotationQuery(element.item, element.queryTemplate, element.currentUser);
 
       assert.equal(queryToUse.query.bool.must[0].term.uri, element.item._id);
+      assert.equal(queryToUse.query.bool.must[1].term.user, element.currentUser);
     });
 
-    test('buildAnnotationQuery returns undefined if item is empty/undefined', function() {
-      var undefinedItem = element.buildAnnotationQuery(undefined, element.queryTemplate);
+    test('buildAnnotationQuery returns undefined if an argument is undefined or if item is empty', function() {
+      var undefinedItem = element.buildAnnotationQuery(undefined, element.queryTemplate, element.currentUser);
       var emptyItem = element.buildAnnotationQuery({}, element.queryTemplate);
+      var undefinedTemplate = element.buildAnnotationQuery(element.item, undefined, element.currentUser);
+      var undefinedUser = element.buildAnnotationQuery(element.item, element.queryTemplate, undefined);
 
       assert.isUndefined(undefinedItem);
       assert.isUndefined(emptyItem);
-    });
-
-    test('buildAnnotationQuery returns undefined if queryTemplate undefined', function() {
-      var undefinedTemplate = element.buildAnnotationQuery(element.item, undefined);
-
       assert.isUndefined(undefinedTemplate);
+      assert.isUndefined(undefinedUser);
     });
 
     test('transformOrigResult if originalSearchResult not defined', function() {
@@ -157,7 +160,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.initCreateOrUpdate(mockEvent);
 
       assert.isTrue(element.isItemOfInterest);
-      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', is_valuable: true});
+      assert.deepEqual(element.annotationCreateBody, 
+        {uri: element.item._id, user: element.currentUser, is_valuable: true});
       /* jshint camelcase: true */
     });
 
@@ -168,7 +172,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.initCreateOrUpdate(mockEvent);
 
       assert.isTrue(element.isItemOfInterest);
-      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', is_valuable: true});
+      assert.deepEqual(element.annotationCreateBody, 
+        {uri: element.item._id, user: element.currentUser, is_valuable: true});
       /* jshint camelcase: true */
     });
 

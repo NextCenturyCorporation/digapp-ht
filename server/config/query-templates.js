@@ -10,17 +10,17 @@ module.exports = {
                 bool : {
                     must : [
                         {
-                            term : { uri : "" }
+                            term : { uri : '' }
                         },
                         {
-                            term : { user : 'mockUser' }
+                            term : { user : '' }
                         }
                     ]
                 }
             }
         },
         pathsToValues: [
-            'query.bool.must[0].term.uri'//, 'query.bool.must[1].term.user'
+            'query.bool.must[0].term.uri', 'query.bool.must[1].term.user'
         ]
     },
     // Common query used among entities

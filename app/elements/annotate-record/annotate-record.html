@@ -35,7 +35,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         client="[[client]]"
         elastic-type="{{annotationTypeAsArray}}"
         index="[[annotationIndex]]"
-        query="{{buildAnnotationQuery(item, queryTemplate)}}"
+        query="{{buildAnnotationQuery(item, queryTemplate, currentUser)}}"
         results="{{originalSearchResult}}"
         lastError="{{error}}">
       </elastic-search>
@@ -138,6 +138,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
+         * User currently logged in.
+         */
+        currentUser: {
+          type: String,
+          notify: true
+        },
+        /**
          * Document info to pass into elastic-create component
          */
         annotationCreateBody: {
@@ -190,14 +197,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getAnnotationId: function(annotationResult) {
         return (annotationResult ? annotationResult._id : undefined);
       },
-      getValuesForQuery: function(item) {
-        return [item._id];
+      getValuesForQuery: function(item, currentUser) {
+        return [item._id, currentUser];
       },
-      buildAnnotationQuery: function(item, queryTemplate) {
+      buildAnnotationQuery: function(item, queryTemplate, currentUser) {
         // ignore empty items, and don't rerun query if 
         // query for this item has already been run
 
-        if(!_.isEmpty(item) && queryTemplate !== undefined) {
+        if(!_.isEmpty(item) && queryTemplate && currentUser) {
           var self = this;
 
           // clear body for create/update components to ensure a
@@ -206,7 +213,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this._setAnnotationCreateBody(undefined);
           this._setAnnotationUpdateBody(undefined);
 
-          var values = self.getValuesForQuery(item);
+          var values = self.getValuesForQuery(item, currentUser);
           var paths = queryTemplate.pathsToValues;
 
           _.each(paths, function(path, count) {
@@ -253,7 +260,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         } else {
           this._setAnnotationCreateBody({
             uri: this.item._id, 
-            user: 'mockUser', 
+            user: this.currentUser,
             is_valuable: this.isItemOfInterest
           });
         }
