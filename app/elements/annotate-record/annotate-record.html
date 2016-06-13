@@ -29,13 +29,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <!-- Search for an existing annotation record -->
-    <elastic-search 
-      client="[[client]]"
-      index="[[annotationIndex]]"
-      query="{{buildAnnotationQuery(item, queryTemplate)}}"
-      results="{{originalSearchResult}}"
-      lastError="{{error}}">
-    </elastic-search>
+    <!-- Don't perform search until annotationTypeAsArray is ready -->
+    <template is="dom-if" if="{{annotationTypeAsArray}}">
+      <elastic-search 
+        client="[[client]]"
+        elastic-type="{{annotationTypeAsArray}}"
+        index="[[annotationIndex]]"
+        query="{{buildAnnotationQuery(item, queryTemplate)}}"
+        results="{{originalSearchResult}}"
+        lastError="{{error}}">
+      </elastic-search>
+    </template>
 
     <!-- Trigger create/update -->
     <paper-icon-button 
@@ -161,7 +165,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         disableButtons: {
           type: Boolean,
           value: true
+        },
+        annotationTypeAsArray: {
+          type: Array,
+          computed: 'computeTypeArray(annotationType)'
         }
+      },
+      computeTypeArray: function(annotationType) {
+        return [annotationType];
       },
       styleButtons: function() {
         if(this.isItemOfInterest === true) {
