@@ -57,10 +57,10 @@
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
 
-    <!-- exposes clientConfig object which is a container for data 
+    <!-- exposes clientConfig object which is a container for data
       transform functions -->
     <client-config config="{{clientConfig}}"></client-config>
-    
+
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
@@ -70,10 +70,10 @@
       last-response="{{config}}"
       on-response="showConfig">
     </iron-ajax>
-     
+
     <!--initialize new elastic client connection to server
       esclient can be used throughout the application lifecycle -->
-    <elastic-client 
+    <elastic-client
       config="[[config.elasticConfig]]"
       client="{{esclient}}">
     </elastic-client>
@@ -82,14 +82,14 @@
       query string for:
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
-    <query-builder 
-      query="{{sellerQuery}}" 
+    <query-builder
+      query="{{sellerQuery}}"
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
     <!--make an search using {{sellerQuery}} and return results -->
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[sellerQuery]]'
@@ -110,17 +110,17 @@
      data-out="{{sellerPhoneEmails}}"
      transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
      ></json-transform>
-    
+
     <!--Start related entity queries and transforms-->
-    
+
     <!-- Related people (aggs) -->
-    <query-builder 
-      query="{{relatedServiceAggQuery}}" 
-      query-template="{{config.queryTemplates.sellerPeopleAggs}}" 
+    <query-builder
+      query="{{relatedServiceAggQuery}}"
+      query-template="{{config.queryTemplates.sellerPeopleAggs}}"
       field="offers.seller.uri" value="[[sellerDisplay.seller._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[relatedServiceAggQuery]]'
@@ -138,15 +138,15 @@
     <!-- End related entity queries-->
 
     <!--
-      build the query for offer timeline 
+      build the query for offer timeline
     -->
-     <query-builder 
-      query="{{offerTimelineQuery}}" 
+     <query-builder
+      query="{{offerTimelineQuery}}"
       query-template="{{config.queryTemplates.offerTimeline}}"
       field="seller.uri" value="[[sellerDisplay.seller._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[offerTimelineQuery]]'
@@ -162,15 +162,15 @@
      ></json-transform>
 
     <!--
-      build the query for offer locations 
+      build the query for offer locations
     -->
-     <query-builder 
-      query="{{offerLocationQuery}}" 
+     <query-builder
+      query="{{offerLocationQuery}}"
       query-template="{{config.queryTemplates.offerLocation}}"
       field="seller.uri" value="[[sellerDisplay.seller._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[offerLocationQuery]]'
@@ -188,13 +188,13 @@
     <!--
       Get all the offers for this phone
      -->
-    <query-builder 
-      query="{{sellerOffersQuery}}" 
+    <query-builder
+      query="{{sellerOffersQuery}}"
       query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
       field="seller.uri" value="[[sellerDisplay.seller._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[sellerOffersQuery]]'
@@ -216,13 +216,13 @@
 
     <!-- Itenary component (aggs) -->
 
-    <query-builder 
-      query="{{itineraryAggQuery}}" 
-      query-template="{{config.queryTemplates.itineraryPhone}}" 
+    <query-builder
+      query="{{itineraryAggQuery}}"
+      query-template="{{config.queryTemplates.itineraryPhone}}"
       field="seller.uri" value="[[sellerDisplay.seller._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[itineraryAggQuery]]'
@@ -240,21 +240,21 @@
     <!-- Display Content -->
     <div class="entity">
       <paper-header-panel class="flex" mode="waterfall-tall">
-        
+
         <!-- Entity header -->
         <section class="paper-header layout vertical">
-          
+
           <!-- Entity title -->
           <div class="layout horizontal center">
             <iron-icon class="iron-icon-huge entity-seller-font" icon="editor:attach-money"></iron-icon>
             <section class="flex-auto">
               <div class="horizontal layout">
                 <div class="paper-font-display1 flex auto">
-                  <!--Title will be phone, email, or 'Info N/A' - non-phone numbers will be ignored by phone-formatter --> 
+                  <!--Title will be phone, email, or 'Info N/A' - non-phone numbers will be ignored by phone-formatter -->
                   Seller: <phone-formatter input="[[sellerDisplay.seller.title]]"></phone-formatter>
                 </div>
                 <div class="horizontal end-justified layout">
-                  <annotate-record client="[[esclient]]" 
+                  <annotate-record client="[[esclient]]"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     query-template="{{config.queryTemplates.annotationQuery}}"
@@ -263,18 +263,18 @@
                 </div>
               </div>
             </section>
-            
+
             <!-- Places actions performed on the entity here -->
 
           </div>
-            
+
         </section>
 
         <!-- Entity body -->
         <div class="entity-page">
 
           <div class="content">
-            
+
             <div class="flex layout vertical">
 
               <!--What section for Seller-->
@@ -287,7 +287,7 @@
                 </paper-material>
 
               <div class="h-divider"></div>
-              
+
               <!-- Offers between Date1 and Date2 -->
               <paper-material>
                 <section class="when">
@@ -297,19 +297,19 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[sellerDisplay.offerTimeline.offerTimeline]]' 
-                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count" 
+                  <bar-chart y-axis-label="" data='[[sellerDisplay.offerTimeline.offerTimeline]]'
+                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
                     min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </bar-chart>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
-              
+
               <!-- Services -->
               <paper-material >
                 <section class="who">
-                  
+
                   <!-- Single person detail layout
                        When data has improved, add seller details -->
                   <div class="paper-font-title layout horizontal start center">
@@ -317,10 +317,10 @@
                     <div>Summary of Products Offered</div>
                   </div>
                   <person-features class="flex-2" people="[[sellerDisplay.people]]"></person-features>
-                  
+
                 </section>
               </paper-material>
-              
+
               <div class="h-divider"></div>
 
               <paper-material>
@@ -344,21 +344,22 @@
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
-                   <div>Itinerary ([[sellerDisplay.itinerary.date.length]] Events)</div>
-                  </div>              
+                    Itinerary ([[sellerDisplay.itinerary.date.length]] Events)
+                  </div>
+
                   <itinerary-list data="{{sellerDisplay.itinerary.date}}"></itinerary-list>
                 </section>
               </paper-material>
-            
+
             <div class="h-divider"></div>
 
             </div>
 
             <div class="v-divider"></div>
-            
+
             <!-- Map section -->
             <div class="flex layout vertical">
-              
+
               <paper-material>
                 <!-- City summary -->
                 <section class="where-header flex-none">
@@ -368,17 +369,19 @@
                     <div>[[sellerDisplay.offerLocation.offerLocation.length]] Locations</div>
                   </div>
                 </section>
-                
+
                 <!-- Leaflet map -->
-                <section class="where flex-auto">
-                  <leaflet-wrapper map-data="{{sellerDisplay.offerLocation.offerLocation}}">
-                  </leaflet-wrapper>
-                </section>
-                
-                <!-- City summary -->
-                <section class="where-details flex-none">
-                  <feature-aggregation title="Offers per city" key="name" agg="[[sellerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
-                </section>
+                <template is="dom-if" if="[[sellerDisplay.offerLocation.offerLocation.length]]">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper map-data="{{sellerDisplay.offerLocation.offerLocation}}">
+                    </leaflet-wrapper>
+                  </section>
+
+                  <!-- City summary -->
+                  <section class="where-details flex-none">
+                    <feature-aggregation title="Offers per city" key="name" agg="[[sellerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                  </section>
+                </template>
               </paper-material>
 
               <div class="h-divider"></div>
@@ -401,10 +404,10 @@
 					annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                    current-results="[[sellerDisplay.sellerOffers.relatedOffers.data]]" 
-                    page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" 
-                    num-results="{{sellerDisplay.sellerOffers.relatedOffers.count}}" 
+                    current-results="[[sellerDisplay.sellerOffers.relatedOffers.data]]"
+                    page="{{pageNum}}"
+                    results-per-page="{{pageSize}}"
+                    num-results="{{sellerDisplay.sellerOffers.relatedOffers.count}}"
                     loading="{{offersLoading}}">
                   </records-list>
                 </section>
@@ -412,7 +415,7 @@
             </div>
 
           </div>
-     
+
         </div>
 
       </paper-header-panel>
