@@ -9,7 +9,6 @@
   <script src="data/phone-result.js" type="text/javascript"></script>
   <script src="data/offer-aggregations.js" type="text/javascript"></script>
   <script src="data/people-aggregations.js" type="text/javascript"></script>
-  <script src="data/seller-aggregations.js" type="text/javascript"></script>
 
   <!-- Step 1: import the element to test -->
   <link rel="import" href="../elements/client-config/client-config.html">
@@ -26,7 +25,7 @@
 <script>
   'use strict';
   /* globals suite, test, expect, setup, fixture, offerAgg, phoneResult, 
-     peopleAgg, sellerAgg, assert */
+     peopleAgg, assert */
   /* jshint -W030 */
 
   suite('<client-config> phone tests: phone entity transform', function() {
@@ -79,6 +78,85 @@
     });
   });
 
+  suite('<client-config> phone tests: transform for offerTimeline', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.offerTimelineData;
+      dataout = phoneTransform(offerAgg);
+    });
+
+    test('defines offerTimeline object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.offerTimeline).to.exist;
+    });
+
+    test('defines offerTimeline aggregation buckets', function() {
+      assert.equal(dataout.offerTimeline.length, 10);
+      assert.equal(dataout.offerTimeline[0].date, '2015-10-20T00:00:00.000Z');
+      assert.equal(dataout.offerTimeline[0].count, 2);
+      assert.equal(dataout.offerTimeline[5].date, '2015-10-28T00:00:00.000Z');
+      assert.equal(dataout.offerTimeline[5].count, 6);
+    });
+  });
+
+  suite('<client-config> phone tests: transform for offerLocation', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.offerLocationData;
+      dataout = phoneTransform(offerAgg);
+    });
+
+    test('defines offerLocation object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.offerLocation).to.exist;
+    });
+
+    test('defines offerLocation aggregation buckets', function() {
+      assert.equal(dataout.offerLocation.length, 6);
+      assert.equal(dataout.offerLocation[0].city, 'Atlanta');
+      assert.equal(dataout.offerLocation[0].state, 'Georgia');
+      assert.equal(dataout.offerLocation[0].country, 'United States');
+      assert.equal(dataout.offerLocation[0].longitude, '-84.38798');
+      assert.equal(dataout.offerLocation[0].latitude, '33.749');
+      assert.equal(dataout.offerLocation[0].count, 45);
+      assert.equal(dataout.offerLocation[0].name, 'Atlanta, Georgia');
+    });
+  });
+
+  suite('<client-config> phone tests: transform for related offers', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.phoneOffersData;
+      dataout = phoneTransform(offerAgg);
+    });
+
+    test('defines relatedOffers object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.relatedOffers).to.exist;
+    });
+
+    test('defines offer array with information specified in data-model', function() {
+      assert.equal(dataout.relatedOffers.count, 2);
+      assert.isString(dataout.relatedOffers.data[0]._id);
+      assert.equal(dataout.relatedOffers.data[0]._type, 'offer');
+      assert.equal(dataout.relatedOffers.data[0].title, 'This is the title');
+      assert.isArray(dataout.relatedOffers.data[0].subtitle);
+      assert.deepEqual(dataout.relatedOffers.data[0].subtitle, ['October 30, 2015', '9876543210', 'abc@xyz.com']);
+      assert.isObject(dataout.relatedOffers.data[0].details);
+      assert.equal(dataout.relatedOffers.data[0].details.address, 'Brooklyn');
+      assert.isString(dataout.relatedOffers.data[0].details.publisher);
+    });
+  });
+
   suite('<client-config> phone tests: transform for people aggregations', function() {
     var myEl;
     var dataout;
@@ -103,37 +181,65 @@
     });
   });
 
-  suite('<client-config> phone tests: transform for seller aggregations', function() {
+  suite('<client-config> phone tests: transform for seller info', function() {
+    var myEl;
+    var dataout;
+    var sellerObj;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var phoneTransform = myEl.config.transforms.phone.computeShowSeller;
+      sellerObj = [
+        {
+          _id: 'http://dig.isi.edu/ht/data/phone/1-0987654321',
+          _type: 'phone',
+          subtitle: '',
+          title: '0987654321'
+        },
+        {
+          _id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+          _type: 'phone',
+          subtitle: '',
+          title: '1112223333'
+        },
+        {
+          _id: 'http://dig.isi.edu/ht/data/email/abc@xyz.com',
+          _type: 'email',
+          subtitle: '',
+          title: 'abc@xyz.com'
+        }
+      ];
+      dataout = phoneTransform(sellerObj, '0987654321');
+    });
+
+    test('defines seller array with phone matching phone parameter excluded', function() {
+      assert.isArray(dataout);
+      assert.equal(dataout.length, 2);
+      assert.isString(dataout[0]._id);
+      assert.equal(dataout[0]._type, 'phone');
+      assert.equal(dataout[0].subtitle, '');
+      assert.equal(dataout[0].title, '1112223333');
+      assert.isString(dataout[1]._id);
+      assert.equal(dataout[1]._type, 'email');
+      assert.equal(dataout[1].subtitle, '');
+      assert.equal(dataout[1].title, 'abc@xyz.com');
+    });
+  });
+
+  suite('<client-config> phone tests: transform for seller info if seller parameter is empty', function() {
     var myEl;
     var dataout;
 
     setup(function() {
       myEl = fixture('client-config-fixture');
-      var phoneTransform = myEl.config.transforms.phone.seller;
-      dataout = phoneTransform(sellerAgg);
+      var phoneTransform = myEl.config.transforms.phone.computeShowSeller;
+      dataout = phoneTransform([], '0987654321');
     });
 
-    test('defines related phones', function() {
-      assert.isArray(dataout.relatedPhones);
-      assert.equal(dataout.relatedPhones.length, 1);
-      assert.equal(dataout.relatedPhones[0].number, '1234567890');
-      assert.equal(dataout.relatedPhones[0].count, 1);
+    test('transform returns undefined', function() {
+      assert.isUndefined(dataout);
     });
-
-    test('defines related emails', function() {
-      assert.isArray(dataout.relatedEmails);
-      assert.equal(dataout.relatedEmails.length, 0);
-    });
-
-    test('defines related websites', function() {
-      assert.isArray(dataout.relatedWebsites);
-      assert.equal(dataout.relatedWebsites.length, 2);
-      assert.equal(dataout.relatedWebsites[0].webSite, 'backpage.com');
-      assert.equal(dataout.relatedWebsites[0].count, 1);
-    });
-
   });
-
 </script>
 
 </body>
