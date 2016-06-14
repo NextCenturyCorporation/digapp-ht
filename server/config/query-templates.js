@@ -531,6 +531,41 @@ module.exports = {
         }
       },
       "size": 0
+    },
+
+    locationTimeline: {
+       "aggs": {
+          "offersPhone": {
+             "filter": {
+                "term": {
+                   "{{field}}": "{{value}}"
+                }
+             },
+             "aggs": {
+                "offerTimeline": {
+                   "date_histogram": {
+                      "field": "validFrom",
+                      "interval": "day"
+                   },
+                    "aggs": {
+                        "localities": {
+                            "terms": {
+                                "field": "availableAtOrFrom.address.key"
+                            }
+                        }
+                    }
+                },
+                "locations": {
+                      "terms": {
+                        "field": "availableAtOrFrom.address.key",
+                        "size": 0
+                    }
+                }
+             }
+          }
+       },
+       "size": 0
     }
+
   }
 };

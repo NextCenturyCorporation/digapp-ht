@@ -81,6 +81,39 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return buckets;
     }
 
+    function processLocationGraph(records){
+        var data = [];
+        _.each(records, function(record){
+            var point = {}
+            point.date = new Date(record.key);
+
+            point.value = {}
+            if (record.localities.buckets){
+                sum = 0;
+                _.each(record.localities.buckets, function(location){
+                    geoData = location.key.split(':');
+                    city = geoData[0];
+                    point.value[city] = location.doc_count;
+                    sum+=location.doc_count;
+                });
+            }
+            point.value['Other'] = record.doc_count - sum;
+            data.push(point);
+        });
+        return data;
+    }
+
+    function getGeoCities(record) {
+
+        var geos = [];
+        _.each(record, function(key) {
+            geoData = key.key.split(':');
+            geos.push(geoData[0])
+        });
+        geoData.push("Other");
+        return geos;
+    }
+
     return {
         // expected data is from an elasticsearch 
         seller: function(data) {
@@ -202,6 +235,17 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 var aggs = data.aggregations;
                 newData.date = infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher':'Info'});
             }
+            return newData;
+        },
+        locationTimeline: function(data){
+            var newData = {};
+
+            if(data.aggregations){
+                var aggs = data.aggregations;
+                newData.locations = getGeoCities(aggs.offersPhone.locations.buckets);
+                newData.data = processLocationGraph(aggs.offersPhone.offerTimeline.buckets);
+            }
+            console.log(newData);
             return newData;
         }        
     };
