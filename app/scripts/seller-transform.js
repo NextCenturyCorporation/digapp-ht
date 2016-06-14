@@ -81,7 +81,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return buckets;
     }
 
-<<<<<<< HEAD
     function processLocationGraph(records){
         var data = [];
         _.each(records, function(record){
@@ -114,7 +113,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         geoData.push("Other");
         return geos;
     }
-    
+
     function getSellerTitle(phones, emails) {
       var title = '';
       var otherPhonesAndEmails = 0;
