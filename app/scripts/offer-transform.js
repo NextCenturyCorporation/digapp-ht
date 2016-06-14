@@ -83,7 +83,8 @@ var offerTransform = (function(_, commonTransforms) {
 
     function parseOffer(record) {
         var newData = {};
-        
+
+        newData._id = _.get(record, 'uri');
         newData.date = _.get(record, 'validFrom');
         newData.address = commonTransforms.getAddress(record);
         newData.geo = getGeolocation(record);

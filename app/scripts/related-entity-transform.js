@@ -2,7 +2,7 @@
  * transform elastic search related entity query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
+/* globals _, commonTransforms, dateFormat */
 /* exported relatedEntityTransform */
 var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
 
@@ -240,6 +240,23 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         return serviceObj;
     }
 
+    function getNameFromUri(uri, type) {
+        var idx = uri.lastIndexOf("/")
+        var text = uri.substring(idx+1)
+        var countryCode = '';
+        if (type === 'phone') {
+            if(text.indexOf('-') !== -1) {
+                var idx2 = text.indexOf('-');
+                text = text.substring(idx2+1);
+                var cc = text.substring(0,idx2);
+                if (cc.length < 5) {
+                    countryCode = cc;
+                }
+            }
+        }
+        return text;
+    }
+
     return {
         // expected data is from an elasticsearch query
         offer: function(data) {
@@ -333,7 +350,6 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             }
             return newObj;
         },
-
         cityResults: function(data) {
             var newObject = {};
 
@@ -347,13 +363,32 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                     var newObj = {};
                     newObj.key = record.key;
                     var keys = record.key.split(':');
-                    newObj.text = keys[0];
+                    newObj.text = keys[0] + ', ' + keys[1];
                     newObj.doc_count = record.doc_count;
                     
                     newObject.aggregations.webpageCityAgg.webpageCityAgg.buckets.push(newObj);
                 });
             }
             return newObject;
+        },
+        mentionsPhoneResults: function(data) {
+            var newObject = {};
+            if(data && data.aggregations && data.aggregations.phoneAgg && data.aggregations.phoneAgg.phoneAgg.buckets) {
+                newObject.aggregations = {};
+                newObject.aggregations.phoneAgg = {};
+                newObject.aggregations.phoneAgg.phoneAgg = {};
+                newObject.aggregations.phoneAgg.phoneAgg.buckets = [];
+                _.each(data.aggregations.phoneAgg.phoneAgg.buckets, function(record) {
+                    if(record.key.indexOf('phone') != -1) {
+                        var newObj = {};
+                        newObj.key = record.key;
+                        newObj.text = getNameFromUri(record.key, 'phone');
+                        newObj.doc_count = record.doc_count;
+                        newObject.aggregations.phoneAgg.phoneAgg.buckets.push(newObj);
+                }
+                });
+            }
+         return newObject;   
         }
     };
 

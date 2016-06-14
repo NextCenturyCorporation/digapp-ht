@@ -27,14 +27,19 @@ Custom property | Description | Default
       :host {
         display: block;
       }
-      
+
       .feature-set {
-        margin: 0 16px 10px 0;
+        margin: 0 10px;
         @apply(--paper-font-body1);
         min-width: 100px;
       }
-      
-      .bar-wrapper{
+
+      .agg {
+        max-height: 250px;
+        overflow: auto;
+      }
+
+      .bar-wrapper {
         position: relative;
         height: var(--feature-agg-bar-height, 22px);
         @apply(--layout-horizontal);
@@ -58,22 +63,21 @@ Custom property | Description | Default
         color: rgba(0,0,0,var(--dark-secondary-opacity));
         position: relative;
       }
-      
-      .bar-title{
+
+      .bar-title {
         color: var(--feature-agg-title-color, --primary-text-color);
         font-size: 12px;
         position: relative;
-        padding-left: 5px;
+        padding: 0 5px;
         text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
         white-space: nowrap;
         text-overflow: ellipsis;
       }
-      
-      .feature-title{
+
+      .feature-title {
         font-size: 12px;
         color: var(--secondary-text-color);
         text-transform: uppercase;
-        margin-bottom: 2px;
       }
 
       a:link {
@@ -89,12 +93,14 @@ Custom property | Description | Default
       a:hover {
         color: var(--secondary-text-color);
       }
-      
-      paper-button{
+
+      paper-button {
         font-size: 12px;
+        padding: 5px;
       }
-      
+
     </style>
+
     <section class="feature-set">
       <span class="feature-title">{{title}}</span>
       <div class="agg">
@@ -104,7 +110,7 @@ Custom property | Description | Default
             <div class="bar" style="{{getWidth(item)}}"></div>
             <div class="bar-title flex">
               <template is="dom-if" if="[[showLink]]">
-                <a href$="[[createURL(item)]]">{{getItemKey(item)}}</a> 
+                <a href$="[[createURL(item, blur)]]">{{getItemKey(item)}}</a>
               </template>
               <template is="dom-if" if="[[!showLink]]">
                 {{getItemKey(item)}}
@@ -113,12 +119,13 @@ Custom property | Description | Default
             <div class="bar-count flex-none">{{item.count}}</div>
           </div>
         </template>
-        <div class="layout horizontal center-center" hidden="[[!canShowMore]]">
-          <paper-button on-click="showMore">Show more</paper-button>
-        </div>
+      </div>
+      <div class="layout horizontal center-center" hidden="[[!canShowMore]]">
+        <paper-button on-click="showMore">Show More</paper-button>
       </div>
     </section>
   </template>
+
   <script>
   (function() {
     'use strict';
@@ -155,22 +162,38 @@ Custom property | Description | Default
         linkField: {
           type: String,
           notify: true
+        },
+        blur: {
+          type: Boolean
         }
       },
-      createURL: function(item) {
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
+      createURL: function(item, blur) {
         // if showLink is enabled, use linkType and linkField to create URL 
         if(this.showLink && this.linkType && this.linkField) {
-          return '/' + this.linkType + '.html?value=' + this.getItemKey(item) + '&field=' + this.linkField;
-        } else {
-          return null;
+          return '/' + this.linkType + '.html?value=' + this.getItemKey(item) + '&field=' + this.linkField + '&blur=' + blur;
         }
+        return null;
       },
+
       getItemKey: function(item) {
         if(!item[this.key]){
           return 'Unknown';
         }
         return item[this.key];
       },
+
       getWidth: function(item) {
         // This returns bar widths relative to the highest count item, assuming it's first.
         // Could also sum up all counts and do widths relative to the total.
@@ -178,6 +201,7 @@ Custom property | Description | Default
         var widthCalc = Math.round((item.count / this.agg[0].count) * 100);
         return 'width: ' + (widthCalc === 0 && item.count > 0 ? 1 : widthCalc) + '%;';
       },
+
       filterToLimit: function() {
         if(!this.itemCount){
           this.itemCount = 1;
@@ -190,6 +214,7 @@ Custom property | Description | Default
           return true;
         }
       },
+
       showMore: function(e) {
         e.preventDefault();
         this.originalLimit = this.limit;

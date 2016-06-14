@@ -81,6 +81,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return buckets;
     }
 
+<<<<<<< HEAD
     function processLocationGraph(records){
         var data = [];
         _.each(records, function(record){
@@ -113,6 +114,23 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         geoData.push("Other");
         return geos;
     }
+    
+    function getSellerTitle(phones, emails) {
+      var title = '';
+      var otherPhonesAndEmails = 0;
+      if(phones.length > 0) {
+        title = phones[0].title;
+        otherPhonesAndEmails += phones.length - 1;
+      }
+      if(emails.length > 0) {
+        title += (title ? ', ' : '') + emails[0].title;   
+        otherPhonesAndEmails += emails.length - 1;
+      }
+      if(otherPhonesAndEmails) {
+        title += ' (' + otherPhonesAndEmails + ' more)';
+      }
+      return title || 'Info N/A';
+    }
 
     return {
         // expected data is from an elasticsearch 
@@ -124,29 +142,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData._type = _.get(data.hits.hits[0], '_type');
                 newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
                 newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-                var title = undefined;
-                var numPhoneEmails = 0;
-                if(newData.telephone.length > 0) {
-                    title = newData.telephone[0].title;
-                    numPhoneEmails += newData.telephone.length;
-                }
-                if(newData.emailAddress.length > 0) {
-                    if(title) {
-                       title += ", " + newData.emailAddress[0].title;
-                    }
-                    else {
-                        title = newData.emailAddress[0].title;   
-                    }
-                    numPhoneEmails += newData.emailAddress.length;
-                }
-                if(numPhoneEmails > 2) {
-                    numPhoneEmails = numPhoneEmails - 2;
-                    newData.title = 'Seller ' + title + ' (' + numPhoneEmails + ' more)...';
-                }
-                else {
-                    newData.title = 'Seller (' + (title || 'Info N/A') + ')';
-                }
-                
+                newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
                 newData.subtitle = '';
             }
 

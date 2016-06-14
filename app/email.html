@@ -113,7 +113,7 @@
      <query-builder 
       query="{{offerLocationQuery}}" 
       query-template="{{config.queryTemplates.offerLocation}}"
-      field="seller.email.uri" value="[[emailDisplay.email._id]]">
+      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
     <elastic-search 
@@ -216,6 +216,29 @@
      transform-function="[[clientConfig.transforms.email.people]]"
      ></json-transform>
 
+     <!-- Itinerary component (aggs) -->
+
+    <query-builder 
+      query="{{itineraryAggQuery}}" 
+      query-template="{{config.queryTemplates.itineraryPhone}}" 
+      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[itineraryAggQuery]]'
+      results="{{relatedServiceItAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedServiceItAggs]]"
+     data-out="{{emailDisplay.itinerary}}"
+     transform-function="[[clientConfig.transforms.seller.itinerary]]"
+     ></json-transform>
+
     <!-- Main Content -->
     <div class="entity">
       
@@ -227,8 +250,18 @@
           <!-- Entity title -->
           <iron-icon class="iron-icon-huge" icon="communication:email"></iron-icon>
           <section class="flex-auto">
-            <div class="paper-font-display1">
-              <span>[[emailDisplay.email.emailAddress]]</span>
+            <div class="horizontal layout">
+              <div class="paper-font-display1 flex auto">
+                Email: <span>[[emailDisplay.email.emailAddress]]</span>
+              </div>
+              <div class="horizontal end-justified layout">
+                <annotate-record client="[[esclient]]" 
+                  annotation-index="[[config.annotationIndex]]"
+                  annotation-type="[[config.annotationType]]"
+                  query-template="{{config.queryTemplates.annotationQuery}}"
+                  item="{{emailDisplay.email}}">
+                </annotate-record>
+              </div>
             </div>
           </section>
           
@@ -262,14 +295,14 @@
 
               <div class="h-divider"></div>
               
-              <!-- Services Offeres -->
+              <!-- Summary of Products Offered -->
               <paper-material>
                 <section class="who">
                   
                   <!-- Multi-person summary layout, could probably be improved -->
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
-                    <div>Services offered</div>
+                    <div>Summary of Products Offered</div>
                   </div>
                   <person-features class="flex-2" people="[[emailDisplay.people]]"></person-features>
                   
@@ -284,7 +317,12 @@
                   <section class="who">
                     <div class="who">
                       <div class="paper-font-title">
-                        <single-record item="{{sellerObject}}"></single-record>
+                        <single-record 
+                          client="[[esclient]]" annotation-index="[[config.annotationIndex]]"
+                          annotation-type="[[config.annotationType]]"
+                          annotation-query-template="[[config.queryTemplates.annotationQuery]]"
+                          item="{{sellerObject}}">
+                        </single-record>
                       </div>
                     </div>
                     <records-grid
@@ -296,14 +334,31 @@
 
               <div class="h-divider"></div>
 
-              <!-- Photos section -->
-              <!-- TO DO: Hook up with data -->
               <paper-material>
                 <section class="photos">
-                  <!-- Display a single row of images and provide a way to expand to see more -->
-                  (photos section)
+                  <image-query-and-display
+                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
+                    image-query-field="isImagePartOf.mainEntity.seller.email.uri"
+                    image-query-value="[[emailDisplay.email._id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-transform="[[clientConfig.transforms.image.images]]">
+                  </image-query-and-display>
                 </section>
               </paper-material>
+
+              <!-- Itinerary section -->
+              <div class="h-divider"></div>
+
+                <paper-material>
+                  <section class="who">
+                    <div class="paper-font-title layout horizontal start center">
+                     <div>Itinerary([[emailDisplay.itinerary.date.length]] Events)</div>
+                    </div>              
+                    <itinerary-list data="{{emailDisplay.itinerary.date}}"></itinerary-list>
+                  </section>
+                </paper-material>
 
             </div>
 
@@ -345,6 +400,15 @@
                     </div>
                   </div>
                   <records-list
+                    client="[[esclient]]"
+                    elastic-index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
+                    image-query-field="isImagePartOf.mainEntity.uri"
+                    image-query-value="_id"
+                    annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                     current-results="[[emailDisplay.emailOffers.relatedOffers.data]]" page="{{pageNum}}" 
                     results-per-page="{{pageSize}}" num-results="{{emailDisplay.emailOffers.relatedOffers.count}}"
                     loading="{{offersLoading}}">

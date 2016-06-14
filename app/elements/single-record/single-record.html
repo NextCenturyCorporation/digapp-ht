@@ -47,7 +47,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       paper-item-body,
       paper-item-body > *{
-        overflow: visible;
+        white-space: normal;
       }
 
       paper-item-body {
@@ -99,19 +99,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .subtitle {
         padding-right: 30px;
       }
-      
-      paper-item-body {
-        max-width: 80%;
+
+      .entity-icon {
+        margin: 0 16px;
       }
 
-      paper-item-body strong {
-          width: 100%;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+      .detail-toggle {
+        margin: 0 10px;
       }
 
+      .lineclamp {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2; /* number of lines to show */
+        -webkit-box-orient: vertical;
+      }
+
+      iron-image {
+        background: #DDD;
+        margin: 10px;
+        height: 50px;
+        width: 50px;
+      }
     </style>
+
+    <elastic-search
+      client="[[client]]"
+      index="[[index]]"
+      elastic-type="[[indexTypes]]"
+      query="[[imageQuery]]"
+      results="{{imageQueryResults}}"
+      lastError="{{error}}">
+    </elastic-search>
+
     <div class$="[[expanded]]">
       <paper-icon-item clickable$="{{item.details}}" on-tap="checkEventSource">
 
@@ -119,12 +140,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <!-- TODO: make icon component? -->
         <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
         <template is="dom-if" if="{{item.details}}">
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
+          <iron-icon class="iron-icon-big detail-toggle" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
+        </template>
+
+        <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
+          <iron-image class$="[[getBlurClass(blur)]]" sizing="contain" src="[[item.imageSrc]]"></iron-image>
         </template>
 
         <paper-item-body>
           <!-- item title -->
-          <strong>[[item.title]]</strong>
+          <strong class="lineclamp">[[item.title]]</strong>
 
           <!-- item secondary title -->
           <div secondary>
@@ -141,8 +166,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </div>
         </paper-item-body>
 
+        <!-- annotation controls -->
+        <annotate-record client="[[client]]" annotation-index="[[annotationIndex]]" 
+          annotation-type="[[annotationType]]" query-template="{{annotationQueryTemplate}}"
+          item="{{item}}">
+        </annotate-record>
+
         <!-- secondary actions -->
-        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id')}}">
+        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
           <paper-button>open [[item._type]]</paper-button>
         </a>
       </paper-icon-item>
@@ -163,7 +194,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 </template>
               </p>
             </template>
-            <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id')}}">
+            <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
               <paper-button raised>open [[item._type]]</paper-button>
             </a>
           </paper-material>
@@ -171,15 +202,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </div>
   </template>
+
   <script>
   (function() {
-    /* globals _ */
+    /* globals _, Mustache */
     'use strict';
 
     Polymer({
       is: 'single-record',
 
       properties: {
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+        /**
+         * the annotation index (database name)
+         */
+        annotationIndex: {
+          type: String
+        },
+        /**
+         * the annotation type
+         */
+        annotationType: {
+          type: String
+        },
+        /**
+         * query template to find existing annotations
+         */
+        annotationQueryTemplate: {
+          type: Object
+        },
         item: {
           type: Object,
           notify: true
@@ -197,30 +254,158 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String,
           notify: true,
           computed: 'getTarget(newTab)'
+        },
+
+        /**
+         * The elasticsearch index.
+         */
+        index: {
+          type: String
+        },
+
+        /**
+         * The array of elasticsearch index types.
+         */
+        indexTypes: {
+          type: Array
+        },
+
+        /**
+         * The query template to find images.
+         */
+        imageQueryTemplate: {
+          type: Object
+        },
+
+        /**
+         * The field of the image query template.
+         */
+        imageQueryField: {
+          type: String
+        },
+
+        /**
+         * The field of the item for the value of the image query template.
+         */
+        imageQueryValue: {
+          type: String
+        },
+
+        /**
+         * The query to find images.
+         */
+        imageQuery: {
+          type: Object
+        },
+
+        /**
+         * The results of the query to find images.
+         */
+        imageQueryResults: {
+          type: Object
+        },
+
+        /**
+         * The image URL for the item.  Overrides item.imageSrc.
+         */
+        imageUrl: {
+          type: String
+        },
+
+        /**
+         * Whether to blur the images.
+         */
+        blur: {
+          type: Boolean
         }
       },
+
+      observers: [
+          'createImageQuery(item, imageQueryTemplate, imageQueryField, imageQueryValue)',
+          'findSrcInImageQueryResults(item, imageQueryResults)',
+          'updateImageSrcFromImageUrl(item, imageUrl)'
+      ],
+
+      ready: function() {
+        var blur = true;
+        window.location.search.slice(1, window.location.search.length).split('&').forEach(function(parameter) {
+          var parameterPair = parameter.split('=');
+          if(parameterPair[0] === 'blur' && parameterPair[1] === 'false') {
+            blur = false;
+          }
+        });
+        this.set('blur', blur);
+      },
+
+      getBlurClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
+      /**
+       * Sets this.imageQuery using the given variables.
+       */
+      createImageQuery: function(item, imageQueryTemplate, imageQueryField, imageQueryValue) {
+        var view = {
+          field: imageQueryField,
+          value: item[imageQueryValue]
+        };
+        this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
+      },
+
+      /**
+       * Sets item.imageSrc with the image URL from the first hit in the given image query results.
+       */
+      findSrcInImageQueryResults: function(item, imageQueryResults) {
+        if(imageQueryResults) {
+          if(imageQueryResults.hits.hits.length > 0) {
+              this.set('item.imageSrc', imageQueryResults.hits.hits[0]._source.url);
+          } else {
+              this.set('item.imageSrc', '');
+          }
+        }
+      },
+
+      /**
+       * Sets item.imageSrc with the given image URL.
+       */
+      updateImageSrcFromImageUrl: function(item, imageUrl) {
+        this.set('item.imageSrc', imageUrl);
+      },
+
+      /**
+       * Returns whether the given property is defined.
+       */
+      isDefined: function(property) {
+        return property !== undefined;
+      },
+
       checkEventSource: function(event) {
         var target = Polymer.dom(event).rootTarget;
-        // if paper button was clicked, stop propagation up the DOM tree   
-        if(target.localName === 'paper-button') {
+        // if paper button or paper icon button was clicked, stop propagation up the DOM tree
+        if(target.localName === 'paper-button' || target.classList.contains('paper-icon-button')) {
           event.stopImmediatePropagation();
         }
       },
+
       getItemValue: function(item, key) {
         if(item.details && item.details[key]) {
           return item.details[key];
         } 
       },
+
       isArray: function(item) {
         return _.isArray(item);
       },
+
       isValueArray: function(item, key) {
         var value = this.getItemValue(item, key);
         return _.isArray(value);
       },
+
       replaceCamelCase: function(key) {
         return key.replace(/([A-Z])/g, ' $1');
       },
+
       getAllItemKeys: function(item) {
         if(item.details) {
           var sortedKeys = [];
@@ -239,26 +424,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return returnKeys;
         }
       },
+
       logRecords: function() {
         console.log('records', this.records);
       },
-      createURL: function(type, value, field) {
-        return '/' + type + '.html?value=' + value + '&field=' + field;
+
+      createURL: function(type, value, field, blur) {
+        return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
       },
+
       getIconClass: function(type) {
-        return 'entity-' + type + '-font';
+        return 'entity-icon entity-' + type + '-font';
       },
+
       getIcon: function(type) {
         switch(type) {
             case 'email': return 'communication:email';
+            case 'offer': return 'maps:local-offer';
             case 'person': return 'icons:account-circle';
             case 'phone': return 'communication:phone';
-            case 'offer': return 'maps:local-offer';
+            case 'provider': return 'icons:account-circle';
             case 'seller': return 'editor:attach-money';
             case 'webpage': return 'av:web';
-            case 'provider': return 'icons:account-circle';
         }
       },
+
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
       }

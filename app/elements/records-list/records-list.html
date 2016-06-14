@@ -1,6 +1,6 @@
 <!--
 @license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
 The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -25,6 +25,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       iron-scroll-threshold {
         height: 100%;
+        /* Max Height = Height of 20 Single Records */
+        max-height: 1700px;
       }
 
       iron-list {
@@ -46,13 +48,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-top: 10px;
       }
     </style>
+
     <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
-      <iron-list id="list" items="{{recordsToShow}}" as="item" scroll-target="scrollThreshold" selection-enabled multi-selection>
-        <template>
-          <single-record item="{{item}}" expanded="[[getClassForItem(item, selected)]]" new-tab="{{newTab}}"></single-record>
-        </template>
-      </iron-list>
+      <template is="dom-repeat" items="{{recordsToShow}}" initial-count="25">
+        <single-record item="{{item}}"
+          client="[[client]]"
+          index="[[elasticIndex]]"
+          index-types="[[indexTypes]]"
+          image-query-template="[[imageQueryTemplate]]"
+          image-query-field="[[imageQueryField]]"
+          image-query-value="[[imageQueryValue]]"
+          annotation-index="[[annotationIndex]]"
+          annotation-type="[[annotationType]]"
+          annotation-query-template="{{annotationQueryTemplate}}"
+          expanded="[[getClassForItem(item.selected)]]"
+          new-tab="{{newTab}}"
+          on-tap="toggleSelectRecord">
+        </single-record>
+      </template>
     </iron-scroll-threshold>
+
     <div class="end-of-list">
       <template is="dom-if" if="{{displayShowMore}}">
         <paper-button raised on-click="changePageNum">Show More</paper-button>
@@ -62,6 +77,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </div>
   </template>
+
   <script>
   (function() {
     /* globals _ */
@@ -70,6 +86,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'records-list',
       properties: {
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+        /**
+         * the annotation index (database name)
+         */
+        annotationIndex: {
+          type: String
+        },
+        /**
+         * the annotation type
+         */
+        annotationType: {
+          type: String
+        },
+        /**
+         * query template to find existing annotations
+         */
+        annotationQueryTemplate: {
+          type: Object
+        },
         /**
         * Records on current page of query results
         */
@@ -125,22 +166,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           notify: true,
           computed: 'calcDisplayShowMore(showMore, loading)'
+        },
+
+        /**
+         * The elasticsearch index.
+         */
+        elasticIndex: {
+          type: String
+        },
+
+        /**
+         * The array of elasticsearch index types.
+         */
+        indexTypes: {
+          type: Array
+        },
+
+        /**
+         * The query template to find images.
+         */
+        imageQueryTemplate: {
+          type: Object
+        },
+
+        /**
+         * The field for the image query template.
+         */
+        imageQueryField: {
+          type: String
+        },
+
+        /**
+         * The value for the image query template.
+         */
+        imageQueryValue: {
+          type: String
         }
       },
+
       observers: [
         'updateRecordsToShow(currentResults, loading)'
       ],
+
       calcDisplayShowMore: function(showMore, loading) {
         return showMore && (!loading);
       },
+
       changeShowMore: function() {
         if(this.numPages > 1 && this.numResults > 0 && this.page !== this.numPages) {
           this.showMore = true;
         }
       },
-      getClassForItem: function(item, selected) {
+
+      getClassForItem: function(selected) {
         return selected ? 'item expanded' : 'item';
       },
+
       /**
       * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
       * 
@@ -160,27 +241,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
 
           this.$.scrollThreshold.clearTriggers();
-          
-          var list = document.querySelector('#list');
-          if(list) {
-            list.fire('iron-resize');
-          }
-          
-          this.changeShowMore();
+          this.showMore = false;
         }
 
       },
+
       changePageNum: function() {
         this.showMore = false;
         if(this.page < this.numPages) {
           this.page += 1;
         }
       },
+
       calcNumPages: function(numResults, resultsPerPage) {
         if(this.page !== 1) {
           this.page = 1;
         }
         return Math.ceil(numResults / resultsPerPage); 
+      },
+
+      toggleSelectRecord: function(event) {
+        event.model.set('item.selected', !event.model.item.selected);
       }
     });
   })();

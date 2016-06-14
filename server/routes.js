@@ -17,7 +17,9 @@ module.exports = function(app) {
             elasticIndex: config.elasticIndex,
             elasticTypes: config.elasticTypes,
             appVersion: config.appVersion,
-            queryTemplates: config.queryTemplates
+            queryTemplates: config.queryTemplates,
+            annotationIndex: config.annotationIndex,
+            annotationType: config.annotationType
         });
     });
 

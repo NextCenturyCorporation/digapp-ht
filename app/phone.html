@@ -169,7 +169,7 @@
        <query-builder 
         query="{{offerLocationQuery}}" 
         query-template="{{config.queryTemplates.offerLocation}}"
-        field="seller.telephone.uri" value="[[phoneDisplay.telephone._id]]">
+        field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
       </query-builder>
 
       <elastic-search 
@@ -215,6 +215,29 @@
        transform-function="[[clientConfig.transforms.phone.phoneOffersData]]"
        ></json-transform>
 
+       <!-- Itinerary component (aggs) -->
+
+      <query-builder 
+        query="{{itineraryAggQuery}}" 
+        query-template="{{config.queryTemplates.itineraryPhone}}" 
+        field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
+      </query-builder>
+
+      <elastic-search 
+        client="[[esclient]]"
+        index="[[config.elasticIndex]]"
+        query='[[itineraryAggQuery]]'
+        results="{{relatedServiceItAggs}}"
+        elastic-type='["offer"]'
+        lastError="{{error}}">
+      </elastic-search>
+
+      <json-transform
+       data-in="[[relatedServiceItAggs]]"
+       data-out="{{phoneDisplay.itinerary}}"
+       transform-function="[[clientConfig.transforms.seller.itinerary]]"
+       ></json-transform>
+
     <!-- Main Content -->
     <div class="entity">
       
@@ -226,8 +249,17 @@
           <!-- Entity title -->
           <iron-icon class="iron-icon-huge" icon="communication:phone"></iron-icon>
           <section class="flex-auto">
-            <div class="paper-font-display1">Phone: 
-              <phone-formatter input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+            <div class="horizontal layout">
+              <div class="paper-font-display1 flex auto">
+                Phone: <phone-formatter input="[[phoneDisplay.telephone.number]]"></phone-formatter>
+              </div>
+              <div class="horizontal end-justified layout">
+                <annotate-record client="[[esclient]]" annotation-index="[[config.annotationIndex]]"
+                  annotation-type="[[config.annotationType]]"
+                  query-template="{{config.queryTemplates.annotationQuery}}"
+                  item="{{phoneDisplay.telephone}}">
+                </annotate-record>
+              </div>
             </div>
           </section>
             
@@ -259,14 +291,14 @@
               
               <div class="h-divider"></div>
               
-              <!-- Services Offered -->
+              <!-- Summary of Products Offered -->
               <paper-material>
                 <section class="who">
                   
                   <!-- Multi-person summary layout, could probably be improved -->
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
-                    <div>Services offered</div>
+                    <div>Summary of Products Offered</div>
                   </div>
                   <person-features class="flex-2" people="[[phoneDisplay.people]]"></person-features>
                   
@@ -281,7 +313,12 @@
                   <section class="who">
                     <div class="who">
                       <div class="paper-font-title">
-                        <single-record item="{{sellerObject}}"></single-record>
+                        <single-record item="{{sellerObject}}"
+                          client="[[esclient]]"
+                          annotation-index="[[config.annotationIndex]]"
+                          annotation-type="[[config.annotationType]]"
+                          annotation-query-template="{{config.queryTemplates.annotationQuery}}">
+                        </single-record>
                       </div>
                     </div>
                     <records-grid
@@ -293,12 +330,29 @@
 
               <div class="h-divider"></div>
 
-              <!-- Photos section -->
-              <!-- TO DO: Hook up with data -->
               <paper-material>
                 <section class="photos">
-                  <!-- Display a single row of images and provide a way to expand to see more -->
-                  (photos section)
+                  <image-query-and-display
+                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
+                    image-query-field="isImagePartOf.mainEntity.seller.telephone.uri"
+                    image-query-value="[[phoneDisplay.telephone._id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-transform="[[clientConfig.transforms.image.images]]">
+                  </image-query-and-display>
+                </section>
+              </paper-material>
+
+              <!-- Itinerary section -->
+              <div class="h-divider"></div>
+
+              <paper-material>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                   <div>Itinerary([[phoneDisplay.itinerary.date.length]] Events)</div>
+                  </div>              
+                  <itinerary-list data="{{phoneDisplay.itinerary.date}}"></itinerary-list>
                 </section>
               </paper-material>
 
@@ -342,6 +396,15 @@
                     </div>
                   </div>
                   <records-list
+                    client="[[esclient]]"
+                    elastic-index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
+                    image-query-field="isImagePartOf.mainEntity.uri"
+                    image-query-value="_id"
+					annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                     current-results="[[phoneDisplay.phoneOffers.relatedOffers.data]]" page="{{pageNum}}" 
                     results-per-page="{{pageSize}}" num-results="{{phoneDisplay.phoneOffers.relatedOffers.count}}" 
                     loading="{{offersLoading}}">

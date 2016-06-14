@@ -102,7 +102,7 @@
 
       </paper-toolbar>
 
-      <paper-drawer-panel>
+      <paper-drawer-panel drawer-width="320px">
 
         <!-- Sidebar on left side -->
         <paper-header-panel drawer>
@@ -110,7 +110,7 @@
             <section data-type="webpage">
               <!--TODO: create different sort for all types + different elastic-client-searches for all types -->
               <elastic-sort-input sort-string="{{offerSortString}}" field="validFrom"></elastic-sort-input>
-              <elastic-sort input-string="{{offerSortString}}" sort="{{sort}}"></elastic-sort-input>
+              <elastic-sort input-string="{{offerSortString}}" sort="{{sort}}"></elastic-sort>
 
               <p>
                 <h4>City</h4>
@@ -125,7 +125,7 @@
                    data-in="{{ecsResult}}"
                    data-out="{{ecsResultsCity}}"
                    transform-function="[[clientConfig.transforms.relatedEntities.cityResults]]"
-                   ></json-transform>
+                ></json-transform>
 
               <elastic-client-checkbox-list
                 buckets="[[ecsResultsCity.aggregations.webpageCityAgg.webpageCityAgg.buckets]]"
@@ -139,15 +139,21 @@
               <p><h4>Telephone</h4>
               <elastic-client-aggregation-builder
                 name="phoneAgg"
-                field="mainEntity.seller.telephone.name.raw"
+                field="mentions"
                 ejs-aggregation="{{phoneAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
+              <json-transform
+                   data-in="{{ecsResult}}"
+                   data-out="{{ecsResultsPhone}}"
+                   transform-function="[[clientConfig.transforms.relatedEntities.mentionsPhoneResults]]"
+              ></json-transform>
+
               <elastic-client-checkbox-list
-                buckets="[[ecsResult.aggregations.phoneAgg.phoneAgg.buckets]]"
+                buckets="[[ecsResultsPhone.aggregations.phoneAgg.phoneAgg.buckets]]"
                 filter-name="phoneAgg"
-                field="mainEntity.seller.telephone.name.raw"
+                field="mentions"
                 ejs-filter="{{phoneFilter}}"
                 combination-type="or">
               </elastic-client-checkbox-list>
@@ -210,6 +216,15 @@
             <paper-material class="main-search-results-wrapper">
               <section class="main-search-results">
                 <records-list
+                  client="[[esclient]]"
+                  elastic-index="[[config.elasticIndex]]"
+                  index-types='["image"]'
+                  image-query-template="[[config.queryTemplates.commonTermQuery]]"
+                  image-query-field="isImagePartOf.mainEntity.uri"
+                  image-query-value="_id"
+                  annotation-index="[[config.annotationIndex]]"
+                  annotation-type="[[config.annotationType]]"
+                  annotation-query-template="{{config.queryTemplates.annotationQuery}}"
                   current-results="{{records.data}}" new-tab="true" page="{{pageNum}}"
                   results-per-page="{{pageSize}}" num-results="{{records.count}}" loading="{{loading}}">
                 </records-list>

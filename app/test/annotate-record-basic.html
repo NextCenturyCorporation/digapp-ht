@@ -1,0 +1,190 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>annotate-record</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/annotate-record/annotate-record.html">
+
+</head>
+<body>
+
+<test-fixture id="annotate-record-fixture">
+  <template>
+    <annotate-record annotation-index="dig-annotations" annotation-type="annotation"
+      query-template='{"query": {"query": {"bool" : {"must" : [{"term" : { "uri" : "" }},
+        {"term" : { "user" : "mockUser" }}]}}}, "pathsToValues": ["query.bool.must[0].term.uri"]}'
+      client='{}' item='{"_id": "someidhere"}'>
+    </annotate-record>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture */
+  /* jshint -W030 */
+
+  suite('annotate-record tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('annotate-record-fixture');
+    });
+
+    test('annotationIndex defined correctly', function() {
+      assert.equal(element.annotationIndex, 'dig-annotations');
+    });
+
+    test('annotationType defined correctly', function() {
+      assert.equal(element.annotationType, 'annotation');
+    });
+
+    test('queryTemplate defined correctly', function() {
+      assert.isObject(element.queryTemplate.query.query);
+      assert.isArray(element.queryTemplate.pathsToValues);
+    });
+
+    test('item defined correctly', function() {
+      assert.deepEqual(element.item, {_id: 'someidhere'});
+    });
+
+    test('isItemOfInterest is undefined', function() {
+      assert.isUndefined(element.isItemOfInterest);
+    });
+
+    test('_ofInterestIcon is expected value', function() {
+      assert.equal(element._ofInterestIcon, 'add-circle-outline');
+    });
+
+    test('_notOfInterestIcon is expected value', function() {
+      assert.equal(element._notOfInterestIcon, 'remove-circle-outline');
+    });
+
+    test('disableButtons is true', function() {
+      assert.isTrue(element.disableButtons);
+    });
+
+    test('styleButtons() removes selected attr from both buttons if isItemOfInterest is undefined', function() {
+      element.styleButtons();
+
+      assert.isNull(element.$.interestBtn.getAttribute('selected'));
+      assert.isNull(element.$.notOfInterestBtn.getAttribute('selected'));
+    });
+
+    test('styleButtons() adds selected attr to interestBtn if isItemOfInterest is true', function() {
+      element.isItemOfInterest = true;
+      element.styleButtons();
+
+      assert.equal(element.$.interestBtn.getAttribute('selected'), 'true');
+      assert.isNull(element.$.notOfInterestBtn.getAttribute('selected'));
+    });
+
+    test('styleButtons() adds selected attr to notOfInterestBtn if isItemOfInterest is false', function() {
+      element.isItemOfInterest = false;
+      element.styleButtons();
+
+      assert.isNull(element.$.interestBtn.getAttribute('selected'));
+      assert.equal(element.$.notOfInterestBtn.getAttribute('selected'), 'true');
+    });
+
+    test('getAnnotationId returns correct value for both cases', function() {
+      assert.equal(element.getAnnotationId({_id: 'defined'}), 'defined');
+      assert.equal(element.getAnnotationId(undefined), undefined);
+    });
+
+    test('getValuesForQuery returns item._id in an array', function() {
+      assert.deepEqual(element.getValuesForQuery(element.item), ['someidhere']);
+    });
+
+    test('buildAnnotationQuery replaces appropriate values in queryTemplate', function() {
+      var queryToUse = element.buildAnnotationQuery(element.item, element.queryTemplate);
+
+      assert.equal(queryToUse.query.bool.must[0].term.uri, element.item._id);
+    });
+
+    test('buildAnnotationQuery returns undefined if item is empty/undefined', function() {
+      var undefinedItem = element.buildAnnotationQuery(undefined, element.queryTemplate);
+      var emptyItem = element.buildAnnotationQuery({}, element.queryTemplate);
+
+      assert.isUndefined(undefinedItem);
+      assert.isUndefined(emptyItem);
+    });
+
+    test('buildAnnotationQuery returns undefined if queryTemplate undefined', function() {
+      var undefinedTemplate = element.buildAnnotationQuery(element.item, undefined);
+
+      assert.isUndefined(undefinedTemplate);
+    });
+
+    test('transformOrigResult if result not found', function() {
+      element.transformOrigResult();
+
+      assert.isUndefined(element.annotationResult);
+      assert.isUndefined(element.isItemOfInterest);
+      assert.isTrue(element.disableButtons);
+    });
+    
+    test('initCreateOrUpdate sets create body if correct icon clicked and annotationResult does not exist', function() {
+      /* jshint camelcase: false */
+      var mockEvent = {target: {_iconName: 'add-circle-outline'}};
+
+      element.initCreateOrUpdate(mockEvent);
+
+      assert.isTrue(element.isItemOfInterest);
+      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', is_valuable: true});
+      /* jshint camelcase: true */
+    });
+
+    test('initCreateOrUpdate sets create body if correct button clicked and annotationResult does not exist', function() {
+      /* jshint camelcase: false */
+      var mockEvent = {target: {id: 'interestBtn'}};
+
+      element.initCreateOrUpdate(mockEvent);
+
+      assert.isTrue(element.isItemOfInterest);
+      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', is_valuable: true});
+      /* jshint camelcase: true */
+    });
+
+    test('transformOrigResult if result found', function() {
+      /* jshint camelcase: false */
+      element.originalSearchResult = {hits: {hits: [{_id: 1, _source: {is_valuable: false}}]}};
+      
+      element.transformOrigResult();
+
+      assert.deepEqual(element.annotationResult, {_id: 1, _source: {is_valuable: false}});
+      assert.equal(element.isItemOfInterest, false);
+      assert.equal(element.disableButtons, false);
+      /* jshint camelcase: true */
+    });
+
+    test('initCreateOrUpdate sets update body if annotationResult exists', function() {
+      /* jshint camelcase: false */
+      var mockEvent = {target: {_iconName: 'add-circle-outline'}};
+      element.annotationResult = {_id: 1, _source: {is_valuable: false}};
+
+      element.initCreateOrUpdate(mockEvent);
+
+      assert.isTrue(element.isItemOfInterest);
+      assert.deepEqual(element.annotationUpdateBody, {doc: {is_valuable: true}});
+      /* jshint camelcase: true */
+    });
+
+  });
+</script>
+
+</body>
+</html>
