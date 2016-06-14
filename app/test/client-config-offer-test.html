@@ -170,59 +170,54 @@
     });
   });
 
-  suite('<client-config> offer tests -- aggregations on seller uri', function() {
+  suite('<client-config> offer transform tests -- computeShowSeller', function() {
     var myEl;
-    var dataOut;
+    var offerTransform;
+    var sellerPhoneEmails;
 
     setup(function() {
       myEl = fixture('client-config-fixture');
-      var offerTransform = myEl.config.transforms.offer.offer;
-      var aggs = {
-        'hits': {'hits': []},
-        'aggregations': {
-          'offer_locs_by_seller': {
-             'doc_count_error_upper_bound': 0,
-             'sum_other_doc_count': 0,
-             'buckets': [
-                {
-                   'key': 'Los Angeles',
-                   'doc_count': 1
-                }
-             ]
-          },
-          'offers_by_seller': {
-             'buckets': [
-                {
-                   'key_as_string': '2014-10-27T00:00:00.000Z',
-                   'key': 1414368000000,
-                   'doc_count': 1
-                }
-             ]
-          }
+      offerTransform = myEl.config.transforms.offer.computeShowSeller;
+      sellerPhoneEmails = [
+        {
+          _id: 'http://dig.isi.edu/ht/data/phone/1-0987654321',
+          _type: 'phone',
+          subtitle: '',
+          title: '0987654321'
+        },
+        {
+          _id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+          _type: 'phone',
+          subtitle: '',
+          title: '1112223333'
+        },
+        {
+          _id: 'http://dig.isi.edu/ht/data/email/abc@xyz.com',
+          _type: 'email',
+          subtitle: '',
+          title: 'abc@xyz.com'
         }
+      ];
+    });
+
+    test('computeShowSeller returns false', function() {
+      var webpageData = {
+        _id: 'someid',
+        phones: [sellerPhoneEmails[0], sellerPhoneEmails[1]], 
+        emails: [sellerPhoneEmails[2]]
       };
-      dataOut = offerTransform(aggs);
+      var result = offerTransform(sellerPhoneEmails, webpageData);
+      assert.isFalse(result);
     });
 
-    test('defines offers by seller agg array', function() {
-      expect(dataOut.offersBySeller).to.exist;
-      expect(dataOut.offersBySeller).to.be.an('Array');
-    });
-
-    test('defines offers by seller items', function() {
-      assert.equal(dataOut.offersBySeller.length, 1);
-      assert.equal(dataOut.offersBySeller[0].date, '2014-10-27T00:00:00.000Z');
-      assert.equal(dataOut.offersBySeller[0].count, 1);
-    });
-
-    test('defines offer locations by seller agg array', function() {
-      expect(dataOut.offerLocsBySeller).to.exist;
-      expect(dataOut.offerLocsBySeller).to.be.an('Array');
-    });
-
-    test('defines offer location items', function() {
-      assert.equal(dataOut.offerLocsBySeller.length, 1);
-      assert.deepEqual(dataOut.offerLocsBySeller[0], {city: 'Los Angeles', count: 1});
+    test('computeShowSeller returns true', function() {
+      var webpageData = {
+        _id: 'someid',
+        phones: [sellerPhoneEmails[0]], 
+        emails: [sellerPhoneEmails[2]]
+      };
+      var result = offerTransform(sellerPhoneEmails, webpageData);
+      assert.isTrue(result);
     });
 
   });

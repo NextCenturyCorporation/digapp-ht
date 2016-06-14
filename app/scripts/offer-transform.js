@@ -146,7 +146,7 @@ var offerTransform = (function(_, commonTransforms) {
             var webpagePhonesLen = (webpageData.phones)? webpageData.phones.length: 0;
             var webpageEmailsLen = (webpageData.emails)? webpageData.emails.length: 0;
 
-            return sellerPhoneEmails.length != (webpageEmailsLen + webpagePhonesLen);
+            return sellerPhoneEmails.length !== (webpageEmailsLen + webpagePhonesLen);
         }
     };
 
