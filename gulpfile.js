@@ -24,7 +24,6 @@ try {
   localConfig = require('./server/config/local.env');
 } catch(e) {}
 
-
 var AUTOPREFIXER_BROWSERS = [
   'ie >= 10',
   'ie_mob >= 10',
@@ -93,6 +92,29 @@ var optimizeHtmlTask = function(src, dest) {
       title: 'html'
     }));
 };
+
+gulp.task('lint', function() {
+  return gulp.src([
+      'app/*.html',
+      'app/elements/**/*.html',
+      'app/test/*.html',
+      'gulpfile.js'
+    ])
+    .pipe(reload({
+      stream: true,
+      once: true
+    }))
+
+    // Extract the scripts from the HTML files for JSHint using its own extract function.
+    .pipe($.jshint.extract())
+    .pipe($.jshint())
+    .pipe($.jshint.reporter())
+
+    // Extract the scripts from the HTML files for JSCS using the gulp-html-extract task.
+    .pipe($.if('*.html', $.htmlExtract({strip: true})))
+    .pipe($.jscs())
+    .pipe($.jscs.reporter('text'));
+});
 
 // Compile and automatically prefix stylesheets
 gulp.task('styles', function() {
@@ -213,7 +235,7 @@ gulp.task('clean', function() {
 });
 
 // Watch files for changes & reload
-gulp.task('serve', ['styles', 'elements', 'nodemon'], function() {
+gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
   var proxyOptions = url.parse('http://localhost:9000/config');
   proxyOptions.route = '/config';
 
@@ -272,18 +294,18 @@ gulp.task('serve:dist', ['default', 'nodemon'], function() {
 });
 
 // start express app and watch files
-gulp.task('nodemon', function (cb) {
-  
+gulp.task('nodemon', function(cb) {
+
   var started = false;
-  
+
   return nodemon({
     script: 'server/app.js',
     env: localConfig
-  }).on('start', function () {
+  }).on('start', function() {
     if (!started) {
       cb();
-      started = true; 
-    } 
+      started = true;
+    }
   });
 });
 
@@ -293,7 +315,7 @@ gulp.task('default', ['clean'], function(cb) {
   runSequence(
     ['ensureFiles', 'copy', 'styles'],
     'elements',
-    ['images', 'fonts', 'html'],
+    ['lint', 'images', 'fonts', 'html'],
     'vulcanize', // 'cache-config',
     cb);
 });
@@ -320,7 +342,10 @@ gulp.task('deploy-gh-pages', function() {
 
 // Load tasks for web-component-tester
 // Adds tasks for `gulp test:local` and `gulp test:remote`
-require('web-component-tester').gulp.init(gulp);
+require('web-component-tester').gulp.init(gulp, ['lint']);
+
+// Overwrite the test task to call the lint task and the web-component-tester.
+gulp.task('test', ['lint', 'test:local']);
 
 // Load custom tasks from the `tasks` directory
 try {

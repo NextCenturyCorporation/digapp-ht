@@ -59,18 +59,18 @@ Custom property | Description | Default
       top: 0;
       margin: 0;
     }
-    
+
     #svgElement{
       width: 100%;
       height: 100px;
     }
-    
+
     paper-button{
       background-color: var(--text-primary-color);
       color: var(--primary-text-color);
       font-size: 12px;
     }
-    
+
   </style>
   <template>
     <div class="layout horizontal">
@@ -86,7 +86,7 @@ Custom property | Description | Default
   (function() {
     'use strict';
     /* globals d3 */
-    
+
     Polymer({
       is: 'bar-chart',
 
@@ -100,7 +100,7 @@ Custom property | Description | Default
         },
         dataKey: {
           type: String
-        },  
+        },
         dataValue: {
           type: String
         },
@@ -132,7 +132,7 @@ Custom property | Description | Default
       checkData: function() {
         if(this.data.length > 0) {
           this.setupChart();
-          this.minX = this.getItemKey(this.data[0]); 
+          this.minX = this.getItemKey(this.data[0]);
           this.maxX = this.getItemKey(this.data[this.data.length - 1]);
         } else {
           this.minX = 'N/A';
@@ -143,9 +143,9 @@ Custom property | Description | Default
         var format = d3.time.format('%Y-%m-%d');
         var formattedDate = format(new Date(item[this.dataKey]));
         return formattedDate;
-        
+
         // Just do this if using a time scale
-//        return new Date(item[this.dataKey]);
+        // return new Date(item[this.dataKey]);
       },
       getItemValue: function(item) {
         return item[this.dataValue];
@@ -164,7 +164,7 @@ Custom property | Description | Default
         this.width = 400;
         var margin = {top: 10, right: 10, bottom: 18, left: 30};
         var container = document.getElementById('chartContainer');
-        if(container){
+        if(container) {
           this.width = parseInt(container.offsetWidth, 10);
         }
         var chartHeight = this.height - margin.top - margin.bottom;
@@ -174,15 +174,15 @@ Custom property | Description | Default
         var x = d3.scale.ordinal()
             .domain(self.data.map(function(d) { return self.getItemKey(d); }))
             .rangeRoundBands([0, chartWidth], 0.1, 0);
-        
+
         // Could use a time scale instead, like this...
-//        var x = d3.time.scale.utc()
-//            .domain([
-//              d3.min(self.data, function(d) { return self.getItemKey(d); }),
-//              d3.max(self.data, function(d) { return self.getItemKey(d); })
-//            ])
-//            .range([0, chartWidth]);
-  
+        // var x = d3.time.scale.utc()
+        //   .domain([
+        //     d3.min(self.data, function(d) { return self.getItemKey(d); }),
+        //     d3.max(self.data, function(d) { return self.getItemKey(d); })
+        //   ])
+        //  .range([0, chartWidth]);
+
         var yMax = d3.max(self.data, function(d) { return self.getItemValue(d); });
 
         var y = d3.scale.linear()
@@ -203,7 +203,7 @@ Custom property | Description | Default
               } else {
                 // if full date is too wide, use label with month and day only
 
-                // if the chosen bar width exceeds the size of the day and month label, 
+                // if the chosen bar width exceeds the size of the day and month label,
                 // pick which tick marks to label so that labels do not overlap
                 var incrementToLabel = 1;
 
@@ -214,7 +214,6 @@ Custom property | Description | Default
                 return (index % incrementToLabel === 0 ? d.substring(5, 10) : '');
               }
             });
-
 
         var yAxis = d3.svg.axis()
             .scale(y)
@@ -244,33 +243,33 @@ Custom property | Description | Default
         }
 
         Polymer.dom(this.$.svgElement).appendChild(chart.node());
-        
-        d3.select(window).on('resize', function(){
+
+        d3.select(window).on('resize', function() {
           self.resize();
-        }); 
-        
+        });
+
       },
       createBrush: function(chart, x, sliderHeight, chartHeight) {
         var self = this;
         self.brush = d3.svg.brush().x(x);
 
         var computeSelected = function(extent) {
-          chart.selectAll('.bar').classed('selected', function(d) { 
+          chart.selectAll('.bar').classed('selected', function(d) {
             var midBar = Math.round(x.rangeBand() / 2);
-            return extent[0] <= x(self.getItemKey(d)) + midBar && x(self.getItemKey(d)) + midBar <= extent[1]; 
+            return extent[0] <= x(self.getItemKey(d)) + midBar && x(self.getItemKey(d)) + midBar <= extent[1];
           });
         };
 
-        self.brush.on('brush', function() {          
+        self.brush.on('brush', function() {
           var s = d3.event.target.extent();
           computeSelected(s);
         });
 
-        self.brush.on('brushend', function() {  
+        self.brush.on('brushend', function() {
           var selected = x.domain().filter(function(d) {
             var midBar = Math.round(x.rangeBand() / 2);
             return (self.brush.extent()[0] <= x(d) + midBar) && (x(d) + midBar <= self.brush.extent()[1]);
-          });  
+          });
 
           self.brushExtents = self.brush.extent();
           self.clearFilterEnabled = true;
@@ -294,7 +293,7 @@ Custom property | Description | Default
             .attr('d', arc);
 
         brushg.selectAll('rect')
-            .attr('height', chartHeight);    
+            .attr('height', chartHeight);
 
         if(self.clearFilterEnabled) {
           brushg.call(self.brush.extent(self.brushExtents));
