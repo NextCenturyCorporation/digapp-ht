@@ -115,13 +115,6 @@ var offerTransform = (function(_, commonTransforms) {
                 newData = parseOffer(data.hits.hits[0]._source);
             }
 
-            // aggregation data for sparklines -- currently unused
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData.offersBySeller = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
-                newData.offerLocsBySeller = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
-            }
-
             return newData;
         },
 
