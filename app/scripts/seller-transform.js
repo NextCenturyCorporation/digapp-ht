@@ -28,33 +28,36 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             var objLevelOne = {};
             objLevelOne[levelOne] = bucket.key;
 
-            if(bucket[levelTwo].buckets.length){
+            if(bucket[levelTwo].buckets.length) {
                 objLevelOne[levelTwo] = _.map(bucket[levelTwo].buckets, function(buck){
                     var objLevelTwo = {};
                     objLevelTwo[levelTwo] = buck.key;
                     objLevelTwo.data = [];
                     
-                    for(var key in keys){
+                    for(var key in keys) {
                         var ele = {};
                         ele.key = keys[key];
                         
-                        if(_.has(renames, ele.key ))
+                        if(_.has(renames, ele.key )) {
                             ele.key = renames[ele.key];
+                        }
 
-                        if(_.has(buck,keys[key])){
-                            if(keys[key] == 'mentions'){
+                        if(_.has(buck,keys[key])) {
+                            if(keys[key] === 'mentions') {
                                 ele.value = _.map(buck[keys[key]].buckets, function(buc){
                                     return buc.key;
-                                })
-                                phoneAndEmail = commonTransforms.getEmailAndPhoneFromMentions(ele.value);
+                                });
+                                var phoneAndEmail = commonTransforms.getEmailAndPhoneFromMentions(ele.value);
 
-                                for(var argKey in phoneAndEmail){
-                                    if (phoneAndEmail[argKey].length){
-                                        ele = {}
-                                        if(argKey=="phones")
-                                            ele.key = "Phone";
-                                        else if(argKey=="emails")
-                                            ele.key = "Email";
+                                for(var argKey in phoneAndEmail) {
+                                    if(phoneAndEmail[argKey].length) {
+                                        ele = {};
+                                        if(argKey === 'phones') {
+                                            ele.key = 'Phone';
+                                        }
+                                        else if(argKey === 'emails') {
+                                            ele.key = 'Email';
+                                        }
 
                                         ele.value = _.map(phoneAndEmail[argKey], function(b){
                                             return b.title;
@@ -62,8 +65,8 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                                         objLevelTwo.data.push(ele);
                                     }
                                 }
-                            }else{
-                                ele.value = _.map(buck[keys[key]].buckets, function(buc){
+                            } else {
+                                ele.value = _.map(buck[keys[key]].buckets, function(buc) {
                                     return buc.key;
                                 }).join(', ');
                                 objLevelTwo.data.push(ele);
@@ -157,20 +160,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             if(data.aggregations) {
                 newData = commonTransforms.getPeople(data.aggregations);
-            }
-            
-            return newData;
-        },
-        offerData: function(data) {
-            var newData = {};
-
-            if(data.hits.hits.length > 0 && data.aggregations) {
-                var aggs = data.aggregations;
-
-                newData.locations = commonTransforms.getLocations(data.hits.hits);
-                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
-                newData.offerCities = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
-                newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
             }
             
             return newData;

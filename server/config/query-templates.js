@@ -125,47 +125,6 @@ module.exports = {
             }
         }
     },
-    // seller entity queries
-    // phone and email aggregations might be able to be performed together when
-    // entity resolution is done on seller
-    sellerPhoneAggs: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        '{{field}}' : '{{value}}'
-                    }
-                }
-            }
-        },
-        "aggs":{
-            "seller_assoc_numbers": {
-                "terms": {
-                    "field": "telephone.name.raw",
-                    "size": 0
-                }
-            }
-        }
-    },
-    sellerEmailAggs: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        '{{field}}' : '{{value}}'
-                    }
-                }
-            }
-        },
-        "aggs":{
-            "seller_assoc_emails": {
-                "terms": {
-                    "field" : "email.name.raw",
-                    "size": 0
-                }
-            }
-        }
-    },
     // same one used in phone/email
     sellerPeopleAggs: {
         "query": {
@@ -198,27 +157,6 @@ module.exports = {
             }
         }
     },
-    sellerPeopleAndOffers: {
-        query: {
-            "query": {
-                "bool": {
-                    "should":  [{
-                        "match": {
-                            "offer.seller.uri": ""
-                        }
-                    },{
-                        "match": {
-                            "adultservice.offers.seller.uri": ""
-                        }
-                    }]
-                }
-            }
-        },
-        pathsToValues: [
-            'query.bool.should[0].match["offer.seller.uri"]', 
-            'query.bool.should[1].match["adultservice.offers.seller.uri"]'
-        ]
-    },
     offerRevisions: {
         query: {
             "query": {
@@ -240,28 +178,6 @@ module.exports = {
         ]
       
    },
-    // TODO: reorganize queries -- duplicate of offerSellerAgg
-    offerAggsBySeller: {
-        "query": {
-            "match": {
-                '{{field}}' : '{{value}}'
-            }   
-        },
-        "aggs": {
-            "offers_by_seller" : {
-                "date_histogram": {
-                    "field": "validFrom",
-                    "interval": "week"
-                }
-            },
-            "offer_locs_by_seller" : {
-                "terms" : { 
-                    "field" : "availableAtOrFrom.address.addressLocality",
-                    "size": 0
-                }
-            }
-        }
-    },
     // webpage entity queries
     webpageRevisions: {
         "query": {
@@ -367,7 +283,6 @@ module.exports = {
             }
         }
     },
-
     itineraryPhone:{
       "aggs": {
         "phone": {
