@@ -93,7 +93,7 @@ var optimizeHtmlTask = function(src, dest) {
     }));
 };
 
-gulp.task('lint', function() {
+gulp.task('jslint', function() {
   return gulp.src([
       'app/*.html',
       'app/elements/**/*.html',
@@ -115,6 +115,23 @@ gulp.task('lint', function() {
     .pipe($.jscs())
     .pipe($.jscs.reporter('text'));
 });
+
+gulp.task('polylint', function() {
+  return gulp.src([
+      'app/elements/**/*.html'
+    ])
+    .pipe(reload({
+      stream: true,
+      once: true
+    }))
+
+    .pipe($.polylint())
+    .pipe($.polylint.reporter($.polylint.reporter.stylishlike))
+    .pipe($.polylint.reporter.fail({buffer: true, ignoreWarnings: false}));
+});
+
+// Do not include polylint because it is slow and therefore should only be run on-demand.
+gulp.task('lint', ['jslint']);
 
 // Compile and automatically prefix stylesheets
 gulp.task('styles', function() {
