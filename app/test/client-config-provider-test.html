@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>client-config</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="data/service-result.js" type="text/javascript"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/client-config/client-config.html">
+
+</head>
+<body>
+
+<test-fixture id="client-config-fixture">
+  <template>
+    <client-config></client-config>
+  </template>
+</test-fixture>
+
+<script>
+  'use strict';
+  /* globals suite, test, expect, setup, fixture, serviceResult, assert */
+  /* jshint camelcase:false */
+  /* jshint -W030 */
+  suite('<client-config> provider tests', function() {
+    var myEl;
+    var dataOut;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var providerTransform = myEl.config.transforms.provider.provider;
+      dataOut = providerTransform(serviceResult);
+    });
+
+    test('defines config object', function (done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.provider.provider).to.be.a('Function');
+      done();
+    });
+
+    test('result exists from query', function () {
+      expect(serviceResult).to.exist;
+      assert.equal(serviceResult.hits.total, 1);
+    });
+
+    test('defines provider data', function () {
+      assert.isObject(dataOut);
+      assert.isString(dataOut._id);
+      assert.equal(dataOut.name[0], 'Carol');
+      assert.equal(dataOut.weight, '53');
+      assert.equal(dataOut.height, '170');
+      assert.deepEqual(dataOut.ages, ['22']);
+      assert.deepEqual(dataOut.ethnicities, ['latin']);
+      assert.deepEqual(dataOut.title, 'Carol, 22, latin');
+      assert.isArray(dataOut.sellers);
+      assert.equal(dataOut.sellers.length, 1);
+      assert.isString(dataOut.sellers[0]);
+    });
+  });
+
+  suite('<client-config> provider tests if results exist but useful info not present in data', function() {
+    var myEl;
+    var dataOut;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var providerTransform = myEl.config.transforms.provider.provider;
+      var oneResult = {hits: {hits: [{_id: 'uri', _source: {uri: 'uri'}}]}};
+      dataOut = providerTransform(oneResult);
+    });
+
+    test('defines provider data', function () {
+      assert.isObject(dataOut);
+      assert.isString(dataOut._id);
+      assert.equal(dataOut.name, 'Name N/A');
+      assert.equal(dataOut.ages, undefined);
+      assert.equal(dataOut.weight, undefined);
+      assert.equal(dataOut.height, undefined);
+      assert.equal(dataOut.ethnicities, undefined);
+      assert.equal(dataOut.title, '');
+      assert.isArray(dataOut.sellers);
+      assert.equal(dataOut.sellers.length, 0);
+    });
+  });
+
+</script>
+
+</body>
+</html>
