@@ -39,55 +39,47 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       recordsListElem = fixture('records-list-fixture');
-      recordsListElem.currentResults = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
+      recordsListElem.queryResults = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
+      recordsListElem.totalResults = 1;
       flush(function() {
         done();
       });
     });
 
     test('getClassForItem returns "item" if item not selected', function() {
-      var item = recordsListElem.currentResults[0];
+      var item = recordsListElem.queryResults[0];
       item.selected = false;
       expect(recordsListElem.getClassForItem(item.selected)).to.be.equal('item');
     });
 
     test('getClassForItem returns "item expanded" if item selected', function() {
-      var item = recordsListElem.currentResults[0];
+      var item = recordsListElem.queryResults[0];
       item.selected = true;
       expect(recordsListElem.getClassForItem(item.selected)).to.be.equal('item expanded');
     });
 
-    test('page, resultsPerPage and numResults set to defaults', function() {
-      expect(recordsListElem.page).to.be.equal(1);
-      expect(recordsListElem.resultsPerPage).to.be.equal(25);
-      expect(recordsListElem.numResults).to.be.equal(25);
-    });
-
-    test('loading and showMore are set to false', function() {
-      expect(recordsListElem.loading).to.be.false;
+    test('totalResults, showMore, page, and loading are set to expected values', function() {
+      expect(recordsListElem.totalResults).to.be.equal(1);
       expect(recordsListElem.showMore).to.be.false;
+      expect(recordsListElem.page).to.be.equal(1);
+      expect(recordsListElem.loading).to.be.false;
     });
 
-    test('currentResults should be equal to value specified in setup', function() {
-      expect(recordsListElem.currentResults).to.be.an('array');
-      expect(recordsListElem.currentResults).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
+    test('queryResults should be equal to value specified in setup', function() {
+      expect(recordsListElem.queryResults).to.be.an('array');
+      expect(recordsListElem.queryResults).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
     });
 
-    test('recordsToShow should be set to the values in currentResults', function() {
-      expect(recordsListElem.recordsToShow).to.be.an('array');
-      expect(recordsListElem.recordsToShow).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
+    test('displayResults should be set to the values in queryResults', function() {
+      expect(recordsListElem.displayResults).to.be.an('array');
+      expect(recordsListElem.displayResults).to.be.deep.equal([{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}]);
     });
 
-    test('numPages is calculated based on defaults', function() {
-      expect(recordsListElem.numPages).to.be.equal(1);
-    });
-
-    test('changePageNum will not increment if all results are shown', function() {
-      var currentPage = recordsListElem.page;
-
-      recordsListElem.changePageNum();
-
-      expect(recordsListElem.page).to.be.equal(currentPage);
+    test('goToNextPage will not increment if all results are shown', function() {
+      expect(recordsListElem.page).to.be.equal(1);
+      recordsListElem.goToNextPage();
+      expect(recordsListElem.page).to.be.equal(1);
+      expect(recordsListElem.showMore).to.be.false;
     });
   });
 
@@ -100,76 +92,50 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       firstOffer = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
       nextOffer = {'_id': '2', '_type': 'website', 'title': 'title2', 'details': {'address': 'LA'}};
       recordsListElem = fixture('records-list-fixture');
-
-      recordsListElem.currentResults = [firstOffer];
-      recordsListElem.resultsPerPage = 10;
-      recordsListElem.numResults = 30;
-      recordsListElem.showMore = false;
+      recordsListElem.queryResults = [firstOffer];
+      recordsListElem.totalResults = 10;
       flush(function() {
         done();
       });
     });
 
-    test('recordsToShow should be set to the values in currentResults', function() {
-      expect(recordsListElem.recordsToShow).to.be.an('array');
-      expect(recordsListElem.recordsToShow).to.be.deep.equal([firstOffer]);
+    test('displayResults should be set to the values in queryResults', function() {
+      expect(recordsListElem.displayResults).to.be.an('array');
+      expect(recordsListElem.displayResults).to.be.deep.equal([firstOffer]);
     });
 
-    test('resultsPerPage and numResults set based on inputs', function() {
-      expect(recordsListElem.resultsPerPage).to.be.equal(10);
-      expect(recordsListElem.numResults).to.be.equal(30);
+    test('page increments by 1 when goToNextPage called', function() {
+      expect(recordsListElem.page).to.be.equal(1);
+      recordsListElem.goToNextPage();
+      expect(recordsListElem.page).to.be.equal(2);
+      expect(recordsListElem.showMore).to.be.true;
     });
 
-    test('page increments by 1 when changePageNum called', function() {
-      recordsListElem.showMore = true;
-      var currentPage = recordsListElem.page;
-
-      recordsListElem.changePageNum();
-
-      expect(recordsListElem.page).to.be.equal(currentPage + 1);
-      expect(recordsListElem.showMore).to.be.false;
-    });
-
-    test('recordsToShow should update based on currentResults if not on first page', function() {
-      recordsListElem.showMore = true;
+    test('displayResults should update based on queryResults if not on first page', function() {
       recordsListElem.page = 3;
-      recordsListElem.currentResults = [nextOffer];
-      expect(recordsListElem.recordsToShow.length).to.be.equal(2);
-      expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
-      expect(recordsListElem.showMore).to.be.false;
+      recordsListElem.queryResults = [nextOffer];
+      expect(recordsListElem.displayResults.length).to.be.equal(2);
+      expect(recordsListElem.displayResults[1]).to.be.equal(nextOffer);
+      expect(recordsListElem.showMore).to.be.true;
     });
 
-    test('recordsToShow should not update if loading is set to true', function() {
+    test('displayResults should not update if loading is set to true', function() {
       recordsListElem.loading = true;
-      recordsListElem.currentResults = [nextOffer];
-      expect(recordsListElem.recordsToShow.length).to.be.equal(1);
-      expect(recordsListElem.recordsToShow[0]).to.be.equal(firstOffer);
+      recordsListElem.queryResults = [nextOffer];
+      expect(recordsListElem.displayResults.length).to.be.equal(1);
+      expect(recordsListElem.displayResults[0]).to.be.equal(firstOffer);
     });
 
-    test('recordsToShow should reset to equal whatever is in currentResults if page is bumped back down to 1', function() {
+    test('displayResults should reset to equal whatever is in queryResults if page is bumped back down to 1', function() {
       recordsListElem.page = 2;
-      recordsListElem.currentResults = [nextOffer];
-      expect(recordsListElem.recordsToShow.length).to.be.equal(2);
-      expect(recordsListElem.recordsToShow[1]).to.be.equal(nextOffer);
+      recordsListElem.queryResults = [nextOffer];
+      expect(recordsListElem.displayResults.length).to.be.equal(2);
+      expect(recordsListElem.displayResults[1]).to.be.equal(nextOffer);
 
       recordsListElem.page = 1;
-      recordsListElem.currentResults = [];
-      expect(recordsListElem.recordsToShow.length).to.be.equal(0);
-      expect(recordsListElem.recordsToShow).to.be.deep.equal([]);
-    });
-
-  });
-
-  suite('<records-list> if only one result', function() {
-    var recordsListElem;
-
-    setup(function(done) {
-      recordsListElem = fixture('records-list-fixture');
-      recordsListElem.currentResults = [{'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}}];
-      recordsListElem.numResults = 1;
-      flush(function() {
-        done();
-      });
+      recordsListElem.queryResults = [];
+      expect(recordsListElem.displayResults.length).to.be.equal(0);
+      expect(recordsListElem.displayResults).to.be.deep.equal([]);
     });
   });
 </script>
