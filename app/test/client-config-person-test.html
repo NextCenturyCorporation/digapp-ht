@@ -110,6 +110,114 @@
     });
   });
 
+  suite('<client-config> person tests -- offerData', function() {
+    var myEl;
+    var dataOut;
+    var offerAggCopy;
+    setup(function() {
+      offerAggCopy = {
+        hits : {
+          total: 32,
+          hits: offerAgg.hits.hits
+        },
+        aggregations : {
+          locs_for_person: {
+            buckets: [{
+               key: 'Los Angeles',
+               doc_count: 10
+            }]
+          },
+          offers_with_person: {
+            buckets: [{
+               key_as_string: '2015-10-05T00:00:00.000Z',
+               key: 1444003200000,
+               doc_count: 5
+            }]
+          },
+          phones_for_person: {
+            buckets: [{key: '1234567890', count: 32}]
+          },
+          emails_for_person: {
+            buckets: [{key: 'abc@xyz.com', count: 1}]
+          }
+        }
+      };
+      myEl = fixture('client-config-fixture');
+      var personOffersTransform = myEl.config.transforms.person.offerData;
+      dataOut = personOffersTransform(offerAggCopy);
+    });
+
+    test('defines config object', function (done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.person.offerData).to.be.a('Function');
+      done();
+    });
+
+    test('defines locations array', function() {
+      expect(dataOut.locations).to.exist;
+      expect(dataOut.locations).to.be.an('Array');
+      assert.equal(dataOut.locations.length, 2);
+      assert.equal(dataOut.locations[0].city, 'Brooklyn');
+      assert.equal(dataOut.locations[0].state, 'New York');
+      assert.equal(dataOut.locations[0].latitude, 40.6501);
+      assert.equal(dataOut.locations[0].longitude, -73.94958);
+      assert.equal(dataOut.locations[0].date, '2015-10-30T14:00:00');
+    });
+
+    test('defines geo coordinates', function() {
+      // creates unique list of geocoordinates
+      assert.isArray(dataOut.geoCoordinates);
+      assert.equal(dataOut.geoCoordinates.length, 2);
+      assert.equal(dataOut.geoCoordinates[0].latitude, '40.6501');
+      assert.equal(dataOut.geoCoordinates[0].longitude, '-73.94958');
+    });
+
+    test('defines related offers object', function() {
+      assert.isObject(dataOut.relatedOffers);
+      assert.isArray(dataOut.relatedOffers.data);
+      assert.equal(dataOut.relatedOffers.count, 32);
+    });
+
+    test('defines offers with information specified in data-model', function() {
+      assert.isString(dataOut.relatedOffers.data[0]._id);
+      assert.equal(dataOut.relatedOffers.data[0]._type, 'offer');
+      assert.equal(dataOut.relatedOffers.data[0].title[0], 'This is the title');
+      assert.isArray(dataOut.relatedOffers.data[0].subtitle);
+      assert.isObject(dataOut.relatedOffers.data[0].details);
+      assert.equal(dataOut.relatedOffers.data[0].details.address, 'Brooklyn');
+      assert.isString(dataOut.relatedOffers.data[0].details.publisher);
+    });
+
+    test('defines cities agg array', function() {
+      expect(dataOut.offerCities).to.exist;
+      expect(dataOut.offerCities).to.be.an('Array');
+      assert.equal(dataOut.offerCities.length, 1);
+      assert.deepEqual(dataOut.offerCities[0], {city: 'Los Angeles', count: 10});
+    });
+
+    test('defines dates agg array', function() {
+      expect(dataOut.offerDates).to.exist;
+      expect(dataOut.offerDates).to.be.an('Array');
+      assert.equal(dataOut.offerDates.length, 1);
+      assert.equal(dataOut.offerDates[0].date, '2015-10-05T00:00:00.000Z');
+      assert.equal(dataOut.offerDates[0].count, 5);
+    });
+
+    test('defines an array of phone numbers', function () {
+      assert.isArray(dataOut.phones);
+      assert.equal(dataOut.phones.length, 1);
+      assert.equal(dataOut.phones[0], '1234567890');
+    });
+
+    test('defines an array of emails', function () {
+      assert.isArray(dataOut.emails);
+      assert.equal(dataOut.emails.length, 1);
+      assert.equal(dataOut.emails[0], 'abc@xyz.com');
+    });
+  });
+
   suite('<client-config> person tests: transform for related phone aggregation', function() {
     var myEl;
     var dataout;

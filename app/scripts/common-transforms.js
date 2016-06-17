@@ -20,18 +20,17 @@ var commonTransforms = (function(_) {
         
         var geos = [];
         _.each(record, function(key) {
-            geoData = key.key.split(':');
-            count = key.doc_count;
+            var geoData = key.key.split(':');
             var geo = {
                         city: geoData[0],
                         state: geoData[1],
                         country: geoData[2],
                         longitude: geoData[3],
                         latitude: geoData[4],
-                        count: count,
-                        name: geoData[0] + ", " + geoData[1]
+                        count: key.doc_count,
+                        name: geoData[0] + ', ' + geoData[1]
                     };
-            geos.push(geo)
+            geos.push(geo);
         });
         return geos;
     }
@@ -98,15 +97,13 @@ var commonTransforms = (function(_) {
             _.each(hits, function(hit) {
                 var location = hit._source.availableAtOrFrom;
                 if(location) {
-                    var latitude = _.get(location, 'geo.latitude');
-                    var longitude = _.get(location, 'geo.longitude');
 
                     _.each(location.address, function(address) {
                         locations.push({
                             city: address.addressLocality,
                             state: address.addressRegion,
-                            latitude: latitude,
-                            longitude: longitude,
+                            latitude: address.geo ? _.get(address, 'geo.latitude') : undefined,
+                            longitude: address.geo ? _.get(address, 'geo.longitude') : undefined,
                             date: hit._source.validFrom
                         });
                     });
@@ -131,13 +128,17 @@ var commonTransforms = (function(_) {
 
             records.forEach(function(record) {
                 var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
+
                 addresses.forEach(function(address) {
+                    var latitude = address.geo ? address.geo.latitude : undefined;
+                    var longitude = address.geo ? address.geo.longitude : undefined;
+
                     if (latitude && longitude) {
                         var geo = {
                             city: address.addressLocality,
                             state: address.addressRegion,
-                            latitude: address.geo.latitude,
-                            longitude: address.geo.longitude
+                            latitude: latitude,
+                            longitude: longitude
                         };
                         geos.push(geo);
                     }
@@ -242,7 +243,7 @@ var commonTransforms = (function(_) {
         
             return newData;
         },
-         getSellerId: function(record) {
+        getSellerId: function(record) {
             var sellerId = '';
             if(record.owner) {
 
@@ -251,7 +252,7 @@ var commonTransforms = (function(_) {
                     sellerId = record.owner[0].uri;    
                 }
                 else {
-                    sellerId = record.owner
+                    sellerId = record.owner;
                 }
                 
             }
@@ -266,14 +267,14 @@ var commonTransforms = (function(_) {
             if(mentions) {
                 mentions.forEach(function(elem) {
                     var type = 'none';
-                    if(elem.indexOf('phone') != -1) {
-                        type = 'phone'
-                    } else if(elem.indexOf('email') != -1) {
-                        type = 'email'
+                    if(elem.indexOf('phone') !== -1) {
+                        type = 'phone';
+                    } else if(elem.indexOf('email') !== -1) {
+                        type = 'email';
                     }
-                    if(type != 'none') {
-                        var idx = elem.lastIndexOf("/")
-                        var text = elem.substring(idx+1)
+                    if(type !== 'none') {
+                        var idx = elem.lastIndexOf('/');
+                        var text = elem.substring(idx+1);
                         var countryCode = '';
                         if (type === 'phone') {
                             if(text.indexOf('-') !== -1) {
@@ -290,11 +291,13 @@ var commonTransforms = (function(_) {
                             _type: type,
                             title:  text,
                             subtitle: ''
-                        }
-                        if(type == 'phone')
+                        };
+                        if(type === 'phone') {
                             newData.phones.push(newObj);
-                        else if(type == 'email')
+                        }
+                        else if(type === 'email') {
                             newData.emails.push(newObj);
+                        }
                     }
                 });
             }
