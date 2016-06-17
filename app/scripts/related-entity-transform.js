@@ -143,6 +143,14 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         return addresses;
     }
 
+    function redirectWebpageToOffer(webpageObj) {
+        //We do not want to show webpage page, but instead direct
+        //to offer. The below handles that.
+        if(webpageObj.offer) {
+            webpageObj._type = 'offer';
+            webpageObj._id = webpageObj.offer;
+        }
+    }
 
     function getWebpageSummary(record) {
         /*  build webpage summary object:
@@ -166,14 +174,14 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         var webpageObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.name', 'Title N/A'),
+            title: _.get(record, '_source.name[0]', 'Title N/A'),
             subtitle: [_.get(record, '_source.publisher.name', 'Publisher N/A')],
             offer: _.get(record, '_source.mainEntity.uri'),
             details: {
                 url: _.get(record, '_source.url'),
                 body: _.get(record, '_source.description'),
                 addresses: getAddressArray(record),
-                _sortedKeys: ['url', 'body', 'addresses', 'phone', 'email', 'date']
+                _sortedKeys: ['url', 'body', 'addresses', 'phone', 'email']
             }
 
         };
@@ -197,7 +205,9 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         }
 
         var xDate = _.get(record, '_source.dateCreated');
-        webpageObj.subtitle.push(dateFormat(new Date(xDate), 'mmmm dd, yyyy'));
+        if(xDate) {
+            webpageObj.subtitle.push(dateFormat(new Date(xDate), 'mmmm dd, yyyy'));
+        }
 
         if(webpageObj.details.phone) {
             webpageObj.subtitle.push(webpageObj.details.phone);
@@ -205,6 +215,9 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         if(webpageObj.details.email) {
             webpageObj.subtitle.push(webpageObj.details.email);
         }
+
+        redirectWebpageToOffer(webpageObj);
+
         return webpageObj;
     }
 
@@ -296,12 +309,6 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             if(data && data.hits.hits.length > 0) {
                 _.each(data.hits.hits, function(record) {
                     var webpageSummary = getWebpageSummary(record);
-                    //We do not want to show webpage page, but instead direct
-                    //to offer. The below handles that.
-                    if(webpageSummary.offer) {
-                        webpageSummary._type = 'offer';
-                        webpageSummary._id = webpageSummary.offer;
-                    }
                     newObj.data.push(webpageSummary);
                 });
                 newObj.count = data.hits.total;

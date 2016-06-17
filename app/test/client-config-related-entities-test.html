@@ -92,6 +92,23 @@
       assert.equal(dataout.seller.data[0].subtitle, '');
     });
 
+    test('defines offer array for webpage type with correct information', function() {
+      assert.equal(dataout.webpage.count, 1);
+      assert.isString(dataout.webpage.data[0]._id);
+      assert.equal(dataout.webpage.data[0]._type, 'offer');
+      assert.isString(dataout.webpage.data[0].title);
+      assert.isArray(dataout.webpage.data[0].subtitle);
+      assert.isString(dataout.webpage.data[0].offer);
+      assert.isObject(dataout.webpage.data[0].details);
+      assert.isString(dataout.webpage.data[0].details.body);
+      assert.isString(dataout.webpage.data[0].details.url);
+      assert.equal(dataout.webpage.data[0].details.phone, '0987654321, 1112223333');
+      assert.equal(dataout.webpage.data[0].details.email, 'abc@xyz.com');
+      assert.isArray(dataout.webpage.data[0].details.addresses);
+      assert.equal(dataout.webpage.data[0].details.addresses[0], 'Ogden, Utah, United States');
+      assert.deepEqual(dataout.webpage.data[0].details._sortedKeys, ['url', 'body', 'addresses', 'phone', 'email']);
+    });
+
   });
 
   suite('<client-config> combined results related entity tests', function() {
@@ -150,6 +167,22 @@
       assert.equal(dataout.combinedResults.data[4].details.weight, '53');
       assert.equal(dataout.combinedResults.data[4].details.height, '170');
     });
+
+    test('sixth record is derived from a webpage record but redirects to offer type', function() {
+      assert.isString(dataout.combinedResults.data[5]._id);
+      assert.equal(dataout.combinedResults.data[5]._type, 'offer');
+      assert.isString(dataout.combinedResults.data[5].title);
+      assert.isString(dataout.combinedResults.data[5].offer);
+      assert.isArray(dataout.combinedResults.data[5].subtitle);
+      assert.isObject(dataout.combinedResults.data[5].details);
+      assert.isString(dataout.combinedResults.data[5].details.body);
+      assert.isString(dataout.combinedResults.data[5].details.url);
+      assert.isArray(dataout.combinedResults.data[5].details.addresses);
+      assert.equal(dataout.combinedResults.data[5].details.addresses[0], 'Ogden, Utah, United States');
+      assert.isUndefined(dataout.combinedResults.data[5].details.email);
+      assert.isString(dataout.combinedResults.data[5].details.phone);
+      assert.deepEqual(dataout.combinedResults.data[5].details._sortedKeys, ['url', 'body', 'addresses', 'phone', 'email']);
+    });
   });
 
   suite('<client-config> related entity tests when data is very sparse', function() {
@@ -162,6 +195,7 @@
       dataout.offer = relatedEntities.offer({hits: {hits: [{_id: 'uri', _type: 'offer'}], total: 1}});
       dataout.phone = relatedEntities.phone({hits: {hits: [{_id: 'uri', _type: 'phone'}], total: 1}});
       dataout.email = relatedEntities.email({hits: {hits: [{_id: 'uri', _type: 'email'}], total: 1}});
+      dataout.webpage = relatedEntities.webpage({hits: {hits: [{_id: 'uri', _type: 'webpage'}], total: 1}});
       dataout.service = relatedEntities.service({hits: {hits: [{_id: 'uri', _type: 'adultservice'}], total: 1}});
       dataout.seller = relatedEntities.seller({hits: {hits: [{_id: 'uri', _type: 'seller'}], total: 1}});
       dataout.combinedResults = relatedEntities.combinedResults({hits: {hits: [
@@ -198,6 +232,26 @@
       assert.equal(dataout.email.data[0]._type, 'email');
       assert.equal(dataout.email.data[0].title, 'Email N/A');
       assert.equal(dataout.email.data[0].subtitle, '');
+    });
+
+    test('defines webpage array with information specified in data-model', function() {
+      assert.equal(dataout.webpage.count, 1);
+      assert.isString(dataout.webpage.data[0]._id);
+      // if no offer uri present, uses webpage type
+      assert.equal(dataout.webpage.data[0]._type, 'webpage');
+      assert.isUndefined(dataout.webpage.data[0].offer);
+      assert.equal(dataout.webpage.data[0].title, 'Title N/A');
+      assert.isArray(dataout.webpage.data[0].subtitle);
+      assert.equal(dataout.webpage.data[0].subtitle.length, 1);
+      assert.equal(dataout.webpage.data[0].subtitle[0], 'Publisher N/A');
+      assert.isObject(dataout.webpage.data[0].details);
+      assert.equal(dataout.webpage.data[0].details.body, undefined);
+      assert.equal(dataout.webpage.data[0].details.phone, undefined);
+      assert.equal(dataout.webpage.data[0].details.email, undefined);
+      assert.equal(dataout.webpage.data[0].details.url, undefined);
+      assert.isArray(dataout.webpage.data[0].details.addresses);
+      assert.deepEqual(dataout.webpage.data[0].details._sortedKeys,
+        ['url', 'body', 'addresses', 'phone', 'email']);
     });
 
     test('defines service array with information specified in data-model', function() {
