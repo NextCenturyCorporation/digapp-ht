@@ -15,6 +15,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../dig-behaviors/result-list-behavior.html">
 <link rel="import" href="../image-viewer/image-viewer.html">
 <link rel="import" href="../query-builder/query-builder.html">
 
@@ -63,7 +64,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       elastic-type="[[indexTypes]]"
       query="[[imageQuery]]"
       page="{{page}}"
-      page-size="[[pageSize]]"
       loading="{{loading}}"
       results="{{imageQueryResults}}"
       last-error="{{error}}">
@@ -77,17 +77,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <div class="paper-font-title layout horizontal start center">
       <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
-      <div>[[getTitle(images.length, numberOfResults)]]</div>
+      <div>[[getTitle(displayResults.length, totalResults)]]</div>
     </div>
 
-    <template is="dom-if" if="[[images.length]]">
+    <template is="dom-if" if="[[displayResults.length]]">
       <iron-scroll-threshold id="scrollThreshold">
-        <image-viewer id="imageViewer" images="[[images]]"></image-viewer>
+        <image-viewer id="imageViewer" images="[[displayResults]]"></image-viewer>
       </iron-scroll-threshold>
 
       <div class="end-of-list">
         <template is="dom-if" if="{{showMore}}">
-          <paper-button raised on-click="nextPage">Show More</paper-button>
+          <paper-button raised on-click="goToNextPage">Show More</paper-button>
         </template>
         <template is="dom-if" if="{{loading}}">
           <paper-spinner active="true"></paper-spinner>
@@ -101,8 +101,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function() {
     'use strict';
 
+    /* globals DigBehaviors */
     Polymer({
       is: 'image-query-and-display',
+
+      behaviors: [DigBehaviors.ResultListBehavior],
 
       properties: {
         imageQueryTemplate: {
@@ -125,6 +128,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
+        imageResults: {
+          type: Object
+        },
+
         client: {
           type: Object
         },
@@ -141,64 +148,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
-        imageResults: {
-          type: Array,
-          notify: true
-        },
-
-        images: {
-          type: Array,
-          notify: true
-        },
-
-        numberOfResults: {
-          type: Number,
-          notify: true
-        },
-
-        page: {
-          type: Number,
-          value: 1,
-          notify: true
-        },
-
-        pageSize: {
-          type: Number,
-          value: 25,
-          notify: true
-        },
-
-        numberOfPages: {
-          type: Number,
-          notify: true,
-          computed: 'calculateNumberOfPages(pageSize, numberOfResults)'
-        },
-
-        showMore: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-
-        loading: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-
         error: {
           type: Object
         }
       },
 
       observers: [
-        'updateImages(imageResults, loading)'
+        'updateQueryResults(imageResults.array)',
+        'updateTotalResults(imageResults.total)'
       ],
 
-      getTitle: function(count, numberOfResults) {
-        if(numberOfResults) {
-          var title = numberOfResults + ' Image' + (numberOfResults === 1 ? '' : 's');
-          if(count && count < numberOfResults) {
+      getTitle: function(count, totalResults) {
+        if(totalResults) {
+          var title = totalResults + ' Image' + (totalResults === 1 ? '' : 's');
+          if(count && count < totalResults) {
             return count + ' of ' + title;
           }
           return title;
@@ -206,33 +169,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return 'No Images';
       },
 
-      nextPage: function() {
-        this.set('showMore', false);
-        if(this.page < this.numberOfPages) {
-          this.set('page', this.page + 1);
-        }
+      updateQueryResults: function(queryResults) {
+        this.set('queryResults', queryResults);
       },
 
-      updateImages: function(imageResults, loading) {
-        this.set('numberOfResults', imageResults.total);
-
-        if(!loading) {
-          if(this.page === 1) {
-            this.set('images', []);
-          }
-
-          var self = this;
-          imageResults.array.forEach(function(item) {
-            // Use push to notify image-viewer.
-            self.push('images', item);
-          });
-
-          this.set('showMore', (this.numberOfPages > 1 && this.numberOfResults > 0 && this.page !== this.numberOfPages));
-        }
-      },
-
-      calculateNumberOfPages: function(pageSize, numberOfResults) {
-        return Math.ceil(numberOfResults / pageSize);
+      updateTotalResults: function(totalResults) {
+        this.set('totalResults', totalResults);
       }
     });
   })();
