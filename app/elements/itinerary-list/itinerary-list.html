@@ -10,88 +10,136 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 
 <dom-module id="itinerary-list">
-  <style>
-    :host {
-      display: block;
-      /* Max Height = Height of 50 Items */
-      max-height: 2000px;
-      overflow: auto;
-    }
-
-    .itinerary-header {
-      cursor: pointer;
-      padding: 10px;
-    }
-
-    .itinerary-header.collapse {
-      box-shadow: none;
-    }
-
-    .itinerary-header:hover,
-    .itinerary-header.expand {
-      background-color: rgba(0,0,0,0.05);
-    }
-
-    .itinerary-icon {
-      padding-right: 5px;
-      height: 20px;
-      width: 20px;
-      vertical-align: text-bottom;
-    }
-
-    .date-icon {
-      color: var(--entity-date-color);
-    }
-
-    .location-icon {
-      color: var(--entity-location-color);
-    }
-
-    .itinerary-text {
-      margin-bottom: 10px;
-      padding: 10px
-    }
-
-    .itinerary-location {
-      margin: 0;
-      padding: 5px 0;
-    }
-
-    .itinerary-data {
-      font-size: 14px;
-      margin: 0;
-      padding: 5px 0 5px 30px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-  </style>
-
   <template>
+    <style include="icon-styles"></style>
+
+    <style>
+      :host {
+        display: block;
+        /* Max Height = Height of 50 Items */
+        max-height: 3000px;
+        overflow: auto;
+      }
+
+      .itinerary-head {
+        cursor: pointer;
+        padding: 0 10px;
+      }
+
+      .itinerary-head.collapse {
+        box-shadow: none;
+      }
+
+      .itinerary-head.expand,
+      .itinerary-head:hover {
+        background-color: rgba(0,0,0,0.1);
+      }
+
+      paper-item,
+      paper-icon-item {
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+
+      paper-icon-item {
+        /* Use the width of iron-icon-big */
+        --paper-item-icon-width: 36px;
+        --paper-item-icon: {
+          margin-right: 10px;
+        }
+      }
+
+      iron-icon.collapse-icon,
+      iron-icon.expand-icon,
+      .itinerary-head:hover iron-icon {
+        display: none;
+      }
+
+      .itinerary-head.collapse:hover iron-icon.collapse-icon,
+      .itinerary-head.expand:hover iron-icon.expand-icon {
+        display: block;
+      }
+
+      .date-icon {
+        color: var(--entity-date-color);
+        /* Add margin so the date icon is as wide as iron-icon-big */
+        margin: 0 6px;
+      }
+
+      .location-icon {
+        color: var(--entity-location-color);
+      }
+
+      .itinerary-head-text {
+        --paper-item-body-two-line-min-height: 60px;
+      }
+
+      .itinerary-body {
+        margin-bottom: 10px;
+        padding: 10px 0;
+      }
+
+      .itinerary-body-location {
+        --paper-item-min-height: 45px;
+        padding: 0 10px;
+      }
+
+      .itinerary-body-data {
+        --paper-item-min-height: 25px;
+        font-size: 14px;
+        padding: 0 55px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capitalize {
+        text-transform: capitalize;
+      }
+    </style>
+
     <template is="dom-repeat" items="{{data}}">
       <div class="itinerary">
-        <paper-material class$="itinerary-header {{getHeaderClass(item.expand)}}" on-click="toggleItinerary">
-          <iron-icon icon="icons:date-range" class="itinerary-icon date-icon"></iron-icon>
-          <strong>{{formatDate(item.date)}}: {{getLocationsForHeader(item.city)}}</strong>
+        <paper-material class$="itinerary-head {{getHeaderClass(item.expand)}}" on-tap="toggleItinerary">
+          <paper-icon-item>
+            <iron-icon class="date-icon" icon="icons:date-range" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big collapse-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big expand-icon" icon="icons:expand-less" item-icon></iron-icon>
+
+            <paper-item-body class="itinerary-head-text" two-line>
+              <div><strong>{{formatDate(item.date)}}</strong></div>
+              <div secondary><strong>{{getLocationsForHeader(item.city)}}</strong></div>
+            </paper-item-body>
+          </paper-icon-item>
         </paper-material>
 
-        <iron-collapse id="itinerary{{item.date}}">
-          <paper-material class="itinerary-text">
+        <iron-collapse id="itinerary_{{item.date}}">
+          <paper-material class="itinerary-body">
             <template is="dom-repeat" items='{{item.city}}' as="city">
-              <div>
-              <p class="itinerary-location">
-                <iron-icon icon="communication:location-on" class="itinerary-icon location-icon"></iron-icon>
-                <strong>{{getLocation(city.city)}}</strong>
-              </p>
+              <paper-icon-item class="itinerary-body-location">
+                <iron-icon icon="communication:location-on" class="itinerary-icon location-icon" item-icon></iron-icon>
+                <paper-item-body>
+                  <div><strong>{{getLocation(city.city)}}</strong></div>
+                </paper-item-body>
+              </paper-icon-item>
+
               <template is="dom-repeat" items='{{city.data}}' as="cityItem">
-                <p class="itinerary-data">
-                  <span class="name"><strong>{{cityItem.key}}:</strong> {{cityItem.value}}</span>
-                </p>
+                <paper-item class="itinerary-body-data">
+                  <paper-item-body>
+                    <span>
+                      <strong class="capitalize">{{cityItem.key}}:</strong>
+                      <span>{{cityItem.value}}</span>
+                    </span>
+                  </paper-item-body>
+                </paper-item>
               </template>
-              </div>
             </template>
           </paper-material>
         </iron-collapse>
@@ -123,7 +171,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       toggleItinerary: function(event) {
         event.model.set('item.expand', !event.model.item.expand);
-        this.$$('#itinerary' + event.model.item.date).toggle();
+        this.$$('#itinerary_' + event.model.item.date).toggle();
       },
 
       formatDate: function(date) {

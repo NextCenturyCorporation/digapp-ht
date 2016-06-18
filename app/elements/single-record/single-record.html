@@ -10,10 +10,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
@@ -26,36 +29,105 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
 
-      paper-icon-item {
-        /* Use 36px to match the size of the iron-icon-big style class. */
-        --paper-item-icon-width: 36px;
-        /* Set the height so records with 2-line titles/subtitles (due to wrap) match records with 1-line titles. */
-        height: 100px;
+      .record-head {
+        padding: 0 10px;
+      }
+
+      .record-head {
+        box-shadow: none;
+      }
+
+      .record-head.expand,
+      .record-head:hover {
+        background-color: rgba(0,0,0,0.1);
       }
 
       paper-icon-item[clickable] {
         cursor: pointer;
       }
 
-      paper-icon-item[clickable] iron-icon[collapse-icon],
-      paper-icon-item[clickable]:hover iron-icon{
+      paper-item,
+      paper-icon-item {
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+
+      paper-icon-item {
+        /* Use the width of iron-icon-big */
+        --paper-item-icon-width: 36px;
+        --paper-item-icon: {
+          margin-right: 15px;
+        }
+      }
+
+      iron-icon.collapse-icon,
+      iron-icon.expand-icon,
+      .record-head:hover iron-icon {
         display: none;
       }
 
-      paper-icon-item[clickable]:hover iron-icon[collapse-icon] {
+      .record-head.collapse:hover iron-icon.collapse-icon,
+      .record-head.expand:hover iron-icon.expand-icon {
         display: block;
       }
 
-      paper-icon-item:hover {
-        background-color: rgba(0,0,0,0.05)
-      }
-
       .entity-icon {
+        /* Add margin so the entity icon is as wide as iron-icon-big */
         margin: 0 6px;
       }
 
-      paper-item-body {
-        margin-left: 15px;
+      .record-image {
+        background: var(--disabled-text-color);
+        margin-right: 15px;
+        height: 50px;
+        width: 50px;
+      }
+
+      .record-head-text {
+        margin-right: 15px;
+        min-height: 100px;
+      }
+
+      .record-link {
+        color: var(--primary-text-color);;
+        font-size: 14px;
+        text-decoration: none;
+      }
+
+      .record-button {
+        @apply(--shadow-elevation-4dp);
+      }
+
+      .record-button:hover {
+        @apply(--shadow-elevation-8dp);
+      }
+
+      .record-head-link {
+        visibility: hidden;
+      }
+
+      .record-head:hover .record-head-link {
+        visibility: visible;
+      }
+
+      .record-body {
+        margin-bottom: 10px;
+        padding: 20px 10px;
+      }
+
+      .record-body-data {
+        --paper-item-min-height: 25px;
+        font-size: 14px;
+        padding: 0 10px;
+      }
+
+      .record-body-button {
+        margin-top: 10px;
+      }
+
+      .capitalize {
+        text-transform: capitalize;
       }
 
       /* Needed to fix layout issues in newer versions of chrome and firefox. */
@@ -64,67 +136,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         white-space: normal;
       }
 
-      .record-details {
-        display: none;
-        margin-bottom: 10px;
-        padding: 15px 15px 20px;
-        @apply(--paper-font-body1);
-      }
-
-      .record-details paper-button {
-        margin-top: 10px;
-      }
-
-      .detail {
-        margin: 0;
-        padding: 5px;
-      }
-
-      .detail-key {
-        @apply(--paper-font-body2);
-        text-transform: capitalize;
-      }
-
-      a {
-        color: var(--primary-text-color);;
-        font-size: 14px;
-        text-decoration: none;
-      }
-
-      .reveal {
-        visibility: hidden;
-      }
-
-      paper-icon-item:hover .reveal {
-        visibility: visible;
-      }
-
-      paper-button:hover {
-        @apply(--shadow-elevation-3dp);
-      }
-
-      .item.expanded .record-details {
-        display: block;
-      }
-
-      .subtitle {
-        padding-right: 30px;
-      }
-
       /* Needed to fix layout issues in newer versions of chrome and firefox. */
       .lineclamp {
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
-        -webkit-line-clamp: 2; /* number of lines to show */
+        -webkit-line-clamp: 1; /* number of lines to show */
         -webkit-box-orient: vertical;
       }
 
-      iron-image {
-        background: var(--disabled-text-color);
-        margin-left: 15px;
-        height: 50px;
-        width: 50px;
+      .lineclamp.three-line {
+        -webkit-line-clamp: 3;
       }
     </style>
 
@@ -137,60 +159,65 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       last-error="{{error}}">
     </elastic-search>
 
-    <div class$="[[expanded]]">
-      <paper-icon-item clickable$="{{item.details}}" on-tap="checkEventSource">
+    <div>
+      <paper-material class$="record-head {{getHeaderClass(item.expand)}}" on-tap="toggleRecord">
+        <paper-icon-item clickable$="{{item.details}}">
+          <iron-icon class$="entity-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
-        <!-- entity type icon -->
-        <!-- TODO: make icon component? -->
-        <iron-icon class$="iron-icon-big entity-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
-        <template is="dom-if" if="{{item.details}}">
-          <iron-icon class="iron-icon-big" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-        </template>
-
-        <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
-          <iron-image class$="[[getBlurClass(blur)]]" sizing="contain" src="[[item.imageSrc]]"></iron-image>
-        </template>
-
-        <paper-item-body>
-          <!-- item title -->
-          <div class="lineclamp" title$="[[item.title]]"><strong>[[item.title]]</strong></div>
-
-          <!-- item secondary title -->
-          <template is="dom-if" if="[[item.subtitle]]">
-            <div class="lineclamp" title="[[item.subtitle]]" secondary>
-              <template is="dom-repeat" items="{{getSubtitle(item)}}" as="value">
-                <span class="subtitle">[[value]]</span>
-              </template>
-            </div>
+          <template is="dom-if" if="{{item.details}}">
+            <iron-icon class="iron-icon-big collapse-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big expand-icon" icon="icons:expand-less" item-icon></iron-icon>
           </template>
-        </paper-item-body>
 
-        <!-- annotation controls -->
-        <annotate-record client="[[client]]" annotation-index="[[annotationIndex]]"
-          annotation-type="[[annotationType]]" query-template="{{annotationQueryTemplate}}"
-          item="{{item}}">
-        </annotate-record>
+          <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
+            <iron-image class$="record-image [[getBlurClass(blur)]]" sizing="contain" src="[[item.imageSrc]]"></iron-image>
+          </template>
 
-        <!-- secondary actions -->
-        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
-          <paper-button>open [[item._type]]</paper-button>
-        </a>
-      </paper-icon-item>
+          <paper-item-body class="record-head-text">
+            <div class="lineclamp" title$="[[item.title]]"><strong>[[item.title]]</strong></div>
+
+            <template is="dom-if" if="[[item.subtitle]]">
+              <div class="lineclamp three-line" title="{{getSubtitleTooltip(item.subtitle)}}" secondary>
+                <template is="dom-repeat" items="{{getSubtitleArray(item.subtitle)}}" as="value">
+                  <div><strong>[[value]]</strong></div>
+                </template>
+              </div>
+            </template>
+          </paper-item-body>
+
+          <!-- annotation controls -->
+          <annotate-record client="[[client]]" annotation-index="[[annotationIndex]]"
+            annotation-type="[[annotationType]]" query-template="{{annotationQueryTemplate}}"
+            item="{{item}}">
+          </annotate-record>
+
+          <!-- secondary actions -->
+          <a class="record-link record-head-link" target="{{getTarget(newTab)}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
+            <paper-button class="record-button">{{getButtonText(item._type)}}</paper-button>
+          </a>
+        </paper-icon-item>
+      </paper-material>
 
       <template is="dom-if" if="{{item.details}}">
-        <paper-material class="record-details">
-          <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
-            <p class="detail">
-              <span class="detail-key">[[replaceCamelCase(key)]]:</span>
-              <template is="dom-repeat" items="{{getDetails(item, key)}}" as="value">
-                <span class="detail-value">[[value]]</span>
-              </template>
-            </p>
-          </template>
-          <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
-            <paper-button raised>open [[item._type]]</paper-button>
-          </a>
-        </paper-material>
+        <iron-collapse id="record-detail">
+          <paper-material class="record-body">
+            <template is="dom-repeat" items="{{getDetailKeysArray(item.details)}}" as="key">
+              <paper-item class="record-body-data">
+                <paper-item-body>
+                  <span>
+                    <strong class="capitalize">[[replaceCamelCaseText(key)]]:</strong>
+                    <template is="dom-repeat" items="{{getDetailArrayForKey(item.details, key)}}" as="value">
+                      <span>[[value]]</span>
+                    </template>
+                  </span>
+                </paper-item-body>
+              </paper-item>
+            </template>
+            <a class="record-link" target="{{getTarget(newTab)}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
+              <paper-button class="record-button record-body-button" raised>{{getButtonText(item._type)}}</paper-button>
+            </a>
+          </paper-material>
+        </iron-collapse>
       </template>
     </div>
   </template>
@@ -204,6 +231,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'single-record',
 
       properties: {
+        /**
+         * The item represented by this single record.
+         */
+        item: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * Whether links should be opened in new tabs.
+         */
+        newTab: {
+          type: Object,
+          value: false,
+          notify: true
+        },
+
         /**
          * an instance of elasticsearch.Client which is connected to
          * an elasticsearch server
@@ -231,28 +275,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         annotationQueryTemplate: {
           type: Object
-        },
-
-        item: {
-          type: Object,
-          notify: true
-        },
-
-        expanded: {
-          type: String,
-          notify: true
-        },
-
-        newTab: {
-          type: Object,
-          value: false,
-          notify: true
-        },
-
-        target: {
-          type: String,
-          notify: true,
-          computed: 'getTarget(newTab)'
         },
 
         /**
@@ -340,10 +362,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.set('blur', blur);
       },
 
-      getBlurClass: function(blur) {
-        return (blur ? 'small-blur' : '');
-      },
-
       /**
        * Sets this.imageQuery using the given variables.
        */
@@ -353,6 +371,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: item[imageQueryValue]
         };
         this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
+      },
+
+      createURL: function(type, value, field, blur) {
+        return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
       },
 
       /**
@@ -368,70 +390,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      /**
-       * Sets item.imageSrc with the given image URL.
-       */
-      updateImageSrcFromImageUrl: function(item, imageUrl) {
-        this.set('item.imageSrc', imageUrl);
+      getBlurClass: function(blur) {
+        return (blur ? 'small-blur' : '');
       },
 
-      /**
-       * Returns whether the given property is defined.
-       */
-      isDefined: function(property) {
-        return property !== undefined;
-      },
-
-      checkEventSource: function(event) {
-        var target = Polymer.dom(event).rootTarget;
-        // if paper button or paper icon button was clicked, stop propagation up the DOM tree
-        if(target.localName === 'paper-button' || target.classList.contains('paper-icon-button')) {
-          event.stopImmediatePropagation();
+      getButtonText: function(type) {
+        if(type === 'offer') {
+          return 'open ad';
         }
+        return 'open ' + type;
       },
 
-      getSubtitle: function(item) {
-        if(item.subtitle) {
-          return (_.isArray(item.subtitle) ? item.subtitle : [item.subtitle]);
+      getDetailArrayForKey: function(details, key) {
+        if(details && details[key]) {
+          return (_.isArray(details[key]) ? details[key] : [details[key]]);
         }
         return [];
       },
 
-      getDetails: function(item, key) {
-        if(item.details && item.details[key]) {
-          return (_.isArray(item.details[key]) ? item.details[key] : [item.details[key]]);
-        }
-        return [];
-      },
-
-      replaceCamelCase: function(key) {
-        return key.replace(/([A-Z])/g, ' $1');
-      },
-
-      getAllItemKeys: function(item) {
-        if(item.details) {
-          var sortedKeys = [];
-          var returnKeys = [];
-          if(item.details._sortedKeys) {
-            sortedKeys = item.details._sortedKeys;
-          } else {
-            sortedKeys = _.keys(item.details);
-          }
-          sortedKeys.forEach(function(x) {
-            if(item.details[x]) {
-              returnKeys.push(x);
-            }
+      getDetailKeysArray: function(details) {
+        if(details) {
+          return (details._sortedKeys ? details._sortedKeys : _.keys(details)).filter(function(key) {
+            return details[key];
           });
-          return returnKeys;
         }
+        return [];
       },
 
-      logRecords: function() {
-        console.log('records', this.records);
-      },
-
-      createURL: function(type, value, field, blur) {
-        return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
+      getHeaderClass: function(expand) {
+        return (expand ? 'expand' : 'collapse');
       },
 
       getIconClass: function(type) {
@@ -453,8 +440,50 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      getSubtitleArray: function(subtitle) {
+        if(subtitle) {
+          return (_.isArray(subtitle) ? subtitle : [subtitle]);
+        }
+        return [];
+      },
+
+      getSubtitleTooltip: function(subtitle) {
+        return this.getSubtitleArray(subtitle).join(", ");
+      },
+
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
+      },
+
+      /**
+       * Returns whether the given property is defined.
+       */
+      isDefined: function(property) {
+        return property !== undefined;
+      },
+
+      replaceCamelCaseText: function(key) {
+        return key.replace(/([A-Z])/g, ' $1');
+      },
+
+      /**
+       * Expands or collapses this record if its item has any details and the event was not triggered by clicking on a button.
+       */
+      toggleRecord: function(event) {
+        if(this.item.details) {
+          var target = Polymer.dom(event).rootTarget;
+          if(target.localName !== 'paper-button' && !target.classList.contains('paper-icon-button')) {
+            this.set('item.expand', !this.item.expand);
+            this.$$('#record-detail').toggle();
+          }
+        }
+      },
+
+      /**
+       * Sets item.imageSrc with the given image URL.
+       */
+      updateImageSrcFromImageUrl: function(item, imageUrl) {
+        this.set('item.imageSrc', imageUrl);
       }
     });
   })();
