@@ -155,6 +155,96 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecordElem.getTarget(false)).to.equal('_self');
     });
 
+    test('details start collapsed', function() {
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+    });
+
+    test('toggleRecord() opens the details', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.true;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('opened')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.false;
+    });
+
+    test('toggleRecord() does nothing if a paper-button is clicked', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return false;
+            }
+          },
+          localName: 'paper-button'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+    });
+
+    test('toggleRecord() does nothing if a paper-icon-button is clicked', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return item === 'paper-icon-button';
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+    });
+
+    test('onItemChange() closes the details', function() {
+      singleRecordElem.opened = true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      recordDetail.classList.remove('iron-collapse-closed');
+      recordDetail.classList.add('iron-collapse-opened');
+
+      singleRecordElem.onItemChange();
+      expect(singleRecordElem.opened).to.be.false;
+      expect(recordDetail.classList.contains('iron-collapse-opened')).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+    });
+
     test('item.imageSrc is undefined', function() {
       expect(singleRecordElem.item.imageSrc).to.be.undefined;
     });
@@ -179,8 +269,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    test('expect no iron-collapse element', function() {
+    test('expect no iron-collapse element for an item with no details', function() {
       expect(document.querySelector('iron-collapse')).to.not.exist;
+    });
+
+    test('toggleRecord() does nothing for an item with no details', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.not.exist;
     });
   });
 
@@ -199,7 +310,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('getTarget() returns "_blank" when newTab is true', function() {
       expect(singleRecordElem.getTarget(true)).to.equal('_blank');
     });
-
   });
 
   suite('<single-record> with imageUrl', function() {

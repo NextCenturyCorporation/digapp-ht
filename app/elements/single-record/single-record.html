@@ -37,7 +37,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         box-shadow: none;
       }
 
-      .record-head.expand,
+      .record-head.opened,
       .record-head:hover {
         background-color: rgba(0,0,0,0.1);
       }
@@ -61,14 +61,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
-      iron-icon.collapse-icon,
-      iron-icon.expand-icon,
+      iron-icon.closed-icon,
+      iron-icon.opened-icon,
       .record-head:hover iron-icon {
         display: none;
       }
 
-      .record-head.collapse:hover iron-icon.collapse-icon,
-      .record-head.expand:hover iron-icon.expand-icon {
+      .record-head.closed:hover iron-icon.closed-icon,
+      .record-head.opened:hover iron-icon.opened-icon {
         display: block;
       }
 
@@ -160,13 +160,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </elastic-search>
 
     <div>
-      <paper-material class$="record-head {{getHeaderClass(item.expand)}}" on-tap="toggleRecord">
+      <paper-material class$="record-head {{getHeaderClass(opened)}}" on-tap="toggleRecord">
         <paper-icon-item clickable$="{{item.details}}">
           <iron-icon class$="entity-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
           <template is="dom-if" if="{{item.details}}">
-            <iron-icon class="iron-icon-big collapse-icon" icon="icons:expand-more" item-icon></iron-icon>
-            <iron-icon class="iron-icon-big expand-icon" icon="icons:expand-less" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big closed-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big opened-icon" icon="icons:expand-less" item-icon></iron-icon>
           </template>
 
           <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
@@ -199,7 +199,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </paper-material>
 
       <template is="dom-if" if="{{item.details}}">
-        <iron-collapse id="record-detail">
+        <iron-collapse class="record-detail">
           <paper-material class="record-body">
             <template is="dom-repeat" items="{{getDetailKeysArray(item.details)}}" as="key">
               <paper-item class="record-body-data">
@@ -236,15 +236,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         item: {
           type: Object,
-          notify: true
-        },
-
-        /**
-         * Whether links should be opened in new tabs.
-         */
-        newTab: {
-          type: Object,
-          value: false,
           notify: true
         },
 
@@ -337,7 +328,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          * Whether to blur the images.
          */
         blur: {
-          type: Boolean
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether links should be opened in new tabs.
+         */
+        newTab: {
+          type: Object,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Whether the details are opened.
+         */
+        opened: {
+          type: Boolean,
+          value: false,
+          notify: true
         },
 
         error: {
@@ -348,7 +358,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observers: [
           'createImageQuery(item, imageQueryTemplate, imageQueryField, imageQueryValue)',
           'findSrcInImageQueryResults(item, imageQueryResults)',
-          'updateImageSrcFromImageUrl(item, imageUrl)'
+          'updateImageSrcFromImageUrl(item, imageUrl)',
+          'onItemChange(item.*)'
       ],
 
       ready: function() {
@@ -417,8 +428,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return [];
       },
 
-      getHeaderClass: function(expand) {
-        return (expand ? 'expand' : 'collapse');
+      getHeaderClass: function(opened) {
+        return (opened ? 'opened' : 'closed');
       },
 
       getIconClass: function(type) {
@@ -448,7 +459,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       getSubtitleTooltip: function(subtitle) {
-        return this.getSubtitleArray(subtitle).join(", ");
+        return this.getSubtitleArray(subtitle).join(', ');
       },
 
       getTarget: function(newTab) {
@@ -462,6 +473,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return property !== undefined;
       },
 
+      /**
+       * Handles any needed behavior when the item is changed.
+       */
+      onItemChange: function() {
+        // Close the details panel of the new record.
+        var recordDetail = this.$$('.record-detail');
+        var classList = recordDetail ? recordDetail.classList : undefined;
+        if(classList && classList.contains('iron-collapse-opened')) {
+          recordDetail.toggle();
+          this.set('opened', !this.opened);
+        }
+      },
+
       replaceCamelCaseText: function(key) {
         return key.replace(/([A-Z])/g, ' $1');
       },
@@ -470,11 +494,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Expands or collapses this record if its item has any details and the event was not triggered by clicking on a button.
        */
       toggleRecord: function(event) {
+        // Do not open a record with no details.
         if(this.item.details) {
-          var target = Polymer.dom(event).rootTarget;
-          if(target.localName !== 'paper-button' && !target.classList.contains('paper-icon-button')) {
-            this.set('item.expand', !this.item.expand);
-            this.$$('#record-detail').toggle();
+          // Do not open the record if the user clicked on a button inside the record.
+          if(event.target.localName !== 'paper-button' && !event.target.classList.contains('paper-icon-button')) {
+            this.set('opened', !this.opened);
+            this.$$('.record-detail').toggle();
           }
         }
       },
