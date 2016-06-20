@@ -116,7 +116,7 @@
 
             
             // sizing information, including margins so there is space for labels, etc
-            var margin = {top: 10, right: 10, bottom: 100, left: 40},
+            var margin = {top: 10, right: 30, bottom: 80, left: 40},
                 marginOverview = {top: 260, right: 10, bottom: 20, left: 40},
                 chartWidth = this.width - margin.left - margin.right,
                 chartHeight = this.height - margin.top - margin.bottom,
@@ -130,12 +130,14 @@
                "#FFD363", "#FFB363", "#FF8363", "#FF7363", "#FF6364"];
 
 
-            var color = d3.scale.linear().range(available_colors);
+            //var color = d3.scale.linear().range(available_colors);
 
 
             // some colours to use for the bars
+            // var 
+            var otherColor = "#D3D3D3";
             var colour = d3.scale.ordinal()
-                                .range(["#98abc5", "#8a89a6", "#7b6888", "#6b486b", "#a05d56", "#d0743c", "#ff8c00"]);
+                                .range(["#a6cee3","#1f78b4","#b2df8a","#33a02c","#fb9a99","#e31a1c","#fdbf6f","#ff7f00","#cab2d6","#6a3d9a","#ffff99","#b15928"]);
 
             // mathematical scales for the x and y axes
             var x = d3.time.scale()
@@ -193,7 +195,10 @@
 
             // data range for the bar colours
             // (essentially maps attribute names to colour values)
-            colour.domain(d3.keys(this.data.locations));
+            var locs = this.data.locations;
+            colour.domain(this.data.locations.filter(function(key) { 
+                return key !== "Other";
+            }));
 
             // draw the axes now that they are fully set up
             main.append("g")
@@ -225,7 +230,22 @@
                     .attr("width", 6)
                     .attr("y", function(d) { return y(d.y1); })
                     .attr("height", function(d) { return y(d.y0) - y(d.y1); })
-                    .style("fill", function(d) { return colour(d.name); });
+                    .style("fill", function(d) { 
+                    if(d.name == "Other")
+                        return otherColor;
+                    return colour(d.name); 
+                    })
+                    .on("mouseover", function() { tooltip.style("display", null); })
+                    .on("mouseout", function() { tooltip.style("display", "none"); })
+                    .on("mousemove", function(d) {
+                        var rectPos = this.getBoundingClientRect();
+
+                        var xPosition = rectPos.left-75;
+                        var yPosition = d3.mouse(this)[1]-15;
+
+                        tooltip.attr("transform", "translate(" + xPosition + "," + yPosition + ")");
+                        tooltip.select("text").text(d.name);
+                    });
 
             overview.append("g")
                         .attr("class", "bars")
@@ -249,6 +269,23 @@
                             // no y scale, i.e. we should see the extent being marked
                             // over the full height of the overview chart
                             .attr("height", heightOverview + 7);  // +7 is magic number for styling
+
+
+            var tooltip = svg.append("g")
+              .attr("class", "tooltip")
+              .style("display", "none");
+                
+            tooltip.append("rect")
+              .attr("width", 30)
+              .attr("height", 20)
+              .attr("fill", "white")
+              .style("opacity", 0.5);
+            tooltip.append("text")
+              .attr("x", 15)
+              .attr("dy", "1.2em")
+              .style("text-anchor", "middle")
+              .attr("font-size", "12px")
+              .attr("font-weight", "bold");
 
 
 
