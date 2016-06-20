@@ -85,7 +85,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         var data = [];
         _.each(records, function(record){
             var point = {}
-            point.date = new Date(record.key);
+            point.date = record.key_as_string;
 
             point.value = {}
             if (record.localities.buckets){
@@ -240,7 +240,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.locations = getGeoCities(aggs.offersPhone.locations.buckets);
                 newData.data = processLocationGraph(aggs.offersPhone.offerTimeline.buckets);
             }
-            console.log(newData);
             return newData;
         }        
     };
