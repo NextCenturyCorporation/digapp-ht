@@ -46,12 +46,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    test('expect an paper-icon-item element', function() {
+    test('has a paper-icon-item element', function() {
       expect(document.querySelector('paper-icon-item')).to.exist;
     });
 
-    test('expect an iron-collapse element', function() {
+    test('has an iron-collapse element', function() {
       expect(document.querySelector('iron-collapse')).to.exist;
+    });
+
+    test('showDetails is true', function() {
+      expect(singleRecordElem.showDetails).to.be.true;
     });
 
     test('getDetailArrayForKey() returns correct value for undefined', function() {
@@ -245,15 +249,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(recordHead.classList.contains('closed')).to.be.true;
     });
 
-    test('item.imageSrc is undefined', function() {
-      expect(singleRecordElem.item.imageSrc).to.be.undefined;
+    test('item.imageSources is undefined', function() {
+      expect(singleRecordElem.item.imageSources).to.be.undefined;
     });
 
-    test('isDefined(item.imageSrc) returns false', function() {
-      expect(singleRecordElem.isDefined(singleRecordElem.item.imageSrc)).to.be.false;
-    });
-
-    test('expect no iron-image element', function() {
+    test('has no iron-image element', function() {
       expect(document.querySelector('iron-image')).to.not.exist;
     });
   });
@@ -269,8 +269,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    test('expect no iron-collapse element for an item with no details', function() {
+    test('has no iron-collapse element for an item with no details', function() {
       expect(document.querySelector('iron-collapse')).to.not.exist;
+    });
+
+    test('showDetails is false for an item with no details', function() {
+      expect(singleRecordElem.showDetails).to.be.false;
     });
 
     test('toggleRecord() does nothing for an item with no details', function() {
@@ -293,6 +297,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       var recordDetail = singleRecordElem.$$('.record-detail');
       expect(recordDetail).to.not.exist;
     });
+
+    test('updateImageSrcFromUrls() sets imageSrc and showDetails', function() {
+      expect(singleRecordElem.imageSrc).to.equal('');
+      singleRecordElem.updateImageSrcFromUrls(['url1', 'url2']);
+      expect(singleRecordElem.imageSrc).to.equal('url1');
+      expect(singleRecordElem.showDetails).to.be.true;
+    });
+
+    test('updateImageSrcFromUrls() with an empty array sets imageSrc to a truthy value', function() {
+      expect(singleRecordElem.imageSrc).to.equal('');
+      singleRecordElem.updateImageSrcFromUrls([]);
+      expect(!!singleRecordElem.imageSrc).to.be.true;
+      expect(singleRecordElem.showDetails).to.be.false;
+    });
   });
 
   suite('<single-record> if newTab is true', function() {
@@ -300,7 +318,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecordElem = fixture('single-record-fixture');
-      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle', 'details': {'address': 'LA'}};
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle'};
       singleRecordElem.newTab = true;
       flush(function() {
         done();
@@ -312,32 +330,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
   });
 
-  suite('<single-record> with imageUrl', function() {
+  suite('<single-record> with imageUrls', function() {
     var singleRecordElem;
 
     setup(function(done) {
       singleRecordElem = fixture('single-record-fixture');
       singleRecordElem.item = {'_id': '1', '_type': 'offer'};
-      singleRecordElem.imageUrl = 'url';
+      singleRecordElem.imageUrls = ['url1', 'url2'];
       flush(function() {
         done();
       });
     });
 
-    test('has imageUrl', function() {
-      expect(singleRecordElem.imageUrl).to.equal('url');
+    test('has imageUrls', function() {
+      expect(singleRecordElem.imageUrls).to.be.deep.equal(['url1', 'url2']);
     });
 
-    test('item.imageSrc equals imageUrl', function() {
-      expect(singleRecordElem.item.imageSrc).to.equal('url');
+    test('imageSrc equals imageUrls[0]', function() {
+      expect(singleRecordElem.imageSrc).to.equal('url1');
     });
 
-    test('isDefined(item.imageSrc) returns true because imageUrl is defined', function() {
-      expect(singleRecordElem.isDefined(singleRecordElem.item.imageSrc)).to.be.true;
-    });
-
-    test('shows an iron-image element', function() {
+    test('has an iron-image element', function() {
       expect(document.querySelector('iron-image')).to.exist;
+    });
+
+    test('showDetails is true for an item with imageUrls', function() {
+      expect(singleRecordElem.showDetails).to.be.true;
+    });
+
+    test('has an iron-collapse element for the imageUrls', function() {
+      expect(document.querySelector('iron-collapse')).to.exist;
+    });
+
+    test('has an image-viewer element for the imageUrls', function() {
+      expect(document.querySelector('image-viewer')).to.exist;
     });
   });
 

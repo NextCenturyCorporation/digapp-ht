@@ -63,7 +63,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       iron-icon.closed-icon,
       iron-icon.opened-icon,
-      .record-head:hover iron-icon {
+      paper-icon-item[clickable]:hover iron-icon {
         display: none;
       }
 
@@ -160,25 +160,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </elastic-search>
 
     <div>
-      <paper-material class$="record-head {{getHeaderClass(opened)}}" on-tap="toggleRecord">
-        <paper-icon-item clickable$="{{item.details}}">
+      <paper-material class$="record-head [[getHeaderClass(opened)]]" on-tap="toggleRecord">
+        <paper-icon-item clickable$="[[showDetails]]">
           <iron-icon class$="entity-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
-          <template is="dom-if" if="{{item.details}}">
+          <template is="dom-if" if="[[showDetails]]">
             <iron-icon class="iron-icon-big closed-icon" icon="icons:expand-more" item-icon></iron-icon>
             <iron-icon class="iron-icon-big opened-icon" icon="icons:expand-less" item-icon></iron-icon>
           </template>
 
-          <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
-            <iron-image class$="record-image [[getBlurClass(blur)]]" sizing="contain" src="[[item.imageSrc]]"></iron-image>
+          <template is="dom-if" if="[[imageSrc]]">
+            <iron-image class$="record-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSrc]]"></iron-image>
           </template>
 
           <paper-item-body class="record-head-text">
             <div class="lineclamp" title$="[[item.title]]"><strong>[[item.title]]</strong></div>
 
             <template is="dom-if" if="[[item.subtitle]]">
-              <div class="lineclamp three-line" title="{{getSubtitleTooltip(item.subtitle)}}" secondary>
-                <template is="dom-repeat" items="{{getSubtitleArray(item.subtitle)}}" as="value">
+              <div class="lineclamp three-line" title="[[getSubtitleTooltip(item.subtitle)]]" secondary>
+                <template is="dom-repeat" items="[[getSubtitleArray(item.subtitle)]]" as="value">
                   <div><strong>[[value]]</strong></div>
                 </template>
               </div>
@@ -192,28 +192,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </annotate-record>
 
           <!-- secondary actions -->
-          <a class="record-link record-head-link" target="{{getTarget(newTab)}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
+          <a class="record-link record-head-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id, '_id', blur)]]">
             <paper-button class="record-button">{{getButtonText(item._type)}}</paper-button>
           </a>
         </paper-icon-item>
       </paper-material>
 
-      <template is="dom-if" if="{{item.details}}">
+      <template is="dom-if" if="[[showDetails]]">
         <iron-collapse class="record-detail">
           <paper-material class="record-body">
-            <template is="dom-repeat" items="{{getDetailKeysArray(item.details)}}" as="key">
+            <template is="dom-repeat" items="[[getDetailKeysArray(item.details)]]" as="key">
               <paper-item class="record-body-data">
                 <paper-item-body>
                   <span>
                     <strong class="capitalize">[[replaceCamelCaseText(key)]]:</strong>
-                    <template is="dom-repeat" items="{{getDetailArrayForKey(item.details, key)}}" as="value">
+                    <template is="dom-repeat" items="[[getDetailArrayForKey(item.details, key)]]" as="value">
                       <span>[[value]]</span>
                     </template>
                   </span>
                 </paper-item-body>
               </paper-item>
             </template>
-            <a class="record-link" target="{{getTarget(newTab)}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
+
+            <template is="dom-if" if="[[item.imageUrls]]">
+              <image-viewer images="[[item.imageUrls]]"></image-viewer>
+            </template>
+
+            <template is="dom-if" if="[[imageUrls]]">
+              <image-viewer images="[[imageUrls]]"></image-viewer>
+            </template>
+
+            <a class="record-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id, '_id', blur)]]">
               <paper-button class="record-button record-body-button" raised>{{getButtonText(item._type)}}</paper-button>
             </a>
           </paper-material>
@@ -318,10 +327,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The image URL for the item.  Overrides item.imageSrc.
+         * The src for the iron-image in the record header.
          */
-        imageUrl: {
-          type: String
+        imageSrc: {
+          type: String,
+          value: '',
+          notify: true
+        },
+
+        /**
+         * The image URLs for the item used instead of an image query.
+         */
+        imageUrls: {
+          type: Array,
+          notify: true
         },
 
         /**
@@ -350,6 +369,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
+        /**
+         * Whether details should be available.
+         */
+        showDetails: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
         error: {
           type: Object
         }
@@ -358,8 +386,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observers: [
           'createImageQuery(item, imageQueryTemplate, imageQueryField, imageQueryValue)',
           'findSrcInImageQueryResults(item, imageQueryResults)',
-          'updateImageSrcFromImageUrl(item, imageUrl)',
-          'onItemChange(item.*)'
+          'onItemChange(item.*)',
+          'updateImageSrcFromItemUrls(item.imageUrls.splices)',
+          'updateImageSrcFromPropertyUrls(imageUrls.splices)',
+          'updateShowDetails(item.details)'
       ],
 
       ready: function() {
@@ -377,11 +407,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Sets this.imageQuery using the given variables.
        */
       createImageQuery: function(item, imageQueryTemplate, imageQueryField, imageQueryValue) {
-        var view = {
-          field: imageQueryField,
-          value: item[imageQueryValue]
-        };
-        this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
+        if(!this.imageUrls || !this.imageUrls.length) {
+          var view = {
+            field: imageQueryField,
+            value: item[imageQueryValue]
+          };
+          this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
+        }
       },
 
       createURL: function(type, value, field, blur) {
@@ -389,15 +421,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Sets item.imageSrc with the image URL from the first hit in the given image query results.
+       * Adds the image URLs from the hits in the given image query results to item.imageUrls.
        */
       findSrcInImageQueryResults: function(item, imageQueryResults) {
         if(imageQueryResults) {
-          if(imageQueryResults.hits.hits.length > 0) {
-            this.set('item.imageSrc', imageQueryResults.hits.hits[0]._source.url);
-          } else {
-            this.set('item.imageSrc', '');
-          }
+          this.set('item.imageUrls', []);
+          var self = this;
+          imageQueryResults.hits.hits.forEach(function(hit) {
+            self.push('item.imageUrls', hit._source.url);
+          });
         }
       },
 
@@ -467,13 +499,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Returns whether the given property is defined.
-       */
-      isDefined: function(property) {
-        return property !== undefined;
-      },
-
-      /**
        * Handles any needed behavior when the item is changed.
        */
       onItemChange: function() {
@@ -495,7 +520,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       toggleRecord: function(event) {
         // Do not open a record with no details.
-        if(this.item.details) {
+        if(this.showDetails) {
           // Do not open the record if the user clicked on a button inside the record.
           if(event.target.localName !== 'paper-button' && !event.target.classList.contains('paper-icon-button')) {
             this.set('opened', !this.opened);
@@ -505,10 +530,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Sets item.imageSrc with the given image URL.
+       * Sets the src for the iron-image in the record header with the first url in the item if available.
        */
-      updateImageSrcFromImageUrl: function(item, imageUrl) {
-        this.set('item.imageSrc', imageUrl);
+      updateImageSrcFromItemUrls: function() {
+        this.updateImageSrcFromUrls(this.item.imageUrls);
+      },
+
+      /**
+       * Sets the src for the iron-image in the record header with the first url in the given list if available.
+       */
+      updateImageSrcFromUrls: function(urls) {
+        if(urls && urls.length) {
+          this.set('imageSrc', urls[0]);
+          this.set('showDetails', true);
+        } else if(urls) {
+          // Set the src to a truthy value so the gray iron-image is displayed.
+          this.set('imageSrc', 'blank');
+        }
+      },
+
+      /**
+       * Sets the src for the iron-image in the record header with the first url in the property if available.
+       */
+      updateImageSrcFromPropertyUrls: function() {
+        this.updateImageSrcFromUrls(this.imageUrls);
+      },
+
+      /**
+       * Sets whether to show details based on the existence of the given details object.
+       */
+      updateShowDetails: function(details) {
+        this.set('showDetails', !!details);
       }
     });
   })();
