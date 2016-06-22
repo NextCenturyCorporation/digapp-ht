@@ -27,7 +27,7 @@
 <script>
   'use strict';
   /* globals suite, test, expect, setup, fixture, assert,
-     sellerResult, sellerAgg, peopleAgg */
+     sellerResult, sellerAgg, offerAgg, peopleAgg */
   /* jshint camelcase:false */
   /* jshint -W030 */
 
@@ -52,9 +52,20 @@
     test('defines seller object', function() {
       expect(dataout._id).to.exist;
       expect(dataout._id).to.be.an('string');
+      assert.isArray(dataout.telephone);
+      assert.equal(dataout.telephone.length, 1);
+      assert.equal(dataout.telephone[0]._id, 'http://dig.isi.edu/ht/data/phone/1-1234567890');
+      assert.equal(dataout.telephone[0]._type, 'phone');
       assert.equal(dataout.telephone[0].title, '1234567890');
+      assert.equal(dataout.telephone[0].subtitle, '');
+      assert.isArray(dataout.emailAddress);
+      assert.equal(dataout.emailAddress.length, 1);
+      assert.equal(dataout.emailAddress[0]._id, 'http://dig.isi.edu/ht/data/email/abc@xyz.com');
+      assert.equal(dataout.emailAddress[0]._type, 'email');
       assert.equal(dataout.emailAddress[0].title, 'abc@xyz.com');
+      assert.equal(dataout.emailAddress[0].subtitle, '');
       assert.equal(dataout.title, '1234567890, abc@xyz.com');
+      assert.equal(dataout.subtitle, '');
     });
   });
 
@@ -108,6 +119,179 @@
     test('defines empty object for dataout', function() {
       expect(dataout).to.exist;
       assert.deepEqual(dataout, {});
+    });
+  });
+
+  suite('<client-config> seller tests: phoneEmails transform', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.phoneEmails;
+      dataout = sellerTransform(sellerResult);
+    });
+
+    test('defines config object', function(done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.seller.seller).to.be.a('Function');
+      done();
+    });
+
+    test('defines seller object', function() {
+      assert.isArray(dataout);
+      assert.equal(dataout.length, 2);
+      assert.equal(dataout[0]._id, 'http://dig.isi.edu/ht/data/phone/1-1234567890');
+      assert.equal(dataout[0]._type, 'phone');
+      assert.equal(dataout[0].title, '1234567890');
+      assert.equal(dataout[0].subtitle, '');
+      assert.equal(dataout[1]._id, 'http://dig.isi.edu/ht/data/email/abc@xyz.com');
+      assert.equal(dataout[1]._type, 'email');
+      assert.equal(dataout[1].title, 'abc@xyz.com');
+      assert.equal(dataout[1].subtitle, '');
+    });
+  });
+
+  suite('<client-config> seller tests: phoneEmails transform when only phone numbers exist', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.phoneEmails;
+      var phoneOnly = {
+        hits: {
+          total: 1,
+          hits: [{
+            _source: {
+              telephone: sellerResult.hits.hits[0]._source.telephone
+            }
+          }]
+        }
+      };
+      dataout = sellerTransform(phoneOnly);
+    });
+
+    test('defines seller object', function() {
+      assert.isArray(dataout);
+      assert.equal(dataout.length, 1);
+      assert.equal(dataout[0]._id, 'http://dig.isi.edu/ht/data/phone/1-1234567890');
+      assert.equal(dataout[0]._type, 'phone');
+      assert.equal(dataout[0].title, '1234567890');
+      assert.equal(dataout[0].subtitle, '');
+    });
+
+  });
+
+  suite('<client-config> seller tests: phoneEmails transform when only emails exist', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.phoneEmails;
+      var emailOnly = {
+        hits: {
+          total: 1,
+          hits: [{
+            _source: {
+              email: sellerResult.hits.hits[0]._source.email
+            }
+          }]
+        }
+      };
+      dataout = sellerTransform(emailOnly);
+    });
+
+    test('defines seller object', function() {
+      assert.isArray(dataout);
+      assert.equal(dataout.length, 1);
+      assert.equal(dataout[0]._id, 'http://dig.isi.edu/ht/data/email/abc@xyz.com');
+      assert.equal(dataout[0]._type, 'email');
+      assert.equal(dataout[0].title, 'abc@xyz.com');
+      assert.equal(dataout[0].subtitle, '');
+    });
+
+  });
+
+  suite('<client-config> seller tests: transform for offerTimeline', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.offerTimelineData;
+      dataout = sellerTransform(offerAgg);
+    });
+
+    test('defines offerTimeline object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.offerTimeline).to.exist;
+    });
+
+    test('defines offerTimeline aggregation buckets', function() {
+      assert.equal(dataout.offerTimeline.length, 10);
+      assert.equal(dataout.offerTimeline[0].date, '2015-10-20T00:00:00.000Z');
+      assert.equal(dataout.offerTimeline[0].count, 2);
+      assert.equal(dataout.offerTimeline[5].date, '2015-10-28T00:00:00.000Z');
+      assert.equal(dataout.offerTimeline[5].count, 6);
+    });
+  });
+
+  suite('<client-config> seller tests: transform for offerLocation', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.offerLocationData;
+      dataout = sellerTransform(offerAgg);
+    });
+
+    test('defines offerLocation object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.offerLocation).to.exist;
+    });
+
+    test('defines offerLocation aggregation buckets', function() {
+      assert.equal(dataout.offerLocation.length, 6);
+      assert.equal(dataout.offerLocation[0].city, 'Atlanta');
+      assert.equal(dataout.offerLocation[0].state, 'Georgia');
+      assert.equal(dataout.offerLocation[0].country, 'United States');
+      assert.equal(dataout.offerLocation[0].longitude, '-84.38798');
+      assert.equal(dataout.offerLocation[0].latitude, '33.749');
+      assert.equal(dataout.offerLocation[0].count, 45);
+      assert.equal(dataout.offerLocation[0].name, 'Atlanta, Georgia');
+    });
+  });
+
+  suite('<client-config> seller tests: transform for related offers', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.sellerOffersData;
+      dataout = sellerTransform(offerAgg);
+    });
+
+    test('defines relatedOffers object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.relatedOffers).to.exist;
+    });
+
+    test('defines offer array with correct information', function() {
+      assert.equal(dataout.relatedOffers.count, 2);
+      assert.isString(dataout.relatedOffers.data[0]._id);
+      assert.equal(dataout.relatedOffers.data[0]._type, 'offer');
+      assert.equal(dataout.relatedOffers.data[0].title, 'This is the title');
+      assert.isArray(dataout.relatedOffers.data[0].subtitle);
+      assert.deepEqual(dataout.relatedOffers.data[0].subtitle, ['October 30, 2015', '9876543210', 'abc@xyz.com']);
+      assert.isObject(dataout.relatedOffers.data[0].details);
+      assert.equal(dataout.relatedOffers.data[0].details.address, 'Brooklyn');
+      assert.isString(dataout.relatedOffers.data[0].details.publisher);
     });
   });
 
@@ -203,6 +387,42 @@
     test('defines related emails', function() {
       assert.isArray(dataout);
       assert.equal(dataout.length, 0);
+    });
+  });
+
+  suite('<client-config> seller tests: transform for itinerary', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var sellerTransform = myEl.config.transforms.seller.itinerary;
+      dataout = sellerTransform(offerAgg);
+    });
+
+    test('defines result object', function() {
+      expect(dataout).to.exist;
+      expect(dataout.date).to.exist;
+    });
+
+    test('defines itinerary array, sorted by date', function() {
+      assert.isArray(dataout.date);
+      assert.isArray(dataout.date[0].city);
+      assert.isArray(dataout.date[0].city[0].data);
+      assert.equal(dataout.date.length, 10);
+      assert.equal(dataout.date[0].id, 9);
+      assert.equal(dataout.date[0].date, 1446422400000);
+      assert.isAbove(dataout.date[0].date, dataout.date[1].date);
+      assert.isAbove(dataout.date[0].date, dataout.date[9].date);
+      assert.equal(dataout.date[0].city.length, 2);
+      assert.equal(dataout.date[0].city[0].city, 'Atlanta:Georgia:United States:-84.38798:33.749');
+      assert.equal(dataout.date[0].city[0].data.length, 3);
+      assert.equal(dataout.date[0].city[0].data[0].key, 'Info');
+      assert.equal(dataout.date[0].city[0].data[0].value, 'google.com');
+      assert.equal(dataout.date[0].city[0].data[1].key, 'Phone');
+      assert.equal(dataout.date[0].city[0].data[1].value, '1112223333');
+      assert.equal(dataout.date[0].city[0].data[2].key, 'Email');
+      assert.equal(dataout.date[0].city[0].data[2].value, 'abc@xyz.com');
     });
   });
 </script>

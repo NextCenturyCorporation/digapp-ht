@@ -7,6 +7,7 @@
   <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <script src="../bower_components/web-component-tester/browser.js"></script>
   <script src="data/offer-result.js" type="text/javascript"></script>
+  <script src="data/offer-aggregations.js" type="text/javascript"></script>
 
   <!-- Step 1: import the element to test -->
   <link rel="import" href="../elements/client-config/client-config.html">
@@ -22,7 +23,7 @@
 
 <script>
   'use strict';
-  /* globals suite, test, expect, setup, fixture, offerResult, assert */
+  /* globals suite, test, expect, setup, fixture, offerResult, offerAgg, assert */
   /* jshint -W030 */
   suite('<client-config> offer tests', function() {
     var myEl;
@@ -71,9 +72,21 @@
 
     test('defines person data', function() {
       assert.isObject(dataOut.person);
+      assert.isString(dataOut.person._id);
+      assert.isString(dataOut.person._type);
       assert.equal(dataOut.person.name, 'Name N/A');
       assert.deepEqual(dataOut.person.ages, ['24']);
       assert.deepEqual(dataOut.person.ethnicities, ['indian']);
+      assert.isString(dataOut.person.title);
+      assert.equal(dataOut.person.title, '24, indian');
+      assert.isString(dataOut.person.weight);
+      assert.isString(dataOut.person.height);
+      assert.isTrue(dataOut.person.show);
+    });
+
+    test('defines price string', function() {
+      assert.isString(dataOut.price);
+      assert.equal(dataOut.price, '300-per-60min, 400-per-60min');
     });
 
     test('defines title string', function() {
@@ -94,13 +107,19 @@
     test('defines an array of phone numbers', function() {
       assert.isArray(dataOut.phones);
       assert.equal(dataOut.phones.length, 1);
+      assert.isString(dataOut.phones[0]._id);
+      assert.equal(dataOut.phones[0]._type, 'phone');
       assert.equal(dataOut.phones[0].title, '1234567890');
+      assert.isString(dataOut.phones[0].subtitle);
     });
 
     test('defines an array of emails', function() {
       assert.isArray(dataOut.emails);
       assert.equal(dataOut.emails.length, 1);
+      assert.isString(dataOut.emails[0]._id);
+      assert.equal(dataOut.emails[0]._type, 'email');
       assert.equal(dataOut.emails[0].title, 'abc@xyz.com');
+      assert.isString(dataOut.emails[0].subtitle);
     });
 
     test('defines id strings for related entities', function() {
@@ -109,6 +128,9 @@
       assert.isString(dataOut.webpageId);
     });
 
+    test('defines webpageUrl string', function() {
+      assert.isString(dataOut.webpageUrl);
+    });
   });
 
   suite('<client-config> offer tests if no people, address info or title from query', function() {
@@ -170,61 +192,110 @@
     });
   });
 
-  suite('<client-config> offer tests -- aggregations on seller uri', function() {
+  suite('<client-config> offer transform tests for revisions', function() {
     var myEl;
     var dataOut;
 
     setup(function() {
       myEl = fixture('client-config-fixture');
-      var offerTransform = myEl.config.transforms.offer.offer;
-      var aggs = {
-        'hits': {'hits': []},
-        'aggregations': {
-          'offer_locs_by_seller': {
-            'doc_count_error_upper_bound': 0,
-            'sum_other_doc_count': 0,
-            'buckets': [
-              {
-                'key': 'Los Angeles',
-                'doc_count': 1
-              }
-            ]
-          },
-          'offers_by_seller': {
-            'buckets': [
-              {
-                'key_as_string': '2014-10-27T00:00:00.000Z',
-                'key': 1414368000000,
-                'doc_count': 1
-              }
-            ]
-          }
+      var offerTransform = myEl.config.transforms.offer.revisions;
+      dataOut = offerTransform(offerAgg);
+    });
+
+    test('defines config object', function(done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.offer.offer).to.be.a('Function');
+      done();
+    });
+
+    test('defines array of revisions', function() {
+      expect(dataOut).to.exist;
+      expect(dataOut).to.be.an('Array');
+      expect(dataOut.length).to.equal(2);
+    });
+
+    test('defines _id and _type fields', function() {
+      assert.isString(dataOut[0]._id);
+      assert.equal(dataOut[0]._type, 'offer');
+      assert.isString(dataOut[1]._id);
+      assert.equal(dataOut[1]._type, 'offer');
+    });
+
+    // the other fields use parseOffer like the first set of tests,
+    // so not testing as exhaustively
+    test('abridged test for equality of other values', function() {
+      assert.equal(dataOut[0].date, '2015-10-30T14:00:00');
+      assert.equal(dataOut[1].date, '2015-11-02T14:00:00');
+      assert.equal(dataOut[0].title, 'This is the title');
+      assert.equal(dataOut[1].title, 'Title 2');
+    });
+
+    test('test basic structure of array values', function() {
+      assert.isObject(dataOut[1].person);
+      assert.isObject(dataOut[0].address);
+      assert.isObject(dataOut[1].geo);
+      assert.isString(dataOut[0].publisher);
+      assert.isArray(dataOut[0].phones);
+      assert.isArray(dataOut[1].emails);
+      assert.isString(dataOut[0].sellerId);
+      assert.isString(dataOut[1].serviceId);
+      assert.isString(dataOut[1].webpageId);
+      assert.isString(dataOut[1].webpageUrl);
+    });
+
+  });
+
+  suite('<client-config> offer transform tests for computeShowSeller', function() {
+    var myEl;
+    var offerTransform;
+    var sellerPhoneEmails;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      offerTransform = myEl.config.transforms.offer.computeShowSeller;
+      sellerPhoneEmails = [
+        {
+          _id: 'http://dig.isi.edu/ht/data/phone/1-0987654321',
+          _type: 'phone',
+          subtitle: '',
+          title: '0987654321'
+        },
+        {
+          _id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+          _type: 'phone',
+          subtitle: '',
+          title: '1112223333'
+        },
+        {
+          _id: 'http://dig.isi.edu/ht/data/email/abc@xyz.com',
+          _type: 'email',
+          subtitle: '',
+          title: 'abc@xyz.com'
         }
+      ];
+    });
+
+    test('computeShowSeller returns false', function() {
+      var webpageData = {
+        _id: 'someid',
+        phones: [sellerPhoneEmails[0], sellerPhoneEmails[1]],
+        emails: [sellerPhoneEmails[2]]
       };
-      dataOut = offerTransform(aggs);
+      var result = offerTransform(sellerPhoneEmails, webpageData);
+      assert.isFalse(result);
     });
 
-    test('defines offers by seller agg array', function() {
-      expect(dataOut.offersBySeller).to.exist;
-      expect(dataOut.offersBySeller).to.be.an('Array');
+    test('computeShowSeller returns true', function() {
+      var webpageData = {
+        _id: 'someid',
+        phones: [sellerPhoneEmails[0]],
+        emails: [sellerPhoneEmails[2]]
+      };
+      var result = offerTransform(sellerPhoneEmails, webpageData);
+      assert.isTrue(result);
     });
-
-    test('defines offers by seller items', function() {
-      assert.equal(dataOut.offersBySeller.length, 1);
-      assert.equal(dataOut.offersBySeller[0].date, '2014-10-27T00:00:00.000Z');
-      assert.equal(dataOut.offersBySeller[0].count, 1);
-    });
-
-    test('defines offer locations by seller agg array', function() {
-      expect(dataOut.offerLocsBySeller).to.exist;
-      expect(dataOut.offerLocsBySeller).to.be.an('Array');
-    });
-
-    test('defines offer location items', function() {
-      assert.equal(dataOut.offerLocsBySeller.length, 1);
-      assert.deepEqual(dataOut.offerLocsBySeller[0], {city: 'Los Angeles', count: 1});
-    });
-
   });
 
 </script>

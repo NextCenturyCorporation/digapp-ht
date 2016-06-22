@@ -43,7 +43,7 @@ var offerTransform = (function(_, commonTransforms) {
         */
         var person = {};
         person._id = _.get(record, 'itemOffered.uri');
-        person._type = "provider";
+        person._type = 'provider';
         person.name = _.get(record, 'itemOffered.name', 'Name N/A');
         person.ethnicities = _.get(record, 'itemOffered.ethnicity') || [];
         person.height = _.get(record, 'itemOffered.height');
@@ -53,18 +53,19 @@ var offerTransform = (function(_, commonTransforms) {
         person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
         person.ages = (_.isArray(person.ages) ? person.ages : [person.ages]);
 
-        var title = (person.name != 'Name N/A')? person.name : "";
-        var sep = (title == "")? "": ", ";
+        var title = (person.name !== 'Name N/A') ? person.name : '';
+        var sep = (title === '') ? '' : ', ';
+
         if(person.ages && person.ages.length) {
-            title += sep + person.ages[0]
-            sep = ", "
+            title += sep + person.ages[0];
+            sep = ', ';
         }
         if(person.ethnicities && person.ethnicities.length) {
-            title += sep + person.ethnicities[0]
-            sep = ", "
+            title += sep + person.ethnicities[0];
+            sep = ', ';
         }
         person.title = title;
-        person.show = (title.length > 0)? true: false;
+        person.show = (title.length > 0) ? true: false;
         return person;
     }
 
@@ -72,12 +73,12 @@ var offerTransform = (function(_, commonTransforms) {
         var result = '';
         var prices = _.get(record, 'priceSpecification');
         if(prices) {
-            var sep = ""
+            var sep = '';
             prices.forEach(function(elem) {
-                price = elem['name'];
-                if(price != '-per-min') {
+                var price = elem.name;
+                if(price !== '-per-min') {
                     result = result + sep + price;
-                    sep = ", ";
+                    sep = ', ';
                 }
             });
         }
@@ -96,9 +97,6 @@ var offerTransform = (function(_, commonTransforms) {
         newData.title = _.get(record, 'title', 'Title N/A');
         newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
         newData.body = _.get(record, 'mainEntityOfPage.description');
-        //newData.emails = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.email', 'name');
-        //newData.phones = commonTransforms.getArrayOfStrings(data.hits.hits[0], '_source.seller.telephone', 'name');
-        // only get one of each for now
         newData.emails = commonTransforms.getClickableObjectArr(_.get(record, 'seller.email'), 'email');
         newData.phones = commonTransforms.getClickableObjectArr(_.get(record, 'seller.telephone'), 'phone');
         newData.sellerId = _.get(record, 'seller.uri');
@@ -117,13 +115,6 @@ var offerTransform = (function(_, commonTransforms) {
                 newData = parseOffer(data.hits.hits[0]._source);
             }
 
-            // aggregation data for sparklines -- currently unused
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData.offersBySeller = commonTransforms.transformBuckets(aggs.offers_by_seller.buckets, 'date', 'key_as_string');
-                newData.offerLocsBySeller = commonTransforms.transformBuckets(aggs.offer_locs_by_seller.buckets, 'city');
-            }
-
             return newData;
         },
 
@@ -132,7 +123,7 @@ var offerTransform = (function(_, commonTransforms) {
 
             if(data.hits.hits.length > 0) {
                 data.hits.hits.forEach(function(elem) {
-                    offer = parseOffer(elem._source);
+                    var offer = parseOffer(elem._source);
                     offer._id = elem._id;
                     offer._type = 'offer';
                     newData.push(offer);
@@ -143,10 +134,10 @@ var offerTransform = (function(_, commonTransforms) {
         },
 
         computeShowSeller: function(sellerPhoneEmails, webpageData) {
-            var webpagePhonesLen = (webpageData.phones)? webpageData.phones.length: 0;
-            var webpageEmailsLen = (webpageData.emails)? webpageData.emails.length: 0;
+            var webpagePhonesLen = (webpageData.phones) ? webpageData.phones.length: 0;
+            var webpageEmailsLen = (webpageData.emails) ? webpageData.emails.length: 0;
 
-            return sellerPhoneEmails.length != (webpageEmailsLen + webpagePhonesLen);
+            return sellerPhoneEmails.length !== (webpageEmailsLen + webpagePhonesLen);
         }
     };
 
