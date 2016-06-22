@@ -20,13 +20,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
-    <template is="dom-if" if="{{mapData.length}}">
+    <!-- Need the if/else case since fit-to-markers attribute won't work properly with only one marker/location -->
+    <template is="dom-if" if="{{hasMultipleLocations}}">
       <leaflet-map fit-to-markers>
         <template is="dom-repeat" items="{{mapData}}" as="location">
           <leaflet-marker latitude="[[location.latitude]]" longitude="[[location.longitude]]" title="[[location.city]], [[location.state]] ([[location.count]])">
             [[location.city]], [[location.state]] ([[location.count]])
           </leaflet-marker>
         </template>
+      </leaflet-map>
+    </template>
+    <template is="dom-if" if="{{hasSingleLocation}}">
+      <leaflet-map latitude="[[getLocation(0, 'latitude')]]" longitude="[[getLocation(0, 'longitude')]]" zoom="10">
+        <leaflet-marker latitude="[[getLocation(0, 'latitude')]]" longitude="[[getLocation(0, 'longitude')]]">
+          [[getLocation(0, 'city')]], [[getLocation(0, 'state')]] ([[getLocation(0, 'count')]])
+        </leaflet-marker>
       </leaflet-map>
     </template>
   </template>
@@ -45,7 +53,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: function() {
             return [];
           },
-          notify: true
+          notify: true,
+          observer: 'onMapDataChange'
         }
       },
       ready: function() {
@@ -53,6 +62,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if(!L.Icon.Default.imagePath) {
           L.Icon.Default.imagePath = 'bower_components/leaflet/dist/images';
         }
+      },
+      onMapDataChange: function() {
+        this.hasMultipleLocations = this.mapData && this.mapData.length > 1;
+        this.hasSingleLocation = this.mapData && this.mapData.length === 1;
+      },
+      getLocation: function(index, path) {
+        return this.get(path, this.mapData[index]);
       }
     });
   })();
