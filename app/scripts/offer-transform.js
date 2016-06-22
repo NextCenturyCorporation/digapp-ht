@@ -45,18 +45,21 @@ var offerTransform = (function(_, commonTransforms) {
         person._id = _.get(record, 'itemOffered.uri');
         person._type = "provider";
         person.name = _.get(record, 'itemOffered.name', 'Name N/A');
-        person.ethnicities = _.get(record, 'itemOffered.ethnicity');
+        person.ethnicities = _.get(record, 'itemOffered.ethnicity') || [];
         person.height = _.get(record, 'itemOffered.height');
         person.weight = _.get(record, 'itemOffered.weight');
-        person.ages = _.get(record, 'itemOffered.age');
+        person.ages = _.get(record, 'itemOffered.age') || [];
+
+        person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
+        person.ages = (_.isArray(person.ages) ? person.ages : [person.ages]);
 
         var title = (person.name != 'Name N/A')? person.name : "";
         var sep = (title == "")? "": ", ";
-        if(person.ages) {
+        if(person.ages && person.ages.length) {
             title += sep + person.ages[0]
             sep = ", "
         }
-        if(person.ethnicities) {
+        if(person.ethnicities && person.ethnicities.length) {
             title += sep + person.ethnicities[0]
             sep = ", "
         }

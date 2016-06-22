@@ -34,6 +34,8 @@
   <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
 
   <!-- build:css styles/main.css -->
+  <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
+  <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
   <link rel="stylesheet" href="styles/main.css">
   <!-- endbuild-->
 
@@ -61,10 +63,10 @@
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
 
-    <!-- exposes clientConfig object which is a container for data 
+    <!-- exposes clientConfig object which is a container for data
       transform functions -->
     <client-config config="{{clientConfig}}"></client-config>
-    
+
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
@@ -74,10 +76,10 @@
       last-response="{{config}}"
       on-response="showConfig">
     </iron-ajax>
-     
+
     <!--initialize new elastic client connection to server
       esclient can be used throughout the application lifecycle -->
-    <elastic-client 
+    <elastic-client
       config="[[config.elasticConfig]]"
       client="{{esclient}}">
     </elastic-client>
@@ -86,20 +88,20 @@
       query string for:
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
-    <query-builder 
-      query="{{offerQuery}}" 
+    <query-builder
+      query="{{offerQuery}}"
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
     <!--make an search using {{singleEntityQuery}} and return results -->
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["offer"]'
       query='[[offerQuery]]'
       results="{{offer}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <!--make generic models for content sections -->
@@ -108,21 +110,21 @@
      data-out="{{offerDisplay}}"
      transform-function="[[clientConfig.transforms.offer.offer]]"
      ></json-transform>
-    
+
     <!-- Get the seller Object -->
-     <query-builder 
-      query="{{sellerQuery}}" 
+     <query-builder
+      query="{{sellerQuery}}"
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[offerDisplay.sellerId]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["seller"]'
       query='[[sellerQuery]]'
       results="{{seller}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -139,19 +141,19 @@
 
 
      <!-- Get revisions of the webpage for  Revision Graph -->
-     <query-builder 
-      query="{{pageRevisionsQuery}}" 
-      query-template="{{config.queryTemplates.webpageRevisions}}" 
+     <query-builder
+      query="{{pageRevisionsQuery}}"
+      query-template="{{config.queryTemplates.webpageRevisions}}"
       field="url.raw" value="[[offerDisplay.webpageUrl]]">
-    </query-builder>    
+    </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["webpage"]'
       query='[[pageRevisionsQuery]]'
       results="{{pageRevisions}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -172,7 +174,7 @@
       data-out="{{showSeller}}"
       combine-function="[[clientConfig.transforms.offer.computeShowSeller]]"
     ></json-combine>
-    
+
 
     <json-combine
       data-in1="[[offerDisplay.webpageUrl]]"
@@ -187,16 +189,15 @@
       query-template="{{config.queryTemplates.offerRevisions.query}}"
       paths-to-values="{{config.queryTemplates.offerRevisions.pathsToValues}}"
       values="[[mainEntityOfPageQueryValues]]">
-      >
     </bool-query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["offer"]'
       query='[[offerRevisionsQuery]]'
       results="{{offersWithSameUrlES}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -208,13 +209,13 @@
     <!-- Display Content -->
     <div class="entity">
       <paper-header-panel class="flex" mode="waterfall-tall">
-        
+
         <!-- Entity header -->
         <section class="paper-header layout vertical">
-          
+
           <!-- Entity title -->
           <div class="layout horizontal center">
-            <iron-icon class="iron-icon-huge" icon="maps:local-offer"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-offer-font" icon="maps:local-offer"></iron-icon>
             <section class="flex-auto">
 
               <div class="horizontal layout">
@@ -222,7 +223,7 @@
                   Offer: <span>[[offerDisplay.title]]</span>
                 </div>
                 <div class="horizontal end-justified layout">
-                  <annotate-record client="[[esclient]]" 
+                  <annotate-record client="[[esclient]]"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     query-template="{{config.queryTemplates.annotationQuery}}"
@@ -234,56 +235,65 @@
                 Posted <time is="relative-time" datetime$="[[offerDisplay.date]]"></time>
               </div>
             </section>
-            
+
             <!-- Places actions performed on the entity here -->
 
           </div>
-            
+
         </section>
 
         <!-- Entity body -->
         <div class="entity-page">
 
           <div class="content">
-            
+
             <!-- Left pane -->
             <div class="flex layout vertical">
-              
+
               <!-- What section (item details) -->
               <paper-material>
                 <section class="what">
                   <!-- Description -->
                   <div class="what-section">
-                    <dl class="flex-12">
-                      <dt class="body">Description:</dt><dd>[[offerDisplay.body]]</dd>
-                    </dl>
+                    <div class="flex-12">
+                      <div class="desc-header">Description:</div>
+                      <div class="desc-body">[[offerDisplay.body]]</div>
+                    </div>
                   </div>
 
                   <hr>
                   <!-- Publisher -->
                   <div class="what-section">
-                      <dl class="flex">
-                      <dt class="publisher layout horizontal center entity-webpage-font">
-                        <iron-icon icon="av:web"></iron-icon>
+                    <div class="flex">
+                      <div class="desc-header layout horizontal center entity-webpage-font">
                         Publisher:
-                      </dt>
+                      </div>
                       <!-- TO DO: Make these links to their entity pages -->
-                      <dd>[[offerDisplay.webpageUrl]]</dd>
-                    </dl>
+                      <div class="desc-body">
+                        <span title="[[offerDisplay.webpageUrl]]">
+                          <iron-icon class="iron-icon-small entity-webpage-font" icon="av:web"></iron-icon>
+                          <span>[[offerDisplay.webpageUrl]]</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <!-- Price if available -->
                   <template is="dom-if" if="{{offerDisplay.price.length}}">
                     <hr>
                     <div class="what-section">
-                      <dl class="flex">
-                        <dt class="price layout horizontal center entity-webpage-font">
-                          <iron-icon icon="editor:attach-money"></iron-icon>
+                      <div class="flex">
+                        <div class="desc-header layout horizontal center entity-money-font">
                           Price:
-                        </dt>
+                        </div>
                         <!-- TO DO: Make these links to their entity pages -->
-                        <dd>[[offerDisplay.price]]</dd>
-                      </dl>
+                        <div class="desc-body">
+                          <span title="[[offerDisplay.price]]">
+                            <iron-icon class="iron-icon-small entity-money-font" icon="editor:attach-money"></iron-icon>
+                            <span>[[offerDisplay.price]]</span>
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </template>
 
@@ -291,21 +301,14 @@
                   <template is="dom-if" if="{{webpageDisplay.phones.length}}">
                     <hr>
                     <div class="what-section">
-                      <dl class="flex">
-                        <dt class="phones layout horizontal center entity-phone-font">
-                          <iron-icon icon="communication:phone"></iron-icon>
-                          Phone Numbers:
-                        </dt>
-                        <dd>
-                          <records-list
-                            client="[[esclient]]"
-                            annotation-index="[[config.annotationIndex]]"
-                            annotation-type="[[config.annotationType]]"
-                            annotation-query-template="{{config.queryTemplates.annotationQuery}}"
-                            current-results="[[webpageDisplay.phones]]">
-                          </records-list>
-                        </dd>
-                      </dl>
+                      <div class="flex">
+                        <div class="desc-header layout horizontal center entity-phone-font">
+                          Telephone Numbers:
+                        </div>
+                        <records-grid
+                          records="[[webpageDisplay.phones]]">
+                        </records-grid>
+                      </div>
                     </div>
                   </template>
 
@@ -313,96 +316,18 @@
                   <template is="dom-if" if="{{webpageDisplay.emails.length}}">
                     <hr>
                     <div class="what-section">
-                      <dl class="flex">
-                        <dt class="emails layout horizontal center entity-email-font">
-                          <iron-icon icon="communication:email"></iron-icon>
-                          Emails:
-                        </dt>
-                        <dd>
-                          <records-list
-                            client="[[esclient]]"
-                            annotation-index="[[config.annotationIndex]]"
-                            annotation-type="[[config.annotationType]]"
-                            annotation-query-template="{{config.queryTemplates.annotationQuery}}"
-                            current-results="[[webpageDisplay.emails]]">
-                          </records-list>
-                        </dd>
-                      </dl>
+                      <div class="flex">
+                        <div class="desc-header emails layout horizontal center entity-email-font">
+                          Email Addresses:
+                        </div>
+                        <records-grid
+                          records="[[webpageDisplay.emails]]">
+                        </records-grid>
+                      </div>
                     </div>
                   </template>
                 </section>
               </paper-material>
-              
-              <!-- Seller section -->
-              <template is="dom-if" if="{{showSeller}}">
-                <div class="h-divider"></div>
-                <paper-material>
-                  <section class="who">
-                    <div class="who">
-                      <div class="paper-font-title">
-                        <single-record
-                          client="[[esclient]]" annotation-index="[[config.annotationIndex]]"
-                          annotation-type="[[config.annotationType]]"
-                          annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                          item="{{sellerObject}}">
-                        </single-record>
-                      </div>
-                    </div>
-                    <records-grid
-                      current-results="[[sellerPhoneEmails]]">
-                    </records-grid>
-                  </section>
-                </paper-material>
-              </template>
-
-              <!-- Provider Section -->
-              <template is="dom-if" if="{{offerDisplay.person.show}}">
-                <div class="h-divider"></div>
-                <paper-material>
-                  <section class="who">
-                    
-                    <!-- Single person detail layout -->
-                    <single-record 
-                      client="[[esclient]]"
-                      annotation-index="[[config.annotationIndex]]"
-                      annotation-type="[[config.annotationType]]"
-                      annotation-query-template="{{config.queryTemplates.annotationQuery}}"
-                      image-url="[[getFirstArrayElement(imageResults)]]"
-                      item="{{offerDisplay.person}}">
-                    </single-record>
-
-                    <div class="layout horizontal provider-details">
-                      <template is="dom-if" if="{{offerDisplay.person.ages}}">
-                        <dl class="flex">
-                          <dt class="age">Age:</dt>
-                          <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
-                            <dd>[[age]]</dd>
-                          </template>
-                        </dl>
-                      </template>
-                      <template is="dom-if" if="{{offerDisplay.person.ethnicities}}">
-                        <dl class="flex">
-                          <dt class="ethnicity">Ethnicity:</dt>
-                          <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
-                            <dd>[[ethnicity]]</dd>
-                          </template>
-                        </dl>
-                      </template>
-                      <template is="dom-if" if="{{offerDisplay.person.height}}">
-                        <dl class="flex">
-                          <dt class="height">Height:</dt><dd>[[offerDisplay.person.height]] cm</dd>
-                        </dl>
-                      </template>
-                      <template is="dom-if" if="{{offerDisplay.person.weight}}">
-                        <dl class="flex">
-                          <dt class="weight">Weight:</dt><dd>[[offerDisplay.person.weight]] kg</dd>
-                        </dl>
-                      </template>
-                    </div>
-                    
-                  </section>
-                </paper-material>
-              </template>
 
               <div class="h-divider"></div>
 
@@ -420,15 +345,88 @@
                   </image-query-and-display>
                 </section>
               </paper-material>
+
+              <!-- Provider Section -->
+              <template is="dom-if" if="{{offerDisplay.person.show}}">
+                <div class="h-divider"></div>
+                <paper-material>
+                  <section class="who">
+                    <div class="paper-font-title">Product</div>
+
+                    <!-- Single person detail layout -->
+                    <single-record
+                      client="[[esclient]]"
+                      annotation-index="[[config.annotationIndex]]"
+                      annotation-type="[[config.annotationType]]"
+                      annotation-query-template="{{config.queryTemplates.annotationQuery}}"
+                      image-urls="[[imageResults.array]]"
+                      item="{{offerDisplay.person}}">
+                    </single-record>
+
+                    <div class="layout horizontal provider-details">
+                      <template is="dom-if" if="{{offerDisplay.person.ages.length}}">
+                        <div class="flex">
+                          <div class="desc-header">Age:</div>
+                          <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
+                            <div class="desc-body">[[age]]</div>
+                          </template>
+                        </div>
+                      </template>
+                      <template is="dom-if" if="{{offerDisplay.person.ethnicities.length}}">
+                        <div class="flex">
+                          <div class="desc-header">Ethnicity:</div>
+                          <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
+                            <div class="desc-body">[[ethnicity]]</div>
+                          </template>
+                        </div>
+                      </template>
+                      <template is="dom-if" if="{{offerDisplay.person.height}}">
+                        <div class="flex">
+                          <div class="desc-header">Height:</div>
+                          <div class="desc-body">[[offerDisplay.person.height]] cm</div>
+                        </div>
+                      </template>
+                      <template is="dom-if" if="{{offerDisplay.person.weight}}">
+                        <div class="flex">
+                          <div class="desc-header">Weight:</div>
+                          <div class="desc-body">[[offerDisplay.person.weight]] kg</div>
+                        </div>
+                      </template>
+                    </div>
+
+                  </section>
+                </paper-material>
+              </template>
+
+              <!-- Seller section -->
+              <template is="dom-if" if="{{showSeller}}">
+                <div class="h-divider"></div>
+                <paper-material>
+                  <section class="who">
+                    <div class="paper-font-title">Seller</div>
+
+                    <div class="who">
+                      <single-record
+                        client="[[esclient]]" annotation-index="[[config.annotationIndex]]"
+                        annotation-type="[[config.annotationType]]"
+                        annotation-query-template="[[config.queryTemplates.annotationQuery]]"
+                        item="{{sellerObject}}">
+                      </single-record>
+                    </div>
+                    <records-grid
+                      records="[[sellerPhoneEmails]]">
+                    </records-grid>
+                  </section>
+                </paper-material>
+              </template>
             </div>
 
             <div class="v-divider"></div>
-            
+
             <!-- Right Pane -->
             <div class="flex layout vertical">
               <!-- Map section -->
               <paper-material>
-                  
                   <!-- Address -->
                   <section class="where-header flex-none content">
                     <div class="paper-font-title layout horizontal start center">
@@ -436,34 +434,35 @@
                       <div>[[offerDisplay.address.formattedAddress]]</div>
                     </div>
                   </section>
-                  
-                  <!-- Leaflet map -->
-                  <section class="where flex-auto">
-                    <template is="dom-if" if="{{offerDisplay.geo}}">
-                      <leaflet-map latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]" zoom="10">
-                        <leaflet-marker latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]"></leaflet-marker> 
-                      </leaflet-map> 
-                    </template>
-                  </section>
-              </paper-material>
 
-              <div class="h-divider"></div>
+                  <!-- Leaflet map -->
+                  <template is="dom-if" if="{{offerDisplay.geo}}">
+                    <section class="where flex-auto">
+                      <leaflet-map latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]" zoom="10">
+                        <leaflet-marker latitude="[[offerDisplay.geo.latitude]]" longitude="[[offerDisplay.geo.longitude]]"></leaflet-marker>
+                      </leaflet-map>
+                    </section>
+                  </template>
+              </paper-material>
 
               <!-- Revisions Timeline -->
-              <paper-material>
-                  <section class="when">
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                      <div>
-                        Revisions to this page between {{minXValue}} and {{maxXValue}}
+              <template is="dom-if" if="[[hasMultipleElements(webpagePageRevisions)]]">
+                <div class="h-divider"></div>
+                <paper-material>
+                    <section class="when">
+                      <div class="paper-font-title layout horizontal start center">
+                        <iron-icon class="iron-icon-big entity-date-font" icon="icons:timeline"></iron-icon>
+                        <div>
+                          Revisions to this page between {{minXValue}} and {{maxXValue}}
+                        </div>
                       </div>
-                    </div>
-                    <bar-chart y-axis-label="" data='[[webpagePageRevisions]]' 
-                      chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                      min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                    </bar-chart>
-                  </section>
-              </paper-material>
+                      <bar-chart y-axis-label="" data='[[webpagePageRevisions]]'
+                        chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
+                        min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                      </bar-chart>
+                    </section>
+                </paper-material>
+              </template>
 
               <!-- All Revisions - Offers -->
               <template is="dom-if" if="{{offersWithSameUrl.length}}">
@@ -499,7 +498,7 @@
   (function(document) {
     var app = document.querySelector('#app');
 
-    app.showConfig = function (req, res) {
+    app.showConfig = function(req, res) {
       console.log('REQ: ', req);
       console.log('RES: ', res);
     };
@@ -518,8 +517,8 @@
       return [phone, email, sellerId, personId, webpageId];
     };
 
-    app.getFirstArrayElement = function(array) {
-      return array[0];
+    app.hasMultipleElements = function(array) {
+      return array.length > 1;
     };
 
     app.getURLParams();

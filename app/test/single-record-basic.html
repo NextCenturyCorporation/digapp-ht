@@ -40,39 +40,66 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecordElem = fixture('single-record-fixture');
-      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
-      singleRecordElem.expanded = 'item';
-      flush(function(){
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle', 'details': {'address': ['LA', 'SF'], 'date': '2016-01-01', 'description': 'myDesc', 'publisher': 'myPublisher'}};
+      flush(function() {
         done();
       });
     });
 
-    test('expect an paper-icon-item element', function() {
+    test('has a paper-icon-item element', function() {
       expect(document.querySelector('paper-icon-item')).to.exist;
     });
 
-    test('getItemValue() returns correct value', function() {
-      expect(singleRecordElem.getItemValue({title: 'record', details: {address: 'LA'}}, 'address')).to.equal('LA');
+    test('has an iron-collapse element', function() {
+      expect(document.querySelector('iron-collapse')).to.exist;
     });
 
-    test('isValueArray() returns expected boolean values', function() {
-      expect(singleRecordElem.isValueArray({title: 'record', details: {key: [1, 2, 3]}}, 'key')).to.be.true;
-      expect(singleRecordElem.isValueArray({title: 'record', details: {key: 'not array'}}, 'key')).to.be.false;
+    test('showDetails is true', function() {
+      expect(singleRecordElem.showDetails).to.be.true;
     });
 
-    test('replaceCamelCase() adds spaces to camel cased strings', function() {
-      expect(singleRecordElem.replaceCamelCase('stuff')).to.be.equal('stuff');
-      expect(singleRecordElem.replaceCamelCase('camelCase')).to.be.equal('camel Case');
+    test('getDetailArrayForKey() returns correct value for undefined', function() {
+      var details = singleRecordElem.getDetailArrayForKey({}, 'address');
+      expect(details).to.exist;
+      expect(details).to.be.an('Array');
+      expect(details.length).to.equal(0);
     });
 
-    test('getAllItemKeys() returns all the keys from the details of the item', function() {
-      var item = {title: 'record', details: {array: [1, 2, 3], address: 'LA', name: 'test'}};
-      expect(singleRecordElem.getAllItemKeys(item)).to.be.deep.equal(['array', 'address', 'name']);
+    test('getDetailArrayForKey() returns correct value for single item', function() {
+      var details = singleRecordElem.getDetailArrayForKey({address: 'LA'}, 'address');
+      expect(details).to.exist;
+      expect(details).to.be.an('Array');
+      expect(details.length).to.equal(1);
+      expect(details[0]).to.equal('LA');
     });
 
-    test('getAllItemKeys() results in undefined if no details exist', function() {
+    test('getDetailArrayForKey() returns correct value for list', function() {
+      var details = singleRecordElem.getDetailArrayForKey({address: ['LA', 'SF']}, 'address');
+      expect(details).to.exist;
+      expect(details).to.be.an('Array');
+      expect(details.length).to.equal(2);
+      expect(details[0]).to.equal('LA');
+      expect(details[1]).to.equal('SF');
+    });
+
+    test('replaceCamelCaseText() adds spaces to camel cased strings', function() {
+      expect(singleRecordElem.replaceCamelCaseText('test')).to.be.equal('test');
+      expect(singleRecordElem.replaceCamelCaseText('camelCase')).to.be.equal('camel Case');
+    });
+
+    test('getDetailKeysArray() returns all the keys from the details', function() {
+      var details = {'address': ['LA', 'SF'], 'date': '2016-01-01', 'description': 'myDesc', 'publisher': 'myPublisher'};
+      expect(singleRecordElem.getDetailKeysArray(details)).to.be.deep.equal(['address', 'date', 'description', 'publisher']);
+    });
+
+    test('getDetailKeysArray() returns [] if no details exist', function() {
       var item = {title: 'record'};
-      expect(singleRecordElem.getAllItemKeys(item)).to.be.undefined;
+      expect(singleRecordElem.getDetailKeysArray(item.details)).to.be.deep.equal([]);
+    });
+
+    test('getDetailKeysArray() returns sorted keys if available', function() {
+      var details = {'address': ['LA', 'SF'], 'date': '2016-01-01', 'description': 'myDesc', 'publisher': 'myPublisher', '_sortedKeys': ['description', 'address', 'publisher']};
+      expect(singleRecordElem.getDetailKeysArray(details)).to.be.deep.equal(['description', 'address', 'publisher']);
     });
 
     test('createURL returns URL based on parameters passed in', function() {
@@ -82,8 +109,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(result).to.be.equal(expectedURL);
     });
 
+    test('getButtonText() returns "open <type>" for non-offer types', function() {
+      expect(singleRecordElem.getButtonText('email')).to.equal('open email');
+      expect(singleRecordElem.getButtonText('person')).to.equal('open person');
+      expect(singleRecordElem.getButtonText('phone')).to.equal('open phone');
+      expect(singleRecordElem.getButtonText('seller')).to.equal('open seller');
+      expect(singleRecordElem.getButtonText('webpage')).to.equal('open webpage');
+    });
+
+    test('getButtonText() returns "open ad" for offer type', function() {
+      expect(singleRecordElem.getButtonText('offer')).to.equal('open ad');
+    });
+
     test('getIconClass() returns a class string based on the type passed in', function() {
-      expect(singleRecordElem.getIconClass('offer')).to.equal('entity-icon entity-offer-font');
+      expect(singleRecordElem.getIconClass('email')).to.equal('entity-email-font');
+      expect(singleRecordElem.getIconClass('person')).to.equal('entity-person-font');
+      expect(singleRecordElem.getIconClass('phone')).to.equal('entity-phone-font');
+      expect(singleRecordElem.getIconClass('offer')).to.equal('entity-offer-font');
+      expect(singleRecordElem.getIconClass('seller')).to.equal('entity-seller-font');
+      expect(singleRecordElem.getIconClass('webpage')).to.equal('entity-webpage-font');
     });
 
     test('getIcon() returns the appropriate icon for the type passed in', function() {
@@ -95,20 +139,177 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecordElem.getIcon('webpage')).to.equal('av:web');
     });
 
-    test('getTarget() returns "_self" since newTab is false', function() {
-      expect(singleRecordElem.target).to.equal('_self');
+    test('getSubtitleArray() given a single item returns a list', function() {
+      expect(singleRecordElem.getSubtitleArray('one')).to.be.deep.equal(['one']);
     });
 
-    test('item.imageSrc is undefined', function() {
-      expect(singleRecordElem.item.imageSrc).to.be.undefined;
+    test('getSubtitleArray() given a list returns that list', function() {
+      expect(singleRecordElem.getSubtitleArray(['one', 'two'])).to.be.deep.equal(['one', 'two']);
     });
 
-    test('isDefined(item.imageSrc) returns false', function() {
-      expect(singleRecordElem.isDefined(singleRecordElem.item.imageSrc)).to.be.false;
+    test('getSubtitleArray() given undefined returns a list', function() {
+      expect(singleRecordElem.getSubtitleArray()).to.be.deep.equal([]);
     });
 
-    test('expect no iron-image element', function() {
+    test('getSubtitleTooltip() returns the correct value', function() {
+      expect(singleRecordElem.getSubtitleTooltip(['one', 'two'])).to.equal('one, two');
+    });
+
+    test('getTarget() returns "_self" when newTab is false', function() {
+      expect(singleRecordElem.getTarget(false)).to.equal('_self');
+    });
+
+    test('details start collapsed', function() {
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+    });
+
+    test('toggleRecord() opens the details', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.true;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('opened')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.false;
+    });
+
+    test('toggleRecord() does nothing if a paper-button is clicked', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return false;
+            }
+          },
+          localName: 'paper-button'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+    });
+
+    test('toggleRecord() does nothing if a paper-icon-button is clicked', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return item === 'paper-icon-button';
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.exist;
+      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+    });
+
+    test('onItemChange() closes the details', function() {
+      singleRecordElem.opened = true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      recordDetail.classList.remove('iron-collapse-closed');
+      recordDetail.classList.add('iron-collapse-opened');
+
+      singleRecordElem.onItemChange();
+      expect(singleRecordElem.opened).to.be.false;
+      expect(recordDetail.classList.contains('iron-collapse-opened')).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+    });
+
+    test('item.imageSources is undefined', function() {
+      expect(singleRecordElem.item.imageSources).to.be.undefined;
+    });
+
+    test('has no iron-image element', function() {
       expect(document.querySelector('iron-image')).to.not.exist;
+    });
+  });
+
+  suite('<single-record> with no details', function() {
+    var singleRecordElem;
+
+    setup(function(done) {
+      singleRecordElem = fixture('single-record-fixture');
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle'};
+      flush(function() {
+        done();
+      });
+    });
+
+    test('has no iron-collapse element for an item with no details', function() {
+      expect(document.querySelector('iron-collapse')).to.not.exist;
+    });
+
+    test('showDetails is false for an item with no details', function() {
+      expect(singleRecordElem.showDetails).to.be.false;
+    });
+
+    test('toggleRecord() does nothing for an item with no details', function() {
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function(item) {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      singleRecordElem.toggleRecord(mockEvent);
+      expect(singleRecordElem.opened).to.be.false;
+      var recordHead = singleRecordElem.$$('.record-head');
+      expect(recordHead).to.exist;
+      expect(recordHead.classList.contains('closed')).to.be.true;
+      var recordDetail = singleRecordElem.$$('.record-detail');
+      expect(recordDetail).to.not.exist;
+    });
+
+    test('updateImageSrcFromUrls() sets imageSrc and showDetails', function() {
+      expect(singleRecordElem.imageSrc).to.equal('');
+      singleRecordElem.updateImageSrcFromUrls(['url1', 'url2']);
+      expect(singleRecordElem.imageSrc).to.equal('url1');
+      expect(singleRecordElem.showDetails).to.be.true;
+    });
+
+    test('updateImageSrcFromUrls() with an empty array sets imageSrc to a truthy value', function() {
+      expect(singleRecordElem.imageSrc).to.equal('');
+      singleRecordElem.updateImageSrcFromUrls([]);
+      expect(!!singleRecordElem.imageSrc).to.be.true;
+      expect(singleRecordElem.showDetails).to.be.false;
     });
   });
 
@@ -117,47 +318,52 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecordElem = fixture('single-record-fixture');
-      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'title', 'details': {'address': 'LA'}};
-      singleRecordElem.expanded = 'item';
+      singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle'};
       singleRecordElem.newTab = true;
-      flush(function(){
+      flush(function() {
         done();
       });
     });
 
-    test('getTarget() returns "_blank" since newTab is true', function() {
-      expect(singleRecordElem.target).to.equal('_blank');
+    test('getTarget() returns "_blank" when newTab is true', function() {
+      expect(singleRecordElem.getTarget(true)).to.equal('_blank');
     });
-
   });
 
-  suite('<single-record> with imageUrl', function() {
+  suite('<single-record> with imageUrls', function() {
     var singleRecordElem;
 
     setup(function(done) {
       singleRecordElem = fixture('single-record-fixture');
       singleRecordElem.item = {'_id': '1', '_type': 'offer'};
-      singleRecordElem.expanded = 'item';
-      singleRecordElem.imageUrl = 'url';
-      flush(function(){
+      singleRecordElem.imageUrls = ['url1', 'url2'];
+      flush(function() {
         done();
       });
     });
 
-    test('has imageUrl', function() {
-      expect(singleRecordElem.imageUrl).to.equal('url');
+    test('has imageUrls', function() {
+      expect(singleRecordElem.imageUrls).to.be.deep.equal(['url1', 'url2']);
     });
 
-    test('item.imageSrc equals imageUrl', function() {
-      expect(singleRecordElem.item.imageSrc).to.equal('url');
+    test('imageSrc equals imageUrls[0]', function() {
+      expect(singleRecordElem.imageSrc).to.equal('url1');
     });
 
-    test('isDefined(item.imageSrc) returns true because imageUrl is defined', function() {
-      expect(singleRecordElem.isDefined(singleRecordElem.item.imageSrc)).to.be.true;
-    });
-
-    test('shows an iron-image element', function() {
+    test('has an iron-image element', function() {
       expect(document.querySelector('iron-image')).to.exist;
+    });
+
+    test('showDetails is true for an item with imageUrls', function() {
+      expect(singleRecordElem.showDetails).to.be.true;
+    });
+
+    test('has an iron-collapse element for the imageUrls', function() {
+      expect(document.querySelector('iron-collapse')).to.exist;
+    });
+
+    test('has an image-viewer element for the imageUrls', function() {
+      expect(document.querySelector('image-viewer')).to.exist;
     });
   });
 
@@ -167,7 +373,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     setup(function(done) {
       singleRecordElem = fixture('single-record-fixture');
       singleRecordElem.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle'};
-      singleRecordElem.expanded = 'item';
       singleRecordElem.imageQueryTemplate = {
         query: {
           match: {
@@ -177,7 +382,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
       singleRecordElem.imageQueryField = 'myField';
       singleRecordElem.imageQueryValue = 'title';
-      flush(function(){
+      flush(function() {
         done();
       });
     });
@@ -201,7 +406,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecordElem.imageQuery).to.be.an('Object');
       expect(singleRecordElem.imageQuery.query).to.be.an('Object');
       expect(singleRecordElem.imageQuery.query.match).to.be.an('Object');
-      expect(singleRecordElem.imageQuery.query.match['myField']).to.equal('myTitle');
+      expect(singleRecordElem.imageQuery.query.match.myField).to.equal('myTitle');
     });
   });
 </script>

@@ -9,10 +9,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iron-list/iron-list.html">
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
-<link rel="import" href="../../bower_components/iron-selector/iron-selector.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../lodash.html">
+<link rel="import" href="../dig-behaviors/result-list-behavior.html">
+<link rel="import" href="../single-record/single-record.html">
 
 <!-- height will be determined by what's set on parent element -->
 <dom-module id="records-list">
@@ -25,32 +27,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       iron-scroll-threshold {
         height: 100%;
-        /* Max Height = Height of 20 Single Records */
-        max-height: 1700px;
-      }
-
-      iron-list {
-        height: 100%;
+        /* Max Height = Height of 50 Single Records */
+        max-height: 5000px;
       }
 
       .end-of-list {
+        margin-top: 10px;
         text-align: center;
       }
 
       .end-of-list paper-spinner {
-        width: 16px;
         height: 16px;
+        width: 16px;
         margin-right: 10px;
-        margin-top: 10px;
       }
 
-      .end-of-list paper-button {
-        margin-top: 10px;
+      .load-text {
+        line-height: 41px;
       }
     </style>
 
-    <iron-scroll-threshold id="scrollThreshold" on-lower-threshold="changeShowMore">
-      <template is="dom-repeat" items="{{recordsToShow}}" initial-count="25">
+    <iron-scroll-threshold class="scroll-threshold">
+      <template is="dom-repeat" items="{{displayResults}}" initial-count="25">
         <single-record item="{{item}}"
           client="[[client]]"
           index="[[elasticIndex]]"
@@ -61,30 +59,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           annotation-index="[[annotationIndex]]"
           annotation-type="[[annotationType]]"
           annotation-query-template="{{annotationQueryTemplate}}"
-          expanded="[[getClassForItem(item.selected)]]"
-          new-tab="{{newTab}}"
-          on-tap="toggleSelectRecord">
+          new-tab="{{newTab}}">
         </single-record>
       </template>
     </iron-scroll-threshold>
 
     <div class="end-of-list">
-      <template is="dom-if" if="{{displayShowMore}}">
-        <paper-button raised on-click="changePageNum">Show More</paper-button>
+      <template is="dom-if" if="{{showMore}}">
+        <paper-button raised on-click="goToNextPage">Show More</paper-button>
       </template>
       <template is="dom-if" if="{{loading}}">
-        <paper-spinner active="{{loading}}"></paper-spinner>Loading results...
+        <paper-spinner active="{{loading}}"></paper-spinner>
+        <span class="load-text">Loading Results...</span>
       </template>
     </div>
   </template>
 
   <script>
   (function() {
-    /* globals _ */
+    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'records-list',
+
+      behaviors: [DigBehaviors.ResultListBehavior],
+
       properties: {
         /**
          * an instance of elasticsearch.Client which is connected to
@@ -93,79 +93,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         client: {
           type: Object
         },
+
         /**
          * the annotation index (database name)
          */
         annotationIndex: {
           type: String
         },
+
         /**
          * the annotation type
          */
         annotationType: {
           type: String
         },
+
         /**
          * query template to find existing annotations
          */
         annotationQueryTemplate: {
           type: Object
         },
-        /**
-        * Records on current page of query results
-        */
-        currentResults: {
-          type: Array
-        },
-        /**
-        * Records to display -- currentResults will be pushed onto the array.
-        */
-        recordsToShow: {
-          type: Array,
-          value: function() {
-            return [];
-          },
-          notify: true
-        },
+
         newTab: {
           type: Boolean,
           value: false,
           notify: true
-        },
-        page: {
-          type: Number,
-          value: 1,
-          notify: true
-        },
-        resultsPerPage: {
-          type: Number,
-          value: 25,
-          notify: true
-        },
-        numResults: {
-          type: Number,
-          value: 25,
-          notify: true
-        },
-        numPages: {
-          type: Number,
-          notify: true,
-          computed: 'calcNumPages(numResults, resultsPerPage)'
-        },
-        loading: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-        showMore: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-        displayShowMore: {
-          type: Boolean,
-          notify: true,
-          computed: 'calcDisplayShowMore(showMore, loading)'
         },
 
         /**
@@ -205,63 +158,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       observers: [
-        'updateRecordsToShow(currentResults, loading)'
+        // TODO:  This triggers on adding each element to the array but we really only need it to trigger once.
+        'onDataAdded(displayResults.splices, page)'
       ],
 
-      calcDisplayShowMore: function(showMore, loading) {
-        return showMore && (!loading);
-      },
-
-      changeShowMore: function() {
-        if(this.numPages > 1 && this.numResults > 0 && this.page !== this.numPages) {
-          this.showMore = true;
-        }
-      },
-
-      getClassForItem: function(selected) {
-        return selected ? 'item expanded' : 'item';
-      },
-
       /**
-      * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
-      * 
-      * If a new query is entered, the page resets to 1, in which case recordsToShow gets reset 
-      * to a blank array before adding the new results. 
-      */
-      updateRecordsToShow: function() {
-        var self = this;
-
-        if(!this.loading) {
-          if(this.page === 1) {
-            this.recordsToShow = [];
-          }
-
-          _.each(this.currentResults, function(item) {
-            self.push('recordsToShow', item);
-          });
-
-          this.$.scrollThreshold.clearTriggers();
-          this.showMore = false;
+       * Handles any needed behavior when data is added to the list.
+       */
+      onDataAdded: function() {
+        // Scroll to the top of the list if the data in the list was replaced with different data.
+        if(this.page === 1) {
+          this.$$('.scroll-threshold').scroll(0, 0);
         }
-
-      },
-
-      changePageNum: function() {
-        this.showMore = false;
-        if(this.page < this.numPages) {
-          this.page += 1;
-        }
-      },
-
-      calcNumPages: function(numResults, resultsPerPage) {
-        if(this.page !== 1) {
-          this.page = 1;
-        }
-        return Math.ceil(numResults / resultsPerPage); 
-      },
-
-      toggleSelectRecord: function(event) {
-        event.model.set('item.selected', !event.model.item.selected);
       }
     });
   })();

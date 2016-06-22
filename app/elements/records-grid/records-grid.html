@@ -9,7 +9,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="records-grid">
@@ -24,21 +26,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       iron-scroll-threshold {
         height: 100%;
         max-height: 600px;
-      }
-
-      .end-of-list {
-        text-align: center;
-      }
-
-      .end-of-list paper-spinner {
-        width: 16px;
-        height: 16px;
-        margin-right: 10px;
-        margin-top: 10px;
-      }
-
-      .end-of-list paper-button {
-        margin-top: 10px;
       }
 
       .grid-cell {
@@ -59,52 +46,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         font-size: 15px;
         text-decoration: none;
       }
-
-      .grid-cell .grid-item iron-icon {
-        height: 18px;
-        width: 18px;
-      }
     </style>
 
     <iron-scroll-threshold id="scrollThreshold">
-      <template is="dom-repeat" items="{{recordsToShow}}" as="item">
+      <template is="dom-repeat" items="{{records}}" as="item">
         <div class="grid-cell">
           <div class="grid-item">
             <a href$="{{createURL(item._type, item._id, '_id', blur)}}">
-              <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
-              <strong title="[[item.title]]">[[item.title]]</strong>
+              <iron-icon class$="iron-icon-small [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+              <strong title="Open [[item._type]]:  [[item.title]]">[[item.title]]</strong>
             </a>
           </div>
         </div>
       </template>
     </iron-scroll-threshold>
-
-    <div class="end-of-list">
-      <template is="dom-if" if="{{loading}}">
-        <paper-spinner active="{{loading}}"></paper-spinner>Loading results...
-      </template>
-    </div>
   </template>
 
   <script>
   (function() {
-    /* globals _ */
     'use strict';
 
     Polymer({
       is: 'records-grid',
-      properties: {
-        /**
-        * Records on current page of query results
-        */
-        currentResults: {
-          type: Array
-        },
 
-        /**
-        * Records to display -- currentResults will be pushed onto the array.
-        */
-        recordsToShow: {
+      properties: {
+        records: {
           type: Array,
           value: function() {
             return [];
@@ -112,19 +78,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
-        loading: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
         blur: {
           type: Boolean
         }
       },
-
-      observers: [
-        'updateRecordsToShow(currentResults, loading)'
-      ],
 
       ready: function() {
         var blur = true;
@@ -141,34 +98,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
       },
 
-      /**
-      * Gets called when currentResults change. Pushes new results onto the recordsToShow array.
-      */
-      updateRecordsToShow: function() {
-        var self = this;
-
-        if(!this.loading) {
-          _.each(this.currentResults, function(item) {
-            self.push('recordsToShow', item);
-          });
-
-          this.$.scrollThreshold.clearTriggers();
-        }
-      },
-
       getIconClass: function(type) {
         return 'entity-' + type + '-font';
       },
 
       getIcon: function(type) {
         switch(type) {
-            case 'email': return 'communication:email';
-            case 'offer': return 'maps:local-offer';
-            case 'person': return 'icons:account-circle';
-            case 'phone': return 'communication:phone';
-            case 'provider': return 'icons:account-circle';
-            case 'seller': return 'editor:attach-money';
-            case 'webpage': return 'av:web';
+          case 'email': return 'communication:email';
+          case 'offer': return 'maps:local-offer';
+          case 'person': return 'icons:account-circle';
+          case 'phone': return 'communication:phone';
+          case 'provider': return 'icons:account-circle';
+          case 'seller': return 'editor:attach-money';
+          case 'webpage': return 'av:web';
         }
       }
     });

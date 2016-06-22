@@ -7,136 +7,189 @@ The complete set of contributors may be found at http://polymer.github.io/CONTRI
 Code distributed by Google as part of the polymer project is also
 subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
 -->
+
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-header-panel/paper-header-panel.html">
 <link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 
 <dom-module id="itinerary-list">
+  <template>
+    <style include="icon-styles"></style>
 
-  <style>
-    :host {
-      display: block;
-    }
+    <style>
+      :host {
+        display: block;
+        /* Max Height = Height of 50 Items */
+        max-height: 3000px;
+        overflow: auto;
+      }
 
-    .heading {
-      padding: 5px 0px ;
-      margin-top: 10px;
-      background-color: #f3f3f3;
-      border: 1px solid #dedede;
-      font-size: 14px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: rgba(0,0,0,0);
-      width: 100%;
-      text-align: left;
-    }
+      .itinerary-head {
+        cursor: pointer;
+        padding: 0 10px;
+      }
 
-    .itin-icon {
-      margin-right: 4px;
-      margin-left: 4px;
-      width:16px;
-      height: 16px;
-      color: grey;
-    }
+      .itinerary-head.collapse {
+        box-shadow: none;
+      }
 
-    iron-collapse.collapse {
-      border: 2px solid #dedede;
-    }
-    iron-collapse p.itinerary-location {
-      font-size: 14px;
-      color: #727272;
-      margin-bottom: 2px;
-      font-family: 'Roboto', 'Noto', sans-serif;
-    }
+      .itinerary-head.expand,
+      .itinerary-head:hover {
+        background-color: rgba(0,0,0,0.1);
+      }
 
-    iron-collapse .publisher {
-      margin-left: 24px;
-      margin-top: 0px;
-      font-size: 12px;
-      white-space: nowrap;
-      text-overflow: ellipsis;
-      font-family: 'Roboto', 'Noto', sans-serif;
-    }
+      paper-item,
+      paper-icon-item {
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
 
-    paper-header-panel {
-      float: left;
-      width: 100%;
-      margin-top: 5px;
-      min-height: 150px;
-      font-family: 'Roboto', 'Noto', sans-serif;
-      @apply(--shadow-elevation-2dp);
-    }
+      paper-icon-item {
+        /* Use the width of iron-icon-big */
+        --paper-item-icon-width: 36px;
+        --paper-item-icon: {
+          margin-right: 10px;
+        }
+      }
 
-    paper-toolbar {
-      background-color: grey;
-    }
-  </style>
+      iron-icon.collapse-icon,
+      iron-icon.expand-icon,
+      .itinerary-head:hover iron-icon {
+        display: none;
+      }
 
-<template>
-  <template is="dom-repeat" id="itinList" items="{{data}}">
-    <button class="heading" on-click="toggle"><iron-icon class="itin-icon" icon="icons:date-range"></iron-icon>{{dateFormat(item.date)}} - <small>{{item.city.length}} Location(s) : {{addLocToTitle(item.city)}}</small></button>
-    <iron-collapse id="collapse{{item.date}}" class="collapse" opened={{check(item.id)}}>
-      <div class="collapse-content"> 
-        <template is="dom-repeat" items='{{item.city}}'>
-          <div>
-          <p class="itinerary-location"><iron-icon icon="communication:location-on" class="itin-icon"></iron-icon>{{location(item.city)}}</p>
-            <template is="dom-repeat" items='{{item.data}}'>
-              <p class="publisher">
-                <span class="name"><strong>{{item.key}}:</strong> {{item.value}}</span><br>
-              </p>
-          </template>
-          </div>
-        </template>
+      .itinerary-head.collapse:hover iron-icon.collapse-icon,
+      .itinerary-head.expand:hover iron-icon.expand-icon {
+        display: block;
+      }
+
+      .date-icon {
+        color: var(--entity-date-color);
+        /* Add margin so the date icon is as wide as iron-icon-big */
+        margin: 0 6px;
+      }
+
+      .location-icon {
+        color: var(--entity-location-color);
+      }
+
+      .itinerary-head-text {
+        --paper-item-body-two-line-min-height: 60px;
+      }
+
+      .itinerary-body {
+        margin-bottom: 10px;
+        padding: 10px 0;
+      }
+
+      .itinerary-body-location {
+        --paper-item-min-height: 45px;
+        padding: 0 10px;
+      }
+
+      .itinerary-body-data {
+        --paper-item-min-height: 25px;
+        font-size: 14px;
+        padding: 0 55px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .capitalize {
+        text-transform: capitalize;
+      }
+    </style>
+
+    <template is="dom-repeat" items="{{data}}">
+      <div class="itinerary">
+        <paper-material class$="itinerary-head {{getHeaderClass(item.expand)}}" on-tap="toggleItinerary">
+          <paper-icon-item>
+            <iron-icon class="date-icon" icon="icons:date-range" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big collapse-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big expand-icon" icon="icons:expand-less" item-icon></iron-icon>
+
+            <paper-item-body class="itinerary-head-text" two-line>
+              <div><strong>{{formatDate(item.date)}}</strong></div>
+              <div secondary><strong>{{getLocationsForHeader(item.city)}}</strong></div>
+            </paper-item-body>
+          </paper-icon-item>
+        </paper-material>
+
+        <iron-collapse id="itinerary_{{item.date}}">
+          <paper-material class="itinerary-body">
+            <template is="dom-repeat" items='{{item.city}}' as="city">
+              <paper-icon-item class="itinerary-body-location">
+                <iron-icon icon="communication:location-on" class="itinerary-icon location-icon" item-icon></iron-icon>
+                <paper-item-body>
+                  <div><strong>{{getLocation(city.city)}}</strong></div>
+                </paper-item-body>
+              </paper-icon-item>
+
+              <template is="dom-repeat" items='{{city.data}}' as="cityItem">
+                <paper-item class="itinerary-body-data">
+                  <paper-item-body>
+                    <span>
+                      <strong class="capitalize">{{cityItem.key}}:</strong>
+                      <span>{{cityItem.value}}</span>
+                    </span>
+                  </paper-item-body>
+                </paper-item>
+              </template>
+            </template>
+          </paper-material>
+        </iron-collapse>
       </div>
-    </iron-collapse> 
+    </template>
   </template>
-</template>
-</dom-module>
-<script>
-  Polymer({
 
-    is: 'itinerary-list',
+  <script>
+    Polymer({
+      is: 'itinerary-list',
 
-    properties: {
-      data: {
+      properties: {
+        data: {
           type: Array,
           value: function() {
             return [];
           },
           notify: true
+        },
       },
-    },
-    check: function(id){
-      return false;
-    },
-    location: function(point){
-      return point.split(':').slice(0,2).join(', ');
-    },
 
-    toggle: function (event) {
-            var id = event.model.item;
-            var selector = '#collapse' + id.date;
-            this.$$(selector).toggle();
-    },
+      getLocation: function(city) {
+        return city.split(':').slice(0,2).join(', ');
+      },
 
-    dateFormat: function(date){
-      return new Date(date).toDateString();
-    },
+      getHeaderClass: function(expand) {
+        return (expand ? 'expand' : 'collapse');
+      },
 
-    addLocToTitle: function(cities){
-      var city = [];
-      var title = '';
-      for(var cityIn in cities){
-        if(cityIn>2){
-          title += ', + '+(cities.length-3) + " more";
-          break;
+      toggleItinerary: function(event) {
+        event.model.set('item.expand', !event.model.item.expand);
+        this.$$('#itinerary_' + event.model.item.date).toggle();
+      },
+
+      formatDate: function(date) {
+        return new Date(date).toDateString();
+      },
+
+      getLocationsForHeader: function(cities) {
+        var locations = '';
+        for(var i = 0; i < cities.length; ++i) {
+          if(i > 2) {
+            locations += ', and ' + (cities.length - 3) + ' more';
+            break;
+          } else {
+            locations += (i > 0 ? ', ' : '') + cities[i].city.split(':')[0];
+          }
         }
-        city.push(cities[cityIn].city.split(':')[0]);
+        return locations;
       }
-      title = city.join(', ') + title;
-      return title;
-    }
-
-  });
-
-</script>
+    });
+  </script>
+</dom-module>

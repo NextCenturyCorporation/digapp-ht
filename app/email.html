@@ -11,6 +11,8 @@
   <!-- Place favicon.ico in the `app/` directory -->
 
   <!-- build:css styles/main.css -->
+  <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
+  <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
   <link rel="stylesheet" href="styles/main.css">
   <!-- endbuild-->
 
@@ -34,10 +36,10 @@
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
 
-    <!-- exposes clientConfig object which is a container for data 
+    <!-- exposes clientConfig object which is a container for data
       transform functions -->
     <client-config config="{{clientConfig}}"></client-config>
-    
+
     <!--get app configuration from server -->
     <iron-ajax
       id="ajax"
@@ -47,10 +49,10 @@
       last-response="{{config}}"
       on-response="showConfig">
     </iron-ajax>
-     
+
     <!--initialize new elastic client connection to server
       esclient can be used throughout the application lifecycle -->
-    <elastic-client 
+    <elastic-client
       config="[[config.elasticConfig]]"
       client="{{esclient}}">
     </elastic-client>
@@ -61,19 +63,19 @@
       value: value of the field above -->
 
     <!-- emailDisplay.telephone query and transform -->
-    <query-builder 
-      query="{{emailQuery}}" 
+    <query-builder
+      query="{{emailQuery}}"
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[params.value]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[emailQuery]]'
       results="{{email}}"
       elastic-type='["email"]'
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -83,13 +85,13 @@
      ></json-transform>
 
     <!-- Query and transform for offer timeline -->
-    <query-builder 
-      query="{{offerAggQuery}}" 
+    <query-builder
+      query="{{offerAggQuery}}"
       query-template="{{config.queryTemplates.offerTimeline}}"
       field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[offerAggQuery]]'
@@ -97,7 +99,7 @@
       page-size="{{pageSize}}"
       results="{{offerAggs}}"
       elastic-type='["offer"]'
-      lastError="{{error}}"
+      last-error="{{error}}"
       loading="{{offersLoading}}">
     </elastic-search>
 
@@ -108,21 +110,21 @@
      ></json-transform>
 
       <!--
-        build the query for offer locations 
+        build the query for offer locations
       -->
-     <query-builder 
-      query="{{offerLocationQuery}}" 
+     <query-builder
+      query="{{offerLocationQuery}}"
       query-template="{{config.queryTemplates.offerLocation}}"
       field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[offerLocationQuery]]'
       results="{{offerLocationAggs}}"
       elastic-type='["offer"]'
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -132,19 +134,19 @@
      ></json-transform>
 
     <!-- Get the seller Object -->
-     <query-builder 
-      query="{{sellerQuery}}" 
+     <query-builder
+      query="{{sellerQuery}}"
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[emailDisplay.email.sellerId]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["seller"]'
       query='[[sellerQuery]]'
       results="{{seller}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -169,13 +171,13 @@
     <!--
         Get all the offers for this email
     -->
-    <query-builder 
-      query="{{emailOffersQuery}}" 
+    <query-builder
+      query="{{emailOffersQuery}}"
       query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
       field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       page="{{pageNum}}"
@@ -184,7 +186,7 @@
       results="{{emailOffers}}"
       elastic-type='["offer"]'
       loading="{{offersLoading}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
 
     </elastic-search>
 
@@ -195,19 +197,19 @@
      ></json-transform>
 
     <!-- emailDisplay.people query and transform -->
-    <query-builder 
-      query="{{peopleAggQuery}}" 
+    <query-builder
+      query="{{peopleAggQuery}}"
       query-template="{{config.queryTemplates.phoneOrEmailPeopleAgg}}"
       field="offers.seller.email.uri" value="[[emailDisplay.email._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[peopleAggQuery]]'
       results="{{peopleAggs}}"
       elastic-type='["adultservice"]'
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -218,19 +220,19 @@
 
      <!-- Itinerary component (aggs) -->
 
-    <query-builder 
-      query="{{itineraryAggQuery}}" 
-      query-template="{{config.queryTemplates.itineraryPhone}}" 
+    <query-builder
+      query="{{itineraryAggQuery}}"
+      query-template="{{config.queryTemplates.itineraryPhone}}"
       field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       query='[[itineraryAggQuery]]'
       results="{{relatedServiceItAggs}}"
       elastic-type='["offer"]'
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
@@ -241,21 +243,21 @@
 
     <!-- Main Content -->
     <div class="entity">
-      
+
       <paper-header-panel class="flex" mode="waterfall-tall">
-      
+
         <!-- Entity header -->
         <section class="paper-header layout horizontal center">
-          
+
           <!-- Entity title -->
-          <iron-icon class="iron-icon-huge" icon="communication:email"></iron-icon>
+          <iron-icon class="iron-icon-huge entity-email-font" icon="communication:email"></iron-icon>
           <section class="flex-auto">
             <div class="horizontal layout">
               <div class="paper-font-display1 flex auto">
                 Email: <span>[[emailDisplay.email.emailAddress]]</span>
               </div>
               <div class="horizontal end-justified layout">
-                <annotate-record client="[[esclient]]" 
+                <annotate-record client="[[esclient]]"
                   annotation-index="[[config.annotationIndex]]"
                   annotation-type="[[config.annotationType]]"
                   query-template="{{config.queryTemplates.annotationQuery}}"
@@ -264,29 +266,29 @@
               </div>
             </div>
           </section>
-          
+
           <!-- Places actions performed on the entity here -->
-            
+
         </section>
 
         <!-- Entity body -->
         <div class="entity-page">
 
           <div class="content">
-            
+
             <!-- Left Pane -->
             <div class="flex layout vertical">
-              
+
               <!-- Timeline - Offers between date1 and date2 -->
               <paper-material>
                 <section class="when">
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <iron-icon class="iron-icon-big entity-date-font" icon="icons:timeline"></iron-icon>
                     <div>
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[emailDisplay.offerTimeline.offerTimeline]]' 
+                  <bar-chart y-axis-label="" data='[[emailDisplay.offerTimeline.offerTimeline]]'
                     chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
                     min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </bar-chart>
@@ -294,30 +296,32 @@
               </paper-material>
 
               <div class="h-divider"></div>
-              
+
               <!-- Summary of Products Offered -->
               <paper-material>
                 <section class="who">
-                  
+
                   <!-- Multi-person summary layout, could probably be improved -->
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
                     <div>Summary of Products Offered</div>
                   </div>
                   <person-features class="flex-2" people="[[emailDisplay.people]]"></person-features>
-                  
+
                 </section>
               </paper-material>
-              
+
               <div class="h-divider"></div>
-              
+
               <!-- Seller section -->
               <template is="dom-if" if="{{showSeller}}">
                 <paper-material>
                   <section class="who">
+                    <div class="paper-font-title">Seller</div>
+
                     <div class="who">
                       <div class="paper-font-title">
-                        <single-record 
+                        <single-record
                           client="[[esclient]]" annotation-index="[[config.annotationIndex]]"
                           annotation-type="[[config.annotationType]]"
                           annotation-query-template="[[config.queryTemplates.annotationQuery]]"
@@ -326,7 +330,7 @@
                       </div>
                     </div>
                     <records-grid
-                      current-results="[[showSeller]]">
+                      records="[[showSeller]]"
                     </records-grid>
                   </section>
                 </paper-material>
@@ -354,8 +358,9 @@
                 <paper-material>
                   <section class="who">
                     <div class="paper-font-title layout horizontal start center">
-                     <div>Itinerary([[emailDisplay.itinerary.date.length]] Events)</div>
-                    </div>              
+                      Itinerary ([[emailDisplay.itinerary.date.length]] Events)
+                    </div>
+
                     <itinerary-list data="{{emailDisplay.itinerary.date}}"></itinerary-list>
                   </section>
                 </paper-material>
@@ -363,30 +368,32 @@
             </div>
 
             <div class="v-divider"></div>
-            
+
             <!-- Right Pane -->
             <div class="flex layout vertical">
-              
+
               <!-- Map -->
               <paper-material>
                 <!-- City summary -->
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[emailDisplay.offerLocation.offerLocation.length]] location(s)</div>
+                    <div>[[emailDisplay.offerLocation.offerLocation.length]] Locations</div>
                   </div>
                 </section>
-                
+
                 <!-- Leaflet map -->
-                <section class="where flex-auto">
-                  <leaflet-wrapper map-data="{{emailDisplay.offerLocation.offerLocation}}">
-                  </leaflet-wrapper>
-                </section>
-                
-                <!-- City summary -->
-                <section class="where-details flex-none">
-                  <feature-aggregation title="Offers per city" key="name" agg="[[emailDisplay.offerLocation.offerLocation]]"></feature-aggregation>
-                </section>
+                <template is="dom-if" if="[[emailDisplay.offerLocation.offerLocation.length]]">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper map-data="{{emailDisplay.offerLocation.offerLocation}}">
+                    </leaflet-wrapper>
+                  </section>
+
+                  <!-- City summary -->
+                  <section class="where-details flex-none">
+                    <feature-aggregation title="Offers per city" key="name" agg="[[emailDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                  </section>
+                </template>
               </paper-material>
 
               <div class="h-divider"></div>
@@ -396,7 +403,7 @@
                 <section>
                   <div class="section-header">
                     <div class="paper-font-title">
-                      [[emailDisplay.emailOffers.relatedOffers.count]] offer(s)
+                      [[emailDisplay.emailOffers.relatedOffers.count]] Offers
                     </div>
                   </div>
                   <records-list
@@ -409,8 +416,9 @@
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                    current-results="[[emailDisplay.emailOffers.relatedOffers.data]]" page="{{pageNum}}" 
-                    results-per-page="{{pageSize}}" num-results="{{emailDisplay.emailOffers.relatedOffers.count}}"
+                    query-results="[[emailDisplay.emailOffers.relatedOffers.data]]"
+                    total-results="{{emailDisplay.emailOffers.relatedOffers.count}}"
+                    page="{{pageNum}}"
                     loading="{{offersLoading}}">
                   </records-list>
                 </section>
@@ -426,7 +434,7 @@
   (function(document) {
     var app = document.querySelector('#app');
 
-    app.showConfig = function (req, res) {
+    app.showConfig = function(req, res) {
       console.log('REQ: ', req);
       console.log('RES: ', res);
     };

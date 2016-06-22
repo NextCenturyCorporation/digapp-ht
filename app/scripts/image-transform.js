@@ -29,10 +29,13 @@ var imageTransform = (function(_) {
     return {
         // expected data is from an elasticsearch
         images: function(data) {
-            var images = [];
+            var images = {
+              total: data.hits.total,
+              array: []
+            };
 
             data.hits.hits.forEach(function(hit) {
-                images.push(getImageUrl(hit._source));
+                images.array.push(getImageUrl(hit._source));
             });
 
             return images;

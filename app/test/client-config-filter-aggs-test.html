@@ -1,0 +1,71 @@
+<!doctype html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>client-config</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="data/filter-aggregations.js" type="text/javascript"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/client-config/client-config.html">
+
+</head>
+<body>
+
+<test-fixture id="client-config-fixture">
+  <template>
+    <client-config></client-config>
+  </template>
+</test-fixture>
+
+<script>
+  'use strict';
+  /* globals suite, test, setup, fixture, filterAggs, assert */
+  /* jshint -W030 */
+  suite('<client-config> tests for filter aggregation functions', function() {
+    var myEl;
+    var dataout = {};
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var relatedEntities = myEl.config.transforms.filterAggs;
+      dataout.cities = relatedEntities.cityResults(filterAggs);
+      dataout.phone = relatedEntities.mentionsPhoneResults(filterAggs);
+      dataout.email = relatedEntities.mentionsEmailResults(filterAggs);
+    });
+
+    test('defines city aggregation buckets', function() {
+      assert.equal(dataout.cities.aggregations.webpageCityAgg.webpageCityAgg.buckets.length, 10);
+      assert.equal(dataout.cities.aggregations.webpageCityAgg.webpageCityAgg.buckets[1].key,
+        'Los Angeles:California:United States:-118.24368:34.05223');
+      assert.equal(dataout.cities.aggregations.webpageCityAgg.webpageCityAgg.buckets[1].text, 'Los Angeles, California');
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(dataout.cities.aggregations.webpageCityAgg.webpageCityAgg.buckets[1].doc_count, 10);
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    });
+
+    test('defines phone aggregation buckets', function() {
+      assert.equal(dataout.phone.aggregations.phoneAgg.phoneAgg.buckets.length, 10);
+      assert.equal(dataout.phone.aggregations.phoneAgg.phoneAgg.buckets[0].key, 'http://dig.isi.edu/ht/data/phone/1-9876543210');
+      assert.equal(dataout.phone.aggregations.phoneAgg.phoneAgg.buckets[0].text, '9876543210');
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(dataout.phone.aggregations.phoneAgg.phoneAgg.buckets[0].doc_count, 30);
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    });
+
+    test('defines email aggregation buckets', function() {
+      assert.equal(dataout.email.aggregations.emailAgg.emailAgg.buckets.length, 10);
+      assert.equal(dataout.email.aggregations.emailAgg.emailAgg.buckets[0].key, 'http://dig.isi.edu/ht/data/email/abc@xyz.com');
+      assert.equal(dataout.email.aggregations.emailAgg.emailAgg.buckets[0].text, 'abc@xyz.com');
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(dataout.email.aggregations.emailAgg.emailAgg.buckets[0].doc_count, 3);
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    });
+  });
+
+</script>
+
+</body>
+</html>

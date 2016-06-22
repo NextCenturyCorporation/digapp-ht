@@ -9,14 +9,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-
+<link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
+<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/elastic-update/elastic-update.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 
 <dom-module id="annotate-record">
   <template>
     <style>
       :host {
         display: block;
-        margin-left: 10px;
+        margin: 0 10px;
       }
       paper-icon-button {
         color: var(--light-primary-color);
@@ -29,20 +32,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
     <!-- Search for an existing annotation record -->
-    <elastic-search 
-      client="[[client]]"
-      index="[[annotationIndex]]"
-      query="{{buildAnnotationQuery(item, queryTemplate)}}"
-      results="{{originalSearchResult}}"
-      lastError="{{error}}">
-    </elastic-search>
+    <!-- Don't perform search until annotationTypeAsArray is ready -->
+    <template is="dom-if" if="{{annotationTypeAsArray}}">
+      <elastic-search
+        client="[[client]]"
+        elastic-type="{{annotationTypeAsArray}}"
+        index="[[annotationIndex]]"
+        query="{{buildAnnotationQuery(item, queryTemplate)}}"
+        results="{{originalSearchResult}}"
+        last-error="{{error}}">
+      </elastic-search>
+    </template>
 
     <!-- Trigger create/update -->
-    <paper-icon-button 
+    <paper-icon-button
       id="interestBtn" icon$="[[_ofInterestIcon]]"
       title="Mark Interesting" disabled="{{disableButtons}}" on-click="initCreateOrUpdate">
     </paper-icon-button>
-    <paper-icon-button 
+    <paper-icon-button
       id="notOfInterestBtn" icon$="[[_notOfInterestIcon]]"
       title="Mark Not Interesting" disabled="{{disableButtons}}" on-click="initCreateOrUpdate">
     </paper-icon-button>
@@ -55,7 +62,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       id="{{getAnnotationId(annotationResult)}}"
       body='{{annotationUpdateBody}}'
       results="{{annotationResult}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-update>
     <elastic-create
       client="[[client]]"
@@ -63,7 +70,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       elastic-type="[[annotationType]]"
       body='{{annotationCreateBody}}'
       results="{{annotationResult}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-create>
   </template>
   <script>
@@ -101,9 +108,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
         /**
-         * the record to add an associated annotation for, 
+         * the record to add an associated annotation for,
          * based on current user and uri of the record
-         */        
+         */
         item: {
           type: Object,
           notify: true
@@ -161,7 +168,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         disableButtons: {
           type: Boolean,
           value: true
+        },
+        annotationTypeAsArray: {
+          type: Array,
+          computed: 'computeTypeArray(annotationType)'
+        },
+        error: {
+          type: Object
         }
+      },
+      computeTypeArray: function(annotationType) {
+        return [annotationType];
       },
       styleButtons: function() {
         if(this.isItemOfInterest === true) {
@@ -183,7 +200,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return [item._id];
       },
       buildAnnotationQuery: function(item, queryTemplate) {
-        // ignore empty items, and don't rerun query if 
+        // ignore empty items, and don't rerun query if
         // query for this item has already been run
 
         if(!_.isEmpty(item) && queryTemplate !== undefined) {
@@ -215,9 +232,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           if(this.originalSearchResult.hits.hits.length > 0) {
             this.annotationResult = this.originalSearchResult.hits.hits[0];
-            /*jshint camelcase: false */
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             this.isItemOfInterest = this.annotationResult._source.is_valuable;
-            /*jshint camelcase: true */
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            this.isItemOfInterest = undefined;
           }
 
         } else {
@@ -227,10 +246,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       initCreateOrUpdate: function(event) {
 
-        this.isItemOfInterest = ((event.target._iconName === this._ofInterestIcon) || 
+        this.isItemOfInterest = ((event.target._iconName === this._ofInterestIcon) ||
           (event.target.id === 'interestBtn')) ? true : false;
 
-        /*jshint camelcase: false */
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         if(this.annotationResult && this.annotationResult._id) {
           this._setAnnotationUpdateBody({
             doc: {
@@ -239,12 +258,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         } else {
           this._setAnnotationCreateBody({
-            uri: this.item._id, 
-            user: 'mockUser', 
+            uri: this.item._id,
+            user: 'mockUser',
             is_valuable: this.isItemOfInterest
           });
         }
-        /*jshint camelcase: true */
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       }
     });
   })();

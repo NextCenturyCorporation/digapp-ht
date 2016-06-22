@@ -9,9 +9,48 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../dig-behaviors/result-list-behavior.html">
+<link rel="import" href="../image-viewer/image-viewer.html">
+<link rel="import" href="../query-builder/query-builder.html">
 
 <dom-module id="image-query-and-display">
   <template>
+    <style include="icon-styles"></style>
+
+    <style>
+      .paper-font-title iron-icon {
+        margin-right: 10px;
+      }
+
+      iron-scroll-threshold {
+        margin-top: 10px;
+        /* The height of 5 rows of images. */
+        max-height: 660px;
+      }
+
+      .end-of-list {
+        margin-top: 10px;
+        text-align: center;
+      }
+
+      .end-of-list paper-spinner {
+        height: 16px;
+        width: 16px;
+        margin-right: 10px;
+      }
+
+      .load-text {
+        /* Match the height of the Show More button. */
+        line-height: 41px;
+      }
+    </style>
+
     <query-builder
       query="{{imageQuery}}"
       query-template="[[imageQueryTemplate]]"
@@ -24,25 +63,49 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       index="[[index]]"
       elastic-type="[[indexTypes]]"
       query="[[imageQuery]]"
+      page="{{page}}"
+      loading="{{loading}}"
       results="{{imageQueryResults}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
     <json-transform
       data-in="[[imageQueryResults]]"
       data-out="{{imageResults}}"
-      transform-function="[[imageTransform]]"
+      transform-function="[[imageTransform]]">
     </json-transform>
 
-    <image-viewer images="[[imageResults]]"></image-viewer>
+    <div class="paper-font-title layout horizontal start center">
+      <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
+      <div>[[getTitle(displayResults.length, totalResults)]]</div>
+    </div>
+
+    <template is="dom-if" if="[[displayResults.length]]">
+      <iron-scroll-threshold id="scrollThreshold">
+        <image-viewer id="imageViewer" images="[[displayResults]]"></image-viewer>
+      </iron-scroll-threshold>
+
+      <div class="end-of-list">
+        <template is="dom-if" if="{{showMore}}">
+          <paper-button raised on-click="goToNextPage">Show More</paper-button>
+        </template>
+        <template is="dom-if" if="{{loading}}">
+          <paper-spinner active="true"></paper-spinner>
+          <span class="load-text">Loading Results...</span>
+        </template>
+      </div>
+    </template>
   </template>
 
   <script>
   (function() {
     'use strict';
 
+    /* globals DigBehaviors */
     Polymer({
       is: 'image-query-and-display',
+
+      behaviors: [DigBehaviors.ResultListBehavior],
 
       properties: {
         imageQueryTemplate: {
@@ -55,6 +118,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         imageQueryValue: {
           type: String
+        },
+
+        imageQuery: {
+          type: Object
+        },
+
+        imageQueryResults: {
+          type: Object
+        },
+
+        imageResults: {
+          type: Object,
+          notify: true
         },
 
         client: {
@@ -73,10 +149,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
-        imageResults: {
-          type: Array,
-          notify: true
+        error: {
+          type: Object
         }
+      },
+
+      observers: [
+        'updateQueryResults(imageResults.array)',
+        'updateTotalResults(imageResults.total)'
+      ],
+
+      getTitle: function(count, totalResults) {
+        if(totalResults) {
+          var title = totalResults + ' Image' + (totalResults === 1 ? '' : 's');
+          if(count && count < totalResults) {
+            return count + ' of ' + title;
+          }
+          return title;
+        }
+        return 'No Images';
+      },
+
+      updateQueryResults: function(queryResults) {
+        this.set('queryResults', queryResults);
+      },
+
+      updateTotalResults: function(totalResults) {
+        this.set('totalResults', totalResults);
       }
     });
   })();

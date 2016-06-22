@@ -9,6 +9,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-image/iron-image.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../annotate-record/annotate-record.html">
 
 <dom-module id="single-record">
   <template>
@@ -16,111 +27,126 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style>
       :host {
         display: block;
-        padding-left: 10px;
-        padding-right: 10px;
-      }
-      
-      img {
-        padding: 0 8px 0 0;
       }
 
-      [secondary]{
-        white-space: normal;
+      .record-head {
+        padding: 0 10px;
       }
 
-      paper-icon-item[clickable]{
+      .record-head {
+        box-shadow: none;
+      }
+
+      .record-head.opened,
+      .record-head:hover {
+        background-color: rgba(0,0,0,0.1);
+      }
+
+      paper-icon-item[clickable] {
         cursor: pointer;
       }
 
-      paper-icon-item[clickable] iron-icon[collapse-icon],
-      paper-icon-item[clickable]:hover iron-icon{
+      paper-item,
+      paper-icon-item {
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+
+      paper-icon-item {
+        /* Use the width of iron-icon-big */
+        --paper-item-icon-width: 36px;
+        --paper-item-icon: {
+          margin-right: 15px;
+        }
+      }
+
+      iron-icon.closed-icon,
+      iron-icon.opened-icon,
+      paper-icon-item[clickable]:hover iron-icon {
         display: none;
       }
 
-      paper-icon-item[clickable]:hover iron-icon[collapse-icon]{
+      .record-head.closed:hover iron-icon.closed-icon,
+      .record-head.opened:hover iron-icon.opened-icon {
         display: block;
-      }
-
-      paper-icon-item:hover{
-        background-color: rgba(0,0,0,0.05)
-      }
-
-      paper-item-body,
-      paper-item-body > *{
-        white-space: normal;
-      }
-
-      paper-item-body {
-        min-height: 44px;
-        padding: 10px 0;
-      }
-
-      .collapse-content {
-        padding: 4px 20px 20px;
-        margin-bottom: 12px;
-        @apply(--paper-font-body1);
-        background: #fff;
-      }
-
-      .item-title {
-        @apply(--paper-font-body2);
-        text-transform: capitalize;
-      }
-
-      a {
-        color: var(--primary-text-color);;
-        text-decoration: none;
-      }
-
-      .reveal {
-        visibility: hidden;
-      }
-
-      paper-icon-item:hover .reveal{
-        visibility: visible;
-      }
-
-      paper-button{
-        font-size: 14px;
-      }
-
-      paper-button:hover{
-        @apply(--shadow-elevation-3dp);
-      }
-
-      .details {
-        display: none;
-      }
-
-      .item.expanded .details {
-        display: block;
-      }
-
-      .subtitle {
-        padding-right: 30px;
       }
 
       .entity-icon {
-        margin: 0 16px;
+        /* Add margin so the entity icon is as wide as iron-icon-big */
+        margin: 0 6px;
       }
 
-      .detail-toggle {
-        margin: 0 10px;
+      .record-image {
+        background: var(--disabled-text-color);
+        margin-right: 15px;
+        height: 50px;
+        width: 50px;
       }
 
+      .record-head-text {
+        margin-right: 15px;
+        min-height: 100px;
+      }
+
+      .record-link {
+        color: var(--primary-text-color);;
+        font-size: 14px;
+        text-decoration: none;
+      }
+
+      .record-button {
+        @apply(--shadow-elevation-4dp);
+      }
+
+      .record-button:hover {
+        @apply(--shadow-elevation-8dp);
+      }
+
+      .record-head-link {
+        visibility: hidden;
+      }
+
+      .record-head:hover .record-head-link {
+        visibility: visible;
+      }
+
+      .record-body {
+        margin-bottom: 10px;
+        padding: 20px 10px;
+      }
+
+      .record-body-data {
+        --paper-item-min-height: 25px;
+        font-size: 14px;
+        padding: 0 10px;
+      }
+
+      .record-body-button {
+        margin-top: 10px;
+      }
+
+      .capitalize {
+        text-transform: capitalize;
+      }
+
+      /* Needed to fix layout issues in newer versions of chrome and firefox. */
+      paper-item-body,
+      paper-item-body > * {
+        white-space: normal;
+      }
+
+      /* Needed to fix layout issues in newer versions of chrome and firefox. */
       .lineclamp {
         overflow: hidden;
         text-overflow: ellipsis;
         display: -webkit-box;
-        -webkit-line-clamp: 2; /* number of lines to show */
+        -webkit-line-clamp: 1; /* number of lines to show */
         -webkit-box-orient: vertical;
       }
 
-      iron-image {
-        background: #DDD;
-        margin: 10px;
-        height: 50px;
-        width: 50px;
+      .lineclamp.three-line {
+        -webkit-line-clamp: 3;
       }
     </style>
 
@@ -130,75 +156,77 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       elastic-type="[[indexTypes]]"
       query="[[imageQuery]]"
       results="{{imageQueryResults}}"
-      lastError="{{error}}">
+      last-error="{{error}}">
     </elastic-search>
 
-    <div class$="[[expanded]]">
-      <paper-icon-item clickable$="{{item.details}}" on-tap="checkEventSource">
+    <div>
+      <paper-material class$="record-head [[getHeaderClass(opened)]]" on-tap="toggleRecord">
+        <paper-icon-item clickable$="[[showDetails]]">
+          <iron-icon class$="entity-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
-        <!-- entity type icon -->
-        <!-- TODO: make icon component? -->
-        <iron-icon class$="[[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
-        <template is="dom-if" if="{{item.details}}">
-          <iron-icon class="iron-icon-big detail-toggle" icon="icons:expand-more" item-icon collapse-icon></iron-icon>
-        </template>
+          <template is="dom-if" if="[[showDetails]]">
+            <iron-icon class="iron-icon-big closed-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="iron-icon-big opened-icon" icon="icons:expand-less" item-icon></iron-icon>
+          </template>
 
-        <template is="dom-if" if="{{isDefined(item.imageSrc)}}">
-          <iron-image class$="[[getBlurClass(blur)]]" sizing="contain" src="[[item.imageSrc]]"></iron-image>
-        </template>
+          <template is="dom-if" if="[[imageSrc]]">
+            <iron-image class$="record-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSrc]]"></iron-image>
+          </template>
 
-        <paper-item-body>
-          <!-- item title -->
-          <strong class="lineclamp">[[item.title]]</strong>
+          <paper-item-body class="record-head-text">
+            <div class="lineclamp" title$="[[item.title]]"><strong>[[item.title]]</strong></div>
 
-          <!-- item secondary title -->
-          <div secondary>
-            
-            <template is="dom-if" if="{{isArray(item.subtitle)}}">
-              <template is="dom-repeat" items="{{item.subtitle}}" as="value">
-                <span class="subtitle">[[value]]</span>
-              </template>
-            </template>
-            
-            <template is="dom-if" if="{{!isArray(item.subtitle)}}">
-              [[item.subtitle]]
-            </template>
-          </div>
-        </paper-item-body>
-
-        <!-- annotation controls -->
-        <annotate-record client="[[client]]" annotation-index="[[annotationIndex]]" 
-          annotation-type="[[annotationType]]" query-template="{{annotationQueryTemplate}}"
-          item="{{item}}">
-        </annotate-record>
-
-        <!-- secondary actions -->
-        <a class="reveal" target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
-          <paper-button>open [[item._type]]</paper-button>
-        </a>
-      </paper-icon-item>
-      <template is="dom-if" if="{{item.details}}">
-        <div class="details">
-          <paper-material class="collapse-content">
-            <template is="dom-repeat" items="{{getAllItemKeys(item)}}" as="key">
-              <p>
-                <span class="item-title">[[replaceCamelCase(key)]]:</span>
-                <template is="dom-if" if="{{isValueArray(item, key)}}" restamp="true">
-                  <br/>
-                  <template is="dom-repeat" items="{{getItemValue(item, key)}}" as="value">
-                    <span>[[value]]</span><br/>
-                  </template>
+            <template is="dom-if" if="[[item.subtitle]]">
+              <div class="lineclamp three-line" title="[[getSubtitleTooltip(item.subtitle)]]" secondary>
+                <template is="dom-repeat" items="[[getSubtitleArray(item.subtitle)]]" as="value">
+                  <div><strong>[[value]]</strong></div>
                 </template>
-                <template is="dom-if" if="{{!isValueArray(item, key)}}">
-                  [[getItemValue(item, key)]]
-                </template>
-              </p>
+              </div>
             </template>
-            <a target="{{target}}" href$="{{createURL(item._type, item._id, '_id', blur)}}">
-              <paper-button raised>open [[item._type]]</paper-button>
+          </paper-item-body>
+
+          <!-- annotation controls -->
+          <annotate-record client="[[client]]" annotation-index="[[annotationIndex]]"
+            annotation-type="[[annotationType]]" query-template="{{annotationQueryTemplate}}"
+            item="{{item}}">
+          </annotate-record>
+
+          <!-- secondary actions -->
+          <a class="record-link record-head-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id, '_id', blur)]]">
+            <paper-button class="record-button">{{getButtonText(item._type)}}</paper-button>
+          </a>
+        </paper-icon-item>
+      </paper-material>
+
+      <template is="dom-if" if="[[showDetails]]">
+        <iron-collapse class="record-detail">
+          <paper-material class="record-body">
+            <template is="dom-repeat" items="[[getDetailKeysArray(item.details)]]" as="key">
+              <paper-item class="record-body-data">
+                <paper-item-body>
+                  <span>
+                    <strong class="capitalize">[[replaceCamelCaseText(key)]]:</strong>
+                    <template is="dom-repeat" items="[[getDetailArrayForKey(item.details, key)]]" as="value">
+                      <span>[[value]]</span>
+                    </template>
+                  </span>
+                </paper-item-body>
+              </paper-item>
+            </template>
+
+            <template is="dom-if" if="[[item.imageUrls]]">
+              <image-viewer images="[[item.imageUrls]]"></image-viewer>
+            </template>
+
+            <template is="dom-if" if="[[imageUrls]]">
+              <image-viewer images="[[imageUrls]]"></image-viewer>
+            </template>
+
+            <a class="record-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id, '_id', blur)]]">
+              <paper-button class="record-button record-body-button" raised>{{getButtonText(item._type)}}</paper-button>
             </a>
           </paper-material>
-        </div>
+        </iron-collapse>
       </template>
     </div>
   </template>
@@ -213,47 +241,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       properties: {
         /**
+         * The item represented by this single record.
+         */
+        item: {
+          type: Object,
+          notify: true
+        },
+
+        /**
          * an instance of elasticsearch.Client which is connected to
          * an elasticsearch server
          */
         client: {
           type: Object
         },
+
         /**
          * the annotation index (database name)
          */
         annotationIndex: {
           type: String
         },
+
         /**
          * the annotation type
          */
         annotationType: {
           type: String
         },
+
         /**
          * query template to find existing annotations
          */
         annotationQueryTemplate: {
           type: Object
-        },
-        item: {
-          type: Object,
-          notify: true
-        },
-        expanded: {
-          type: String,
-          notify: true
-        },
-        newTab: {
-          type: Object,
-          value: false,
-          notify: true
-        },
-        target: {
-          type: String,
-          notify: true,
-          computed: 'getTarget(newTab)'
         },
 
         /**
@@ -306,24 +327,69 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The image URL for the item.  Overrides item.imageSrc.
+         * The src for the iron-image in the record header.
          */
-        imageUrl: {
-          type: String
+        imageSrc: {
+          type: String,
+          value: '',
+          notify: true
+        },
+
+        /**
+         * The image URLs for the item used instead of an image query.
+         */
+        imageUrls: {
+          type: Array,
+          notify: true
         },
 
         /**
          * Whether to blur the images.
          */
         blur: {
-          type: Boolean
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether links should be opened in new tabs.
+         */
+        newTab: {
+          type: Object,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Whether the details are opened.
+         */
+        opened: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Whether details should be available.
+         */
+        showDetails: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        error: {
+          type: Object
         }
       },
 
       observers: [
           'createImageQuery(item, imageQueryTemplate, imageQueryField, imageQueryValue)',
           'findSrcInImageQueryResults(item, imageQueryResults)',
-          'updateImageSrcFromImageUrl(item, imageUrl)'
+          'onItemChange(item.*)',
+          'updateImageSrcFromItemUrls(item.imageUrls.splices)',
+          'updateImageSrcFromPropertyUrls(imageUrls.splices)',
+          'updateShowDetails(item.details)'
       ],
 
       ready: function() {
@@ -337,120 +403,164 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.set('blur', blur);
       },
 
-      getBlurClass: function(blur) {
-        return (blur ? 'small-blur' : '');
-      },
-
       /**
        * Sets this.imageQuery using the given variables.
        */
       createImageQuery: function(item, imageQueryTemplate, imageQueryField, imageQueryValue) {
-        var view = {
-          field: imageQueryField,
-          value: item[imageQueryValue]
-        };
-        this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
-      },
-
-      /**
-       * Sets item.imageSrc with the image URL from the first hit in the given image query results.
-       */
-      findSrcInImageQueryResults: function(item, imageQueryResults) {
-        if(imageQueryResults) {
-          if(imageQueryResults.hits.hits.length > 0) {
-              this.set('item.imageSrc', imageQueryResults.hits.hits[0]._source.url);
-          } else {
-              this.set('item.imageSrc', '');
-          }
+        if(!this.imageUrls || !this.imageUrls.length) {
+          var view = {
+            field: imageQueryField,
+            value: item[imageQueryValue]
+          };
+          this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
         }
-      },
-
-      /**
-       * Sets item.imageSrc with the given image URL.
-       */
-      updateImageSrcFromImageUrl: function(item, imageUrl) {
-        this.set('item.imageSrc', imageUrl);
-      },
-
-      /**
-       * Returns whether the given property is defined.
-       */
-      isDefined: function(property) {
-        return property !== undefined;
-      },
-
-      checkEventSource: function(event) {
-        var target = Polymer.dom(event).rootTarget;
-        // if paper button or paper icon button was clicked, stop propagation up the DOM tree
-        if(target.localName === 'paper-button' || target.classList.contains('paper-icon-button')) {
-          event.stopImmediatePropagation();
-        }
-      },
-
-      getItemValue: function(item, key) {
-        if(item.details && item.details[key]) {
-          return item.details[key];
-        } 
-      },
-
-      isArray: function(item) {
-        return _.isArray(item);
-      },
-
-      isValueArray: function(item, key) {
-        var value = this.getItemValue(item, key);
-        return _.isArray(value);
-      },
-
-      replaceCamelCase: function(key) {
-        return key.replace(/([A-Z])/g, ' $1');
-      },
-
-      getAllItemKeys: function(item) {
-        if(item.details) {
-          var sortedKeys = [];
-          var returnKeys = [];
-          if(item.details._sortedKeys) {
-            sortedKeys = item.details._sortedKeys;
-          }
-          else {
-            sortedKeys = _.keys(item.details);
-          } 
-          sortedKeys.forEach(function(x) {
-            if(item.details[x]) {
-              returnKeys.push(x);
-            }
-          });
-          return returnKeys;
-        }
-      },
-
-      logRecords: function() {
-        console.log('records', this.records);
       },
 
       createURL: function(type, value, field, blur) {
         return '/' + type + '.html?value=' + value + '&field=' + field + '&blur=' + blur;
       },
 
+      /**
+       * Adds the image URLs from the hits in the given image query results to item.imageUrls.
+       */
+      findSrcInImageQueryResults: function(item, imageQueryResults) {
+        if(imageQueryResults) {
+          this.set('item.imageUrls', []);
+          var self = this;
+          imageQueryResults.hits.hits.forEach(function(hit) {
+            self.push('item.imageUrls', hit._source.url);
+          });
+        }
+      },
+
+      getBlurClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
+      getButtonText: function(type) {
+        if(type === 'offer') {
+          return 'open ad';
+        }
+        return 'open ' + type;
+      },
+
+      getDetailArrayForKey: function(details, key) {
+        if(details && details[key]) {
+          return (_.isArray(details[key]) ? details[key] : [details[key]]);
+        }
+        return [];
+      },
+
+      getDetailKeysArray: function(details) {
+        if(details) {
+          return (details._sortedKeys ? details._sortedKeys : _.keys(details)).filter(function(key) {
+            return details[key];
+          });
+        }
+        return [];
+      },
+
+      getHeaderClass: function(opened) {
+        return (opened ? 'opened' : 'closed');
+      },
+
       getIconClass: function(type) {
-        return 'entity-icon entity-' + type + '-font';
+        if(type === 'provider') {
+          return 'entity-person-font';
+        }
+        return 'entity-' + type + '-font';
       },
 
       getIcon: function(type) {
         switch(type) {
-            case 'email': return 'communication:email';
-            case 'offer': return 'maps:local-offer';
-            case 'person': return 'icons:account-circle';
-            case 'phone': return 'communication:phone';
-            case 'provider': return 'icons:account-circle';
-            case 'seller': return 'editor:attach-money';
-            case 'webpage': return 'av:web';
+          case 'email': return 'communication:email';
+          case 'offer': return 'maps:local-offer';
+          case 'person': return 'icons:account-circle';
+          case 'phone': return 'communication:phone';
+          case 'provider': return 'icons:account-circle';
+          case 'seller': return 'editor:attach-money';
+          case 'webpage': return 'av:web';
         }
+      },
+
+      getSubtitleArray: function(subtitle) {
+        if(subtitle) {
+          return (_.isArray(subtitle) ? subtitle : [subtitle]);
+        }
+        return [];
+      },
+
+      getSubtitleTooltip: function(subtitle) {
+        return this.getSubtitleArray(subtitle).join(', ');
       },
 
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
+      },
+
+      /**
+       * Handles any needed behavior when the item is changed.
+       */
+      onItemChange: function() {
+        // Close the details panel of the new record.
+        var recordDetail = this.$$('.record-detail');
+        var classList = recordDetail ? recordDetail.classList : undefined;
+        if(classList && classList.contains('iron-collapse-opened')) {
+          recordDetail.toggle();
+          this.set('opened', !this.opened);
+        }
+      },
+
+      replaceCamelCaseText: function(key) {
+        return key.replace(/([A-Z])/g, ' $1');
+      },
+
+      /**
+       * Expands or collapses this record if its item has any details and the event was not triggered by clicking on a button.
+       */
+      toggleRecord: function(event) {
+        // Do not open a record with no details.
+        if(this.showDetails) {
+          // Do not open the record if the user clicked on a button inside the record.
+          if(event.target.localName !== 'paper-button' && !event.target.classList.contains('paper-icon-button')) {
+            this.set('opened', !this.opened);
+            this.$$('.record-detail').toggle();
+          }
+        }
+      },
+
+      /**
+       * Sets the src for the iron-image in the record header with the first url in the item if available.
+       */
+      updateImageSrcFromItemUrls: function() {
+        this.updateImageSrcFromUrls(this.item.imageUrls);
+      },
+
+      /**
+       * Sets the src for the iron-image in the record header with the first url in the given list if available.
+       */
+      updateImageSrcFromUrls: function(urls) {
+        if(urls && urls.length) {
+          this.set('imageSrc', urls[0]);
+          this.set('showDetails', true);
+        } else if(urls) {
+          // Set the src to a truthy value so the gray iron-image is displayed.
+          this.set('imageSrc', 'blank');
+        }
+      },
+
+      /**
+       * Sets the src for the iron-image in the record header with the first url in the property if available.
+       */
+      updateImageSrcFromPropertyUrls: function() {
+        this.updateImageSrcFromUrls(this.imageUrls);
+      },
+
+      /**
+       * Sets whether to show details based on the existence of the given details object.
+       */
+      updateShowDetails: function(details) {
+        this.set('showDetails', !!details);
       }
     });
   })();
