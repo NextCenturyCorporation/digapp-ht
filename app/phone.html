@@ -240,6 +240,30 @@
        transform-function="[[clientConfig.transforms.seller.itinerary]]"
        ></json-transform>
 
+
+    <!-- Graph component (aggs) -->
+
+    <query-builder 
+      query="{{offerStackGraphQuery}}" 
+      query-template="{{config.queryTemplates.locationTimeline}}" 
+      field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerStackGraphQuery]]'
+      results="{{locationAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[locationAggs]]"
+     data-out="{{phoneDisplay.locationTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
+     ></json-transform>
+
     <!-- Main Content -->
     <div class="entity">
 
@@ -293,6 +317,24 @@
 
               <div class="h-divider"></div>
 
+              <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
+
+              <paper-material>
+                <section class="when">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>
+                      Offers between {{minXValue}} and {{maxXValue}}
+                    </div>
+                  </div>
+                  <bar-zoomable-chart data='{{phoneDisplay.locationTimeline}}'>
+                  </bar-zoomable-chart>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+              
+
               <!-- Summary of Products Offered -->
               <paper-material>
                 <section class="who">
@@ -308,6 +350,7 @@
               </paper-material>
 
               <div class="h-divider"></div>
+
 
               <!-- Seller section -->
               <template is="dom-if" if="{{showSeller}}">
