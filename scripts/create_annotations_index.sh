@@ -14,10 +14,10 @@ curl -XPUT localhost:9200/dig-annotations -d '
           "type" : "string",
           "index": "not_analyzed"
         },
-        "is_valuable" : {
-          "type" : "boolean"
+        "interest" : {
+          "type" : "byte"
         },
-        "free_text" : {
+        "justification" : {
           "type" : "string",
           "index" : "not_analyzed"
         }

@@ -12,7 +12,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
 <link rel="import" href="../../bower_components/elastic-update/elastic-update.html">
+<link rel="import" href="../../bower_components/iron-dropdown/iron-dropdown.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../bower_components/paper-material/paper-material.html">
 
 <dom-module id="annotate-record">
   <template>
@@ -21,14 +27,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
         margin-left: 10px;
       }
-      paper-icon-button {
-        color: var(--light-primary-color);
+      .annotation-icon {
+        color: var(--grey);
       }
-      paper-icon-button[selected] {
-        color: var(--primary-color);
-      }
-      paper-icon-button[disabled] {
+      .annotation-icon[disabled] {
+        color: var(--disabled-text-color);
         opacity: var(--dark-disabled-opacity);
+      }
+      .positive {
+        color: var(--blue);
+      }
+      .negative {
+        color: var(--red);
+      }
+      .dropdown-content {
+        background-color: #fff;
+        border: 1px solid var(--dark-primary-color);
+        border-radius: 3px;
+        padding: 10px;
+      }
+      .annotation-option {
+        font-size: 14px;
+        --paper-item-icon-width: 24px;
+        --paper-item-min-height: 40px;
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+      .annotation-option:hover {
+        background-color: rgba(0,0,0,0.1);
+      }
+      .annotation-option.selected {
+        background-color: var(--accent-color);
+      }
+      .dropdown-button {
+        @apply(--shadow-elevation-4dp);
+        margin: 5px 0 5px 10px;
+      }
+      .dropdown-button:hover {
+        @apply(--shadow-elevation-8dp);
       }
     </style>
     <!-- Search for an existing annotation record -->
@@ -44,15 +81,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </elastic-search>
     </template>
 
-    <!-- Trigger create/update -->
-    <paper-icon-button
-      id="interestBtn" icon$="[[_ofInterestIcon]]"
-      title="Mark Interesting" disabled="{{disableButtons}}" on-click="initCreateOrUpdate">
-    </paper-icon-button>
-    <paper-icon-button
-      id="notOfInterestBtn" icon$="[[_notOfInterestIcon]]"
-      title="Mark Not Interesting" disabled="{{disableButtons}}" on-click="initCreateOrUpdate">
-    </paper-icon-button>
+    <div class="layout horizontal">
+      <paper-icon-button icon="flag"
+        class$="annotation-icon dropdown-trigger [[getAnnotationClass(isItemOfInterest)]]"
+        disabled="{{disableButtons}}"
+        title="[[getAnnotationLabel(isItemOfInterest)]] (Click to Open Menu)"
+        on-tap="openDropdownMenu">
+      </paper-icon-button>
+
+      <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top">
+        <paper-material class="dropdown-content" on-tap="stopPropagation">
+          <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 0)]]" title="[[getAnnotationLabel(0)]]" on-tap="selectNoAnnotation">
+            <iron-icon icon="flag" class="annotation-icon" item-icon></iron-icon>
+            <paper-item-body>[[getAnnotationLabel(0)]]</paper-item-body>
+          </paper-icon-item>
+          <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 1)]]" title="[[getAnnotationLabel(1)]]" on-tap="selectPositiveAnnotation">
+            <iron-icon icon="flag" class="annotation-icon positive" item-icon></iron-icon>
+            <paper-item-body>[[getAnnotationLabel(1)]]</paper-item-body>
+          </paper-icon-item>
+          <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, -1)]]" title="[[getAnnotationLabel(-1)]]" on-tap="selectNegativeAnnotation">
+            <iron-icon icon="flag" class="annotation-icon negative" item-icon></iron-icon>
+            <paper-item-body>[[getAnnotationLabel(-1)]]</paper-item-body>
+          </paper-icon-item>
+
+          <div class="layout horizontal">
+            <paper-input class="flex" label="Justification" title="Justification" value="{{justification}}" always-float-label></paper-input>
+            <paper-button class="dropdown-button" title="Save Annotation" on-tap="saveAnnotationAndCloseDropdownMenu">Save</paper-button>
+          </div>
+        </paper-material>
+      </iron-dropdown>
+    </div>
 
     <!-- Create or update annotation -->
     <elastic-update
@@ -133,11 +191,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
-         * Where to store the is_valuable flag chosen by the user.
+         * The annotation flag (positive, negative, or zero).
          */
         isItemOfInterest: {
-          type: Boolean,
-          observer: 'styleButtons',
+          type: Number,
+          value: 0,
           notify: true
         },
         /**
@@ -148,28 +206,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
-         * Document info to pass into elastic-create component
+         * Document info to pass into the elastic-create component
          */
         annotationCreateBody: {
           type: Object,
           readOnly: true
         },
         /**
-         * Info to update annotation and pass into elastic-update
+         * Info to update annotation and pass into the elastic-update
          * component
          */
         annotationUpdateBody: {
           type: Object,
-          readOnly: true
-        },
-        _ofInterestIcon: {
-          type: String,
-          value: 'add-circle-outline',
-          readOnly: true
-        },
-        _notOfInterestIcon: {
-          type: String,
-          value: 'remove-circle-outline',
           readOnly: true
         },
         disableButtons: {
@@ -180,6 +228,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Array,
           computed: 'computeTypeArray(annotationType)'
         },
+        /**
+         * The justification for the annotation.
+         */
+        justification: {
+          type: String,
+          value: '',
+          notify: true
+        },
         error: {
           type: Object
         }
@@ -187,24 +243,59 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       computeTypeArray: function(annotationType) {
         return [annotationType];
       },
-      styleButtons: function() {
-        if(this.isItemOfInterest === true) {
-          Polymer.dom(this.$.interestBtn).setAttribute('selected', true);
-          Polymer.dom(this.$.notOfInterestBtn).removeAttribute('selected');
-        } else if(this.isItemOfInterest === false) {
-          Polymer.dom(this.$.notOfInterestBtn).setAttribute('selected', true);
-          Polymer.dom(this.$.interestBtn).removeAttribute('selected');
-        } else {
-          // if undefined, reset
-          Polymer.dom(this.$.notOfInterestBtn).removeAttribute('selected');
-          Polymer.dom(this.$.interestBtn).removeAttribute('selected');
-        }
-      },
       getAnnotationId: function(annotationResult) {
         return (annotationResult ? annotationResult._id : undefined);
       },
+      getAnnotationClass: function(isItemOfInterest) {
+        return (isItemOfInterest > 0 ? 'positive' : (isItemOfInterest < 0 ? 'negative' : ''));
+      },
+      getAnnotationLabel: function(isItemOfInterest) {
+        return (isItemOfInterest > 0 ? 'Interesting' : (isItemOfInterest < 0 ? 'Not Interesting' : 'No Opinion'));
+      },
       getValuesForQuery: function(item, currentUser) {
         return [item._id, currentUser];
+      },
+      isSelected: function(isItemOfInterest, value) {
+        return (isItemOfInterest === value ? 'selected' : '');
+      },
+      openDropdownMenu: function() {
+        this.$.dropdownMenu.open();
+      },
+      saveAnnotation: function() {
+        if(this.annotationResult && this.annotationResult._id) {
+          this._setAnnotationUpdateBody({
+            doc: {
+              interest: this.isItemOfInterest,
+              justification: this.justification
+            }
+          });
+        } else {
+          this._setAnnotationCreateBody({
+            uri: this.item._id,
+            user: this.currentUser,
+            interest: this.isItemOfInterest,
+            justification: this.justification
+          });
+        }
+      },
+      saveAnnotationAndCloseDropdownMenu: function() {
+        this.$.dropdownMenu.close();
+        this.saveAnnotation();
+      },
+      selectPositiveAnnotation: function() {
+        this.isItemOfInterest = 1;
+        this.saveAnnotation();
+      },
+      selectNegativeAnnotation: function() {
+        this.isItemOfInterest = -1;
+        this.saveAnnotation();
+      },
+      selectNoAnnotation: function() {
+        this.isItemOfInterest = 0;
+        this.saveAnnotation();
+      },
+      stopPropagation: function(event) {
+        event.stopPropagation();
       },
       buildAnnotationQuery: function(item, queryTemplate, currentUser) {
         // ignore empty items, and don't rerun query if
@@ -240,37 +331,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(this.originalSearchResult.hits.hits.length > 0) {
             this.annotationResult = this.originalSearchResult.hits.hits[0];
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            this.isItemOfInterest = this.annotationResult._source.is_valuable;
+            this.isItemOfInterest = this.annotationResult._source.interest;
+            this.justification = this.annotationResult._source.justification;
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
-            this.isItemOfInterest = undefined;
+            this.isItemOfInterest = 0;
+            this.justification = '';
           }
 
         } else {
           this.disableButtons = true;
-          this.isItemOfInterest = undefined;
+          this.isItemOfInterest = 0;
+          this.justification = '';
         }
-      },
-      initCreateOrUpdate: function(event) {
-
-        this.isItemOfInterest = ((event.target._iconName === this._ofInterestIcon) ||
-          (event.target.id === 'interestBtn')) ? true : false;
-
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        if(this.annotationResult && this.annotationResult._id) {
-          this._setAnnotationUpdateBody({
-            doc: {
-              is_valuable: this.isItemOfInterest
-            }
-          });
-        } else {
-          this._setAnnotationCreateBody({
-            uri: this.item._id,
-            user: this.currentUser,
-            is_valuable: this.isItemOfInterest
-          });
-        }
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       }
     });
   })();
