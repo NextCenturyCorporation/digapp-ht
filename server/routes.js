@@ -19,7 +19,8 @@ module.exports = function(app) {
             appVersion: config.appVersion,
             queryTemplates: config.queryTemplates,
             annotationIndex: config.annotationIndex,
-            annotationType: config.annotationType
+            annotationType: config.annotationType,
+            username: req.headers.user ? req.headers.user : 'mockUser'
         });
     });
 

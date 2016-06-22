@@ -34,21 +34,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             return newData;
         },
-        offerData: function(data) {
-            var newData = {};
-
-            if(data.hits.hits.length > 0) {
-                var aggs = data.aggregations;
-
-                newData.locations = commonTransforms.getLocations(data.hits.hits);
-                newData.offerDates = commonTransforms.transformBuckets(aggs.offers_by_date.buckets, 'date', 'key_as_string');
-                newData.offerCities = commonTransforms.transformBuckets(aggs.offers_by_city.buckets, 'city');
-                newData.geoCoordinates = commonTransforms.getGeoCoordinates(data.hits.hits);
-                newData.relatedOffers = relatedEntityTransform.offer(data);
-            }
-
-            return newData;
-        },
         people: function(data) {
             var newData = {};
 
@@ -77,21 +62,9 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 }   
             });
             if(sellerOut.length > 0) {
-                return sellerOut;    
+                return sellerOut;
             }
             return undefined;
-        },
-        seller: function(data) {
-            var newData = {};
-
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData.relatedPhones = commonTransforms.transformBuckets(aggs.related_phones.buckets, 'number');
-                newData.relatedEmails = commonTransforms.transformBuckets(aggs.related_emails.buckets, 'email');
-                newData.relatedWebsites = commonTransforms.transformBuckets(aggs.related_websites.buckets, 'webSite');
-            }
-
-            return newData;
         }
     };
 })(_, relatedEntityTransform, commonTransforms);

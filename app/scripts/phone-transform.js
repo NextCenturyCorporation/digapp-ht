@@ -9,23 +9,6 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-    function getOffers(record) {
-        var offers = [];
-        if(record.owner) {
-            _.each(record.owner, function(item) {
-
-                if(item.makesOffer) {
-                    _.each(item.makesOffer, function(offer) {
-                        offers.push(offer.uri);
-                    });
-                }
-            
-          });
-        }
-        return offers;
-    }
-
-
     function getTelephone(record) {
         /** build telephone object:
         'telephone': {
@@ -38,7 +21,6 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         var telephone = {};
         telephone._id = _.get(record, 'uri');
         telephone.number = _.get(record, 'name');
-        telephone.origin = getOffers(record);
         telephone.sellerId = commonTransforms.getSellerId(record);
         //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
 
@@ -86,21 +68,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 return sellerOut;    
             }
             return undefined;
-        },
-        seller: function(data) {
-            var newData = {};
-
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData.relatedPhones = commonTransforms.transformBuckets(aggs.related_phones.buckets, 'number');
-                newData.relatedEmails = commonTransforms.transformBuckets(aggs.related_emails.buckets, 'email');
-                newData.relatedWebsites = commonTransforms.transformBuckets(aggs.related_websites.buckets, 'webSite');
-            }
-            
-            return newData;
         }
     };
 
 })(_, relatedEntityTransform, commonTransforms);
-
-
