@@ -61,16 +61,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element.item, {_id: 'someidhere'});
     });
 
-    test('isItemOfInterest is undefined', function() {
-      assert.isUndefined(element.isItemOfInterest);
-    });
-
-    test('_ofInterestIcon is expected value', function() {
-      assert.equal(element._ofInterestIcon, 'add-circle-outline');
-    });
-
-    test('_notOfInterestIcon is expected value', function() {
-      assert.equal(element._notOfInterestIcon, 'remove-circle-outline');
+    test('isItemOfInterest is zero', function() {
+      assert.equal(element.isItemOfInterest, 0);
     });
 
     test('disableButtons is true', function() {
@@ -85,36 +77,55 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element.annotationTypeAsArray, ['annotation']);
     });
 
-    test('styleButtons() removes selected attr from both buttons if isItemOfInterest is undefined', function() {
-      element.styleButtons();
-
-      assert.isNull(element.$.interestBtn.getAttribute('selected'));
-      assert.isNull(element.$.notOfInterestBtn.getAttribute('selected'));
-    });
-
-    test('styleButtons() adds selected attr to interestBtn if isItemOfInterest is true', function() {
-      element.isItemOfInterest = true;
-      element.styleButtons();
-
-      assert.equal(element.$.interestBtn.getAttribute('selected'), 'true');
-      assert.isNull(element.$.notOfInterestBtn.getAttribute('selected'));
-    });
-
-    test('styleButtons() adds selected attr to notOfInterestBtn if isItemOfInterest is false', function() {
-      element.isItemOfInterest = false;
-      element.styleButtons();
-
-      assert.isNull(element.$.interestBtn.getAttribute('selected'));
-      assert.equal(element.$.notOfInterestBtn.getAttribute('selected'), 'true');
-    });
-
     test('getAnnotationId returns correct value for both cases', function() {
       assert.equal(element.getAnnotationId({_id: 'defined'}), 'defined');
       assert.equal(element.getAnnotationId(undefined), undefined);
     });
 
+    test('getAnnotationClass given zero returns an empty string', function() {
+      assert.equal(element.getAnnotationClass(0), '');
+    });
+
+    test('getAnnotationClass given a positive number returns positive', function() {
+      assert.equal(element.getAnnotationClass(1), 'positive');
+    });
+
+    test('getAnnotationClass given a negative number returns negative', function() {
+      assert.equal(element.getAnnotationClass(-1), 'negative');
+    });
+
+    test('getAnnotationLabel returns non-empty strings', function() {
+      assert.isString(element.getAnnotationLabel(0));
+      assert.isTrue(!!element.getAnnotationLabel(0));
+      assert.isString(element.getAnnotationLabel(1));
+      assert.isTrue(!!element.getAnnotationLabel(1));
+      assert.isString(element.getAnnotationLabel(-1));
+      assert.isTrue(!!element.getAnnotationLabel(-1));
+    });
+
     test('getValuesForQuery returns item._id and currentUser in an array', function() {
       assert.deepEqual(element.getValuesForQuery(element.item, element.currentUser), ['someidhere', 'mockUser']);
+    });
+
+    test('isSelected given equal values returns selected', function() {
+      assert.equal(element.isSelected(1, 1), 'selected');
+      assert.equal(element.isSelected(0, 0), 'selected');
+      assert.equal(element.isSelected(-1, -1), 'selected');
+    });
+
+    test('isSelected given unequal values returns an empty string', function() {
+      assert.equal(element.isSelected(1, 0), '');
+      assert.equal(element.isSelected(0, 1), '');
+      assert.equal(element.isSelected(0, -1), '');
+      assert.equal(element.isSelected(-1, 0), '');
+      assert.equal(element.isSelected(1, -1), '');
+      assert.equal(element.isSelected(-1, 1), '');
+    });
+
+    test('openDropdownMenu shows the dropdown menu', function() {
+      assert.equal(element.$.dropdownMenu.getAttribute('aria-hidden'), 'true');
+      element.openDropdownMenu();
+      assert.isNull(element.$.dropdownMenu.getAttribute('aria-hidden'));
     });
 
     test('buildAnnotationQuery replaces appropriate values in queryTemplate', function() {
@@ -144,7 +155,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.transformOrigResult();
 
       assert.isNull(element.annotationResult);
-      assert.isUndefined(element.isItemOfInterest);
+      assert.equal(element.isItemOfInterest, 0);
       assert.isTrue(element.disableButtons);
     });
 
@@ -153,56 +164,77 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.transformOrigResult();
 
       assert.isNull(element.annotationResult);
-      assert.isUndefined(element.isItemOfInterest);
+      assert.equal(element.isItemOfInterest, 0);
       assert.isFalse(element.disableButtons);
     });
 
-    test('initCreateOrUpdate sets create body if correct icon clicked and annotationResult does not exist', function() {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var mockEvent = {target: {_iconName: 'add-circle-outline'}};
-
-      element.initCreateOrUpdate(mockEvent);
-
-      assert.isTrue(element.isItemOfInterest);
-      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', is_valuable: true});
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    test('saveAnnotation sets create body if annotationResult does not exist', function() {
+      element.saveAnnotation();
+      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', interest: 0, justification: ''});
     });
 
-    test('initCreateOrUpdate sets create body if correct button clicked and annotationResult does not exist', function() {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var mockEvent = {target: {id: 'interestBtn'}};
-
-      element.initCreateOrUpdate(mockEvent);
-
-      assert.isTrue(element.isItemOfInterest);
-      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', is_valuable: true});
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    test('saveAnnotation sets create body with correct interest and justification', function() {
+      element.isItemOfInterest = 1;
+      element.justification = 'my justification';
+      element.saveAnnotation();
+      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', interest: 1, justification: 'my justification'});
     });
 
     test('transformOrigResult if result found', function() {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      element.originalSearchResult = {hits: {hits: [{_id: 1, _source: {is_valuable: false}}]}};
+      element.originalSearchResult = {hits: {hits: [{_id: 1, _source: {interest: 1, justification: 'my justification'}}]}};
 
       element.transformOrigResult();
 
-      assert.deepEqual(element.annotationResult, {_id: 1, _source: {is_valuable: false}});
-      assert.equal(element.isItemOfInterest, false);
-      assert.equal(element.disableButtons, false);
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.deepEqual(element.annotationResult, {_id: 1, _source: {interest: 1, justification: 'my justification'}});
+      assert.equal(element.isItemOfInterest, 1);
+      assert.equal(element.justification, 'my justification');
+      assert.isFalse(element.disableButtons);
     });
 
-    test('initCreateOrUpdate sets update body if annotationResult exists', function() {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var mockEvent = {target: {_iconName: 'add-circle-outline'}};
-      element.annotationResult = {_id: 1, _source: {is_valuable: false}};
-
-      element.initCreateOrUpdate(mockEvent);
-
-      assert.isTrue(element.isItemOfInterest);
-      assert.deepEqual(element.annotationUpdateBody, {doc: {is_valuable: true}});
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    test('saveAnnotation sets update body if annotationResult exists', function() {
+      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
+      element.saveAnnotation();
+      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 0, justification: ''}});
     });
 
+    test('saveAnnotation sets update body with correct interest and justification', function() {
+      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
+      element.isItemOfInterest = 1;
+      element.justification = 'my justification';
+      element.saveAnnotation();
+      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 1, justification: 'my justification'}});
+    });
+
+    test('saveAnnotationAndCloseDropdownMenu sets the annotation body and hides the dropdown menu', function() {
+      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
+      element.isItemOfInterest = 1;
+      element.justification = 'my justification';
+      element.saveAnnotationAndCloseDropdownMenu();
+      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 1, justification: 'my justification'}});
+      assert.equal(element.$.dropdownMenu.getAttribute('aria-hidden'), 'true');
+    });
+
+    test('selectPositiveAnnotation sets the interest and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
+      element.selectPositiveAnnotation();
+      assert.equal(element.isItemOfInterest, 1);
+      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 1, justification: ''}});
+    });
+
+    test('selectNegativeAnnotation sets the interest and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
+      element.selectNegativeAnnotation();
+      assert.equal(element.isItemOfInterest, -1);
+      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: -1, justification: ''}});
+    });
+
+    test('selectNoAnnotation sets the interest and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {interest: 1, justification: ''}};
+      element.isItemOfInterest = 1;
+      element.selectNoAnnotation();
+      assert.equal(element.isItemOfInterest, 0);
+      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 0, justification: ''}});
+    });
   });
 </script>
 
