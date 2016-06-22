@@ -115,10 +115,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
         var geos = [];
         _.each(record, function(key) {
-            geoData = key.key.split(':');
+            var geoData = key.key.split(':');
             geos.push(geoData[0])
         });
-        geoData.push("Other");
+        geos.push("Other");
         return geos;
     }
 
