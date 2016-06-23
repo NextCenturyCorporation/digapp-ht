@@ -92,20 +92,20 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     function processLocationGraph(records){
         var data = [];
         _.each(records, function(record){
-            var point = {}
+            var point = {};
             point.date = record.key_as_string;
 
-            point.value = {}
+            point.cityCounts = {};
             if (record.localities.buckets){
-                sum = 0;
+                var sum = 0;
                 _.each(record.localities.buckets, function(location){
-                    geoData = location.key.split(':');
-                    city = geoData[0];
-                    point.value[city] = location.doc_count;
+                    var geoData = location.key.split(':');
+                    var city = geoData[0];
+                    point.cityCounts[city] = location.doc_count;
                     sum+=location.doc_count;
                 });
             }
-            point.value['Other'] = record.doc_count - sum;
+            point.cityCounts['Other'] = record.doc_count - sum;
             data.push(point);
         });
         return data;
@@ -116,7 +116,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         var geos = [];
         _.each(record, function(key) {
             var geoData = key.key.split(':');
-            geos.push(geoData[0])
+            geos.push(geoData[0]);
         });
         geos.push("Other");
         return geos;

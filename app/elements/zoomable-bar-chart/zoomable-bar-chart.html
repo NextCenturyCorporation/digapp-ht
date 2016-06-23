@@ -1,6 +1,6 @@
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
 <script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
-<dom-module id='bar-zoomable-chart'>
+<dom-module id='zoomable-bar-chart'>
     <style>
         :host {
             display: block;            
@@ -12,7 +12,7 @@
         
         .axis {
           font-size: 11px;
-          fill: var(--bar-zoomable-chart-axis-color, --secondary-text-color);
+          fill: #727272;
         }
 
         .overview {
@@ -21,7 +21,7 @@
 
         .axis line, .axis path {
           fill: none;
-          stroke: rgba(0,0,0,var(--dark-divider-opacity));
+          stroke: rgba(0,0,0,0.12);
           shape-rendering: crispEdges;
         }   
         .brush .extent {
@@ -44,12 +44,26 @@
     'use strict';
     /* globals d3 */
     Polymer({
-      is: 'bar-zoomable-chart',
+      is: 'zoomable-bar-chart',
       properties: {
         data: {
-          type: Object,
+          type: Array,
           value: function() {
-            return {};
+            return [];
+          },
+          notify: true
+        },
+        locations: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true
+        },
+        barChartData: {
+          type: Array,
+          value: function() {
+            return [];
           },
           notify: true
         },
@@ -65,13 +79,14 @@
         }
       },
       observers: [
-        'checkData(data)'
+        'checkData(data,locations)'
       ],
       checkData: function() {
         if(this.data) {
+          this.barChartData = this.data;
           this.processData();
-          this.minX = this.getItemKey(this.data.data[0]);
-          this.maxX = this.getItemKey(this.data.data[this.data.data.length - 1]);
+          this.minX = this.getItemKey(this.barChartData[0]);
+          this.maxX = this.getItemKey(this.barChartData[this.barChartData.length - 1]);
           this.createElements();
         } else {
           this.minX = 'N/A';
@@ -82,25 +97,24 @@
         var format = d3.time.format('%Y-%m-%d');
         var formattedDate = format(new Date(item.date));
         return formattedDate;
-        // Just do this if using a time scale
-        // return new Date(item[this.dataKey]);
       },
       processData: function() {
         var parseDate = d3.time.format('%d/%m/%Y');
+        console.log(this.barChartData);
 
-        if (this.data.data) {
-          this.data.data.map(function(record) {
+        if (this.barChartData) {
+          this.barChartData.map(function(record) {
             record.date = parseDate(new Date(record.date)); // turn the date string into a date object
             record.date = d3.time.format('%d/%m/%Y').parse(record.date);
             // adding calculated data to each count in preparation for stacking
             var y0 = 0; // keeps track of where the 'previous' value 'ended'
             var sum = 0;
             var value = [];
-            for (var key in record.value) {
+            for (var key in record.cityCounts) {
               var obj = {};
               obj.name = key;
               obj.y0 = y0;
-              obj.y1 = sum + record.value[key];
+              obj.y1 = sum + record.cityCounts[key];
               sum = obj.y1;
               y0 = obj.y1;
               value.push(obj);
@@ -109,13 +123,13 @@
             record.total = sum;
           });
         } else {
-          this.data.data = [];
+          this.barChartData = [];
         }
       },
 
       createElements: function() {
         // setup complete, let's get some data!
-        var data = this.data.data;
+        var data = this.barChartData;
 
         var self = this;
         this.width = 600;
@@ -199,7 +213,7 @@
 
         // data range for the bar colours
         // (essentially maps attribute names to colour values)
-        colour.domain(this.data.locations.filter(function(key) {
+        colour.domain(this.locations.filter(function(key) {
           return key !== 'Other';
         }));
 
@@ -311,6 +325,3 @@
     });
   })();
 </script>
-
-
-
