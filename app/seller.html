@@ -1,0 +1,457 @@
+<!doctype html>
+
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Polymer Starter Kit" />
+  <title>DIG</title>
+  <!-- Place favicon.ico in the `app/` directory -->
+
+  <!-- Chrome for Android theme color -->
+  <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+
+  <!-- build:css styles/main.css -->
+  <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
+  <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="styles/main.css">
+  <!-- endbuild-->
+
+  <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <!-- endbuild -->
+
+  <!-- will be replaced with elements/elements.vulcanized.html -->
+  <link rel="import" href="elements/elements.html">
+  <!-- endreplace-->
+
+  <!-- For shared styles, shared-styles.html import in elements.html -->
+  <style is="custom-style" include="shared-styles"></style>
+  <style is="custom-style" include="entity-view-styles"></style>
+  <style is="custom-style" include="icon-styles"></style>
+  <style is="custom-style" include="map-styles"></style>
+
+</head>
+
+<body unresolved class="fullbleed layout vertical">
+  <span id="browser-sync-binding"></span>
+  <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
+
+    <!--get app configuration from server -->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}"
+      on-response="showConfig">
+    </iron-ajax>
+
+    <!--initialize new elastic client connection to server
+      esclient can be used throughout the application lifecycle -->
+    <elastic-client
+      config="[[config.elasticConfig]]"
+      client="{{esclient}}">
+    </elastic-client>
+
+    <!--look up and build an entity query for the entity specified in the
+      query string for:
+      field: the field in elasticsearch to use in the query
+      value: value of the field above -->
+    <query-builder
+      query="{{sellerQuery}}"
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[params.value]]">
+    </query-builder>
+
+    <!--make an search using {{sellerQuery}} and return results -->
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[sellerQuery]]'
+      results="{{seller}}"
+      last-error="{{error}}">
+    </elastic-search>
+
+    <!--make generic models for content sections -->
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerDisplay.seller}}"
+     transform-function="[[clientConfig.transforms.seller.seller]]"
+     ></json-transform>
+
+    <!--Transform for what section of seller-->
+    <json-transform
+     data-in="[[seller]]"
+     data-out="{{sellerPhoneEmails}}"
+     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
+     ></json-transform>
+
+    <!--Start related entity queries and transforms-->
+
+    <!-- Related people (aggs) -->
+    <query-builder
+      query="{{relatedServiceAggQuery}}"
+      query-template="{{config.queryTemplates.sellerPeopleAggs}}"
+      field="offers.seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[relatedServiceAggQuery]]'
+      results="{{relatedServiceAggs}}"
+      elastic-type='["adultservice"]'
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedServiceAggs]]"
+     data-out="{{sellerDisplay.people}}"
+     transform-function="[[clientConfig.transforms.seller.people]]"
+     ></json-transform>
+
+    <!-- End related entity queries-->
+
+    <!--
+      build the query for offer timeline
+    -->
+     <query-builder
+      query="{{offerTimelineQuery}}"
+      query-template="{{config.queryTemplates.offerTimeline}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerTimelineQuery]]'
+      results="{{offerTimelineAggs}}"
+      elastic-type='["offer"]'
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offerTimelineAggs]]"
+     data-out="{{sellerDisplay.offerTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.offerTimelineData]]"
+     ></json-transform>
+
+    <!--
+      build the query for offer locations
+    -->
+     <query-builder
+      query="{{offerLocationQuery}}"
+      query-template="{{config.queryTemplates.offerLocation}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerLocationQuery]]'
+      results="{{offerLocationAggs}}"
+      elastic-type='["offer"]'
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[offerLocationAggs]]"
+     data-out="{{sellerDisplay.offerLocation}}"
+     transform-function="[[clientConfig.transforms.seller.offerLocationData]]"
+     ></json-transform>
+
+    <!--
+      Get all the offers for this phone
+     -->
+    <query-builder
+      query="{{sellerOffersQuery}}"
+      query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[sellerOffersQuery]]'
+      results="{{sellerOffers}}"
+      elastic-type='["offer"]'
+      loading="{{offersLoading}}"
+      page-size="{{pageSize}}"
+      page="{{pageNum}}"
+      last-error="{{error}}">
+
+    </elastic-search>
+
+    <json-transform
+     data-in="[[sellerOffers]]"
+     data-out="{{sellerDisplay.sellerOffers}}"
+     transform-function="[[clientConfig.transforms.seller.sellerOffersData]]"
+     ></json-transform>
+
+
+    <!-- Itenary component (aggs) -->
+
+    <query-builder
+      query="{{itineraryAggQuery}}"
+      query-template="{{config.queryTemplates.itineraryPhone}}"
+      field="seller.uri" value="[[sellerDisplay.seller._id]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[itineraryAggQuery]]'
+      results="{{relatedServiceItAggs}}"
+      elastic-type='["offer"]'
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[relatedServiceItAggs]]"
+     data-out="{{sellerDisplay.itinerary}}"
+     transform-function="[[clientConfig.transforms.seller.itinerary]]"
+     ></json-transform>
+
+    <!-- Display Content -->
+    <div class="entity">
+      <paper-header-panel class="flex" mode="waterfall-tall">
+
+        <!-- Entity header -->
+        <section class="paper-header layout vertical">
+
+          <!-- Entity title -->
+          <div class="layout horizontal center">
+            <iron-icon class="iron-icon-huge entity-seller-font" icon="editor:attach-money"></iron-icon>
+            <section class="flex-auto">
+              <div class="horizontal layout">
+                <div class="paper-font-display1 flex auto">
+                  <!--Title will be phone, email, or 'Info N/A' - non-phone numbers will be ignored by phone-formatter -->
+                  Seller: <phone-formatter input="[[sellerDisplay.seller.title]]"></phone-formatter>
+                </div>
+                <div class="horizontal end-justified layout">
+                  <annotate-record client="[[esclient]]"
+                    annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    query-template="{{config.queryTemplates.annotationQuery}}"
+                    item="{{sellerDisplay.seller}}" current-user="[[config.username]]">
+                  </annotate-record>
+                </div>
+              </div>
+            </section>
+            <div class="v-divider"></div>
+            <user-settings username="[[config.username]]" blur-images="{{blurImages}}"></user-settings>
+            <div class="v-divider"></div>
+            <!-- Places actions performed on the entity here -->
+
+          </div>
+
+        </section>
+
+        <!-- Entity body -->
+        <div class="entity-page">
+
+          <div class="content">
+
+            <div class="flex layout vertical">
+
+              <!--What section for Seller-->
+                <paper-material>
+                  <section class="what">
+                    <records-grid
+                      records="[[sellerPhoneEmails]]">
+                    </records-grid>
+                  </section>
+                </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Offers between Date1 and Date2 -->
+              <paper-material>
+                <section class="when">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-date-font" icon="icons:timeline"></iron-icon>
+                    <div>
+                      Offers between {{minXValue}} and {{maxXValue}}
+                    </div>
+                  </div>
+                  <bar-chart y-axis-label="" data='[[sellerDisplay.offerTimeline.offerTimeline]]'
+                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
+                    min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  </bar-chart>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Services -->
+              <paper-material >
+                <section class="who">
+
+                  <!-- Single person detail layout
+                       When data has improved, add seller details -->
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
+                    <div>Summary of Products Offered</div>
+                  </div>
+                  <person-features class="flex-2" people="[[sellerDisplay.people]]"></person-features>
+
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <paper-material>
+                <section class="photos">
+                  <image-query-and-display
+                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
+                    image-query-field="isImagePartOf.mainEntity.seller.uri"
+                    image-query-value="[[sellerDisplay.seller._id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-transform="[[clientConfig.transforms.image.images]]" blur="[[blurImages]]">
+                  </image-query-and-display>
+                </section>
+              </paper-material>
+
+
+              <div class="h-divider"></div>
+
+              <!-- Itinerary section -->
+              <paper-material>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                    Itinerary ([[sellerDisplay.itinerary.date.length]] Events)
+                  </div>
+
+                  <itinerary-list data="{{sellerDisplay.itinerary.date}}"></itinerary-list>
+                </section>
+              </paper-material>
+
+            <div class="h-divider"></div>
+
+            </div>
+
+            <div class="v-divider"></div>
+
+            <!-- Map section -->
+            <div class="flex layout vertical">
+
+              <paper-material>
+                <!-- City summary -->
+                <section class="where-header flex-none">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <!-- Likely to be only one location for seller for now until entity resolution is done -->
+                    <div>[[sellerDisplay.offerLocation.offerLocation.length]] Locations</div>
+                  </div>
+                </section>
+
+                <!-- Leaflet map -->
+                <template is="dom-if" if="[[sellerDisplay.offerLocation.offerLocation.length]]">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper map-data="{{sellerDisplay.offerLocation.offerLocation}}">
+                    </leaflet-wrapper>
+                  </section>
+
+                  <!-- City summary -->
+                  <section class="where-details flex-none">
+                    <feature-aggregation title="Offers per city" key="name" agg="[[sellerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                  </section>
+                </template>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- All Offers -->
+              <paper-material>
+                <section>
+                  <div class="section-header">
+                    <div class="paper-font-title">
+                      [[sellerDisplay.sellerOffers.relatedOffers.count]] Offers
+                    </div>
+                  </div>
+                  <records-list
+                    client="[[esclient]]"
+                    elastic-index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
+                    image-query-field="isImagePartOf.mainEntity.uri"
+                    image-query-value="_id"
+                    annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
+                    current-user="[[config.username]]"
+                    query-results="[[sellerDisplay.sellerOffers.relatedOffers.data]]"
+                    total-results="{{sellerDisplay.sellerOffers.relatedOffers.count}}"
+                    page="{{pageNum}}"
+                    loading="{{offersLoading}}" blur="[[blurImages]]">
+                  </records-list>
+                </section>
+              </paper-material>
+            </div>
+
+          </div>
+
+        </div>
+
+      </paper-header-panel>
+    </div>
+  </template>
+
+  <script>
+
+  (function(document) {
+    var app = document.querySelector('#app');
+
+    app.showConfig = function(req, res) {
+      console.log('REQ: ', req);
+      console.log('RES: ', res);
+    };
+
+    app.getURLParams = function() {
+      var queryString = window.location.search.slice(1, window.location.search.length);
+      var params = queryString.split('&');
+      app.params = {};
+      for (var i = 0; i < params.length; i++) {
+        var paramPair = params[i].split('=');
+        app.params[paramPair[0]] =  paramPair[1];
+      }
+    };
+
+    app.getURLParams();
+    app.sellerDisplay = {};
+
+  })(document);
+  </script>
+
+</body>
+
+</html>
