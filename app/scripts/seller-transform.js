@@ -117,7 +117,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
                 newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
                 newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
                 newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
-                newData.subtitle = '';
+                newData.descriptors = [];
             }
 
             return newData;

@@ -205,7 +205,7 @@ var commonTransforms = (function(_) {
                                 _id: record.uri,
                                 _type: type,
                                 title: record.name,
-                                subtitle: ''
+                                descriptors: []
                             };
                             result.push(obj);
                         }
@@ -215,7 +215,7 @@ var commonTransforms = (function(_) {
                         _id: records.uri,
                         _type: type,
                         title: records.name,
-                        subtitle: ''
+                        descriptors: []
                     };
                     result.push(obj);
                 }
@@ -290,7 +290,7 @@ var commonTransforms = (function(_) {
                             _id: elem,
                             _type: type,
                             title:  text,
-                            subtitle: ''
+                            descriptors: []
                         };
                         if(type === 'phone') {
                             newData.phones.push(newObj);

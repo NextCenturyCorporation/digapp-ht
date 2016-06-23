@@ -53,7 +53,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
 
-      paper-icon-item {
+      .record-head paper-icon-item {
+        --paper-item-min-height: 80px;
         /* Use the width of iron-icon-big */
         --paper-item-icon-width: 36px;
         --paper-item-icon: {
@@ -63,7 +64,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       iron-icon.closed-icon,
       iron-icon.opened-icon,
-      .record-head[clickable]:hover iron-icon {
+      .record-head[clickable]:hover iron-icon.entity-icon {
         display: none;
       }
 
@@ -82,6 +83,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: none;
       }
 
+      .descriptor {
+        color: var(--secondary-text-color);;
+        margin-right: 5px;
+        text-decoration: none;
+      }
+
+      .descriptor-icon {
+        vertical-align: text-bottom;
+      }
+
       .record-image {
         background: var(--disabled-text-color);
         margin-right: 15px;
@@ -91,7 +102,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .record-head-text {
         margin-right: 15px;
-        min-height: 100px;
       }
 
       .record-link {
@@ -121,7 +131,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 20px 10px;
       }
 
-      .record-body-data {
+      .record-body paper-item {
         --paper-item-min-height: 25px;
         font-size: 14px;
         padding: 0 10px;
@@ -148,10 +158,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: -webkit-box;
         -webkit-line-clamp: 1; /* number of lines to show */
         -webkit-box-orient: vertical;
-      }
-
-      .lineclamp.three-line {
-        -webkit-line-clamp: 3;
       }
     </style>
 
@@ -181,10 +187,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-item-body class="record-head-text">
             <div class="lineclamp" title$="[[item.title]]"><strong>[[item.title]]</strong></div>
 
-            <template is="dom-if" if="[[item.subtitle]]">
-              <div class="lineclamp three-line" title="[[getSubtitleTooltip(item.subtitle)]]" secondary>
-                <template is="dom-repeat" items="[[getSubtitleArray(item.subtitle)]]" as="value">
-                  <div><strong>[[value]]</strong></div>
+            <template is="dom-if" if="[[item.descriptors.length]]">
+              <div class="lineclamp" secondary>
+                <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
+                  <template is="dom-if" if="[[descriptor.id]]">
+                    <a class="descriptor" target="[[getTarget(newTab)]]" href$="[[createURL(descriptor.type, descriptor.id)]]" title="Open [[descriptor.text]]">
+                      <iron-icon class$="iron-icon-small descriptor-icon [[getIconClass(descriptor.type)]]" icon$="[[getIcon(descriptor.type)]]"></iron-icon>
+                      <strong>[[descriptor.text]]</strong>
+                    </a>
+                  </template>
+                  <template is="dom-if" if="[[!descriptor.id]]">
+                    <span class="descriptor" title="[[descriptor.text]]">
+                      <iron-icon class$="iron-icon-small descriptor-icon [[getIconClass(descriptor.type)]]" icon$="[[getIcon(descriptor.type)]]"></iron-icon>
+                      <strong>[[descriptor.text]]</strong>
+                    </span>
+                  </template>
                 </template>
               </div>
             </template>
@@ -197,7 +214,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </annotate-record>
 
           <!-- secondary actions -->
-          <a class="record-link record-head-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id, '_id')]]">
+          <a class="record-link record-head-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
             <paper-button class="record-button">{{getButtonText(item._type)}}</paper-button>
           </a>
         </paper-icon-item>
@@ -207,7 +224,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <iron-collapse class="record-detail">
           <paper-material class="record-body">
             <template is="dom-repeat" items="[[getDetailKeysArray(item.details)]]" as="key">
-              <paper-item class="record-body-data">
+              <paper-item>
                 <paper-item-body>
                   <span>
                     <strong class="capitalize">[[replaceCamelCaseText(key)]]:</strong>
@@ -227,7 +244,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <image-viewer images="[[imageUrls]]"></image-viewer>
             </template>
 
-            <a class="record-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id, '_id')]]">
+            <a class="record-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
               <paper-button class="record-button record-body-button" raised>{{getButtonText(item._type)}}</paper-button>
             </a>
           </paper-material>
@@ -419,8 +436,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      createURL: function(type, value, field) {
-        return '/' + type + '.html?value=' + value + '&field=' + field;
+      createURL: function(type, value) {
+        return (value ? ('/' + type + '.html?value=' + value + '&field=_id') : '#');
       },
 
       /**
@@ -476,6 +493,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       getIcon: function(type) {
         switch(type) {
+          case 'date': return 'icons:date-range';
           case 'email': return 'communication:email';
           case 'offer': return 'maps:local-offer';
           case 'person': return 'icons:account-circle';
@@ -484,17 +502,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           case 'seller': return 'editor:attach-money';
           case 'webpage': return 'av:web';
         }
-      },
-
-      getSubtitleArray: function(subtitle) {
-        if(subtitle) {
-          return (_.isArray(subtitle) ? subtitle : [subtitle]);
-        }
-        return [];
-      },
-
-      getSubtitleTooltip: function(subtitle) {
-        return this.getSubtitleArray(subtitle).join(', ');
       },
 
       getTarget: function(newTab) {
@@ -524,8 +531,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       toggleRecord: function(event) {
         // Do not open a record with no details.
         if(this.showDetails) {
-          // Do not open the record if the user clicked on a button inside the record.
-          if(event.target.localName !== 'paper-button' && event.target.localName !== 'paper-icon-button' && !event.target.classList.contains('paper-icon-button')) {
+          // Do not open the record if the user clicked on a button or link inside the record.
+          if(event.target.localName !== 'paper-button' && event.target.localName !== 'paper-icon-button' && !event.target.classList.contains('paper-icon-button') &&
+              event.target.localName !== 'a' && (!event.target.parentElement || event.target.parentElement.localName !== 'a')) {
             this.set('opened', !this.opened);
             this.$$('.record-detail').toggle();
           }
