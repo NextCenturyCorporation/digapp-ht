@@ -11,8 +11,8 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             {
                 "_id": "http://someuri",
                 "_type": "offer",
-                "title": "1234567890", // just gets first phone number
-                "subtitle": "*Hello World -- google.com", // title of offer
+                "title": "*Hello World -- google.com", // title of offer
+                "descriptors": [{type: 'date', text: 'July 1, 2016'}], // array of date, phone, email
                 "details": {
                     "date": "2012-04-23T18:25:43.511Z",
                     "address": "Los Angeles", // just use locality
@@ -27,25 +27,30 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         }
         var datePhoneEmail = [];
         if(validFromDate) {
-            datePhoneEmail.push(validFromDate);
+          datePhoneEmail.push({
+            text: validFromDate,
+            type: 'date'
+          });
         }
         var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
 
         if (mentions) {
-            var phones = commonTransforms.getEmailAndPhoneFromMentions(mentions).phones;
-            var emails = commonTransforms.getEmailAndPhoneFromMentions(mentions).emails;
-            if(phones && phones.length > 0 && emails && emails.length > 0) {
-                //get only first phone and email to show in the subtitle
-                datePhoneEmail.push(phones[0].title);
-                datePhoneEmail.push(emails[0].title);
+            var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
+            if(communications.phones && communications.phones.length > 0) {
+              //get only first phone to show in title
+              datePhoneEmail.push({
+                id: communications.phones[0]._id,
+                text: communications.phones[0].title,
+                type: 'phone'
+              });
             }
-            else if(phones && phones.length > 0) {
-                //get only first phone to show in title
-                datePhoneEmail.push(phones[0].title);
-            }
-            else if(emails && emails.length > 0) {
-                //get only first email to show in title
-                datePhoneEmail.push(emails[0].title);
+            if(communications.emails && communications.emails.length > 0) {
+              //get only first email to show in title
+              datePhoneEmail.push({
+                id: communications.emails[0]._id,
+                text: communications.emails[0].title,
+                type: 'email'
+              });
             }
         }
 
@@ -54,8 +59,8 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         var offerObj = {
             _id: record._id,
             _type: record._type,
-            subtitle: datePhoneEmail,
             title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
+            descriptors: datePhoneEmail,
             details: {
                 description: _.get(record, '_source.mainEntityOfPage.description'),
                 address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
@@ -73,14 +78,14 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 "_id": "http://someuri",
                 "_type": "phone",
                 "title": "1234567890", // phone number
-                "subtitle": "2 offer(s)" // number of offers
+                "descriptors": []
             }
         */
         var phoneObj = {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.name', 'Phone N/A'),
-            subtitle: ''
+            descriptors: []
         };
         return phoneObj;
     }
@@ -92,14 +97,14 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 "_id": "http://someuri",
                 "_type": "email",
                 "title": "abc@xyz.com", // email address
-                "subtitle": "2 offer(s)" // number of offers
+                "descriptors": []
             }
         */
         var emailObj = {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.name', 'Email N/A'),
-            subtitle: ''
+            descriptors: []
         };
         return emailObj;
     }
@@ -111,14 +116,14 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 "_id": "http://someuri",
                 "_type": "seller",
                 "title": "1234567890", // phone number associated with seller
-                "subtitle": "2 offer(s)" // number of offers
+                "descriptors": []
             }
         */
         var sellerObj = {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.telephone.name', 'Phone N/A'),
-            subtitle: ''
+            descriptors: []
         };
         return sellerObj;
     }
@@ -157,8 +162,8 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             {
                 "_id": "http://someuri",
                 "_type": "webpage",
-                "title": "yahoo.com",   // publisher 
-                "subtitle": "*Hello World -- google.com", // title of webpage
+                "title": "*Hello World -- google.com", // title of webpage
+                "descriptors": [{type: 'webpage', text: 'something'}], // array of publisher, date, phone, email
                 "details": {
                     "url": "http://someurlhere.com",
                     "body": "description text here",
@@ -175,7 +180,10 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             _id: record._id,
             _type: record._type,
             title: _.get(record, '_source.name[0]', 'Title N/A'),
-            subtitle: [_.get(record, '_source.publisher.name', 'Publisher N/A')],
+            descriptors: [{
+              type: 'webpage',
+              text: _.get(record, '_source.publisher.name', 'Publisher N/A')
+            }],
             offer: _.get(record, '_source.mainEntity.uri'),
             details: {
                 url: _.get(record, '_source.url'),
@@ -185,35 +193,38 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             }
 
         };
-        var mentions = _.get(record, '_source.mentions');
-        if(mentions) {
-            var phoneEmails = commonTransforms.getEmailAndPhoneFromMentions(mentions);
-            if(phoneEmails.phones.length > 0) {
-                var phones = '';
-                phoneEmails.phones.forEach(function(phoneObj, index) {
-                    phones += (index > 0 ? ', ' : '') + phoneObj.title;
-                });
-                webpageObj.details.phone = phones;
-            }
-            if(phoneEmails.emails.length > 0) {
-                var emails = '';
-                phoneEmails.emails.forEach(function(emailObj, index) {
-                    emails += (index > 0 ? ', ' : '') + emailObj.title;
-                });
-                webpageObj.details.email = emails;
-            }
-        }
 
         var xDate = _.get(record, '_source.dateCreated');
         if(xDate) {
-            webpageObj.subtitle.push(dateFormat(new Date(xDate), 'mmmm dd, yyyy'));
+          webpageObj.descriptors.push({
+            type: 'date',
+            text: dateFormat(new Date(xDate), 'mmmm dd, yyyy')
+          });
         }
 
-        if(webpageObj.details.phone) {
-            webpageObj.subtitle.push(webpageObj.details.phone);
-        }
-        if(webpageObj.details.email) {
-            webpageObj.subtitle.push(webpageObj.details.email);
+        var mentions = _.get(record, '_source.mentions');
+        if(mentions) {
+            var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
+            if(communications.phones.length > 0) {
+              webpageObj.details.phone = communications.phones.map(function(phone) {
+                return phone.title;
+              }).join(', ');
+              webpageObj.descriptors.push({
+                id: communications.phones[0]._id,
+                text: communications.phones[0].title,
+                type: 'phone'
+              });
+            }
+            if(communications.emails.length > 0) {
+              webpageObj.details.email = communications.emails.map(function(email) {
+                return email.title;
+              }).join(', ');
+              webpageObj.descriptors.push({
+                id: communications.emails[0]._id,
+                text: communications.emails[0].title,
+                type: 'email'
+              });
+            }
         }
 
         redirectWebpageToOffer(webpageObj);
@@ -228,7 +239,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 "_id": "http://someuri",
                 "_type": "person",
                 "title": "Emily", // person name
-                "subtitle": "Age: 20", // age
+                "descriptors": [{type: 'age', text: 'Age: 20'}], // array of age
                 "details": {
                     "height": 64,
                     "weight": 115,
@@ -240,7 +251,10 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
             _id: record._id,
             _type: 'person', // hardcode 'person' value for now
             title: _.get(record, '_source.name', 'Name N/A'),
-            subtitle: 'Age: ' + _.get(record, '_source.age', 'N/A'),
+            descriptors: [{
+              type: 'age',
+              text: 'Age: ' + _.get(record, '_source.age', 'N/A')
+            }],
             details: {
                 height: _.get(record, '_source.height'),
                 weight: _.get(record, '_source.weight'),
