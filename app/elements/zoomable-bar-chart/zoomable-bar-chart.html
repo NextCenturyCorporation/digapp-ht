@@ -100,23 +100,22 @@
       },
       processData: function() {
         var parseDate = d3.time.format('%d/%m/%Y');
-        console.log(this.barChartData);
 
         if (this.barChartData) {
           this.barChartData.map(function(record) {
             record.date = parseDate(new Date(record.date)); // turn the date string into a date object
             record.date = d3.time.format('%d/%m/%Y').parse(record.date);
             // adding calculated data to each count in preparation for stacking
-            var y0 = 0; // keeps track of where the 'previous' value 'ended'
+            var yAxisStart = 0; // keeps track of where the 'previous' value 'ended'
             var sum = 0;
             var value = [];
             for (var key in record.cityCounts) {
               var obj = {};
               obj.name = key;
-              obj.y0 = y0;
-              obj.y1 = sum + record.cityCounts[key];
-              sum = obj.y1;
-              y0 = obj.y1;
+              obj.yAxisStart = yAxisStart;
+              obj.yAxisEnd = sum + record.cityCounts[key];
+              sum = obj.yAxisEnd;
+              yAxisStart = obj.yAxisEnd;
               value.push(obj);
             }
             record.counts = value;
@@ -261,8 +260,8 @@
           .enter().append('rect')
             .attr('class', 'bar')
             .attr('width', 6)
-            .attr('y', function(d) { return y(d.y1); })
-            .attr('height', function(d) { return y(d.y0) - y(d.y1); })
+            .attr('y', function(d) { return y(d.yAxisEnd); })
+            .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
             .style('fill', function(d) {
               if(d.name === 'Other') {
                 return otherColor;
