@@ -117,206 +117,296 @@
               <elastic-sort-input sort-string="{{offerSortString}}" field="dateCreated"></elastic-sort-input>
               <elastic-sort input-string="{{offerSortString}}" sort="{{sort}}"></elastic-sort>
 
-              <p>
-                <h4>Country</h4>
-                <elastic-client-aggregation-builder
-                  name="countryAgg"
-                  field="mainEntity.availableAtOrFrom.address.addressCountry"
-                  count="20"
-                  ejs-aggregation="{{countryAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="country" class="facet-header">
+                <span class="facet-toggle" title="Toggle Country Facet List" on-tap="toggleList">Country</span>
+                <iron-icon id="country-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Country Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="country-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Country Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="countryAgg"
+                field="mainEntity.availableAtOrFrom.address.addressCountry"
+                count="20"
+                ejs-aggregation="{{countryAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="country-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.countryAgg.countryAgg.buckets]]"
                   filter-name="countryAgg"
                   field="mainEntity.availableAtOrFrom.address.addressCountry"
                   ejs-filter="{{countryFilter}}"
+                  facets="{{countryFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!countryFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>City</h4>
-                <elastic-client-aggregation-builder
-                  name="cityAgg"
-                  field="mainEntity.availableAtOrFrom.address.key"
-                  count="20"
-                  ejs-aggregation="{{cityAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="city" class="facet-header">
+                <span class="facet-toggle" title="Toggle City Facet List" on-tap="toggleList">City</span>
+                <iron-icon id="city-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle City Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="city-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle City Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
-                <json-transform
-                  data-in="{{ecsResult}}"
-                  data-out="{{ecsResultsCity}}"
-                  transform-function="[[clientConfig.transforms.filterAggs.cityResults]]">
-                </json-transform>
+              <elastic-client-aggregation-builder
+                name="cityAgg"
+                field="mainEntity.availableAtOrFrom.address.key"
+                count="20"
+                ejs-aggregation="{{cityAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
 
+              <json-transform
+                data-in="{{ecsResult}}"
+                data-out="{{escResultCity}}"
+                transform-function="[[clientConfig.transforms.filterAggs.cityResults]]">
+              </json-transform>
+
+              <iron-collapse id="city-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
-                  buckets="[[ecsResultsCity.aggregations.cityAgg.cityAgg.buckets]]"
+                  buckets="[[escResultCity.aggregations.cityAgg.cityAgg.buckets]]"
                   filter-name="cityAgg"
                   field="mainEntity.availableAtOrFrom.address.key"
                   ejs-filter="{{cityFilter}}"
+                  facets="{{cityFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!cityFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <!-- Phone and email use a transform on the same aggregation set -->
-                <elastic-client-aggregation-builder
-                  name="phoneEmailAgg"
-                  field="mentions"
-                  ejs-aggregation="{{phoneEmailAgg}}"
-                  type="terms"
-                  count="0">
-                </elastic-client-aggregation-builder>
+              <!-- Phone and email use a transform on the same aggregation set -->
+              <elastic-client-aggregation-builder
+                name="phoneEmailAgg"
+                field="mentions"
+                ejs-aggregation="{{phoneEmailAgg}}"
+                type="terms"
+                count="0">
+              </elastic-client-aggregation-builder>
 
-                <h4>Telephone</h4>
-                <json-transform
-                  data-in="{{ecsResult}}"
-                  data-out="{{ecsResultsPhone}}"
-                  transform-function="[[clientConfig.transforms.filterAggs.mentionsPhoneResults]]">
-                </json-transform>
+              <div id="phone" class="facet-header">
+                <span class="facet-toggle" title="Toggle Telephone Facet List" on-tap="toggleList">Telephone</span>
+                <iron-icon id="phone-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Telephone Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="phone-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Telephone Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <json-transform
+                data-in="{{ecsResult}}"
+                data-out="{{ecsResultPhone}}"
+                transform-function="[[clientConfig.transforms.filterAggs.mentionsPhoneResults]]">
+              </json-transform>
+
+              <iron-collapse id="phone-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
-                  buckets="[[ecsResultsPhone.aggregations.phoneAgg.phoneAgg.buckets]]"
+                  buckets="[[ecsResultPhone.aggregations.phoneAgg.phoneAgg.buckets]]"
                   filter-name="phoneAgg"
                   field="mentions"
                   ejs-filter="{{phoneFilter}}"
+                  facets="{{phoneFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
- 
-              <p>
-                <h4>Email Address</h4>
-                <json-transform
-                  data-in="{{ecsResult}}"
-                  data-out="{{ecsResultsEmail}}"
-                  transform-function="[[clientConfig.transforms.filterAggs.mentionsEmailResults]]">
-                </json-transform>
+                <template is="dom-if" if="[[!phoneFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
+              <div id="email" class="facet-header">
+                <span class="facet-toggle" title="Toggle Email Address Facet List" on-tap="toggleList">Email Address</span>
+                <iron-icon id="email-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Email Address Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="email-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Email Address Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
+
+              <json-transform
+                data-in="{{ecsResult}}"
+                data-out="{{ecsResultEmail}}"
+                transform-function="[[clientConfig.transforms.filterAggs.mentionsEmailResults]]">
+              </json-transform>
+
+              <iron-collapse id="email-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
-                  buckets="[[ecsResultsEmail.aggregations.emailAgg.emailAgg.buckets]]"
+                  buckets="[[ecsResultEmail.aggregations.emailAgg.emailAgg.buckets]]"
                   filter-name="emailAgg"
                   field="mentions"
                   ejs-filter="{{emailFilter}}"
+                  facets="{{emailFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!emailFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>Website</h4>
-                <elastic-client-aggregation-builder
-                  name="publisherAgg"
-                  field="publisher.name.raw"
-                  count="20"
-                  ejs-aggregation="{{publisherAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="website" class="facet-header">
+                <span class="facet-toggle" title="Toggle Website Facet List" on-tap="toggleList">Website</span>
+                <iron-icon id="website-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Website Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="website-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Website Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="publisherAgg"
+                field="publisher.name.raw"
+                count="20"
+                ejs-aggregation="{{publisherAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="website-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.publisherAgg.publisherAgg.buckets]]"
                   filter-name="publisherAgg"
                   field="publisher.name.raw"
                   ejs-filter="{{publisherFilter}}"
+                  facets="{{publisherFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!publisherFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>Name</h4>
-                <elastic-client-aggregation-builder
-                  name="nameAgg"
-                  field="mainEntity.itemOffered.name"
-                  count="20"
-                  ejs-aggregation="{{nameAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="name" class="facet-header">
+                <span class="facet-toggle" title="Toggle Name Facet List" on-tap="toggleList">Name</span>
+                <iron-icon id="name-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Name Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="name-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Name Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="nameAgg"
+                field="mainEntity.itemOffered.name"
+                count="20"
+                ejs-aggregation="{{nameAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="name-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.nameAgg.nameAgg.buckets]]"
                   filter-name="nameAgg"
                   field="mainEntity.itemOffered.name"
                   ejs-filter="{{nameFilter}}"
+                  facets="{{nameFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!nameFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>Age</h4>
-                <elastic-client-aggregation-builder
-                  name="ageAgg"
-                  field="mainEntity.itemOffered.age"
-                  count="20"
-                  ejs-aggregation="{{ageAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="age" class="facet-header">
+                <span class="facet-toggle" title="Toggle Age Facet List" on-tap="toggleList">Age</span>
+                <iron-icon id="age-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Age Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="age-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Age Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="ageAgg"
+                field="mainEntity.itemOffered.age"
+                count="20"
+                ejs-aggregation="{{ageAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="age-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.ageAgg.ageAgg.buckets]]"
                   filter-name="ageAgg"
                   field="mainEntity.itemOffered.age"
                   ejs-filter="{{ageFilter}}"
+                  facets="{{ageFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!ageFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>Ethnicity</h4>
-                <elastic-client-aggregation-builder
-                  name="ethnicityAgg"
-                  field="mainEntity.itemOffered.ethnicity"
-                  count="20"
-                  ejs-aggregation="{{ethnicityAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="ethnicity" class="facet-header">
+                <span class="facet-toggle" title="Toggle Ethnicity Facet List" on-tap="toggleList">Ethnicity</span>
+                <iron-icon id="ethnicity-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Ethnicity Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="ethnicity-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Ethnicity Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="ethnicityAgg"
+                field="mainEntity.itemOffered.ethnicity"
+                count="20"
+                ejs-aggregation="{{ethnicityAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="ethnicity-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
                   filter-name="ethnicityAgg"
                   field="mainEntity.itemOffered.ethnicity"
                   ejs-filter="{{ethnicityFilter}}"
+                  facets="{{ethnicityFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!ethnicityFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>Height</h4>
-                <elastic-client-aggregation-builder
-                  name="heightAgg"
-                  field="mainEntity.itemOffered.height"
-                  count="20"
-                  ejs-aggregation="{{heightAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="height" class="facet-header">
+                <span class="facet-toggle" title="Toggle Height Facet List" on-tap="toggleList">Height</span>
+                <iron-icon id="height-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Height Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="height-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Height Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="heightAgg"
+                field="mainEntity.itemOffered.height"
+                count="20"
+                ejs-aggregation="{{heightAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="height-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.heightAgg.heightAgg.buckets]]"
                   filter-name="heightAgg"
                   field="mainEntity.itemOffered.height"
                   ejs-filter="{{heightFilter}}"
+                  facets="{{heightFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!heightFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
 
-              <p>
-                <h4>Weight</h4>
-                <elastic-client-aggregation-builder
-                  name="weightAgg"
-                  field="mainEntity.itemOffered.weight"
-                  count="20"
-                  ejs-aggregation="{{weightAgg}}"
-                  type="terms">
-                </elastic-client-aggregation-builder>
+              <div id="weight" class="facet-header">
+                <span class="facet-toggle" title="Toggle Weight Facet List" on-tap="toggleList">Weight</span>
+                <iron-icon id="weight-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Weight Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="weight-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Weight Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
 
+              <elastic-client-aggregation-builder
+                name="weightAgg"
+                field="mainEntity.itemOffered.weight"
+                count="20"
+                ejs-aggregation="{{weightAgg}}"
+                type="terms">
+              </elastic-client-aggregation-builder>
+
+              <iron-collapse id="weight-list" class="facet-list" opened>
                 <elastic-client-checkbox-list
                   buckets="[[ecsResult.aggregations.weightAgg.weightAgg.buckets]]"
                   filter-name="weightAgg"
                   field="mainEntity.itemOffered.weight"
                   ejs-filter="{{weightFilter}}"
+                  facets="{{weightFacets}}"
                   combination-type="or">
                 </elastic-client-checkbox-list>
-              </p>
+                <template is="dom-if" if="[[!weightFacets.length]]">
+                  <div>No Facets</div>
+                </template>
+              </iron-collapse>
             </section>
 
             <section data-type="phone">phone</section>
@@ -391,6 +481,17 @@
 
       app.getElasticTypes = function() {
         return ['webpage'];
+      };
+
+      app.toggleList = function(event) {
+        if(event.target.parentElement && event.target.parentElement.id) {
+          var type = event.target.parentElement.id;
+          if(this.$[type + '-list']) {
+            this.$[type + '-list'].toggle();
+            this.$[type + '-icon-closed'].style.display = (this.$[type + '-icon-closed'].style.display !== 'none' ? 'none' : '');
+            this.$[type + '-icon-opened'].style.display = (this.$[type + '-icon-opened'].style.display !== 'none' ? 'none' : '');
+          }
+        }
       };
 
     })(document);
