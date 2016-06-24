@@ -63,9 +63,9 @@ var filterAggTransform = (function(_) {
                         phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.push(newObj);
 
                         // since phoneEmailAgg returns all buckets, return only the
-                        // first 10 for now until the show more button is added
+                        // first 20 for now until the show more button is added
                         // for filters
-                        if(phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.length === 10) {
+                        if(phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.length === 20) {
                             return false;
                         }
                     }
@@ -89,9 +89,9 @@ var filterAggTransform = (function(_) {
                         emailResultsObj.aggregations.emailAgg.emailAgg.buckets.push(newObj);
 
                         // since phoneEmailAgg returns all buckets, return only the
-                        // first 10 for now until the show more button is added
+                        // first 20 for now until the show more button is added
                         // for filters
-                        if(emailResultsObj.aggregations.emailAgg.emailAgg.buckets.length === 10) {
+                        if(emailResultsObj.aggregations.emailAgg.emailAgg.buckets.length === 20) {
                             return false;
                         }
                     }
