@@ -22,11 +22,11 @@ var providerTransform = (function(_) {
         var title = (person.name !== 'Name N/A')? person.name : '';
         var sep = (title === '')? '': ', ';
         if(person.ages) {
-            title += sep + person.ages[0];
+            title += sep + (_.isArray(person.ages) ? person.ages[0] : person.ages);
             sep = ', ';
         }
         if(person.ethnicities) {
-            title += sep + person.ethnicities[0];
+            title += sep + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
             sep = ', ';
         }
         person.title = title;
