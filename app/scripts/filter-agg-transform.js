@@ -84,7 +84,7 @@ var filterAggTransform = (function(_) {
                     if(record.key.indexOf('email') !== -1) {
                         var newObj = {};
                         newObj.key = record.key;
-                        newObj.text = getNameFromUri(record.key, 'email');
+                        newObj.text = decodeURIComponent(getNameFromUri(record.key, 'email'));
                         newObj.doc_count = record.doc_count;
                         emailResultsObj.aggregations.emailAgg.emailAgg.buckets.push(newObj);
 

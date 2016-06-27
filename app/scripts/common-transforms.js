@@ -204,7 +204,7 @@ var commonTransforms = (function(_) {
                             var obj = {
                                 _id: record.uri,
                                 _type: type,
-                                title: record.name,
+                                title: type === 'email' ? decodeURIComponent(record.name) : record.name,
                                 descriptors: []
                             };
                             result.push(obj);
@@ -214,7 +214,7 @@ var commonTransforms = (function(_) {
                     var obj = {
                         _id: records.uri,
                         _type: type,
-                        title: records.name,
+                        title: type === 'email' ? decodeURIComponent(records.name) : records.name,
                         descriptors: []
                     };
                     result.push(obj);
@@ -289,7 +289,7 @@ var commonTransforms = (function(_) {
                         var newObj = {
                             _id: elem,
                             _type: type,
-                            title:  text,
+                            title: type === 'email' ? decodeURIComponent(text) : text,
                             descriptors: []
                         };
                         if(type === 'phone') {
