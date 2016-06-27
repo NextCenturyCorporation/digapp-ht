@@ -141,29 +141,6 @@
       combine-function="[[clientConfig.transforms.phone.computeShowSeller]]"
     ></json-combine>
 
-     <!--
-        build the query for offer timeline
-      -->
-       <query-builder
-        query="{{offerTimelineQuery}}"
-        query-template="{{config.queryTemplates.offerTimeline}}"
-        field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
-      </query-builder>
-
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        query='[[offerTimelineQuery]]'
-        results="{{offerTimelineAggs}}"
-        elastic-type='["offer"]'
-        last-error="{{error}}">
-      </elastic-search>
-
-      <json-transform
-       data-in="[[offerTimelineAggs]]"
-       data-out="{{phoneDisplay.offerTimeline}}"
-       transform-function="[[clientConfig.transforms.phone.offerTimelineData]]"
-       ></json-transform>
 
       <!--
         build the query for offer locations
@@ -240,6 +217,30 @@
        transform-function="[[clientConfig.transforms.seller.itinerary]]"
        ></json-transform>
 
+
+    <!-- Graph component (aggs) -->
+
+    <query-builder 
+      query="{{offerStackGraphQuery}}" 
+      query-template="{{config.queryTemplates.locationTimeline}}" 
+      field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerStackGraphQuery]]'
+      results="{{locationAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[locationAggs]]"
+     data-out="{{phoneDisplay.locationTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
+     ></json-transform>
+
     <!-- Main Content -->
     <div class="entity">
 
@@ -276,23 +277,23 @@
             <!-- Left Pane -->
             <div class="flex layout vertical">
 
-              <!-- Timeline - Offers between date1 and date2 -->
+              <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
+
               <paper-material>
                 <section class="when">
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-date-font" icon="icons:timeline"></iron-icon>
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
                     <div>
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[phoneDisplay.offerTimeline.offerTimeline]]'
-                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                    min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                  </bar-chart>
+                  <zoomable-bar-chart data='{{phoneDisplay.locationTimeline.data}}' locations='{{phoneDisplay.locationTimeline.locations}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  </zoomable-bar-chart>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
+              
 
               <!-- Services -->
               <paper-material>
@@ -309,6 +310,7 @@
               </paper-material>
 
               <div class="h-divider"></div>
+
 
               <!-- Seller section -->
               <template is="dom-if" if="{{showSeller}}">

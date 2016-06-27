@@ -89,6 +89,39 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return buckets;
     }
 
+    function processLocationGraph(records){
+        var data = [];
+        _.each(records, function(record){
+            var point = {};
+            point.date = record.key_as_string;
+
+            point.cityCounts = {};
+            if (record.localities.buckets){
+                var sum = 0;
+                _.each(record.localities.buckets, function(location){
+                    var geoData = location.key.split(':');
+                    var city = geoData[0];
+                    point.cityCounts[city] = location.doc_count;
+                    sum+=location.doc_count;
+                });
+            }
+            point.cityCounts['Other'] = record.doc_count - sum;
+            data.push(point);
+        });
+        return data;
+    }
+
+    function getGeoCities(record) {
+
+        var geos = [];
+        _.each(record, function(key) {
+            var geoData = key.key.split(':');
+            geos.push(geoData[0]);
+        });
+        geos.push("Other");
+        return geos;
+    }
+
     function getSellerTitle(phones, emails) {
       var title = '';
       var otherPhonesAndEmails = 0;
@@ -190,6 +223,16 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             if(data.aggregations){
                 var aggs = data.aggregations;
                 newData.date = infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher':'Info'});
+            }
+            return newData;
+        },
+        locationTimeline: function(data){
+            var newData = {};
+
+            if(data.aggregations){
+                var aggs = data.aggregations;
+                newData.locations = getGeoCities(aggs.offersPhone.locations.buckets);
+                newData.data = processLocationGraph(aggs.offersPhone.offerTimeline.buckets);
             }
             return newData;
         }        
