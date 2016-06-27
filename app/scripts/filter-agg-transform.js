@@ -30,19 +30,19 @@ var filterAggTransform = (function(_) {
         cityResults: function(data) {
             var cityResultsObj = {};
 
-           if(data && data.aggregations && data.aggregations.webpageCityAgg && 
-                data.aggregations.webpageCityAgg.webpageCityAgg.buckets) {
+           if(data && data.aggregations && data.aggregations.cityAgg && 
+                data.aggregations.cityAgg.cityAgg.buckets) {
 
-                cityResultsObj.aggregations = {webpageCityAgg: {webpageCityAgg: {buckets: []}}};
+                cityResultsObj.aggregations = {cityAgg: {cityAgg: {buckets: []}}};
 
-                _.each(data.aggregations.webpageCityAgg.webpageCityAgg.buckets, function(record) {
+                _.each(data.aggregations.cityAgg.cityAgg.buckets, function(record) {
                     var newObj = {};
                     newObj.key = record.key;
                     var keys = record.key.split(':');
                     newObj.text = keys[0] + ', ' + keys[1];
                     newObj.doc_count = record.doc_count;
                     
-                    cityResultsObj.aggregations.webpageCityAgg.webpageCityAgg.buckets.push(newObj);
+                    cityResultsObj.aggregations.cityAgg.cityAgg.buckets.push(newObj);
                 });
             }
             return cityResultsObj;
