@@ -1,0 +1,349 @@
+<link rel='import' href='../../bower_components/polymer/polymer.html'>
+<script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
+<dom-module id='zoomable-bar-chart'>
+  <style>
+    :host {
+      display: block;
+    }
+
+    #barChart {
+      width: 100%;
+      height: 400px;
+    }
+
+    .axis {
+      font-size: 11px;
+      fill: var(--secondary-text-color);
+    }
+
+    .overview {
+      margin-top: 300px;
+    }
+
+    .axis line, .axis path {
+      fill: none;
+      stroke: rgba(0,0,0,0.12);
+      shape-rendering: crispEdges;
+    }
+
+    .brush .extent {
+      stroke: #fff;
+      fill-opacity: .125;
+      shape-rendering: crispEdges;
+    }
+  </style>
+
+  <template>
+    <div class='layout horizontal'>
+      <div id='chartContainer' class='flex auto'>
+        <svg id='barChart'></svg>
+      </div>
+    </div>
+  </template>
+
+  <script>
+    (function() {
+      'use strict';
+
+      /* globals d3 */
+      Polymer({
+        is: 'zoomable-bar-chart',
+
+        properties: {
+          data: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+          },
+
+          locations: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+          },
+
+          barChartData: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+          },
+
+          minX: {
+            type: String,
+            value: 'N/A',
+            notify: true
+          },
+
+          maxX: {
+            type: String,
+            value: 'N/A',
+            notify: true
+          }
+        },
+
+        observers: [
+          'checkData(data, locations)'
+        ],
+
+        checkData: function(data) {
+          if(data && data.length) {
+            this.barChartData = this.processData(data);
+            this.minX = this.getItemKey(this.barChartData[0]);
+            this.maxX = this.getItemKey(this.barChartData[this.barChartData.length - 1]);
+            this.createElements();
+          } else {
+            this.minX = 'N/A';
+            this.maxX = 'N/A';
+          }
+        },
+
+        getItemKey: function(item) {
+          var format = d3.time.format('%Y-%m-%d');
+          var formattedDate = format(new Date(item.date));
+          return formattedDate;
+        },
+
+        processData: function(data) {
+          var barChartData = [];
+          var parseDate = d3.time.format('%d/%m/%Y');
+
+          if(data) {
+            data.forEach(function(record) {
+              var date = parseDate(new Date(record.date)); // turn the date string into a date object
+              date = d3.time.format('%d/%m/%Y').parse(date);
+              // adding calculated data to each count in preparation for stacking
+              var yAxisStart = 0; // keeps track of where the 'previous' value 'ended'
+              var stackedBars = [];
+              for(var key in record.cityCounts) {
+                if(record.cityCounts[key]) {
+                  stackedBars.push({
+                    name: key,
+                    yAxisStart: yAxisStart,
+                    yAxisEnd: yAxisStart + record.cityCounts[key]
+                  });
+                  yAxisStart += record.cityCounts[key];
+                }
+              }
+              barChartData.push({
+                counts: stackedBars,
+                date: date,
+                total: yAxisStart
+              });
+            });
+          }
+
+          return barChartData;
+        },
+
+        createElements: function() {
+          // setup complete, let's get some data!
+          var data = this.barChartData;
+
+          var self = this;
+          this.width = 600;
+          this.height = 300;
+
+          // Use the width of the bar chart container.
+          var container = document.getElementById('chartContainer');
+          if(container) {
+            this.width = parseInt(container.offsetWidth, 10);
+          }
+
+          // sizing information, including margins so there is space for labels, etc
+          var margin = {top: 10, right: 30, bottom: 80, left: 40};
+          var marginOverview = {top: 260, right: 10, bottom: 20, left: 40};
+          var chartWidth = this.width - margin.left - margin.right;
+          var chartHeight = this.height - margin.top - margin.bottom;
+          var heightOverview = this.height - marginOverview.top - marginOverview.bottom;
+          // some colours to use for the bars
+          var otherColor = '#D3D3D3';
+          var colour = d3.scale.ordinal()
+                        .range(['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']);
+
+          // mathematical scales for the x and y axes
+          var x = d3.time.scale()
+                    .range([0, chartWidth]);
+
+          var y = d3.scale.linear()
+                    .range([chartHeight, 0]);
+          var xOverview = d3.time.scale()
+                            .range([0, chartWidth]);
+          var yOverview = d3.scale.linear()
+                            .range([heightOverview, 0]);
+
+          // rendering for the x and y axes
+          var xAxis = d3.svg.axis()
+                        .scale(x)
+                        .orient('bottom')
+                        .ticks(4);
+
+          var yAxis = d3.svg.axis()
+                        .scale(y)
+                        .orient('left');
+          var xAxisOverview = d3.svg.axis()
+                                .scale(xOverview)
+                                .orient('bottom')
+                                .ticks(4);
+
+          var elemToAdd = document.createElement('div');
+
+          var svg = d3.select(elemToAdd).append('svg') // the overall space
+                      .attr('width', chartWidth + margin.left + margin.right)
+                      .attr('height', chartHeight + margin.top + margin.bottom);
+
+          var main = svg.append('g')
+                        .attr('class', 'main')
+                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+
+          var overview = svg.append('g')
+                            .attr('class', 'overview')
+                            .attr('transform', 'translate(' + marginOverview.left + ',' + marginOverview.top + ')');
+
+          var brush = d3.svg.brush()
+                        .x(xOverview);
+
+          function brushed() {
+            // update the main chart's x axis data range
+            x.domain(brush.empty() ? xOverview.domain() : brush.extent());
+            // redraw the bars on the main chart
+            main.selectAll('.bar.stack')
+              .attr('transform', function(d) {
+                if(x(d.date) > 0) {
+                  return 'translate(' + x(d.date) + ',0)';
+                } else {
+                  return 'translate(240,240)scale(0)';
+                }
+              });
+            // redraw the x axis of the main chart
+            main.select('.x.axis').call(xAxis);
+          }
+          // brush tool to let us zoom and pan using the overview chart
+          brush.on('brush', brushed);
+          // data ranges for the x and y axes
+          x.domain(d3.extent(data, function(d) { return d.date; }));
+          y.domain([0, d3.max(data, function(d) { return d.total; })]);
+          xOverview.domain(x.domain());
+          yOverview.domain(y.domain());
+
+          // data range for the bar colours
+          // (essentially maps attribute names to colour values)
+          colour.domain(this.locations.filter(function(key) {
+            return key !== 'Other';
+          }));
+
+          // draw the axes now that they are fully set up
+          main.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0,' + chartHeight + ')')
+            .call(xAxis);
+          main.append('g')
+            .attr('class', 'y axis')
+            .call(yAxis);
+          overview.append('g')
+            .attr('class', 'x axis')
+            .attr('transform', 'translate(0,' + heightOverview + ')')
+            .call(xAxisOverview);
+
+          var tooltip = svg.append('g')
+            .attr('class', 'tooltip')
+            .style('display', 'none');
+
+          tooltip.append('rect')
+            .attr('width', 30)
+            .attr('height', 20)
+            .attr('fill', 'white')
+            .style('opacity', 0.5);
+          tooltip.append('text')
+            .attr('x', 15)
+            .attr('dy', '1.2em')
+            .style('text-anchor', 'middle')
+            .attr('font-size', '12px')
+            .attr('font-weight', 'bold');
+
+          // draw the bars
+          main.append('g')
+            .attr('class', 'bars')
+            // a group for each stack of bars, positioned in the correct x position
+            .selectAll('.bar.stack')
+            .data(data)
+            .enter().append('g')
+              .attr('class', 'bar stack')
+              .attr('transform', function(d) { return 'translate(' + x(d.date) + ',0)'; })
+            // a bar for each value in the stack, positioned in the correct y positions
+            .selectAll('rect')
+            .data(function(d) { return d.counts; })
+            .enter().append('rect')
+              .attr('class', 'bar')
+              .attr('width', 6)
+              .attr('y', function(d) { return y(d.yAxisEnd); })
+              .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
+              .style('fill', function(d) {
+                if(d.name === 'Other') {
+                  return otherColor;
+                }
+                return colour(d.name);
+              })
+              .on('mouseover', function() { tooltip.style('display', null); })
+              .on('mouseout', function() { tooltip.style('display', 'none'); })
+              .on('mousemove', function(d) {
+                var rectPos = this.getBoundingClientRect();
+                var xPosition = rectPos.left - 75;
+                var yPosition = d3.mouse(this)[1] - 15;
+                tooltip.attr('transform', 'translate(' + xPosition + ',' + yPosition + ')');
+                tooltip.select('text').text(d.name);
+              });
+
+          overview.append('g')
+            .attr('class', 'bars')
+            .selectAll('.bar')
+            .data(data)
+            .enter().append('rect')
+              .attr('class', 'bar')
+              .attr('x', function(d) { return xOverview(d.date) - 3; })
+              .attr('width', 6)
+              .attr('y', function(d) { return yOverview(d.total); })
+              .attr('height', function(d) { return heightOverview - yOverview(d.total); });
+
+          // add the brush target area on the overview chart
+          overview.append('g')
+            .attr('class', 'x brush')
+            .call(brush)
+            .selectAll('rect')
+            // -6 is magic number to offset positions for styling/interaction to feel right
+            .attr('y', -6)
+            // need to manually set the height because the brush has
+            // no y scale, i.e. we should see the extent being marked
+            // over the full height of the overview chart
+            .attr('height', heightOverview + 7);  // +7 is magic number for styling
+
+          // Add chart to DOM
+          this.$.barChart.style.height = this.height;
+          this.$.barChart.style.width = this.width;
+
+          var children = Polymer.dom(this.$.barChart).children;
+          // delete previous nodes if they exist
+          for(var i = 0; i < children.length; i++) {
+            Polymer.dom(this.$.barChart).removeChild(children[i]);
+          }
+
+          Polymer.dom(this.$.barChart).appendChild(svg.node());
+
+          d3.select(window).on('resize', function() {
+            self.resize();
+          });
+        },
+
+        resize: function() {
+          d3.select('#chartContainer').style('width', 0);
+          this.createElements();
+        }
+      });
+    })();
+  </script>
+</dom-module>

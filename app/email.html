@@ -84,31 +84,6 @@
      transform-function="[[clientConfig.transforms.email.email]]"
      ></json-transform>
 
-    <!-- Query and transform for offer timeline -->
-    <query-builder
-      query="{{offerAggQuery}}"
-      query-template="{{config.queryTemplates.offerTimeline}}"
-      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerAggQuery]]'
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      results="{{offerAggs}}"
-      elastic-type='["offer"]'
-      last-error="{{error}}"
-      loading="{{offersLoading}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[offerAggs]]"
-     data-out="{{emailDisplay.offerTimeline}}"
-     transform-function="[[clientConfig.transforms.email.offerTimelineData]]"
-     ></json-transform>
-
       <!--
         build the query for offer locations
       -->
@@ -241,6 +216,31 @@
      transform-function="[[clientConfig.transforms.seller.itinerary]]"
      ></json-transform>
 
+
+    <!-- Graph component (aggs) -->
+
+    <query-builder 
+      query="{{offerStackGraphQuery}}" 
+      query-template="{{config.queryTemplates.locationTimeline}}" 
+      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
+    </query-builder>
+
+    <elastic-search 
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[offerStackGraphQuery]]'
+      results="{{locationAggs}}"
+      elastic-type='["offer"]'
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[locationAggs]]"
+     data-out="{{emailDisplay.locationTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
+     ></json-transform>
+
+
     <!-- Main Content -->
     <div class="entity">
 
@@ -277,7 +277,6 @@
             <!-- Left Pane -->
             <div class="flex layout vertical">
 
-              <!-- Timeline - Offers between date1 and date2 -->
               <paper-material>
                 <section class="when">
                   <div class="paper-font-title layout horizontal start center">
@@ -286,10 +285,8 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <bar-chart y-axis-label="" data='[[emailDisplay.offerTimeline.offerTimeline]]'
-                    chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                    min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                  </bar-chart>
+                  <zoomable-bar-chart data='{{emailDisplay.locationTimeline.data}}' locations='{{emailDisplay.locationTimeline.locations}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  </zoomable-bar-chart>
                 </section>
               </paper-material>
 
