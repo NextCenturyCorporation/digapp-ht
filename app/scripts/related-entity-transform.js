@@ -234,10 +234,10 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
 
     function getServiceSummary(record) {
         /*
-            build service/person summary object:
+            build service/provider summary object:
             {
                 "_id": "http://someuri",
-                "_type": "person",
+                "_type": "provider",
                 "title": "Emily", // person name
                 "descriptors": [{type: 'age', text: 'Age: 20'}], // array of age
                 "details": {
@@ -249,7 +249,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         */
         var serviceObj = {
             _id: record._id,
-            _type: 'person', // hardcode 'person' value for now
+            _type: 'provider', // hardcode 'provider' value for now
             title: _.get(record, '_source.name', 'Name N/A'),
             descriptors: [{
               type: 'age',
