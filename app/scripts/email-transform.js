@@ -43,9 +43,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
             return newData;
         },
-        offerTimelineData: function(data) {
-            return commonTransforms.offerTimelineData(data);
-        },
         offerLocationData: function(data) {
             return commonTransforms.offerLocationData(data);
         },

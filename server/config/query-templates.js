@@ -48,28 +48,6 @@ module.exports = {
             }
         ] 
     },
-
-    // query for offer timeline on phone.html, email.html, and seller.html
-    offerTimeline: {
-       "aggs": {
-          "offersPhone": {
-             "filter": {
-                "term": {
-                   "{{field}}": "{{value}}"
-                }
-             },
-             "aggs": {
-                "offerTimeline": {
-                   "date_histogram": {
-                      "field": "validFrom",
-                      "interval": "day"
-                   }
-                }
-             }
-          }
-       },
-       "size": 0
-    },
     //offer locations for phone.html
     offerLocation:{
       "aggs": {
