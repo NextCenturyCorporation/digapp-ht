@@ -48,7 +48,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
               //get only first email to show in title
               datePhoneEmail.push({
                 id: communications.emails[0]._id,
-                text: communications.emails[0].title,
+                text: decodeURIComponent(communications.emails[0].title),
                 type: 'email'
               });
             }
@@ -103,7 +103,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         var emailObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.name', 'Email N/A'),
+            title: decodeURIComponent(_.get(record, '_source.name', 'Email N/A')),
             descriptors: []
         };
         return emailObj;
@@ -221,7 +221,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
               }).join(', ');
               webpageObj.descriptors.push({
                 id: communications.emails[0]._id,
-                text: communications.emails[0].title,
+                text: decodeURIComponent(communications.emails[0].title),
                 type: 'email'
               });
             }
