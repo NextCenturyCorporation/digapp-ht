@@ -1,39 +1,67 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
 <script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
+
 <dom-module id='zoomable-bar-chart'>
-  <style>
-    :host {
-      display: block;
-    }
-
-    #barChart {
-      width: 100%;
-      height: 400px;
-    }
-
-    .axis {
-      font-size: 11px;
-      fill: var(--secondary-text-color);
-    }
-
-    .overview {
-      margin-top: 300px;
-    }
-
-    .axis line, .axis path {
-      fill: none;
-      stroke: rgba(0,0,0,0.12);
-      shape-rendering: crispEdges;
-    }
-
-    .brush .extent {
-      stroke: #fff;
-      fill-opacity: .125;
-      shape-rendering: crispEdges;
-    }
-  </style>
-
   <template>
+    <style>
+      :host {
+        display: block;
+        --bar-chart-amber: var(--amber);
+        --bar-chart-black: var(--dark-primary-color);
+        --bar-chart-blue: var(--blue);
+        --bar-chart-cyan: var(--cyan);
+        --bar-chart-deep-orange: var(--deep-orange);
+        --bar-chart-deep-purple: var(--deep-purple);
+        --bar-chart-green: var(--green);
+        --bar-chart-grey: var(--grey);
+        --bar-chart-indigo: var(--indigo);
+        --bar-chart-light-blue: var(--light-blue);
+        --bar-chart-light-green: var(--light-green);
+        --bar-chart-lime: var(--lime);
+        --bar-chart-orange: var(--orange);
+        --bar-chart-pink: var(--pink);
+        --bar-chart-purple: var(--purple);
+        --bar-chart-red: var(--red);
+        --bar-chart-teal: var(--teal);
+        --bar-chart-yellow: var(--yellow);
+      }
+
+      #barChart {
+        width: 100%;
+        height: 400px;
+      }
+
+      .axis {
+        font-size: 11px;
+        fill: var(--secondary-text-color);
+      }
+
+      .overview {
+        margin-top: 300px;
+      }
+
+      .axis line, .axis path {
+        fill: none;
+        stroke: var(--secondary-text-color);
+        shape-rendering: crispEdges;
+      }
+
+      .brush .extent {
+        fill-opacity: 0.25;
+        shape-rendering: crispEdges;
+      }
+    </style>
+
     <div class='layout horizontal'>
       <div id='chartContainer' class='flex auto'>
         <svg id='barChart'></svg>
@@ -161,10 +189,27 @@
           var chartWidth = this.width - margin.left - margin.right;
           var chartHeight = this.height - margin.top - margin.bottom;
           var heightOverview = this.height - marginOverview.top - marginOverview.bottom;
-          // some colours to use for the bars
-          var otherColor = '#D3D3D3';
-          var colour = d3.scale.ordinal()
-                        .range(['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']);
+          // some colors to use for the bars
+          var overviewColor = this.getComputedStyleValue('--bar-chart-black');
+          var otherGroupColor = this.getComputedStyleValue('--bar-chart-grey');
+          var color = d3.scale.ordinal().range([
+            this.getComputedStyleValue('--bar-chart-blue'),
+            this.getComputedStyleValue('--bar-chart-orange'),
+            this.getComputedStyleValue('--bar-chart-green'),
+            this.getComputedStyleValue('--bar-chart-red'),
+            this.getComputedStyleValue('--bar-chart-purple'),
+            this.getComputedStyleValue('--bar-chart-yellow'),
+            this.getComputedStyleValue('--bar-chart-indigo'),
+            this.getComputedStyleValue('--bar-chart-cyan'),
+            this.getComputedStyleValue('--bar-chart-deep-orange'),
+            this.getComputedStyleValue('--bar-chart-lime'),
+            this.getComputedStyleValue('--bar-chart-pink'),
+            this.getComputedStyleValue('--bar-chart-deep-purple'),
+            this.getComputedStyleValue('--bar-chart-amber'),
+            this.getComputedStyleValue('--bar-chart-teal'),
+            this.getComputedStyleValue('--bar-chart-light-green'),
+            this.getComputedStyleValue('--bar-chart-light-blue'),
+          ]);
 
           // mathematical scales for the x and y axes
           var x = d3.time.scale()
@@ -231,9 +276,9 @@
           xOverview.domain(x.domain());
           yOverview.domain(y.domain());
 
-          // data range for the bar colours
-          // (essentially maps attribute names to colour values)
-          colour.domain(this.locations.filter(function(key) {
+          // data range for the bar colors
+          // (essentially maps attribute names to color values)
+          color.domain(this.locations.filter(function(key) {
             return key !== 'Other';
           }));
 
@@ -284,10 +329,10 @@
               .attr('y', function(d) { return y(d.yAxisEnd); })
               .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
               .style('fill', function(d) {
-                if(d.name === 'Other') {
-                  return otherColor;
+                if(d.name === 'Other' || d.name === 'other') {
+                  return otherGroupColor;
                 }
-                return colour(d.name);
+                return color(d.name);
               })
               .on('mouseover', function() { tooltip.style('display', null); })
               .on('mouseout', function() { tooltip.style('display', 'none'); })
@@ -308,7 +353,8 @@
               .attr('x', function(d) { return xOverview(d.date) - 3; })
               .attr('width', 6)
               .attr('y', function(d) { return yOverview(d.total); })
-              .attr('height', function(d) { return heightOverview - yOverview(d.total); });
+              .attr('height', function(d) { return heightOverview - yOverview(d.total); })
+              .style('fill', overviewColor);
 
           // add the brush target area on the overview chart
           overview.append('g')
