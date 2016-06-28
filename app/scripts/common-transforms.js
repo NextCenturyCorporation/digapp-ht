@@ -223,16 +223,6 @@ var commonTransforms = (function(_) {
             
             return result;
         },
-        offerTimelineData: function(data) {
-            var newData = {};
-
-            if(data.hits.hits.length > 0) {
-                var aggs = data.aggregations;
-                newData.offerTimeline = this.transformBuckets(aggs.offersPhone.offerTimeline.buckets, 'date', 'key_as_string');
-            }
-        
-            return newData;
-        },
         offerLocationData: function(data) {
             var newData = {};
 
