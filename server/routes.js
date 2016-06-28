@@ -20,6 +20,7 @@ module.exports = function(app) {
             queryTemplates: config.queryTemplates,
             annotationIndex: config.annotationIndex,
             annotationType: config.annotationType,
+            annotationRelevant: config.annotationRelevant,
             username: req.headers.user ? req.headers.user : 'mockUser'
         });
     });

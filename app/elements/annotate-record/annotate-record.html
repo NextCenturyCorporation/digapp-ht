@@ -19,6 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
 
 <dom-module id="annotate-record">
   <template>
@@ -27,27 +28,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
       .annotation-icon {
-        color: var(--grey);
+        color: #111;
       }
       .annotation-icon[disabled] {
         color: var(--disabled-text-color);
         opacity: var(--dark-disabled-opacity);
       }
-      .positive {
-        color: var(--blue);
-      }
-      .negative {
+      .red {
         color: var(--red);
+      }
+      .orange {
+        color: var(--orange);
+      }
+      .grey {
+        color: var(--grey);
       }
       .dropdown-content {
         background-color: #fff;
         border: 1px solid var(--dark-primary-color);
         border-radius: 3px;
-        padding: 10px;
+        cursor: default;
+        padding: 15px;
+      }
+      .dropdown-title {
+        font-weight: 500;
+        line-height: 40px;
+      }
+      .option-row {
+        margin: 5px 0;
       }
       .annotation-option {
+        border: 1px solid #fff;
         font-size: 14px;
-        width: 150px;
+        width: 180px;
         --paper-item-icon-width: 24px;
         --paper-item-min-height: 40px;
         --paper-item-focused-before: {
@@ -58,11 +71,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       }
       .annotation-option:hover {
-        background-color: rgba(0,0,0,0.1);
+        background-color: rgba(0,0,0,0.05);
         cursor: pointer;
       }
       .annotation-option.selected {
-        background-color: var(--accent-color);
+        background-color: rgba(0,0,0,0.05);
+        border: 1px solid var(--dark-primary-color);
       }
       .dropdown-button {
         @apply(--shadow-elevation-4dp);
@@ -86,7 +100,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     <div class="layout horizontal">
-      <paper-icon-button icon="flag"
+      <paper-icon-button icon="[[getFlagIcon(isItemOfInterest)]]"
         class$="annotation-icon dropdown-trigger [[getAnnotationClass(isItemOfInterest)]]"
         disabled="{{disableButtons}}"
         title="[[getAnnotationLabel(isItemOfInterest)]] (Click to Open Menu)"
@@ -96,17 +110,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top">
         <paper-material class="dropdown-content" on-tap="stopPropagation">
           <div class="layout horizontal">
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 0)]]" title="[[getAnnotationLabel(0)]]" on-tap="selectNoAnnotation">
-              <iron-icon icon="flag" class="annotation-icon" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(0)]]</paper-item-body>
+            <div class="dropdown-title flex">[[getAnnotationTitle(itemType, annotationRelevant)]]</div>
+            <paper-icon-button icon="close" class="annotation-icon" title="Close Menu" on-tap="closeDropdownMenu"></paper-icon-button>
+          </div>
+
+          <div class="option-row layout horizontal">
+            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 3)]]" title="[[getAnnotationLabel(3)]]" on-tap="selectAnnotation3">
+              <iron-icon icon="fa:flag" class="annotation-icon red" item-icon></iron-icon>
+              <paper-item-body>[[getAnnotationLabel(3)]]</paper-item-body>
             </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 1)]]" title="[[getAnnotationLabel(1)]]" on-tap="selectPositiveAnnotation">
-              <iron-icon icon="flag" class="annotation-icon positive" item-icon></iron-icon>
+            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 2)]]" title="[[getAnnotationLabel(2)]]" on-tap="selectAnnotation2">
+              <iron-icon icon="fa:flag" class="annotation-icon orange" item-icon></iron-icon>
+              <paper-item-body>[[getAnnotationLabel(2)]]</paper-item-body>
+            </paper-icon-item>
+            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 1)]]" title="[[getAnnotationLabel(1)]]" on-tap="selectAnnotation1">
+              <iron-icon icon="fa:flag" class="annotation-icon grey" item-icon></iron-icon>
               <paper-item-body>[[getAnnotationLabel(1)]]</paper-item-body>
             </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, -1)]]" title="[[getAnnotationLabel(-1)]]" on-tap="selectNegativeAnnotation">
-              <iron-icon icon="flag" class="annotation-icon negative" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(-1)]]</paper-item-body>
+            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 0)]]" title="[[getAnnotationLabel(0)]]" on-tap="selectAnnotation0">
+              <iron-icon icon="fa:flag-o" class="annotation-icon" item-icon></iron-icon>
+              <paper-item-body>[[getAnnotationLabel(0)]]</paper-item-body>
             </paper-icon-item>
           </div>
 
@@ -166,6 +189,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String
         },
         /**
+         * The text describing the thing for which the annotation is relevant.
+         */
+        annotationRelevant: {
+          type: String,
+          value: ''
+        },
+        /**
          * query template to use to create annotation query
          */
         queryTemplate: {
@@ -178,6 +208,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         item: {
           type: Object,
           notify: true
+        },
+        /**
+         * The type of item being annotated.
+         */
+        itemType: {
+          type: String,
+          value: ''
         },
         /**
          * original result of query to find if there is an existing
@@ -197,7 +234,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
-         * The annotation flag (positive, negative, or zero).
+         * The annotation flag (0-3).
          */
         isItemOfInterest: {
           type: Number,
@@ -246,6 +283,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         }
       },
+      closeDropdownMenu: function() {
+        this.$.dropdownMenu.close();
+      },
       computeTypeArray: function(annotationType) {
         return [annotationType];
       },
@@ -253,10 +293,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return (annotationResult ? annotationResult._id : undefined);
       },
       getAnnotationClass: function(isItemOfInterest) {
-        return (isItemOfInterest > 0 ? 'positive' : (isItemOfInterest < 0 ? 'negative' : ''));
+        switch(isItemOfInterest) {
+          case 3: return 'red';
+          case 2: return 'orange';
+          case 1: return 'grey';
+          case 0: return '';
+        }
       },
       getAnnotationLabel: function(isItemOfInterest) {
-        return (isItemOfInterest > 0 ? 'Interesting' : (isItemOfInterest < 0 ? 'Not Interesting' : 'No Opinion'));
+        switch(isItemOfInterest) {
+          case 3: return 'Very Relevant';
+          case 2: return 'Somewhat Relevant';
+          case 1: return 'Not Relevant';
+          case 0: return 'No Answer';
+        }
+      },
+      getAnnotationTitle: function(type, relevant) {
+        return 'Is this' + (type ? ' ' + type : '') + ' relevant' + (relevant ? ' ' + relevant : '') + '?';
+      },
+      getFlagIcon: function(isItemOfInterest) {
+        return (isItemOfInterest ? 'fa:flag' : 'fa:flag-o');
       },
       getValuesForQuery: function(item, currentUser) {
         return [item._id, currentUser];
@@ -285,18 +341,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       saveAnnotationAndCloseDropdownMenu: function() {
-        this.$.dropdownMenu.close();
+        this.closeDropdownMenu();
         this.saveAnnotation();
       },
-      selectPositiveAnnotation: function() {
+      selectAnnotation3: function() {
+        this.isItemOfInterest = 3;
+        this.saveAnnotation();
+      },
+      selectAnnotation2: function() {
+        this.isItemOfInterest = 2;
+        this.saveAnnotation();
+      },
+      selectAnnotation1: function() {
         this.isItemOfInterest = 1;
         this.saveAnnotation();
       },
-      selectNegativeAnnotation: function() {
-        this.isItemOfInterest = -1;
-        this.saveAnnotation();
-      },
-      selectNoAnnotation: function() {
+      selectAnnotation0: function() {
         this.isItemOfInterest = 0;
         this.saveAnnotation();
       },
