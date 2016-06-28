@@ -231,7 +231,7 @@ gulp.task('cache-config', function(callback) {
     'bower_components/webcomponentsjs/webcomponents-lite.min.js',
     '{elements,scripts,styles}/**/*.*'],
     {cwd: dir}, function(error, files) {
-    if (error) {
+    if(error) {
       callback(error);
     } else {
       config.precache = files;
@@ -319,7 +319,7 @@ gulp.task('nodemon', function(cb) {
     script: 'server/app.js',
     env: localConfig
   }).on('start', function() {
-    if (!started) {
+    if(!started) {
       cb();
       started = true;
     }
@@ -367,4 +367,4 @@ gulp.task('test', ['lint', 'test:local']);
 // Load custom tasks from the `tasks` directory
 try {
   require('require-dir')('tasks');
-} catch (err) {}
+} catch(err) {}
