@@ -343,13 +343,14 @@ module.exports = {
                     "aggs": {
                         "localities": {
                             "terms": {
-                                "field": "availableAtOrFrom.address.key"
+                                "field": "availableAtOrFrom.address.key",
+                                "order" : { "_term" : "asc" }
                             }
                         }
                     }
                 },
                 "locations": {
-                      "terms": {
+                    "terms": {
                         "field": "availableAtOrFrom.address.key",
                         "size": 0
                     }
