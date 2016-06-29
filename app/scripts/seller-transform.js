@@ -194,26 +194,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             
             return newData;
         },
-        relatedPhones: function(data) {
-            var newData = {};
-
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData = commonTransforms.transformBuckets(aggs.seller_assoc_numbers.buckets, 'number');
-            }
-            
-            return newData;
-        },
-        relatedEmails: function(data) {
-            var newData = {};
-
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData = commonTransforms.transformBuckets(aggs.seller_assoc_emails.buckets, 'email');
-            }
-            
-            return newData;
-        },
         itinerary: function(data){
             
             var newData = {};

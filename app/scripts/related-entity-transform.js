@@ -119,12 +119,22 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
                 "descriptors": []
             }
         */
+
         var sellerObj = {
             _id: record._id,
             _type: record._type,
-            title: _.get(record, '_source.telephone.name', 'Phone N/A'),
             descriptors: []
         };
+
+        var phoneField = _.get(record, '_source.telephone');
+        if(_.isArray(phoneField)) {
+            if(phoneField.length > 0) {
+                sellerObj.title = _.get(record, '_source.telephone[0].name', 'Phone N/A');
+            }
+        } else {
+            sellerObj.title = _.get(record, '_source.telephone.name', 'Phone N/A');
+        }
+
         return sellerObj;
     }
 
