@@ -10,25 +10,29 @@
 var offerTransform = (function(_, commonTransforms) {
 
     function getGeolocation(record) {
-        /** build geolocation object:
-        "geo": { 
+        /** build geolocation array object:
+        "geolocation": [{ 
             "latitude": 33.916403, 
             "longitude": -118.352575
-        }
+        }]
         
-        if no latitude && longitude, return undefined 
+        should only be one location, but needs to be in array format 
+        to be processed by leaflet-wrapper
+
+        if no latitude && longitude, return empty array
         */
-        var geo;
+        var geolocation = [];
         var latitude = _.get(record, 'availableAtOrFrom.address[0].geo.latitude');
         var longitude = _.get(record, 'availableAtOrFrom.address[0].geo.longitude');
 
         if(latitude && longitude) {
-            geo = {};
-            geo.latitude = latitude;
-            geo.longitude = longitude;
+            var location = {};
+            location.latitude = latitude;
+            location.longitude = longitude;
+            geolocation.push(location);
         }
 
-        return geo;
+        return geolocation;
     }
 
     function getPerson(record) {
@@ -91,7 +95,7 @@ var offerTransform = (function(_, commonTransforms) {
         newData._id = _.get(record, 'uri');
         newData.date = _.get(record, 'validFrom');
         newData.address = commonTransforms.getAddress(record);
-        newData.geo = getGeolocation(record);
+        newData.geolocation = getGeolocation(record);
         newData.person = getPerson(record);
         newData.price = getPrice(record);
         newData.title = _.get(record, 'title', 'Title N/A');
