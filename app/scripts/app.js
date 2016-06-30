@@ -8,7 +8,7 @@
 
   app.displayInstalledToast = function() {
     // Check to make sure caching is actually enabled—it won't be in the dev environment.
-    if (!document.querySelector('platinum-sw-cache').disabled) {
+    if(!document.querySelector('platinum-sw-cache').disabled) {
       document.querySelector('#caching-complete').show();
     }
   };
@@ -36,7 +36,7 @@
     var heightDiff = detail.height - detail.condensedHeight;
     var yRatio = Math.min(1, detail.y / heightDiff);
     var maxMiddleScale = 0.50;  // appName max size when condensed. The smaller the number the smaller the condensed size.
-    var scaleMiddle = Math.max(maxMiddleScale, (heightDiff - detail.y) / (heightDiff / (1-maxMiddleScale))  + maxMiddleScale);
+    var scaleMiddle = Math.max(maxMiddleScale, (heightDiff - detail.y) / (heightDiff / (1 - maxMiddleScale)) + maxMiddleScale);
     var scaleBottom = 1 - yRatio;
 
     // Move/translate middleContainer
@@ -52,7 +52,7 @@
   // Close drawer after menu item is selected if drawerPanel is narrow
   app.onDataRouteClick = function() {
     var drawerPanel = document.querySelector('#paperDrawerPanel');
-    if (drawerPanel.narrow) {
+    if(drawerPanel.narrow) {
       drawerPanel.closeDrawer();
     }
   };
@@ -62,8 +62,7 @@
     document.getElementById('mainContainer').scrollTop = 0;
   };
 
-
-  app.showConfig = function (req, res) {
+  app.showConfig = function(req, res) {
     console.log('REQ: ', req);
     console.log('RES: ', res);
   };
@@ -72,7 +71,7 @@
     var queryString = window.location.search.slice(1, window.location.search.length);
     var params = queryString.split('&');
     app.params = {};
-    for (var i = 0; i < params.length; i++) {
+    for(var i = 0; i < params.length; i++) {
       var paramPair = params[i].split('=');
       app.params[paramPair[0]] =  paramPair[1];
     }

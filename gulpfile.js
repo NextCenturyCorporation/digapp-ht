@@ -97,6 +97,7 @@ gulp.task('jslint', function() {
   return gulp.src([
       'app/*.html',
       'app/elements/**/*.html',
+      'app/scripts/*.js',
       'app/test/*.html',
       'gulpfile.js'
     ])
