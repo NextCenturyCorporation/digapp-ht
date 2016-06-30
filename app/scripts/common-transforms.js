@@ -112,43 +112,6 @@ var commonTransforms = (function(_) {
 
             return locations;
         },
-        /**
-            where latitude and longitude are required: 
-            "geoCoordinates": [
-                {
-                    "city": "hawthorn",
-                    "state": "california",
-                    "latitude": 33.916403,
-                    "longitude": -118.352575
-                }
-            ]
-        */
-        getGeoCoordinates: function(records) {
-            var geos = [];
-
-            records.forEach(function(record) {
-                var addresses = _.get(record, '_source.availableAtOrFrom.address', []);
-
-                addresses.forEach(function(address) {
-                    var latitude = address.geo ? address.geo.latitude : undefined;
-                    var longitude = address.geo ? address.geo.longitude : undefined;
-
-                    if (latitude && longitude) {
-                        var geo = {
-                            city: address.addressLocality,
-                            state: address.addressRegion,
-                            latitude: latitude,
-                            longitude: longitude
-                        };
-                        geos.push(geo);
-                    }
-                });
-                // Removing duplicates for better map display
-                geos = _.uniqWith(geos, isGeolocationEqual);
-            });
-
-            return geos;
-        },
         /** build address object:
         "address": {
             "locality": "Los Angeles",
