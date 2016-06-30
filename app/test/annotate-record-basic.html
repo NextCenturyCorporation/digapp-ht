@@ -28,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <annotate-record annotation-index="dig-annotations" annotation-type="annotation"
       query-template='{"query": {"query": {"bool" : {"must" : [{"term" : { "uri" : "" }},
         {"term" : { "user" : "mockUser" }}]}}}, "pathsToValues": ["query.bool.must[0].term.uri"]}'
-      item='{"_id": "someidhere"}' current-user="mockUser">
+      item='{"_id": "http://offer/ABC123", "_type": "offer"}' current-user="mockUser">
     </annotate-record>
   </template>
 </test-fixture>
@@ -58,11 +58,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('item defined correctly', function() {
-      assert.deepEqual(element.item, {_id: 'someidhere'});
+      assert.deepEqual(element.item, {_id: 'http://offer/ABC123', _type: 'offer'});
     });
 
-    test('isItemOfInterest is zero', function() {
-      assert.equal(element.isItemOfInterest, 0);
+    test('label equals no answer', function() {
+      assert.equal(element.label, element.noAnswer);
     });
 
     test('disableButtons is true', function() {
@@ -82,50 +82,69 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.getAnnotationId(undefined), undefined);
     });
 
-    test('getAnnotationClass given zero returns an empty string', function() {
-      assert.equal(element.getAnnotationClass(0), '');
+    test('getAnnotationClass given no answer returns an empty string', function() {
+      assert.equal(element.getAnnotationClass(element.noAnswer), '');
     });
 
-    test('getAnnotationClass given 1 returns grey', function() {
-      assert.equal(element.getAnnotationClass(1), 'grey');
+    test('getAnnotationClass given not relevant returns grey', function() {
+      assert.equal(element.getAnnotationClass(element.notRelevant), 'grey');
     });
 
-    test('getAnnotationClass given 2 returns orange', function() {
-      assert.equal(element.getAnnotationClass(2), 'orange');
+    test('getAnnotationClass given somewhat relevant returns orange', function() {
+      assert.equal(element.getAnnotationClass(element.somewhatRelevant), 'orange');
     });
 
-    test('getAnnotationClass given 3 returns red', function() {
-      assert.equal(element.getAnnotationClass(3), 'red');
+    test('getAnnotationClass given very relevant returns red', function() {
+      assert.equal(element.getAnnotationClass(element.veryRelevant), 'red');
     });
 
     test('getAnnotationLabel returns non-empty strings', function() {
-      assert.isString(element.getAnnotationLabel(0));
-      assert.isTrue(!!element.getAnnotationLabel(0));
-      assert.isString(element.getAnnotationLabel(1));
-      assert.isTrue(!!element.getAnnotationLabel(1));
-      assert.isString(element.getAnnotationLabel(2));
-      assert.isTrue(!!element.getAnnotationLabel(2));
-      assert.isString(element.getAnnotationLabel(3));
-      assert.isTrue(!!element.getAnnotationLabel(3));
+      assert.isString(element.getAnnotationLabel(element.noAnswer));
+      assert.isTrue(!!element.getAnnotationLabel(element.noAnswer));
+      assert.isString(element.getAnnotationLabel(element.notRelevant));
+      assert.isTrue(!!element.getAnnotationLabel(element.notRelevant));
+      assert.isString(element.getAnnotationLabel(element.somewhatRelevant));
+      assert.isTrue(!!element.getAnnotationLabel(element.somewhatRelevant));
+      assert.isString(element.getAnnotationLabel(element.veryRelevant));
+      assert.isTrue(!!element.getAnnotationLabel(element.veryRelevant));
+    });
+
+    test('getCdrId returns the CDR ID for an offer', function() {
+      assert.equal(element.getCdrId(element.item), 'ABC123');
+    });
+
+    test('getCdrId returns an empty string for a non-offer', function() {
+      assert.equal(element.getCdrId({_id: 'http://non-offer/DEF456', _type: 'non-offer'}), '');
+    });
+
+    test('getFlagIcon returns fa:flag for very/somewhat/not relevant', function() {
+      assert.equal(element.getFlagIcon(element.veryRelevant), 'fa:flag');
+      assert.equal(element.getFlagIcon(element.somewhatRelevant), 'fa:flag');
+      assert.equal(element.getFlagIcon(element.notRelevant), 'fa:flag');
+    });
+
+    test('getFlagIcon returns fa:flag-o for no answer', function() {
+      assert.equal(element.getFlagIcon(element.noAnswer), 'fa:flag-o');
     });
 
     test('getValuesForQuery returns item._id and currentUser in an array', function() {
-      assert.deepEqual(element.getValuesForQuery(element.item, element.currentUser), ['someidhere', 'mockUser']);
+      assert.deepEqual(element.getValuesForQuery(element.item, element.currentUser), ['http://offer/ABC123', 'mockUser']);
     });
 
     test('isSelected given equal values returns selected', function() {
-      assert.equal(element.isSelected(1, 1), 'selected');
-      assert.equal(element.isSelected(0, 0), 'selected');
-      assert.equal(element.isSelected(-1, -1), 'selected');
+      assert.equal(element.isSelected(element.veryRelevant, element.veryRelevant), 'selected');
+      assert.equal(element.isSelected(element.somewhatRelevant, element.somewhatRelevant), 'selected');
+      assert.equal(element.isSelected(element.notRelevant, element.notRelevant), 'selected');
+      assert.equal(element.isSelected(element.noAnswer, element.noAnswer), 'selected');
     });
 
     test('isSelected given unequal values returns an empty string', function() {
-      assert.equal(element.isSelected(1, 0), '');
-      assert.equal(element.isSelected(0, 1), '');
-      assert.equal(element.isSelected(0, -1), '');
-      assert.equal(element.isSelected(-1, 0), '');
-      assert.equal(element.isSelected(1, -1), '');
-      assert.equal(element.isSelected(-1, 1), '');
+      assert.equal(element.isSelected(element.veryRelevant, element.somewhatRelevant), '');
+      assert.equal(element.isSelected(element.veryRelevant, element.notRelevant), '');
+      assert.equal(element.isSelected(element.veryRelevant, element.noAnswer), '');
+      assert.equal(element.isSelected(element.somewhatRelevant, element.notRelevant), '');
+      assert.equal(element.isSelected(element.somewhatRelevant, element.noAnswer), '');
+      assert.equal(element.isSelected(element.notRelevant, element.noAnswer), '');
     });
 
     test('openDropdownMenu shows the dropdown menu', function() {
@@ -161,7 +180,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.transformOrigResult();
 
       assert.isNull(element.annotationResult);
-      assert.equal(element.isItemOfInterest, 0);
+      assert.equal(element.label, element.noAnswer);
       assert.isTrue(element.disableButtons);
     });
 
@@ -170,82 +189,135 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.transformOrigResult();
 
       assert.isNull(element.annotationResult);
-      assert.equal(element.isItemOfInterest, 0);
+      assert.equal(element.label, element.noAnswer);
       assert.isFalse(element.disableButtons);
     });
 
     test('saveAnnotation sets create body if annotationResult does not exist', function() {
       element.saveAnnotation();
-      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', interest: 0, justification: ''});
+
+      assert.isObject(element.annotationCreateBody);
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
+      assert.equal(element.annotationCreateBody.user, 'mockUser');
+      assert.equal(element.annotationCreateBody.label, element.noAnswer);
+      assert.equal(element.annotationCreateBody.justification, '');
+      assert.isTrue(!!element.annotationCreateBody.timestamp);
     });
 
-    test('saveAnnotation sets create body with correct interest and justification', function() {
-      element.isItemOfInterest = 1;
+    test('saveAnnotation sets create body with correct label and justification', function() {
+      element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.saveAnnotation();
-      assert.deepEqual(element.annotationCreateBody, {uri: element.item._id, user: 'mockUser', interest: 1, justification: 'my justification'});
+
+      assert.isObject(element.annotationCreateBody);
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
+      assert.equal(element.annotationCreateBody.user, 'mockUser');
+      assert.equal(element.annotationCreateBody.label, element.veryRelevant);
+      assert.equal(element.annotationCreateBody.justification, 'my justification');
+      assert.isTrue(!!element.annotationCreateBody.timestamp);
     });
 
     test('transformOrigResult if result found', function() {
-      element.originalSearchResult = {hits: {hits: [{_id: 1, _source: {interest: 1, justification: 'my justification'}}]}};
+      element.originalSearchResult = {hits: {hits: [{_id: 1, _source: {label: element.veryRelevant, justification: 'my justification'}}]}};
 
       element.transformOrigResult();
 
-      assert.deepEqual(element.annotationResult, {_id: 1, _source: {interest: 1, justification: 'my justification'}});
-      assert.equal(element.isItemOfInterest, 1);
+      assert.deepEqual(element.annotationResult, {_id: 1, _source: {label: element.veryRelevant, justification: 'my justification'}});
+      assert.equal(element.label, element.veryRelevant);
       assert.equal(element.justification, 'my justification');
       assert.isFalse(element.disableButtons);
     });
 
     test('saveAnnotation sets update body if annotationResult exists', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
+      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
       element.saveAnnotation();
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 0, justification: ''}});
+
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.noAnswer);
+      assert.equal(element.annotationUpdateBody.doc.justification, '');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('saveAnnotation sets update body with correct interest and justification', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
-      element.isItemOfInterest = 1;
+    test('saveAnnotation sets update body with correct label and justification', function() {
+      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+      element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.saveAnnotation();
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 1, justification: 'my justification'}});
+
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.veryRelevant);
+      assert.equal(element.annotationUpdateBody.doc.justification, 'my justification');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
     test('saveAnnotationAndCloseDropdownMenu sets the annotation body and hides the dropdown menu', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
-      element.isItemOfInterest = 1;
+      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+      element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.saveAnnotationAndCloseDropdownMenu();
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 1, justification: 'my justification'}});
+
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.veryRelevant);
+      assert.equal(element.annotationUpdateBody.doc.justification, 'my justification');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
       assert.equal(element.$.dropdownMenu.getAttribute('aria-hidden'), 'true');
     });
 
-    test('selectAnnotation0 sets the interest and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 1, justification: ''}};
-      element.selectAnnotation0();
-      assert.equal(element.isItemOfInterest, 0);
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 0, justification: ''}});
+    test('selectNoAnswer sets the label and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {label: element.veryRelevant, justification: ''}};
+      element.selectNoAnswer();
+
+      assert.equal(element.label, element.noAnswer);
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.noAnswer);
+      assert.equal(element.annotationUpdateBody.doc.justification, '');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('selectAnnotation1 sets the interest and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
-      element.selectAnnotation1();
-      assert.equal(element.isItemOfInterest, 1);
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 1, justification: ''}});
+    test('selectNotRelevant sets the label and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+      element.selectNotRelevant();
+
+      assert.equal(element.label, element.notRelevant);
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.notRelevant);
+      assert.equal(element.annotationUpdateBody.doc.justification, '');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('selectAnnotation2 sets the interest and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
-      element.selectAnnotation2();
-      assert.equal(element.isItemOfInterest, 2);
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 2, justification: ''}});
+    test('selectSomewhatRelevant sets the label and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+      element.selectSomewhatRelevant();
+
+      assert.equal(element.label, element.somewhatRelevant);
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.somewhatRelevant);
+      assert.equal(element.annotationUpdateBody.doc.justification, '');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('selectAnnotation3 sets the interest and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {interest: 0, justification: ''}};
-      element.selectAnnotation3();
-      assert.equal(element.isItemOfInterest, 3);
-      assert.deepEqual(element.annotationUpdateBody, {doc: {interest: 3, justification: ''}});
+    test('selectVeryRelevant sets the label and annotation body', function() {
+      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+      element.selectVeryRelevant();
+
+      assert.equal(element.label, element.veryRelevant);
+      assert.isObject(element.annotationUpdateBody);
+      assert.isObject(element.annotationUpdateBody.doc);
+      assert.equal(element.annotationUpdateBody.doc.label, element.veryRelevant);
+      assert.equal(element.annotationUpdateBody.doc.justification, '');
+      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
   });
 </script>

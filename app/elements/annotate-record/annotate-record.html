@@ -100,10 +100,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </template>
 
     <div class="layout horizontal">
-      <paper-icon-button icon="[[getFlagIcon(isItemOfInterest)]]"
-        class$="annotation-icon dropdown-trigger [[getAnnotationClass(isItemOfInterest)]]"
+      <paper-icon-button icon="[[getFlagIcon(label)]]"
+        class$="annotation-icon dropdown-trigger [[getAnnotationClass(label)]]"
         disabled="{{disableButtons}}"
-        title="[[getAnnotationLabel(isItemOfInterest)]] (Click to Open Menu)"
+        title="[[getAnnotationLabel(label)]] (Click to Open Menu)"
         on-tap="openDropdownMenu">
       </paper-icon-button>
 
@@ -115,21 +115,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </div>
 
           <div class="option-row layout horizontal">
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 3)]]" title="[[getAnnotationLabel(3)]]" on-tap="selectAnnotation3">
+            <paper-icon-item class$="annotation-option [[isSelected(label, veryRelevant)]]" title="[[getAnnotationLabel(veryRelevant)]]" on-tap="selectVeryRelevant">
               <iron-icon icon="fa:flag" class="annotation-icon red" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(3)]]</paper-item-body>
+              <paper-item-body>[[getAnnotationLabel(veryRelevant)]]</paper-item-body>
             </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 2)]]" title="[[getAnnotationLabel(2)]]" on-tap="selectAnnotation2">
+            <paper-icon-item class$="annotation-option [[isSelected(label, somewhatRelevant)]]" title="[[getAnnotationLabel(somewhatRelevant)]]" on-tap="selectSomewhatRelevant">
               <iron-icon icon="fa:flag" class="annotation-icon orange" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(2)]]</paper-item-body>
+              <paper-item-body>[[getAnnotationLabel(somewhatRelevant)]]</paper-item-body>
             </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 1)]]" title="[[getAnnotationLabel(1)]]" on-tap="selectAnnotation1">
+            <paper-icon-item class$="annotation-option [[isSelected(label, notRelevant)]]" title="[[getAnnotationLabel(notRelevant)]]" on-tap="selectNotRelevant">
               <iron-icon icon="fa:flag" class="annotation-icon grey" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(1)]]</paper-item-body>
+              <paper-item-body>[[getAnnotationLabel(notRelevant)]]</paper-item-body>
             </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(isItemOfInterest, 0)]]" title="[[getAnnotationLabel(0)]]" on-tap="selectAnnotation0">
+            <paper-icon-item class$="annotation-option [[isSelected(label, noAnswer)]]" title="[[getAnnotationLabel(noAnswer)]]" on-tap="selectNoAnswer">
               <iron-icon icon="fa:flag-o" class="annotation-icon" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(0)]]</paper-item-body>
+              <paper-item-body>[[getAnnotationLabel(noAnswer)]]</paper-item-body>
             </paper-icon-item>
           </div>
 
@@ -163,12 +163,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
   (function() {
     'use strict';
-    /* globals _ */
 
+    /* globals _ */
     Polymer({
       is: 'annotate-record',
 
       properties: {
+        /**
+         * Label for very relevant.  Must be defined before other properties.
+         */
+        veryRelevant: {
+          type: String,
+          value: 'very relevant',
+          readOnly: true
+        },
+        /**
+         * Label for somewhat relevant.  Must be defined before other properties.
+         */
+        somewhatRelevant: {
+          type: String,
+          value: 'somewhat relevant',
+          readOnly: true
+        },
+        /**
+         * Label for not relevant.  Must be defined before other properties.
+         */
+        notRelevant: {
+          type: String,
+          value: 'not relevant',
+          readOnly: true
+        },
+        /**
+         * Label for no answer.  Must be defined before other properties.
+         */
+        noAnswer: {
+          type: String,
+          value: 'no answer',
+          readOnly: true
+        },
         /**
          * an instance of elasticsearch.Client which is connected to
          * an elasticsearch server
@@ -234,11 +266,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
-         * The annotation flag (0-3).
+         * The annotation label (very/somewhat/not relevant or no answer).
          */
-        isItemOfInterest: {
-          type: Number,
-          value: 0,
+        label: {
+          type: String,
+          value: 'no answer',
           notify: true
         },
         /**
@@ -292,33 +324,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getAnnotationId: function(annotationResult) {
         return (annotationResult ? annotationResult._id : undefined);
       },
-      getAnnotationClass: function(isItemOfInterest) {
-        switch(isItemOfInterest) {
-          case 3: return 'red';
-          case 2: return 'orange';
-          case 1: return 'grey';
-          case 0: return '';
+      getAnnotationClass: function(label) {
+        switch(label) {
+          case this.veryRelevant: return 'red';
+          case this.somewhatRelevant: return 'orange';
+          case this.notRelevant: return 'grey';
+          case this.noAnswer: return '';
         }
       },
-      getAnnotationLabel: function(isItemOfInterest) {
-        switch(isItemOfInterest) {
-          case 3: return 'Very Relevant';
-          case 2: return 'Somewhat Relevant';
-          case 1: return 'Not Relevant';
-          case 0: return 'No Answer';
+      getAnnotationLabel: function(label) {
+        switch(label) {
+          case this.veryRelevant: return 'Very Relevant';
+          case this.somewhatRelevant: return 'Somewhat Relevant';
+          case this.notRelevant: return 'Not Relevant';
+          case this.noAnswer: return 'No Answer';
         }
       },
       getAnnotationTitle: function(type, relevant) {
         return 'Is this' + (type ? ' ' + type : '') + ' relevant' + (relevant ? ' ' + relevant : '') + '?';
       },
-      getFlagIcon: function(isItemOfInterest) {
-        return (isItemOfInterest ? 'fa:flag' : 'fa:flag-o');
+      getCdrId: function(item) {
+        if(item._type === 'offer' && item._id.lastIndexOf('/') >= 0) {
+          return item._id.substring(item._id.lastIndexOf('/') + 1);
+        }
+        return '';
+      },
+      getFlagIcon: function(label) {
+        return (label === this.noAnswer ? 'fa:flag-o' : 'fa:flag');
       },
       getValuesForQuery: function(item, currentUser) {
         return [item._id, currentUser];
       },
-      isSelected: function(isItemOfInterest, value) {
-        return (isItemOfInterest === value ? 'selected' : '');
+      isSelected: function(label, value) {
+        return (label === value ? 'selected' : '');
       },
       openDropdownMenu: function() {
         this.$.dropdownMenu.open();
@@ -327,16 +365,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if(this.annotationResult && this.annotationResult._id) {
           this._setAnnotationUpdateBody({
             doc: {
-              interest: this.isItemOfInterest,
-              justification: this.justification
+              label: this.label,
+              justification: this.justification,
+              timestamp: new Date()
             }
           });
         } else {
           this._setAnnotationCreateBody({
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            cdr_id: this.getCdrId(this.item),
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
             uri: this.item._id,
             user: this.currentUser,
-            interest: this.isItemOfInterest,
-            justification: this.justification
+            label: this.label,
+            justification: this.justification,
+            timestamp: new Date()
           });
         }
       },
@@ -344,20 +387,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.closeDropdownMenu();
         this.saveAnnotation();
       },
-      selectAnnotation3: function() {
-        this.isItemOfInterest = 3;
+      selectVeryRelevant: function() {
+        this.label = this.veryRelevant;
         this.saveAnnotation();
       },
-      selectAnnotation2: function() {
-        this.isItemOfInterest = 2;
+      selectSomewhatRelevant: function() {
+        this.label = this.somewhatRelevant;
         this.saveAnnotation();
       },
-      selectAnnotation1: function() {
-        this.isItemOfInterest = 1;
+      selectNotRelevant: function() {
+        this.label = this.notRelevant;
         this.saveAnnotation();
       },
-      selectAnnotation0: function() {
-        this.isItemOfInterest = 0;
+      selectNoAnswer: function() {
+        this.label = this.noAnswer;
         this.saveAnnotation();
       },
       stopPropagation: function(event) {
@@ -397,17 +440,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(this.originalSearchResult.hits.hits.length > 0) {
             this.annotationResult = this.originalSearchResult.hits.hits[0];
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            this.isItemOfInterest = this.annotationResult._source.interest;
+            this.label = this.annotationResult._source.label;
             this.justification = this.annotationResult._source.justification;
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
-            this.isItemOfInterest = 0;
+            this.label = this.noAnswer;
             this.justification = '';
           }
 
         } else {
           this.disableButtons = true;
-          this.isItemOfInterest = 0;
+          this.label = this.noAnswer;
           this.justification = '';
         }
       }

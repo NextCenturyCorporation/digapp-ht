@@ -6,6 +6,10 @@ curl -XPUT localhost:9200/dig-annotations -d '
   "mappings" : {
     "annotation" : {
       "properties" : {
+        "cdr_id" : {
+          "type" : "string",
+          "index" : "not_analyzed"
+        },
         "uri" : {
           "type" : "string",
           "index" : "not_analyzed"
@@ -14,12 +18,16 @@ curl -XPUT localhost:9200/dig-annotations -d '
           "type" : "string",
           "index": "not_analyzed"
         },
-        "interest" : {
-          "type" : "byte"
+        "label" : {
+          "type" : "string",
+          "index": "not_analyzed"
         },
         "justification" : {
           "type" : "string",
           "index" : "not_analyzed"
+        },
+        "timestamp" : {
+          "type" : "date"
         }
       }
     }
