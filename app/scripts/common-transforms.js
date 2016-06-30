@@ -9,13 +9,6 @@
 /* note lodash should be defined in parent scope */
 var commonTransforms = (function(_) {
 
-    /**
-    * Check for geolocation equality
-    */
-    function isGeolocationEqual(value, other) {
-        return value.latitude === other.latitude && value.longitude === other.longitude;
-    }
-
     function getGeoFromKeys(record) {
         
         var geos = [];
