@@ -95,10 +95,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       point.date = record.key_as_string;
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
       point.cityCounts = {};
+
+      var sum = 0;
       if(record.localities.buckets) {
-        var sum = 0;
         _.each(record.localities.buckets, function(location) {
           var geoData = location.key.split(':');
           var city = geoData[0];
