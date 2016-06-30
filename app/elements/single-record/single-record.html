@@ -24,51 +24,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <dom-module id="single-record">
   <template>
     <style include="icon-styles"></style>
+    <style include="list-item-styles"></style>
+
     <style>
       :host {
-        display: block;
-      }
-
-      .record-head {
-        padding: 0 10px;
-      }
-
-      .record-head {
-        box-shadow: none;
-      }
-
-      .record-head.opened,
-      .record-head:hover {
-        background-color: rgba(0,0,0,0.1);
-      }
-
-      .record-head[clickable] {
-        cursor: pointer;
-      }
-
-      paper-item,
-      paper-icon-item {
-        --paper-item-focused-before: {
-          background: initial;
-        }
-      }
-
-      .record-head paper-icon-item {
-        --paper-item-min-height: 80px;
-        --paper-item-icon-width: 24px;
-        --paper-item-icon: {
-          margin-right: 15px;
-        }
-      }
-
-      iron-icon.closed-icon,
-      iron-icon.opened-icon,
-      .record-head[clickable]:hover iron-icon.entity-icon {
-        display: none;
-      }
-
-      .record-head.closed:hover iron-icon.closed-icon,
-      .record-head.opened:hover iron-icon.opened-icon {
         display: block;
       }
 
@@ -79,85 +38,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .descriptor {
         color: var(--secondary-text-color);;
+        /* Margin between icon and text. */
         margin-right: 5px;
         text-decoration: none;
       }
 
       .descriptor-icon {
+        /* Icons next to text look better with vertical-align text-bottom. */
         vertical-align: text-bottom;
       }
 
-      .record-image {
-        background: var(--disabled-text-color);
-        margin-right: 15px;
-        height: 50px;
-        width: 50px;
-      }
-
-      .record-head-text {
-        margin-right: 15px;
-      }
-
       annotate-record {
-        margin: 10px;
+        /* Margin between annotation icon and text (left) / 'open' button (right). */
+        margin: 15px;
       }
 
-      .record-link {
-        color: var(--primary-text-color);;
-        font-size: 14px;
-        text-decoration: none;
+      .list-item-body {
+        padding: 20px;
       }
 
-      .record-button {
-        @apply(--shadow-elevation-4dp);
-      }
-
-      .record-button:hover {
-        @apply(--shadow-elevation-8dp);
-      }
-
-      .record-head-link {
-        visibility: hidden;
-      }
-
-      .record-head:hover .record-head-link {
-        visibility: visible;
-      }
-
-      .record-body {
-        margin-bottom: 10px;
-        padding: 20px 10px;
-      }
-
-      .record-body paper-item {
-        --paper-item-min-height: 25px;
-        font-size: 14px;
-        padding: 0 10px;
-      }
-
-      .record-body-button {
-        margin-top: 10px;
-      }
-
-      .capitalize {
-        text-transform: capitalize;
-      }
-
-      /* Needed to fix layout issues in newer versions of chrome and firefox. */
-      paper-item-body,
-      paper-item-body > * {
-        white-space: normal;
-      }
-
-      /* Needed to fix layout issues in newer versions of chrome and firefox. */
-      .lineclamp {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        display: -webkit-box;
-        -webkit-line-clamp: 1; /* number of lines to show */
-        -webkit-box-orient: vertical;
-        line-height: 25px;
-        height: 25px;
+      .list-item-body .list-item-button {
+        margin: 10px 0;
       }
 
       a.descriptor > strong {
@@ -186,10 +87,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       last-error="{{error}}">
     </elastic-search>
 
-    <div>
-      <paper-material class$="record-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
+    <div class="record">
+      <paper-material class$="list-item-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
         <paper-icon-item>
-          <iron-icon class$="entity-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+          <iron-icon class$="list-item-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
 
           <template is="dom-if" if="[[showDetails]]">
             <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
@@ -197,14 +98,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </template>
 
           <template is="dom-if" if="[[imageSrc]]">
-            <iron-image class$="record-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSrc]]"></iron-image>
+            <iron-image class$="list-item-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSrc]]"></iron-image>
           </template>
 
-          <paper-item-body class="record-head-text">
-            <div class="lineclamp" title$="[[item.title]]"><strong>[[item.title]]</strong></div>
+          <paper-item-body two-line>
+            <div title$="[[item.title]]"><strong>[[item.title]]</strong></div>
 
             <template is="dom-if" if="[[item.descriptors.length]]">
-              <div class="lineclamp" secondary>
+              <div secondary>
                 <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
                   <template is="dom-if" if="[[descriptor.id]]">
                     <a class="descriptor" target="[[getTarget(newTab)]]" href$="[[createURL(descriptor.type, descriptor.id)]]" title="Open [[descriptor.text]]">
@@ -237,15 +138,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </template>
 
           <!-- secondary actions -->
-          <a class="record-link record-head-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
-            <paper-button class="record-button">open {{getItemType(item._type)}}</paper-button>
+          <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
+            <paper-button class="list-item-button">open {{getItemType(item._type)}}</paper-button>
           </a>
         </paper-icon-item>
       </paper-material>
 
       <template is="dom-if" if="[[showDetails]]">
         <iron-collapse class="record-detail">
-          <paper-material class="record-body">
+          <paper-material class="list-item-collapse-body list-item-body">
             <template is="dom-repeat" items="[[getDetailKeysArray(item.details)]]" as="key">
               <paper-item>
                 <paper-item-body>
@@ -267,8 +168,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <image-viewer images="[[imageUrls]]" blur="[[blur]]"></image-viewer>
             </template>
 
-            <a class="record-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
-              <paper-button class="record-button record-body-button" raised>open {{getItemType(item._type)}}</paper-button>
+            <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
+              <paper-button class="list-item-button" raised>open {{getItemType(item._type)}}</paper-button>
             </a>
           </paper-material>
         </iron-collapse>
