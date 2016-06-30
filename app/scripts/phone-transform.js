@@ -50,7 +50,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
         },
         people: function(data) {
             var newData = {};
-
+            console.log(data);
             if(data.aggregations) {
                 newData = commonTransforms.getPeople(data.aggregations);
             }
