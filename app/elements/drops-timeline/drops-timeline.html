@@ -1,0 +1,119 @@
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-styles/paper-styles-classes.html">
+<script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
+<script src="../../bower_components/eventDrops/index.js"></script>
+
+<dom-module id="drops-timeline">
+  <style>
+    :host {
+      display: block;
+    }
+
+    .zoom,
+    .zoom-area {
+        fill: transparent;
+        cursor: pointer
+    }
+    .line-separator,
+    .x-axis,
+    .y-tick {
+        stroke: #000;
+        fill: none;
+        stroke-width: 1px
+    }
+    .line-separator:last-child {
+        display: none
+    }
+    .x-axis {
+        position: absolute;
+        z-index: 50
+    }
+    text {
+        stroke: none;
+        fill: #000
+    }
+    .graph-body .line {
+        height: 20px;
+        padding: 10px
+    }
+
+    paper-button {
+      position: absolute;
+      right: 0;
+      top: 0;
+      margin: 0;
+    }
+    
+    #svgElement{
+      width: 100%;
+      height: 100px;
+    }
+    
+    paper-button{
+      background-color: var(--text-primary-color);
+      color: var(--primary-text-color);
+      font-size: 12px;
+    }
+    
+  </style>
+  <template>
+    <div class="layout horizontal">
+        <div id="timeline"></div> 
+      </div>
+    </div>    
+  </template>
+  <script>
+  (function() {
+    'use strict';
+    /* globals d3 */
+    
+    Polymer({
+      is: 'drops-timeline',
+
+      properties: {
+        payload: {
+          type: Array,
+          value: function() {
+            return {};
+          },
+          notify: true
+        },
+        width: {
+          type : Number
+        }
+      },
+      observers: [],      
+      getEndTime : function() {
+        if (this.payload.timestamps.length)           
+          return  Math.max.apply(null, this.payload.timestamps)+(60*60*24*30*1000);             
+        //else
+        return Date.now(); 
+      },
+      getStartTime : function() {
+        if (this.payload.timestamps.length)
+          return Math.min.apply(null, this.payload.timestamps)-(60*60*24*30*1000);
+        //else
+        return Date.now(); 
+      },
+      setupChart : function() {
+
+        var color = d3.scale.category20();
+        var endTime = this.getEndTime();   
+        var startTime = this.getStartTime();
+                      
+        var chart = d3.chart.eventDrops()
+            .eventLineColor(function (datum, index) {
+                  return color(index);
+              })
+            .start(new Date(startTime))
+            .end(new Date(endTime))
+            .width(this.width);               
+
+        d3.select("#timeline")
+        .datum(this.payload.data)      
+        .call(chart);
+      }
+    });
+  })();
+  </script>
+</dom-module>

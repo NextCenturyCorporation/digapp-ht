@@ -252,6 +252,35 @@ module.exports = {
           }
        },
        "size": 0
+    },
+    hourlyLocationTimeline : {
+      "aggs": {
+        "phone": {
+          "filter": {
+            "term": {
+              "mainEntityOfPage.mentions": "http://dig.isi.edu/ht/data/phone/1-2163741665"
+            }
+          },
+          "aggs": {
+            "city": {
+              "terms": {
+                "field": "availableAtOrFrom.address.key",
+                "size": 20
+              },
+              "aggs": {
+                "timeline": {
+                  "date_histogram": {
+                    "field": "validFrom",
+                    "min_doc_count" : 1,
+                    "interval": "hour"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "size": 0
     }
 
   }

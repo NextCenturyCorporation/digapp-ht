@@ -200,6 +200,29 @@
      data-out="{{offersWithSameUrl}}"
      transform-function="[[clientConfig.transforms.offer.revisions]]"
      ></json-transform>
+    
+    <!-- Get hourly phone+locations data for event drops viz-->
+    <query-builder
+      query="{{hourlyLocationTimelineQuery}}"
+      query-template="{{config.queryTemplates.hourlyLocationTimeline}}"
+      field="[[mainEntityOfPage.mentions]]"
+      value="[[webpageDisplay.phones[0]]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
+      query='[[hourlyLocationTimelineQuery]]'
+      results="{{hourlyLocationTimelineRes}}"
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[hourlyLocationTimelineRes]]"
+     data-out="{{hourlyLocationTimelineData}}"
+     transform-function="[[clientConfig.transforms.dropsTimeline.timeline]]"
+     ></json-transform> 
 
     <!-- Display Content -->
     <div class="entity">
@@ -439,6 +462,13 @@
                   <template is="dom-if" if="{{offerDisplay.geolocation.length > 0}}">
                     <section class="where flex-auto">
                       <leaflet-wrapper map-data="{{offerDisplay.geolocation}}"></leaflet-wrapper>
+                    </section>
+                  </template>
+                  
+                  <!-- Event drops timeline -->
+                  <template is="dom-if" if="{{hourlyLocationTimelineData}}">
+                    <section class="where flex-auto">
+                      <drops-timeline payload="{{hourlyLocationTimelineData}}" width="1000"></drops-timeline>
                     </section>
                   </template>
               </paper-material>
