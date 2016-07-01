@@ -9,83 +9,107 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-  /**
-      * Gives two level heirarchies for the aggregrations - and the thir hierarchy as just an info
-      * Example filter level1 by date and level2 by city and pulblisher as info
-         {
-              date:[{
-                  date: 1455657767
-                  city:{
-                      city: "Los Angeles",
-                      info: '"abc.com", "rg.com"''
-                  }
-              },
-         }
-  */
-  function infoBuckets(buckets, levelOne, levelTwo, keys, renames) {
-    buckets = _.reduce(buckets, function(results, bucket) {
-      var objLevelOne = {};
-      objLevelOne[levelOne] = bucket.key;
+  function createLocationTimelineDetails(bucket, detailName) {
+    if(!bucket[detailName]) {
+      return [];
+    }
 
-      if(bucket[levelTwo].buckets.length) {
-        objLevelOne[levelTwo] = _.map(bucket[levelTwo].buckets, function(buck) {
-          var objLevelTwo = {};
-          objLevelTwo[levelTwo] = buck.key;
-          objLevelTwo.data = [];
-
-          for(var key in keys) {
-            var ele = {};
-            ele.key = keys[key];
-
-            if(_.has(renames, ele.key)) {
-              ele.key = renames[ele.key];
-            }
-
-            if(_.has(buck,keys[key])) {
-              if(keys[key] === 'mentions') {
-                ele.value = _.map(buck[keys[key]].buckets, function(buc) {
-                  return buc.key;
-                });
-                var phoneAndEmail = commonTransforms.getEmailAndPhoneFromMentions(ele.value);
-
-                for(var argKey in phoneAndEmail) {
-                  if(phoneAndEmail[argKey].length) {
-                    ele = {};
-                    if(argKey === 'phones') {
-                      ele.key = 'Phone';
-                    }
-                    if(argKey === 'emails') {
-                      ele.key = 'Email';
-                    }
-
-                    ele.value = _.map(phoneAndEmail[argKey], function(b) {
-                      return b.title;
-                    }).join(', ');
-                    objLevelTwo.data.push(ele);
-                  }
-                }
-              } else {
-                ele.value = _.map(buck[keys[key]].buckets, function(buc) {
-                  return buc.key;
-                }).join(', ');
-                objLevelTwo.data.push(ele);
-              }
-            }
-          }
-          return objLevelTwo;
+    if(detailName === 'mentions') {
+      var details = [];
+      var emailAndPhoneLists = commonTransforms.getEmailAndPhoneFromMentions(_.map(bucket[detailName].buckets, function(mention) {
+        return mention.key;
+      }));
+      if(emailAndPhoneLists.phones.length) {
+        details.push({
+          name: 'Phone',
+          type: 'phone',
+          text: _.map(emailAndPhoneLists.phones, function(phone) {
+            return phone.title;
+          }).join(', '),
+          idList: _.map(emailAndPhoneLists.phones, function(phone) {
+            return phone._id;
+          })
         });
-        objLevelOne.id = results.length;
-        results.push(objLevelOne);
       }
-      return results;
+      if(emailAndPhoneLists.emails.length) {
+        details.push({
+          name: 'Email',
+          type: 'email',
+          text: _.map(emailAndPhoneLists.emails, function(email) {
+            return email.title;
+          }).join(', '),
+          idList: _.map(emailAndPhoneLists.emails, function(email) {
+            return email._id;
+          })
+        });
+      }
+      return details;
+    }
+
+    return [{
+      name: detailName === 'publisher' ? 'Info' : detailName,
+      type: detailName === 'publisher' ? 'webpage' : '',
+      text: _.map(bucket[detailName].buckets, function(detailBucket) {
+        return detailBucket.key;
+      }).join(', '),
+      idList: [],
+    }];
+  }
+
+  /**
+   * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
+   * and details for each location.
+   * [{
+   *     date: 1455657767,
+   *     locations: [{
+   *         name: "Mountain View, CA, USA",
+   *         data: [{
+   *             name: "Email",
+   *             text: "abc@xyz.com",
+   *             type: "email",
+   *             idList: ["http://email/abc@xyz.com"]
+   *         }, {
+   *             name: "Phone",
+   *             text: "1234567890, 0987654321",
+   *             type: "phone",
+   *             idList: ["http://phone/1234567890", "http://phone/0987654321"]
+   *         }, {
+   *             name: "Info",
+   *             text: "google.com",
+   *             type: "webpage",
+   *             idList: []
+   *         }]
+   *     }]
+   * }]
+   */
+  function createLocationTimeline(buckets, details) {
+    var timeline = _.reduce(buckets, function(timeline, bucket) {
+      var dateBucket = {
+        date: bucket.key
+      };
+
+      if(bucket.city.buckets.length) {
+        dateBucket.locations = _.map(bucket.city.buckets, function(cityBucket) {
+          return {
+            name: cityBucket.key.split(':').slice(0, 2).join(', '),
+            longName: cityBucket.key.split(':').slice(0, 3).join(', '),
+            data: _.reduce(details, function(detailData, detail) {
+              return detailData.concat(createLocationTimelineDetails(cityBucket, detail));
+            }, [])
+          };
+        });
+        timeline.push(dateBucket);
+      }
+
+      return timeline;
     }, []);
 
     // Sort newest first.
-    buckets.sort(function(a, b) {
+    timeline.sort(function(a, b) {
       return b.date - a.date;
     });
 
-    return buckets;
+    return timeline;
   }
 
   function processLocationGraph(records) {
@@ -195,13 +219,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return newData;
     },
     itinerary: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        var aggs = data.aggregations;
-        newData.date = infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher': 'Info'});
-      }
-      return newData;
+      return {
+        dates: data.aggregations ? createLocationTimeline(data.aggregations.phone.timeline.buckets, ['publisher','mentions']) : undefined
+      };
     },
     locationTimeline: function(data) {
       var newData = {};
