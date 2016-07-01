@@ -27,7 +27,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       iron-scroll-threshold {
         height: 100%;
-        max-height: 600px;
+        max-height: 300px;
       }
 
       .grid-cell {
@@ -45,13 +45,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <iron-scroll-threshold id="scrollThreshold">
-      <template is="dom-repeat" items="{{records}}" as="item">
+      <template is="dom-repeat" items="[[data]]" as="item">
         <div class="grid-cell">
           <div class="grid-item">
-            <a class="icon-with-text" href$="{{createURL(item._type, item._id)}}" title="Open [[item.title]]">
-              <iron-icon class$="iron-icon-small [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
-              <strong>[[item.title]]</strong>
-            </a>
+            <template is="dom-if" if="[[getId(item)]]">
+              <a class="icon-with-text" href$="[[createURL(item, dataType, dataId)]]" title="Open [[getText(item)]]">
+                <iron-icon class$="iron-icon-small [[getIconClass(item, dataType)]]" icon$="[[getIcon(item, dataType)]]" item-icon></iron-icon>
+                <strong>[[getText(item)]]</strong>
+              </a>
+            </template>
+            <template is="dom-if" if="[[!getId(item)]]">
+              <span class="icon-with-text" title="[[getText(item)]]">
+                <iron-icon class$="iron-icon-small [[getIconClass(item, dataType)]]" icon$="[[getIcon(item, dataType)]]" item-icon></iron-icon>
+                <strong>[[getText(item)]]</strong>
+              </span>
+            </template>
           </div>
         </div>
       </template>
@@ -66,7 +74,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'records-grid',
 
       properties: {
-        records: {
+        dataId: {
+          type: String,
+          value: 'id',
+          notify: true
+        },
+
+        dataText: {
+          type: String,
+          value: 'text',
+          notify: true
+        },
+
+        dataType: {
+          type: String,
+          value: 'type',
+          notify: true
+        },
+
+        data: {
           type: Array,
           value: function() {
             return [];
@@ -75,16 +101,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      createURL: function(type, value) {
-        return '/' + type + '.html?value=' + value + '&field=_id';
+      createURL: function(item, dataType, dataId) {
+        return '/' + item[dataType] + '.html?value=' + item[dataId] + '&field=_id';
       },
 
-      getIconClass: function(type) {
-        return 'entity-' + type + '-font';
+      getIconClass: function(item, dataType) {
+        return 'entity-' + item[dataType] + '-font';
       },
 
-      getIcon: function(type) {
-        switch(type) {
+      getIcon: function(item, dataType) {
+        switch(item[dataType]) {
           case 'email': return 'communication:email';
           case 'offer': return 'maps:local-offer';
           case 'person': return 'icons:account-circle';
@@ -93,6 +119,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           case 'seller': return 'group-work';
           case 'webpage': return 'av:web';
         }
+      },
+
+      getId: function(item) {
+        return item[this.dataId];
+      },
+
+      getText: function(item) {
+        return item[this.dataText];
       }
     });
   })();

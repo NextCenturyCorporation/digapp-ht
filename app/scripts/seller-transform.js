@@ -21,25 +21,25 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       }));
       if(emailAndPhoneLists.phones.length) {
         details.push({
-          name: 'Phone',
-          type: 'phone',
-          text: _.map(emailAndPhoneLists.phones, function(phone) {
-            return phone.title;
-          }).join(', '),
-          idList: _.map(emailAndPhoneLists.phones, function(phone) {
-            return phone._id;
+          name: 'Telephone Number',
+          data: _.map(emailAndPhoneLists.phones, function(phone) {
+            return {
+              text: phone.title,
+              type: 'phone',
+              id: phone._id
+            };
           })
         });
       }
       if(emailAndPhoneLists.emails.length) {
         details.push({
-          name: 'Email',
-          type: 'email',
-          text: _.map(emailAndPhoneLists.emails, function(email) {
-            return email.title;
-          }).join(', '),
-          idList: _.map(emailAndPhoneLists.emails, function(email) {
-            return email._id;
+          name: 'Email Address',
+          data: _.map(emailAndPhoneLists.emails, function(email) {
+            return {
+              text: email.title,
+              type: 'email',
+              id: email._id
+            };
           })
         });
       }
@@ -47,12 +47,13 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     }
 
     return [{
-      name: detailName === 'publisher' ? 'Info' : detailName,
-      type: detailName === 'publisher' ? 'webpage' : '',
-      text: _.map(bucket[detailName].buckets, function(detailBucket) {
-        return detailBucket.key;
-      }).join(', '),
-      idList: [],
+      name: detailName === 'publisher' ? 'Website' : detailName,
+      data: _.map(bucket[detailName].buckets, function(detailBucket) {
+        return {
+          text: detailBucket.key,
+          type: detailName === 'publisher' ? 'webpage' : ''
+        };
+      })
     }];
   }
 
@@ -64,20 +65,29 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *     locations: [{
    *         name: "Mountain View, CA, USA",
    *         data: [{
-   *             name: "Email",
-   *             text: "abc@xyz.com",
-   *             type: "email",
-   *             idList: ["http://email/abc@xyz.com"]
+   *             name: "Email Address",
+   *             data: [{
+   *                 text: "abc@xyz.com",
+   *                 type: "email",
+   *                 id: "http://email/abc@xyz.com"
+   *             }]
    *         }, {
-   *             name: "Phone",
-   *             text: "1234567890, 0987654321",
-   *             type: "phone",
-   *             idList: ["http://phone/1234567890", "http://phone/0987654321"]
+   *             name: "Telephone Number",
+   *             data: [{
+   *                 text: "1234567890",
+   *                 type: "phone",
+   *                 id: "http://phone/1234567890"
+   *             }, {
+   *                 text: "0987654321",
+   *                 type: "phone",
+   *                 id: "http://phone/0987654321"
+   *             }]
    *         }, {
-   *             name: "Info",
-   *             text: "google.com",
-   *             type: "webpage",
-   *             idList: []
+   *             name: "Website",
+   *             data: [{
+   *                 text: "google.com",
+   *                 type: "webpage"
+   *             }]
    *         }]
    *     }]
    * }]
