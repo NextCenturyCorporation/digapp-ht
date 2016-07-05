@@ -45,15 +45,6 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
-    people: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        newData = commonTransforms.getPeople(data.aggregations);
-      }
-
-      return newData;
-    },
     computeShowSeller: function(seller, phone) {
       var sellerOut = [];
       _.each(seller, function(record) {

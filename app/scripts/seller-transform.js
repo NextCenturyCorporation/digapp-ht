@@ -195,15 +195,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
-    people: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        newData = commonTransforms.getPeople(data.aggregations);
-      }
-
-      return newData;
-    },
     locationTimeline: function(data) {
       return {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */

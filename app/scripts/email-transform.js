@@ -34,15 +34,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
-    people: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        newData = commonTransforms.getPeople(data.aggregations);
-      }
-
-      return newData;
-    },
     offerLocationData: function(data) {
       return commonTransforms.offerLocationData(data);
     },

@@ -1,0 +1,131 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../feature-aggregation/feature-aggregation.html">
+<link rel='import' href='../mustache.html'>
+
+<dom-module id="feature-query-and-display">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <elastic-search
+      client="[[client]]"
+      index="[[index]]"
+      elastic-type='[[indexTypes]]'
+      query='[[query]]'
+      results="{{queryResults}}"
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+      data-in="[[queryResults]]"
+      data-out="{{transformResults}}"
+      transform-function="[[transform]]">
+    </json-transform>
+
+    <feature-aggregation class="flex" title="[[title]]" key="[[key]]" agg="[[transformResults.features]]"></feature-aggregation>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'feature-query-and-display',
+      properties: {
+        queryTemplate: {
+          type: Object,
+          notify: true
+        },
+
+        filterField: {
+          type: String,
+          notify: true
+        },
+
+        filterValue: {
+          type: String,
+          notify: true
+        },
+
+        aggregationField: {
+          type: String,
+          notify: true
+        },
+
+        client: {
+          type: Object,
+          notify: true
+        },
+
+        index: {
+          type: String,
+          notify: true
+        },
+
+        indexTypes: {
+          type: Array,
+          notify: true
+        },
+
+        transform: {
+          type: Object,
+          notify: true
+        },
+
+        title: {
+          type: String,
+          notify: true
+        },
+
+        key: {
+          type: String,
+          notify: true
+        },
+
+        query: {
+          type: Object,
+          computed: 'buildQuery(queryTemplate, filterField, filterValue, aggregationField)'
+        },
+
+        queryResults: {
+          type: Object,
+          notify: true
+        },
+
+        transformResults: {
+          type: Object,
+          notify: true
+        },
+
+        error: {
+          type: Object
+        }
+      },
+
+      buildQuery: function(queryTemplate, filterField, filterValue, aggregationField) {
+        /* globals Mustache */
+        return JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(queryTemplate), {
+          filterField: filterField,
+          filterValue: encodeURIComponent(filterValue),
+          aggregationField: aggregationField
+        })));
+      }
+    });
+  })();
+  </script>
+</dom-module>
