@@ -80,7 +80,7 @@ module.exports = {
           }
         }
       },
-      "aggs" : {
+      "aggs": {
         "people_features": {
           "terms": {
             "field": "{{aggregationField}}",
@@ -124,7 +124,7 @@ module.exports = {
             }
         },
         "aggs": {
-            "page_revisions" : {
+            "page_revisions": {
                 "date_histogram": {
                     "field": "dateCreated",
                     "interval": "week"
@@ -151,7 +151,7 @@ module.exports = {
                 "locations": {
                   "terms": {
                     "field": "availableAtOrFrom.address.key",
-                    "order" : { "_term" : "asc" },
+                    "order": { "_term" : "asc" },
                     "size": 0
                   },
                   "aggs": {

@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
 @license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
 The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -32,48 +32,94 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals describe, before, fixture, it, expect */
-  describe('feature-query-and-display tests', function() {
+  /* globals suite, setup, fixture, test, expect */
+  suite('feature-query-and-display tests', function() {
     var element;
-    var objectToPassIn;
 
-    before(function() {
-
-      objectToPassIn = {
-        names: [
-          {name: 'erica', count: 8},
-          {name: 'bob', count: 2}
-        ],
-        ages: [
-          {age: 24, count: 4},
-          {age: 18, count: 3},
-          {age: 22, count: 2},
-          {age: 26, count: 1},
-          {age: 25, count: 1},
-          {age: 21, count: 1}
-        ],
-        ethnicities: [],
-        hairColor: [
-          {color: 'brown', count: 1},
-          {color: 'blue', count: 1}
-        ],
-        eyeColor: [
-          {color: 'green', count: 9},
-          {color: 'blue', count: 1}
-        ]
-      };
-
+    setup(function() {
       element = fixture('feature-query-and-display-fixture');
-      element.transformResults = objectToPassIn;
-
+      element.key = 'key';
+      element.title = 'title';
+      element.transformResults = {
+        features: [{
+          key: 'alice',
+          count: 8
+        }, {
+          key: 'bob',
+          count: 4
+        }, {
+          key: 'carol',
+          count: 2
+        }]
+      };
     });
 
-    it('transformResults object is set correctly', function() {
-      expect(element.transformResults).to.be.an('object');
-      expect(element.transformResults).to.be.deep.equal(objectToPassIn);
+    test('set properties', function() {
+      expect(element.key).to.equal('key');
+      expect(element.title).to.equal('title');
+      expect(element.transformResults).to.be.an('Object');
+      expect(element.transformResults).to.be.deep.equal({
+        features: [{
+          key: 'alice',
+          count: 8
+        }, {
+          key: 'bob',
+          count: 4
+        }, {
+          key: 'carol',
+          count: 2
+        }]
+      });
     });
 
-    // TODO
+    test('build query', function() {
+      element.queryTemplate = {
+        query: {
+          filtered: {
+            filter: {
+              term: {
+                '{{filterField}}': '{{filterValue}}'
+              }
+            }
+          }
+        },
+        aggs: {
+          features: {
+            terms: {
+              field: '{{aggregationField}}',
+              size: 0
+            }
+          }
+        }
+      };
+      element.filterField = 'alpha';
+      element.filterValue = 'beta';
+      element.aggregationField = 'gamma';
+
+      expect(element.query).to.deep.equal({
+        query: {
+          filtered: {
+            filter: {
+              term: {
+                alpha: 'beta'
+              }
+            }
+          }
+        },
+        aggs: {
+          features: {
+            terms: {
+              field: 'gamma',
+              size: 0
+            }
+          }
+        }
+      });
+    });
+
+    test('show feature-aggregation', function() {
+      expect(document.querySelector('feature-aggregation')).to.exist;
+    });
   });
 </script>
 
