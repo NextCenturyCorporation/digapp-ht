@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../lodash.html">
+<link rel="import" href="../dig-behaviors/data-type-behavior.html">
 
 <dom-module id="records-grid">
   <template>
@@ -48,16 +49,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-repeat" items="[[data]]" as="item">
         <div class="grid-cell">
           <div class="grid-item">
-            <template is="dom-if" if="[[getId(item)]]">
-              <a class="icon-with-text" href$="[[createURL(item, dataType, dataId)]]" title="Open [[getText(item)]]">
-                <iron-icon class$="iron-icon-small [[getIconClass(item, dataType)]]" icon$="[[getIcon(item, dataType)]]" item-icon></iron-icon>
-                <strong>[[getText(item)]]</strong>
+            <template is="dom-if" if="[[getProperty(item, dataId)]]">
+              <a class="icon-with-text" href$="[[createURL(item, dataType, dataId)]]" title="Open [[getProperty(item, dataText)]]">
+                <iron-icon class$="iron-icon-small [[getItemTypeStyleClass(item, dataType)]]" icon$="[[getItemTypeIronIcon(item, dataType)]]" item-icon></iron-icon>
+                <strong>[[getProperty(item, dataText)]]</strong>
               </a>
             </template>
-            <template is="dom-if" if="[[!getId(item)]]">
-              <span class="icon-with-text" title="[[getText(item)]]">
-                <iron-icon class$="iron-icon-small [[getIconClass(item, dataType)]]" icon$="[[getIcon(item, dataType)]]" item-icon></iron-icon>
-                <strong>[[getText(item)]]</strong>
+            <template is="dom-if" if="[[!getProperty(item, dataId)]]">
+              <span class="icon-with-text" title="[[getProperty(item, dataText)]]">
+                <iron-icon class$="iron-icon-small [[getItemTypeStyleClass(item, dataType)]]" icon$="[[getItemTypeIronIcon(item, dataType)]]" item-icon></iron-icon>
+                <strong>[[getProperty(item, dataText)]]</strong>
               </span>
             </template>
           </div>
@@ -73,25 +74,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'records-grid',
 
+      behaviors: [DigBehaviors.DataTypeBehavior],
+
       properties: {
+        /**
+         * The property for the ID in the data.
+         */
         dataId: {
           type: String,
           value: 'id',
           notify: true
         },
 
+        /**
+         * The property for the text in the data.
+         */
         dataText: {
           type: String,
           value: 'text',
           notify: true
         },
 
+        /**
+         * The property for the type in the data.
+         */
         dataType: {
           type: String,
           value: 'type',
           notify: true
         },
 
+        /**
+         * The data to show in the grid.
+         */
         data: {
           type: Array,
           value: function() {
@@ -105,28 +120,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return '/' + item[dataType] + '.html?value=' + item[dataId] + '&field=_id';
       },
 
-      getIconClass: function(item, dataType) {
-        return 'entity-' + item[dataType] + '-font';
-      },
-
-      getIcon: function(item, dataType) {
-        switch(item[dataType]) {
-          case 'email': return 'communication:email';
-          case 'offer': return 'maps:local-offer';
-          case 'person': return 'icons:account-circle';
-          case 'phone': return 'communication:phone';
-          case 'provider': return 'icons:account-circle';
-          case 'seller': return 'group-work';
-          case 'webpage': return 'av:web';
-        }
-      },
-
-      getId: function(item) {
-        return item[this.dataId];
-      },
-
-      getText: function(item) {
-        return item[this.dataText];
+      getProperty: function(item, property) {
+        return item[property];
       }
     });
   })();
