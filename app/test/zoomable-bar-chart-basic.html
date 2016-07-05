@@ -27,14 +27,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <test-fixture id="zoomable-bar-chart-fixture">
   <template>
-    <zoomable-bar-chart data='[{"date": "Fri Oct 09 2015 00:00:00 GMT-0700 (PDT)", "cityCounts": {"Houston": 4, "Other": 0} }]' locations='["Houston", "Other"]'>
-    </zoomable-bar-chart>
-  </template>
-</test-fixture>
-
-<test-fixture id="zoomable-bar-chart-no-data-fixture">
-  <template>
-    <zoomable-bar-chart data='[]' locations='[]'>
+    <zoomable-bar-chart>
     </zoomable-bar-chart>
   </template>
 </test-fixture>
@@ -47,24 +40,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function() {
       zoomableBarChart = fixture('zoomable-bar-chart-fixture');
+      zoomableBarChart.data = [{
+        date: 'Fri Oct 09 2015 00:00:00 GMT-0700 (PDT)',
+        locations: [{
+          label: 'Houston, TX',
+          place: 'Houston, TX, USA',
+          count: 4
+        }, {
+          label: 'Austin, TX',
+          place: 'Austin, TX, USA',
+          count: 0
+        }, {
+          count: 2
+        }]
+      }];
+      flush(function() {
+        done();
+      });
     });
 
-    test('data should be equal to array input', function() {
-      expect(zoomableBarChart.data).to.be.deep.equal([{'date': 'Fri Oct 09 2015 00:00:00 GMT-0700 (PDT)', 'cityCounts': {'Houston': 4, 'Other': 0}}]);
-    });
-
-    test('locations should be equal to array input', function() {
-      expect(zoomableBarChart.locations).to.be.deep.equal(['Houston', 'Other']);
+    test('data should equal array input', function() {
+      expect(zoomableBarChart.data).to.be.deep.equal([{
+        date: 'Fri Oct 09 2015 00:00:00 GMT-0700 (PDT)',
+        locations: [{
+          label: 'Houston, TX',
+          place: 'Houston, TX, USA',
+          count: 4
+        }, {
+          label: 'Austin, TX',
+          place: 'Austin, TX, USA',
+          count: 0
+        }, {
+          count: 2
+        }]
+      }]);
     });
 
     test('barChartData is correct', function() {
       expect(zoomableBarChart.barChartData).to.be.an('array');
       expect(zoomableBarChart.barChartData.length).to.equal(1);
       expect(zoomableBarChart.barChartData[0]).to.be.an('object');
-      expect(zoomableBarChart.barChartData[0].counts).to.be.deep.equal([{'name': 'Houston', 'yAxisStart': 0, 'yAxisEnd': 4}]);
+      expect(zoomableBarChart.barChartData[0].bars).to.be.deep.equal([{
+        name: 'Houston, TX, USA',
+        yAxisStart: 0,
+        yAxisEnd: 4
+      }, {
+        name: 'Other',
+        yAxisStart: 4,
+        yAxisEnd: 6
+      }]);
       expect(zoomableBarChart.barChartData[0].date).to.be.a('date');
       expect(zoomableBarChart.barChartData[0].date.toString()).to.equal('Fri Oct 09 2015 00:00:00 GMT-0400 (EDT)');
-      expect(zoomableBarChart.barChartData[0].total).to.equal(4);
+      expect(zoomableBarChart.barChartData[0].yMax).to.equal(6);
+    });
+
+    test('barChartLegend is correct', function() {
+      expect(zoomableBarChart.barChartLegend).to.be.deep.equal(['Houston, TX, USA', 'Other']);
     });
 
     test('minX should equal 2015-10-09', function() {
@@ -83,13 +114,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(result).to.be.a('string');
       expect(result).to.be.equal('2015-10-09');
     });
-
   });
 
   suite('<zoomable-bar-chart> with no data', function() {
     var zoomableBarChart;
     setup(function() {
-      zoomableBarChart = fixture('zoomable-bar-chart-no-data-fixture');
+      zoomableBarChart = fixture('zoomable-bar-chart-fixture');
+      zoomableBarChart.data = [];
+      flush(function() {
+        done();
+      });
+    });
+
+    test('data should equal empty array', function() {
+      expect(zoomableBarChart.data).to.be.deep.equal([]);
+    });
+
+    test('barChartData should equal empty array', function() {
+      expect(zoomableBarChart.barChartData).to.be.deep.equal([]);
+    });
+
+    test('barChartLegend should equal empty array', function() {
+      expect(zoomableBarChart.barChartLegend).to.be.deep.equal([]);
     });
 
     test('minX should be equal to "N/A"', function() {

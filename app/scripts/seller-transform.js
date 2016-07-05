@@ -9,14 +9,23 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-  function createLocationTimelineDetails(bucket, detailName) {
-    if(!bucket[detailName]) {
-      return [];
+  function createLocationTimelineDetails(bucket) {
+    var details = [];
+
+    if(bucket.publisher) {
+      details.push({
+        name: 'Website',
+        data: _.map(bucket.publisher.buckets, function(publisher) {
+          return {
+            text: publisher.key,
+            type: 'webpage'
+          };
+        })
+      });
     }
 
-    if(detailName === 'mentions') {
-      var details = [];
-      var emailAndPhoneLists = commonTransforms.getEmailAndPhoneFromMentions(_.map(bucket[detailName].buckets, function(mention) {
+    if(bucket.mentions) {
+      var emailAndPhoneLists = commonTransforms.getEmailAndPhoneFromMentions(_.map(bucket.mentions.buckets, function(mention) {
         return mention.key;
       }));
       if(emailAndPhoneLists.phones.length) {
@@ -43,18 +52,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           })
         });
       }
-      return details;
     }
 
-    return [{
-      name: detailName === 'publisher' ? 'Website' : detailName,
-      data: _.map(bucket[detailName].buckets, function(detailBucket) {
-        return {
-          text: detailBucket.key,
-          type: detailName === 'publisher' ? 'webpage' : ''
-        };
-      })
-    }];
+    return details;
   }
 
   /**
@@ -63,8 +63,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    * [{
    *     date: 1455657767,
    *     locations: [{
-   *         name: "Mountain View, CA, USA",
-   *         data: [{
+   *         label: "Mountain View, CA",
+   *         place: "Mountain View, CA, USA",
+   *         count: 12,
+   *         details: [{
    *             name: "Email Address",
    *             data: [{
    *                 text: "abc@xyz.com",
@@ -92,22 +94,34 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *     }]
    * }]
    */
-  function createLocationTimeline(buckets, details) {
+  function createLocationTimeline(buckets) {
     var timeline = _.reduce(buckets, function(timeline, bucket) {
       var dateBucket = {
         date: bucket.key
       };
 
-      if(bucket.city.buckets.length) {
-        dateBucket.locations = _.map(bucket.city.buckets, function(cityBucket) {
+      if(bucket.locations.buckets.length) {
+        var sum = 0;
+
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
+          sum += locationBucket.doc_count;
           return {
-            name: cityBucket.key.split(':').slice(0, 2).join(', '),
-            longName: cityBucket.key.split(':').slice(0, 3).join(', '),
-            data: _.reduce(details, function(detailData, detail) {
-              return detailData.concat(createLocationTimelineDetails(cityBucket, detail));
-            }, [])
+            label: locationBucket.key.split(':').slice(0, 2).join(', '),
+            place: locationBucket.key.split(':').slice(0, 3).join(', '),
+            count: locationBucket.doc_count,
+            details: createLocationTimelineDetails(locationBucket)
           };
         });
+
+        if(sum < dateBucket.doc_count) {
+          dateBucket.locations.push({
+            count: dateBucket.doc_count - sum,
+            details: []
+          });
+        }
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
         timeline.push(dateBucket);
       }
 
@@ -120,44 +134,6 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     });
 
     return timeline;
-  }
-
-  function processLocationGraph(records) {
-    var data = [];
-    _.each(records, function(record) {
-      var point = {};
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      point.date = record.key_as_string;
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      point.cityCounts = {};
-
-      var sum = 0;
-      if(record.localities.buckets) {
-        _.each(record.localities.buckets, function(location) {
-          var geoData = location.key.split(':');
-          var city = geoData[0];
-          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          point.cityCounts[city] = location.doc_count;
-          sum += location.doc_count;
-          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        });
-      }
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      point.cityCounts.Other = record.doc_count - sum;
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      data.push(point);
-    });
-    return data;
-  }
-
-  function getGeoCities(record) {
-    var geos = [];
-    _.each(record, function(key) {
-      var geoData = key.key.split(':');
-      geos.push(geoData[0]);
-    });
-    geos.push('Other');
-    return geos;
   }
 
   function getSellerTitle(phones, emails) {
@@ -228,20 +204,12 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
-    itinerary: function(data) {
-      return {
-        dates: data.aggregations ? createLocationTimeline(data.aggregations.phone.timeline.buckets, ['publisher','mentions']) : undefined
-      };
-    },
     locationTimeline: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        var aggs = data.aggregations;
-        newData.locations = getGeoCities(aggs.offersPhone.locations.buckets);
-        newData.data = processLocationGraph(aggs.offersPhone.offerTimeline.buckets);
-      }
-      return newData;
+      return {
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        dates: data.aggregations ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      };
     }
   };
 })(_, relatedEntityTransform, commonTransforms);
