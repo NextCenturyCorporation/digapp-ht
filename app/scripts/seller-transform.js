@@ -15,7 +15,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     if(bucket.publisher) {
       details.push({
         name: 'Website',
-        data: _.map(bucket.publisher.buckets, function(publisher) {
+        items: _.map(bucket.publisher.buckets, function(publisher) {
           return {
             text: publisher.key,
             type: 'webpage'
@@ -31,7 +31,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       if(emailAndPhoneLists.phones.length) {
         details.push({
           name: 'Telephone Number',
-          data: _.map(emailAndPhoneLists.phones, function(phone) {
+          items: _.map(emailAndPhoneLists.phones, function(phone) {
             return {
               text: phone.title,
               type: 'phone',
@@ -43,7 +43,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       if(emailAndPhoneLists.emails.length) {
         details.push({
           name: 'Email Address',
-          data: _.map(emailAndPhoneLists.emails, function(email) {
+          items: _.map(emailAndPhoneLists.emails, function(email) {
             return {
               text: email.title,
               type: 'email',
@@ -62,20 +62,21 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    * and details for each location.
    * [{
    *     date: 1455657767,
+   *     subtitle: "Mountain View, CA",
    *     locations: [{
-   *         label: "Mountain View, CA",
-   *         place: "Mountain View, CA, USA",
+   *         name: "Mountain View, CA, USA",
+   *         type: "location",
    *         count: 12,
    *         details: [{
    *             name: "Email Address",
-   *             data: [{
+   *             items: [{
    *                 text: "abc@xyz.com",
    *                 type: "email",
    *                 id: "http://email/abc@xyz.com"
    *             }]
    *         }, {
    *             name: "Telephone Number",
-   *             data: [{
+   *             items: [{
    *                 text: "1234567890",
    *                 type: "phone",
    *                 id: "http://phone/1234567890"
@@ -86,7 +87,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *             }]
    *         }, {
    *             name: "Website",
-   *             data: [{
+   *             items: [{
    *                 text: "google.com",
    *                 type: "webpage"
    *             }]
@@ -102,26 +103,30 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       if(bucket.locations.buckets.length) {
         var sum = 0;
+        var subtitle = [];
 
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
           sum += locationBucket.doc_count;
+          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
           return {
-            label: locationBucket.key.split(':').slice(0, 2).join(', '),
-            place: locationBucket.key.split(':').slice(0, 3).join(', '),
+            name: locationBucket.key.split(':').slice(0, 3).join(', '),
+            type: 'location',
             count: locationBucket.doc_count,
             details: createLocationTimelineDetails(locationBucket)
           };
         });
 
-        if(sum < dateBucket.doc_count) {
+        if(sum < bucket.doc_count) {
           dateBucket.locations.push({
-            count: dateBucket.doc_count - sum,
+            type: 'location',
+            count: bucket.doc_count - sum,
             details: []
           });
         }
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
+        dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
         timeline.push(dateBucket);
       }
 
