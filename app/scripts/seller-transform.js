@@ -117,10 +117,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           };
         });
 
-        if(sum < dateBucket.doc_count) {
+        if(sum < bucket.doc_count) {
           dateBucket.locations.push({
             type: 'location',
-            count: dateBucket.doc_count - sum,
+            count: bucket.doc_count - sum,
             details: []
           });
         }
