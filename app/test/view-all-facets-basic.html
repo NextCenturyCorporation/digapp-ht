@@ -23,24 +23,98 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </head>
 <body>
 
-<test-fixture id="basic">
+<test-fixture id="view-all-facets-fixture">
   <template>
-    <view-all-facets></view-all-facets>
+    <view-all-facets
+      title="Facets"
+      filter-name="facet"
+      loading="true"
+      error="null"
+      field="test"
+      filter='{}'>
+    </view-all-facets>
   </template>
 </test-fixture>
-
 <script>
+  /* globals suite, test, setup, assert, fixture */
+  /* jshint -W030 */
   suite('view-all-facets tests', function() {
     var element;
+    var buckets = [
+      {key: 'test01', value: 10},
+      {key: 'test02', value: 10},
+      {key: 'test03', value: 10},
+      {key: 'test04', value: 10},
+      {key: 'test05', value: 10},
+      {key: 'test06', value: 10},
+      {key: 'test07', value: 10},
+      {key: 'test08', value: 10},
+      {key: 'test09', value: 10},
+      {key: 'test10', value: 10},
+      {key: 'test11', value: 10}
+    ];
 
     setup(function() {
-      element = fixture('basic');
+      element = fixture('view-all-facets-fixture');
+      element.buckets = buckets;
     });
 
-    test('', function() {
-
+    test('properties are expected values', function() {
+      assert.deepEqual(element.buckets, buckets);
+      assert.isTrue(element.loading);
+      assert.equal(element.title, 'Facets');
+      assert.equal(element.filterName, 'facet');
+      assert.isNull(element.error);
+      assert.equal(element.field, 'test');
+      assert.deepEqual(element.filter, {});
+      assert.equal(element.aggCount, 10);
+      assert.equal(element.currentMaxFacets, 10);
+      assert.isUndefined(element.initializing);
     });
 
+    test('checkForBuckets returns correct boolean value', function() {
+      assert.isTrue(element.checkForBuckets(element.buckets));
+      assert.isFalse(element.checkForBuckets([]));
+      assert.isFalse(element.checkForBuckets(null));
+      assert.isFalse(element.checkForBuckets(undefined));
+    });
+
+    test('toggleInitFlag does nothing if loading is true', function() {
+      element.toggleInitFlag();
+      assert.isUndefined(element.initializing);
+    });
+
+    test('openFacetsModal sets aggCount to zero', function() {
+      element.loading = false;
+      element.openFacetsModal();
+      assert.isTrue(element.$.facetsModal.opened);
+      assert.equal(element.aggCount, 0);
+      assert.isUndefined(element.initializing);
+    });
+
+    test('openFacetsModal sets initializing to true, which is reset to false after loading property change', function() {
+      element.loading = true;
+      element.openFacetsModal();
+      assert.isTrue(element.$.facetsModal.opened);
+      assert.equal(element.aggCount, 0);
+      assert.isTrue(element.initializing);
+
+      element.loading = false;
+      assert.isFalse(element.initializing);
+    });
+
+    test('closeFacetsModal resets correct properties', function() {
+      element.closeFacetsModal();
+      assert.isFalse(element.$.facetsModal.opened);
+      assert.equal(element.aggCount, element.currentMaxFacets);
+      assert.isFalse(element.initializing);
+    });
+
+    test('createFacetText returns correct text', function() {
+      assert.equal(element.createFacetText(true, null), 'Loading...');
+      assert.equal(element.createFacetText(false, null), 'No Facets');
+      assert.deepEqual(element.createFacetText(false, {error: 'some error'}), {error:'some error'});
+    });
   });
 </script>
 
