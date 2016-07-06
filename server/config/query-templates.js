@@ -79,7 +79,6 @@ module.exports = {
             }
           }
         }
-<<<<<<< HEAD
     },
     phoneOrEmailPeopleAggForImages: {
        "query": {
@@ -138,15 +137,6 @@ module.exports = {
                     "size": 0
                 }
             }
-=======
-      },
-      "aggs": {
-        "people_features": {
-          "terms": {
-            "field": "{{aggregationField}}",
-            "size": 0
-          }
->>>>>>> 7cc2c6f48775ad78ab29fdd10099a0afc0eed09b
         }
       }
     },
