@@ -9,235 +9,198 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-    /**
-        * Gives two level heirarchies for the aggregrations - and the thir hierarchy as just an info
-        * Example filter level1 by date and level2 by city and pulblisher as info
-           {
-                date:[{
-                    date: 1455657767
-                    city:{
-                        city: "Los Angeles",
-                        info: '"abc.com", "rg.com"''
-                    }
-                },
-    
-           }
-    */
-    function infoBuckets(buckets,levelOne,levelTwo,keys,renames){
-        buckets = _.reduce(buckets, function (results, bucket) {
-            var objLevelOne = {};
-            objLevelOne[levelOne] = bucket.key;
+  function createLocationTimelineDetails(bucket) {
+    var details = [];
 
-            if(bucket[levelTwo].buckets.length) {
-                objLevelOne[levelTwo] = _.map(bucket[levelTwo].buckets, function(buck){
-                    var objLevelTwo = {};
-                    objLevelTwo[levelTwo] = buck.key;
-                    objLevelTwo.data = [];
-                    
-                    for(var key in keys) {
-                        var ele = {};
-                        ele.key = keys[key];
-                        
-                        if(_.has(renames, ele.key )) {
-                            ele.key = renames[ele.key];
-                        }
+    if(bucket.publisher) {
+      details.push({
+        name: 'Website',
+        data: _.map(bucket.publisher.buckets, function(publisher) {
+          return {
+            text: publisher.key,
+            type: 'webpage'
+          };
+        })
+      });
+    }
 
-                        if(_.has(buck,keys[key])) {
-                            if(keys[key] === 'mentions') {
-                                ele.value = _.map(buck[keys[key]].buckets, function(buc){
-                                    return buc.key;
-                                });
-                                var phoneAndEmail = commonTransforms.getEmailAndPhoneFromMentions(ele.value);
+    if(bucket.mentions) {
+      var emailAndPhoneLists = commonTransforms.getEmailAndPhoneFromMentions(_.map(bucket.mentions.buckets, function(mention) {
+        return mention.key;
+      }));
+      if(emailAndPhoneLists.phones.length) {
+        details.push({
+          name: 'Telephone Number',
+          data: _.map(emailAndPhoneLists.phones, function(phone) {
+            return {
+              text: phone.title,
+              type: 'phone',
+              id: phone._id
+            };
+          })
+        });
+      }
+      if(emailAndPhoneLists.emails.length) {
+        details.push({
+          name: 'Email Address',
+          data: _.map(emailAndPhoneLists.emails, function(email) {
+            return {
+              text: email.title,
+              type: 'email',
+              id: email._id
+            };
+          })
+        });
+      }
+    }
 
-                                for(var argKey in phoneAndEmail) {
-                                    if(phoneAndEmail[argKey].length) {
-                                        ele = {};
-                                        if(argKey === 'phones') {
-                                            ele.key = 'Phone';
-                                        }
-                                        else if(argKey === 'emails') {
-                                            ele.key = 'Email';
-                                        }
+    return details;
+  }
 
-                                        ele.value = _.map(phoneAndEmail[argKey], function(b){
-                                            return b.title;
-                                        }).join(', ');
-                                        objLevelTwo.data.push(ele);
-                                    }
-                                }
-                            } else {
-                                ele.value = _.map(buck[keys[key]].buckets, function(buc) {
-                                    return buc.key;
-                                }).join(', ');
-                                objLevelTwo.data.push(ele);
-                            }
-                        } 
-                    }
-                    return objLevelTwo;
-                });
-                objLevelOne.id = results.length;
-                results.push(objLevelOne);
-            }
-          return results;
-        }, []);
+  /**
+   * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
+   * and details for each location.
+   * [{
+   *     date: 1455657767,
+   *     locations: [{
+   *         label: "Mountain View, CA",
+   *         place: "Mountain View, CA, USA",
+   *         count: 12,
+   *         details: [{
+   *             name: "Email Address",
+   *             data: [{
+   *                 text: "abc@xyz.com",
+   *                 type: "email",
+   *                 id: "http://email/abc@xyz.com"
+   *             }]
+   *         }, {
+   *             name: "Telephone Number",
+   *             data: [{
+   *                 text: "1234567890",
+   *                 type: "phone",
+   *                 id: "http://phone/1234567890"
+   *             }, {
+   *                 text: "0987654321",
+   *                 type: "phone",
+   *                 id: "http://phone/0987654321"
+   *             }]
+   *         }, {
+   *             name: "Website",
+   *             data: [{
+   *                 text: "google.com",
+   *                 type: "webpage"
+   *             }]
+   *         }]
+   *     }]
+   * }]
+   */
+  function createLocationTimeline(buckets) {
+    var timeline = _.reduce(buckets, function(timeline, bucket) {
+      var dateBucket = {
+        date: bucket.key
+      };
 
-        // Sort newest first.
-        buckets.sort(function(a, b) {
-          return b.date - a.date;
+      if(bucket.locations.buckets.length) {
+        var sum = 0;
+
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
+          sum += locationBucket.doc_count;
+          return {
+            label: locationBucket.key.split(':').slice(0, 2).join(', '),
+            place: locationBucket.key.split(':').slice(0, 3).join(', '),
+            count: locationBucket.doc_count,
+            details: createLocationTimelineDetails(locationBucket)
+          };
         });
 
-        return buckets;
-    }
+        if(sum < dateBucket.doc_count) {
+          dateBucket.locations.push({
+            count: dateBucket.doc_count - sum,
+            details: []
+          });
+        }
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-    function processLocationGraph(records){
-        var data = [];
-        _.each(records, function(record){
-            var point = {};
-            point.date = record.key_as_string;
-
-            point.cityCounts = {};
-            if (record.localities.buckets){
-                var sum = 0;
-                _.each(record.localities.buckets, function(location){
-                    var geoData = location.key.split(':');
-                    var city = geoData[0];
-                    point.cityCounts[city] = location.doc_count;
-                    sum+=location.doc_count;
-                });
-            }
-            point.cityCounts['Other'] = record.doc_count - sum;
-            data.push(point);
-        });
-        return data;
-    }
-
-    function getGeoCities(record) {
-
-        var geos = [];
-        _.each(record, function(key) {
-            var geoData = key.key.split(':');
-            geos.push(geoData[0]);
-        });
-        geos.push("Other");
-        return geos;
-    }
-
-    function getSellerTitle(phones, emails) {
-      var title = '';
-      var otherPhonesAndEmails = 0;
-      if(phones.length > 0) {
-        title = phones[0].title;
-        otherPhonesAndEmails += phones.length - 1;
+        timeline.push(dateBucket);
       }
-      if(emails.length > 0) {
-        title += (title ? ', ' : '') + emails[0].title;   
-        otherPhonesAndEmails += emails.length - 1;
-      }
-      if(otherPhonesAndEmails) {
-        title += ' (' + otherPhonesAndEmails + ' more)';
-      }
-      return title || 'Info N/A';
+
+      return timeline;
+    }, []);
+
+    // Sort newest first.
+    timeline.sort(function(a, b) {
+      return b.date - a.date;
+    });
+
+    return timeline;
+  }
+
+  function getSellerTitle(phones, emails) {
+    var title = '';
+    var otherPhonesAndEmails = 0;
+    if(phones.length > 0) {
+      title = phones[0].title;
+      otherPhonesAndEmails += phones.length - 1;
     }
+    if(emails.length > 0) {
+      title += (title ? ', ' : '') + emails[0].title;
+      otherPhonesAndEmails += emails.length - 1;
+    }
+    if(otherPhonesAndEmails) {
+      title += ' (' + otherPhonesAndEmails + ' more)';
+    }
+    return title || 'Info N/A';
+  }
 
-    return {
-        // expected data is from an elasticsearch 
-        seller: function(data) {
-            var newData = {};
+  return {
+    // expected data is from an elasticsearch
+    seller: function(data) {
+      var newData = {};
 
-            if(data.hits.hits.length > 0) {
-                newData._id = _.get(data.hits.hits[0], '_id');
-                newData._type = _.get(data.hits.hits[0], '_type');
-                newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
-                newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-                newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
-                newData.descriptors = [];
-            }
+      if(data.hits.hits.length > 0) {
+        newData._id = _.get(data.hits.hits[0], '_id');
+        newData._type = _.get(data.hits.hits[0], '_type');
+        newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
+        newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
+        newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
+        newData.descriptors = [];
+      }
 
-            return newData;
-        },
-        phoneEmails: function(data) {
-            var newData = [];
+      return newData;
+    },
+    phoneEmails: function(data) {
+      var newData = [];
 
-            if(data.hits.hits.length > 0) {
-                
-                var telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
-                var emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-                
-                if(telephone && emailAddress) {
-                    newData = telephone.concat(emailAddress);
-                }
-                else if(telephone) {
-                    newData = telephone;
-                }
-                else if(emailAddress) {
-                    newData = emailAddress;
-                }
-                
-            }
+      if(data.hits.hits.length > 0) {
+        var telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
+        var emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
 
-            return newData;
-        },
-        offerTimelineData: function(data) {
-            return commonTransforms.offerTimelineData(data);
-        },
-        offerLocationData: function(data) {
-            return commonTransforms.offerLocationData(data);
-        },
-        sellerOffersData: function(data) {
-            var newData = {};
-            newData.relatedOffers = relatedEntityTransform.offer(data); 
-            return newData;
-        },
-        people: function(data) {
-            var newData = {};
+        if(telephone && emailAddress) {
+          newData = telephone.concat(emailAddress);
+        } else if(telephone) {
+          newData = telephone;
+        } else if(emailAddress) {
+          newData = emailAddress;
+        }
+      }
 
-            if(data.aggregations) {
-                newData = commonTransforms.getPeople(data.aggregations);
-            }
-            
-            return newData;
-        },
-        relatedPhones: function(data) {
-            var newData = {};
-
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData = commonTransforms.transformBuckets(aggs.seller_assoc_numbers.buckets, 'number');
-            }
-            
-            return newData;
-        },
-        relatedEmails: function(data) {
-            var newData = {};
-
-            if(data.aggregations) {
-                var aggs = data.aggregations;
-                newData = commonTransforms.transformBuckets(aggs.seller_assoc_emails.buckets, 'email');
-            }
-            
-            return newData;
-        },
-        itinerary: function(data){
-            
-            var newData = {};
-            if(data.aggregations){
-                var aggs = data.aggregations;
-                newData.date = infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher':'Info'});
-            }
-            return newData;
-        },
-        locationTimeline: function(data){
-            var newData = {};
-
-            if(data.aggregations){
-                var aggs = data.aggregations;
-                newData.locations = getGeoCities(aggs.offersPhone.locations.buckets);
-                newData.data = processLocationGraph(aggs.offersPhone.offerTimeline.buckets);
-            }
-            return newData;
-        }        
-    };
-
+      return newData;
+    },
+    offerLocationData: function(data) {
+      return commonTransforms.offerLocationData(data);
+    },
+    sellerOffersData: function(data) {
+      var newData = {};
+      newData.relatedOffers = relatedEntityTransform.offer(data);
+      return newData;
+    },
+    locationTimeline: function(data) {
+      return {
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        dates: data.aggregations ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      };
+    }
+  };
 })(_, relatedEntityTransform, commonTransforms);
-
-

@@ -1,39 +1,67 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
 <script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
+
 <dom-module id='zoomable-bar-chart'>
-  <style>
-    :host {
-      display: block;
-    }
-
-    #barChart {
-      width: 100%;
-      height: 400px;
-    }
-
-    .axis {
-      font-size: 11px;
-      fill: var(--secondary-text-color);
-    }
-
-    .overview {
-      margin-top: 300px;
-    }
-
-    .axis line, .axis path {
-      fill: none;
-      stroke: rgba(0,0,0,0.12);
-      shape-rendering: crispEdges;
-    }
-
-    .brush .extent {
-      stroke: #fff;
-      fill-opacity: .125;
-      shape-rendering: crispEdges;
-    }
-  </style>
-
   <template>
+    <style>
+      :host {
+        display: block;
+        --bar-chart-amber: var(--amber);
+        --bar-chart-black: var(--dark-primary-color);
+        --bar-chart-blue: var(--blue);
+        --bar-chart-cyan: var(--cyan);
+        --bar-chart-deep-orange: var(--deep-orange);
+        --bar-chart-deep-purple: var(--deep-purple);
+        --bar-chart-green: var(--green);
+        --bar-chart-grey: var(--grey);
+        --bar-chart-indigo: var(--indigo);
+        --bar-chart-light-blue: var(--light-blue);
+        --bar-chart-light-green: var(--light-green);
+        --bar-chart-lime: var(--lime);
+        --bar-chart-orange: var(--orange);
+        --bar-chart-pink: var(--pink);
+        --bar-chart-purple: var(--purple);
+        --bar-chart-red: var(--red);
+        --bar-chart-teal: var(--teal);
+        --bar-chart-yellow: var(--yellow);
+      }
+
+      #barChart {
+        width: 100%;
+        height: 400px;
+      }
+
+      .axis {
+        font-size: 11px;
+        fill: var(--secondary-text-color);
+      }
+
+      .overview {
+        margin-top: 300px;
+      }
+
+      .axis line, .axis path {
+        fill: none;
+        stroke: var(--secondary-text-color);
+        shape-rendering: crispEdges;
+      }
+
+      .brush .extent {
+        fill-opacity: 0.25;
+        shape-rendering: crispEdges;
+      }
+    </style>
+
     <div class='layout horizontal'>
       <div id='chartContainer' class='flex auto'>
         <svg id='barChart'></svg>
@@ -58,7 +86,7 @@
             notify: true
           },
 
-          locations: {
+          barChartData: {
             type: Array,
             value: function() {
               return [];
@@ -66,7 +94,7 @@
             notify: true
           },
 
-          barChartData: {
+          barChartLegend: {
             type: Array,
             value: function() {
               return [];
@@ -88,12 +116,12 @@
         },
 
         observers: [
-          'checkData(data, locations)'
+          'checkData(data)'
         ],
 
         checkData: function(data) {
           if(data && data.length) {
-            this.barChartData = this.processData(data);
+            this.processData(data);
             this.minX = this.getItemKey(this.barChartData[0]);
             this.maxX = this.getItemKey(this.barChartData[this.barChartData.length - 1]);
             this.createElements();
@@ -111,34 +139,36 @@
 
         processData: function(data) {
           var barChartData = [];
+          var barChartLegend = {};
           var parseDate = d3.time.format('%d/%m/%Y');
 
           if(data) {
-            data.forEach(function(record) {
-              var date = parseDate(new Date(record.date)); // turn the date string into a date object
+            data.forEach(function(item) {
+              var date = parseDate(new Date(item.date)); // turn the date string into a date object
               date = d3.time.format('%d/%m/%Y').parse(date);
-              // adding calculated data to each count in preparation for stacking
-              var yAxisStart = 0; // keeps track of where the 'previous' value 'ended'
-              var stackedBars = [];
-              for(var key in record.cityCounts) {
-                if(record.cityCounts[key]) {
-                  stackedBars.push({
-                    name: key,
-                    yAxisStart: yAxisStart,
-                    yAxisEnd: yAxisStart + record.cityCounts[key]
+              var yMax = 0; // keeps track of where the 'previous' value 'ended'
+              var bars = [];
+              item.locations.forEach(function(location) {
+                if(location.count) {
+                  bars.push({
+                    name: location.place || 'Other',
+                    yAxisStart: yMax,
+                    yAxisEnd: yMax + location.count
                   });
-                  yAxisStart += record.cityCounts[key];
+                  yMax += location.count;
+                  barChartLegend[location.place || 'Other'] = true;
                 }
-              }
+              });
               barChartData.push({
-                counts: stackedBars,
+                bars: bars,
                 date: date,
-                total: yAxisStart
+                yMax: yMax
               });
             });
           }
 
-          return barChartData;
+          this.barChartData = barChartData;
+          this.barChartLegend = Object.keys(barChartLegend).sort();
         },
 
         createElements: function() {
@@ -161,10 +191,27 @@
           var chartWidth = this.width - margin.left - margin.right;
           var chartHeight = this.height - margin.top - margin.bottom;
           var heightOverview = this.height - marginOverview.top - marginOverview.bottom;
-          // some colours to use for the bars
-          var otherColor = '#D3D3D3';
-          var colour = d3.scale.ordinal()
-                        .range(['#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#e31a1c','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#ffff99','#b15928']);
+          // some colors to use for the bars
+          var overviewColor = this.getComputedStyleValue('--bar-chart-black');
+          var otherGroupColor = this.getComputedStyleValue('--bar-chart-grey');
+          var color = d3.scale.ordinal().range([
+            this.getComputedStyleValue('--bar-chart-blue'),
+            this.getComputedStyleValue('--bar-chart-orange'),
+            this.getComputedStyleValue('--bar-chart-green'),
+            this.getComputedStyleValue('--bar-chart-red'),
+            this.getComputedStyleValue('--bar-chart-purple'),
+            this.getComputedStyleValue('--bar-chart-yellow'),
+            this.getComputedStyleValue('--bar-chart-indigo'),
+            this.getComputedStyleValue('--bar-chart-cyan'),
+            this.getComputedStyleValue('--bar-chart-deep-orange'),
+            this.getComputedStyleValue('--bar-chart-lime'),
+            this.getComputedStyleValue('--bar-chart-pink'),
+            this.getComputedStyleValue('--bar-chart-deep-purple'),
+            this.getComputedStyleValue('--bar-chart-amber'),
+            this.getComputedStyleValue('--bar-chart-teal'),
+            this.getComputedStyleValue('--bar-chart-light-green'),
+            this.getComputedStyleValue('--bar-chart-light-blue'),
+          ]);
 
           // mathematical scales for the x and y axes
           var x = d3.time.scale()
@@ -227,13 +274,13 @@
           brush.on('brush', brushed);
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.date; }));
-          y.domain([0, d3.max(data, function(d) { return d.total; })]);
+          y.domain([0, d3.max(data, function(d) { return d.yMax; })]);
           xOverview.domain(x.domain());
           yOverview.domain(y.domain());
 
-          // data range for the bar colours
-          // (essentially maps attribute names to colour values)
-          colour.domain(this.locations.filter(function(key) {
+          // data range for the bar colors
+          // (essentially maps attribute names to color values)
+          color.domain(this.barChartLegend.filter(function(key) {
             return key !== 'Other';
           }));
 
@@ -254,11 +301,6 @@
             .attr('class', 'tooltip')
             .style('display', 'none');
 
-          tooltip.append('rect')
-            .attr('width', 30)
-            .attr('height', 20)
-            .attr('fill', 'white')
-            .style('opacity', 0.5);
           tooltip.append('text')
             .attr('x', 15)
             .attr('dy', '1.2em')
@@ -277,26 +319,26 @@
               .attr('transform', function(d) { return 'translate(' + x(d.date) + ',0)'; })
             // a bar for each value in the stack, positioned in the correct y positions
             .selectAll('rect')
-            .data(function(d) { return d.counts; })
+            .data(function(d) { return d.bars; })
             .enter().append('rect')
               .attr('class', 'bar')
               .attr('width', 6)
               .attr('y', function(d) { return y(d.yAxisEnd); })
               .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
               .style('fill', function(d) {
-                if(d.name === 'Other') {
-                  return otherColor;
+                if(d.name === 'Other' || d.name === 'other') {
+                  return otherGroupColor;
                 }
-                return colour(d.name);
+                return color(d.name);
               })
               .on('mouseover', function() { tooltip.style('display', null); })
               .on('mouseout', function() { tooltip.style('display', 'none'); })
               .on('mousemove', function(d) {
                 var rectPos = this.getBoundingClientRect();
-                var xPosition = rectPos.left - 75;
-                var yPosition = d3.mouse(this)[1] - 15;
+                var xPosition = rectPos.left - 60;
+                var yPosition = d3.mouse(this)[1] - 10;
                 tooltip.attr('transform', 'translate(' + xPosition + ',' + yPosition + ')');
-                tooltip.select('text').text(d.name);
+                tooltip.select('text').text(d.name + ' (' + (d.yAxisEnd - d.yAxisStart) + ')');
               });
 
           overview.append('g')
@@ -307,8 +349,9 @@
               .attr('class', 'bar')
               .attr('x', function(d) { return xOverview(d.date) - 3; })
               .attr('width', 6)
-              .attr('y', function(d) { return yOverview(d.total); })
-              .attr('height', function(d) { return heightOverview - yOverview(d.total); });
+              .attr('y', function(d) { return yOverview(d.yMax); })
+              .attr('height', function(d) { return heightOverview - yOverview(d.yMax); })
+              .style('fill', overviewColor);
 
           // add the brush target area on the overview chart
           overview.append('g')

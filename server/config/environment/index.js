@@ -45,6 +45,7 @@ var all = {
     elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
+    annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
     queryTemplates: templates.QUERY_TEMPLATES || '{}'
  
 };

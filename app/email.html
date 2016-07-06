@@ -24,12 +24,11 @@
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
 
-  <!-- For shared styles, shared-styles.html import in elements.html -->
-  <style is="custom-style" include="shared-styles"></style>
   <style is="custom-style" include="entity-view-styles"></style>
   <style is="custom-style" include="icon-styles"></style>
+  <style is="custom-style" include="icon-with-text-styles"></style>
+  <style is="custom-style" include="list-item-styles"></style>
   <style is="custom-style" include="map-styles"></style>
-
 </head>
 
 <body unresolved class="fullbleed layout vertical">
@@ -171,71 +170,25 @@
      transform-function="[[clientConfig.transforms.email.emailOffersData]]"
      ></json-transform>
 
-    <!-- emailDisplay.people query and transform -->
-    <query-builder
-      query="{{peopleAggQuery}}"
-      query-template="{{config.queryTemplates.phoneOrEmailPeopleAgg}}"
-      field="offers.mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[peopleAggQuery]]'
-      results="{{peopleAggs}}"
-      elastic-type='["adultservice"]'
-      last-error="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[peopleAggs]]"
-     data-out="{{emailDisplay.people}}"
-     transform-function="[[clientConfig.transforms.email.people]]"
-     ></json-transform>
-
-     <!-- Itinerary component (aggs) -->
+    <!-- Location timeline for bar chart and itinerary -->
 
     <query-builder
-      query="{{itineraryAggQuery}}"
-      query-template="{{config.queryTemplates.itineraryPhone}}"
+      query="{{locationTimelineQuery}}"
+      query-template="{{config.queryTemplates.locationTimeline}}"
       field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
     </query-builder>
 
     <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[itineraryAggQuery]]'
-      results="{{relatedServiceItAggs}}"
-      elastic-type='["offer"]'
-      last-error="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[relatedServiceItAggs]]"
-     data-out="{{emailDisplay.itinerary}}"
-     transform-function="[[clientConfig.transforms.seller.itinerary]]"
-     ></json-transform>
-
-
-    <!-- Graph component (aggs) -->
-
-    <query-builder 
-      query="{{offerStackGraphQuery}}" 
-      query-template="{{config.queryTemplates.locationTimeline}}" 
-      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
-    </query-builder>
-
-    <elastic-search 
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerStackGraphQuery]]'
-      results="{{locationAggs}}"
+      query='[[locationTimelineQuery]]'
+      results="{{locationTimelineResults}}"
       elastic-type='["offer"]'
       lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[locationAggs]]"
+     data-in="[[locationTimelineResults]]"
      data-out="{{emailDisplay.locationTimeline}}"
      transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
      ></json-transform>
@@ -261,8 +214,10 @@
           <annotate-record client="[[esclient]]"
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
+            annotation-relevant="[[config.annotationRelevant]]"
             query-template="{{config.queryTemplates.annotationQuery}}"
             item="{{emailDisplay.email}}"
+            item-type="email address"
             current-user="[[config.username]]">
           </annotate-record>
           <user-settings username="[[config.username]]" blur-images="{{blurImages}}"></user-settings>
@@ -285,7 +240,7 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <zoomable-bar-chart data='{{emailDisplay.locationTimeline.data}}' locations='{{emailDisplay.locationTimeline.locations}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  <zoomable-bar-chart data='{{emailDisplay.locationTimeline.dates}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </zoomable-bar-chart>
                 </section>
               </paper-material>
@@ -296,13 +251,20 @@
               <paper-material>
                 <section class="who">
 
-                  <!-- Multi-person summary layout, could probably be improved -->
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
+                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
                     <div>Summary of Provider Attributes</div>
                   </div>
-                  <person-features class="flex-2" people="[[emailDisplay.people]]"></person-features>
 
+                  <people-features
+                    query-template="{{config.queryTemplates.peopleFeatures}}"
+                    filter-field="offers.mainEntityOfPage.mentions"
+                    filter-value="[[emailDisplay.email._id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["adultservice"]'
+                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                  </people-features>
                 </section>
               </paper-material>
 
@@ -317,16 +279,22 @@
                     <div class="who">
                       <div class="paper-font-title">
                         <single-record
-                          client="[[esclient]]" annotation-index="[[config.annotationIndex]]"
+                          client="[[esclient]]"
+                          annotation-index="[[config.annotationIndex]]"
                           annotation-type="[[config.annotationType]]"
+                          annotation-relevant="[[config.annotationRelevant]]"
                           annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                          item="{{sellerObject}}" current-user="[[config.username]]"
+                          item="{{sellerObject}}"
+                          current-user="[[config.username]]"
                           blur="[[blurImages]]">
                         </single-record>
                       </div>
                     </div>
                     <records-grid
-                      records="[[showSeller]]"
+                      data-id="_id"
+                      data-text="title"
+                      data-type="_type"
+                      data="[[showSeller]]">
                     </records-grid>
                   </section>
                 </paper-material>
@@ -352,15 +320,15 @@
               <!-- Itinerary section -->
               <div class="h-divider"></div>
 
-                <paper-material>
-                  <section class="who">
-                    <div class="paper-font-title layout horizontal start center">
-                      Location Timeline ([[emailDisplay.itinerary.date.length]] Events)
-                    </div>
+              <paper-material>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                    Location Timeline ([[emailDisplay.locationTimeline.dates.length]] Events)
+                  </div>
 
-                    <itinerary-list data="{{emailDisplay.itinerary.date}}"></itinerary-list>
-                  </section>
-                </paper-material>
+                  <itinerary-list data="{{emailDisplay.locationTimeline.dates}}"></itinerary-list>
+                </section>
+              </paper-material>
 
             </div>
 
@@ -388,7 +356,7 @@
 
                   <!-- City summary -->
                   <section class="where-details flex-none">
-                    <feature-aggregation title="Offers per city" key="name" agg="[[emailDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                    <feature-aggregation big title="Offers per city" key="name" agg="[[emailDisplay.offerLocation.offerLocation]]"></feature-aggregation>
                   </section>
                 </template>
               </paper-material>
@@ -412,11 +380,13 @@
                     image-query-value="_id"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
+                    annotation-relevant="[[config.annotationRelevant]]"
                     annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                     query-results="[[emailDisplay.emailOffers.relatedOffers.data]]"
                     total-results="{{emailDisplay.emailOffers.relatedOffers.count}}"
                     page="{{pageNum}}"
-                    loading="{{offersLoading}}" current-user="[[config.username]]"
+                    loading="{{offersLoading}}"
+                    current-user="[[config.username]]"
                     blur="[[blurImages]]">
                   </records-list>
                 </section>
@@ -441,7 +411,7 @@
       var queryString = window.location.search.slice(1, window.location.search.length);
       var params = queryString.split('&');
       app.params = {};
-      for (var i = 0; i < params.length; i++) {
+      for(var i = 0; i < params.length; i++) {
         var paramPair = params[i].split('=');
         app.params[paramPair[0]] =  paramPair[1];
       }

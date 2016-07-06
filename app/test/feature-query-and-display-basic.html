@@ -1,0 +1,127 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>feature-query-and-display</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/feature-query-and-display/feature-query-and-display.html">
+
+</head>
+<body>
+
+<test-fixture id="feature-query-and-display-fixture">
+  <template>
+    <feature-query-and-display></feature-query-and-display>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, setup, fixture, test, expect */
+  suite('feature-query-and-display tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('feature-query-and-display-fixture');
+      element.key = 'key';
+      element.title = 'title';
+      element.transformResults = {
+        features: [{
+          key: 'alice',
+          count: 8
+        }, {
+          key: 'bob',
+          count: 4
+        }, {
+          key: 'carol',
+          count: 2
+        }]
+      };
+    });
+
+    test('set properties', function() {
+      expect(element.key).to.equal('key');
+      expect(element.title).to.equal('title');
+      expect(element.transformResults).to.be.an('Object');
+      expect(element.transformResults).to.be.deep.equal({
+        features: [{
+          key: 'alice',
+          count: 8
+        }, {
+          key: 'bob',
+          count: 4
+        }, {
+          key: 'carol',
+          count: 2
+        }]
+      });
+    });
+
+    test('build query', function() {
+      element.queryTemplate = {
+        query: {
+          filtered: {
+            filter: {
+              term: {
+                '{{filterField}}': '{{filterValue}}'
+              }
+            }
+          }
+        },
+        aggs: {
+          features: {
+            terms: {
+              field: '{{aggregationField}}',
+              size: 0
+            }
+          }
+        }
+      };
+      element.filterField = 'alpha';
+      element.filterValue = 'beta';
+      element.aggregationField = 'gamma';
+
+      expect(element.query).to.deep.equal({
+        query: {
+          filtered: {
+            filter: {
+              term: {
+                alpha: 'beta'
+              }
+            }
+          }
+        },
+        aggs: {
+          features: {
+            terms: {
+              field: 'gamma',
+              size: 0
+            }
+          }
+        }
+      });
+    });
+
+    test('show feature-aggregation', function() {
+      expect(document.querySelector('feature-aggregation')).to.exist;
+    });
+  });
+</script>
+
+</body>
+</html>

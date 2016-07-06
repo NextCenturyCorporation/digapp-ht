@@ -15,10 +15,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../records-grid/records-grid.html">
 
 <dom-module id="itinerary-list">
   <template>
     <style include="icon-styles"></style>
+    <style include="list-item-styles"></style>
 
     <style>
       :host {
@@ -28,120 +30,55 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         overflow: auto;
       }
 
-      .itinerary-head {
-        cursor: pointer;
-        padding: 0 10px;
-      }
-
-      .itinerary-head.collapse {
-        box-shadow: none;
-      }
-
-      .itinerary-head.expand,
-      .itinerary-head:hover {
-        background-color: rgba(0,0,0,0.1);
-      }
-
-      paper-item,
-      paper-icon-item {
-        --paper-item-focused-before: {
-          background: initial;
-        }
-      }
-
-      paper-icon-item {
-        /* Use the width of iron-icon-big */
-        --paper-item-icon-width: 36px;
-        --paper-item-icon: {
-          margin-right: 10px;
-        }
-      }
-
-      iron-icon.collapse-icon,
-      iron-icon.expand-icon,
-      .itinerary-head:hover iron-icon {
-        display: none;
-      }
-
-      .itinerary-head.collapse:hover iron-icon.collapse-icon,
-      .itinerary-head.expand:hover iron-icon.expand-icon {
-        display: block;
-      }
-
-      .date-icon {
-        color: var(--entity-date-color);
-        /* Add margin so the date icon is as wide as iron-icon-big */
-        margin: 0 6px;
-      }
-
-      .location-icon {
-        color: var(--entity-location-color);
-      }
-
-      .itinerary-head-text {
-        --paper-item-body-two-line-min-height: 60px;
-      }
-
-      .itinerary-body {
-        margin-bottom: 10px;
-        padding: 10px 0;
-      }
-
-      .itinerary-body-location {
-        --paper-item-min-height: 45px;
-        padding: 0 10px;
-      }
-
-      .itinerary-body-data {
-        --paper-item-min-height: 25px;
-        font-size: 14px;
-        padding: 0 55px;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .capitalize {
-        text-transform: capitalize;
+      .list-item-body paper-item,
+      .list-item-body records-grid {
+        margin: 0 40px;
       }
     </style>
 
-    <template is="dom-repeat" items="{{data}}">
+    <template is="dom-repeat" items="[[data]]">
       <div class="itinerary">
-        <paper-material class$="itinerary-head {{getHeaderClass(item.expand)}}" on-tap="toggleItinerary">
+        <paper-material class$="list-item-head [[getHeaderClass(item.opened)]]" clickable on-tap="toggleItinerary">
           <paper-icon-item>
-            <iron-icon class="date-icon" icon="icons:date-range" item-icon></iron-icon>
-            <iron-icon class="iron-icon-big collapse-icon" icon="icons:expand-more" item-icon></iron-icon>
-            <iron-icon class="iron-icon-big expand-icon" icon="icons:expand-less" item-icon></iron-icon>
+            <iron-icon class="list-item-icon entity-date-font" icon="icons:date-range" item-icon></iron-icon>
+            <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
 
-            <paper-item-body class="itinerary-head-text" two-line>
-              <div><strong>{{formatDate(item.date)}}</strong></div>
-              <div secondary><strong>{{getLocationsForHeader(item.city)}}</strong></div>
+            <paper-item-body two-line>
+              <div><strong title="[[formatDate(item.date)]]">[[formatDate(item.date)]]</strong></div>
+              <div secondary><strong title="[[formatSubtitle(item.locations)]]">[[formatSubtitle(item.locations)]]</strong></div>
             </paper-item-body>
           </paper-icon-item>
         </paper-material>
 
-        <iron-collapse id="itinerary_{{item.date}}">
-          <paper-material class="itinerary-body">
-            <template is="dom-repeat" items='{{item.city}}' as="city">
-              <paper-icon-item class="itinerary-body-location">
-                <iron-icon icon="communication:location-on" class="itinerary-icon location-icon" item-icon></iron-icon>
-                <paper-item-body>
-                  <div><strong>{{getLocation(city.city)}}</strong></div>
-                </paper-item-body>
-              </paper-icon-item>
-
-              <template is="dom-repeat" items='{{city.data}}' as="cityItem">
-                <paper-item class="itinerary-body-data">
+        <iron-collapse id="itinerary_[[item.date]]">
+          <div class="list-item-collapse-body">
+            <template is="dom-repeat" items="[[item.locations]]" as="location">
+              <paper-material class="list-item-body">
+                <paper-icon-item>
+                  <iron-icon class="list-item-icon entity-location-font" icon="communication:location-on" item-icon></iron-icon>
                   <paper-item-body>
-                    <span>
-                      <strong class="capitalize">{{cityItem.key}}:</strong>
-                      <span>{{cityItem.value}}</span>
-                    </span>
+                    <div><strong>[[location.place]]</strong></div>
                   </paper-item-body>
-                </paper-item>
-              </template>
+                </paper-icon-item>
+
+                <template is="dom-repeat" items="[[location.details]]" as="detail">
+                  <paper-item>
+                    <paper-item-body>
+                      <div><strong class="capitalize">[[detail.name]]:</strong></div>
+                    </paper-item-body>
+                  </paper-item>
+
+                  <records-grid
+                    data-id="id"
+                    data-text="text"
+                    data-type="type"
+                    data="[[detail.data]]">
+                  </records-grid>
+                </template>
+              </paper-material>
             </template>
-          </paper-material>
+          </div>
         </iron-collapse>
       </div>
     </template>
@@ -161,16 +98,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
       },
 
-      getLocation: function(city) {
-        return city.split(':').slice(0,2).join(', ');
-      },
-
-      getHeaderClass: function(expand) {
-        return (expand ? 'expand' : 'collapse');
+      getHeaderClass: function(opened) {
+        return (opened ? 'opened' : 'closed');
       },
 
       toggleItinerary: function(event) {
-        event.model.set('item.expand', !event.model.item.expand);
+        event.model.set('item.opened', !event.model.item.opened);
         this.$$('#itinerary_' + event.model.item.date).toggle();
       },
 
@@ -178,17 +111,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return new Date(date).toDateString();
       },
 
-      getLocationsForHeader: function(cities) {
-        var locations = '';
-        for(var i = 0; i < cities.length; ++i) {
-          if(i > 2) {
-            locations += ', and ' + (cities.length - 3) + ' more';
-            break;
-          } else {
-            locations += (i > 0 ? ', ' : '') + cities[i].city.split(':')[0];
+      formatSubtitle: function(data) {
+        var subtitle = '';
+        for(var i = 0; i < data.length; ++i) {
+          if(data[i].label) {
+            if(i > 2) {
+              subtitle += '; and ' + (data.length - 3) + ' more';
+              break;
+            } else {
+              subtitle += (i > 0 ? '; ' : '') + data[i].label;
+            }
           }
         }
-        return locations;
+        return subtitle;
       }
     });
   </script>

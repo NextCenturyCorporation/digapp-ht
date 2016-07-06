@@ -49,28 +49,6 @@ module.exports = {
         ] 
     },
 
-    // query for offer timeline on phone.html, email.html, and seller.html
-    offerTimeline: {
-       "aggs": {
-          "offersPhone": {
-             "filter": {
-                "term": {
-                   "{{field}}": "{{value}}"
-                }
-             },
-             "aggs": {
-                "offerTimeline": {
-                   "date_histogram": {
-                      "field": "validFrom",
-                      "interval": "day"
-                   }
-                }
-             }
-          }
-       },
-       "size": 0
-    },
-    //offer locations for phone.html
     offerLocation:{
       "aggs": {
         "phone": {
@@ -91,39 +69,17 @@ module.exports = {
       },
       "size": 0
     },
-    // Who: Give a sense of who is using this phone/email
-    // note that in current index, aggregations on hair color, eye color, and ethnicity come back empty
-    // and that ethnicity is missing from offer type
-    phoneOrEmailPeopleAgg: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        "{{field}}": "{{value}}"
-                    }
-                }
+
+    peopleFeatures: {
+      "query": {
+        "filtered": {
+          "filter": {
+            "term": {
+              "{{filterField}}": "{{filterValue}}"
             }
-        },
-        "aggs" : {
-            "people_names": {
-                "terms": {
-                    "field": "name.raw",
-                    "size": 0
-                }
-            },
-            "people_ages": {
-                "terms": {
-                    "field": "age",
-                    "size": 0
-                }
-            },
-            "people_ethnicities": {
-                "terms": {
-                    "field": "ethnicity",
-                    "size": 0
-                }
-            }
+          }
         }
+<<<<<<< HEAD
     },
     phoneOrEmailPeopleAggForImages: {
        "query": {
@@ -182,8 +138,19 @@ module.exports = {
                     "size": 0
                 }
             }
+=======
+      },
+      "aggs": {
+        "people_features": {
+          "terms": {
+            "field": "{{aggregationField}}",
+            "size": 0
+          }
+>>>>>>> 7cc2c6f48775ad78ab29fdd10099a0afc0eed09b
         }
+      }
     },
+
     offerRevisions: {
         query: {
             "query": {
@@ -205,6 +172,7 @@ module.exports = {
         ]
       
    },
+
     // webpage entity queries
     webpageRevisions: {
         "query": {
@@ -217,7 +185,7 @@ module.exports = {
             }
         },
         "aggs": {
-            "page_revisions" : {
+            "page_revisions": {
                 "date_histogram": {
                     "field": "dateCreated",
                     "interval": "week"
@@ -225,122 +193,39 @@ module.exports = {
             }
         }
     },
-    // person entity queries
-    // same agg is done under seller
-    personRelatedPhones: {
-        query: {
-            "query": {
-                "filtered": {
-                    "filter": {
-                        "terms": {
-                            "telephone.name.raw": []
-                        }
-                    }
-                }
-            },
-            "aggs":{
-                "assoc_numbers": {
-                    "terms": {
-                        "field": "telephone.name.raw",
-                        "size": 0
-                    }
-                }
-            }
-        },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["telephone.name.raw"]'
-    },
-    personRelatedEmails: {
-        query: {
-            "query": {
-                "filtered": {
-                    "filter": {
-                        "terms": {
-                            "email.name.raw": []
-                        }
-                    }
-                }
-            },
-            "aggs":{
-                "assoc_emails": {
-                    "terms": {
-                        "field": "email.name.raw",
-                        "size": 0
-                    }
-                }
-            }
-        },
-        pathToValueRelativeToQuery: 'query.filtered.filter.terms["email.name.raw"]'
-    },
-    // used on other entity views as well (w/different aggregation names)
-    personOfferAgg: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        '{{field}}' : '{{value}}'
-                    }
-                }
-            }
-        },
-        "aggs": {
-            "offers_with_person" : {
-                "date_histogram": {
-                    "field": "validFrom",
-                    "interval": "week"
-                }
-            },
-            "locs_for_person" : {
-                "terms" : {
-                    "field" : "availableAtOrFrom.address.addressLocality",
-                    "size": 0
-                }
-            },
-            // adding to get aggregate of all phones and emails
-            "phones_for_person": {
-                "terms" : {
-                    "field" : "offer.seller.telephone.name.raw",
-                    "size": 0
-                }
-            },
-            "emails_for_person": {
-                "terms" : {
-                    "field" : "offer.seller.email.name.raw",
-                    "size": 0
-                }
-            }
-        }
-    },
-    itineraryPhone:{
+
+    locationTimeline: {
       "aggs": {
-        "phone": {
+        "location_timeline": {
           "filter": {
             "term": {
               '{{field}}': '{{value}}'
             }
           },
           "aggs": {
-            "timeline": {
+            "dates": {
               "date_histogram": {
                 "field": "validFrom",
                 "interval": "day"
               },
               "aggs": {
-                "city": {
+                "locations": {
                   "terms": {
                     "field": "availableAtOrFrom.address.key",
-                    "size": 500
+                    "order": { "_term" : "asc" },
+                    "size": 0
                   },
                   "aggs": {
                     "publisher": {
                       "terms": {
                         "field": "mainEntityOfPage.publisher.name.raw",
-                        "size": 500
+                        "size": 0
                       }
                     },
                     "mentions": {
                       "terms": {
                         "field": "mainEntityOfPage.mentions",
-                        "size": 500
+                        "size": 0
                       }
                     }
                   }
@@ -351,42 +236,6 @@ module.exports = {
         }
       },
       "size": 0
-    },
-
-    locationTimeline: {
-       "aggs": {
-          "offersPhone": {
-             "filter": {
-                "term": {
-                   "{{field}}": "{{value}}"
-                }
-             },
-             "aggs": {
-                "offerTimeline": {
-                   "date_histogram": {
-                      "field": "validFrom",
-                      "interval": "day"
-                   },
-                    "aggs": {
-                        "localities": {
-                            "terms": {
-                                "field": "availableAtOrFrom.address.key",
-                                "order" : { "_term" : "asc" }
-                            }
-                        }
-                    }
-                },
-                "locations": {
-                    "terms": {
-                        "field": "availableAtOrFrom.address.key",
-                        "size": 0
-                    }
-                }
-             }
-          }
-       },
-       "size": 0
     }
-
   }
 };
