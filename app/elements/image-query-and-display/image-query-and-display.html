@@ -56,6 +56,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       transform-function="[[imageTransform]]">
     </json-transform>
 
+    <json-transform
+      data-in="[[imageQueryResults]]"
+      data-out="{{totalResults}}"
+      transform-function="[[imageTotalTransform]]">
+    </json-transform>
+
     <template is="dom-if" if="[[displayResults.length]]">
       <iron-scroll-threshold id="scrollThreshold">
         <image-viewer id="imageViewer" images="[[displayResults]]" blur="[[blur]]"></image-viewer>
@@ -109,7 +115,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         imageResults: {
-          type: Object,
+          type: Array,
           notify: true
         },
 
@@ -129,10 +135,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
+        imageTotalTransform: {
+          type: Object
+        },
+
         imageDisplayTitle: {
           type: String,
           value: 'No Images',
-          computed: 'getTitle(displayResults.length, totalResults)',
+          computed: 'computeTitle(displayResults.length, totalResults)',
           notify: true
         },
 
@@ -147,27 +157,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       observers: [
-        'updateQueryResults(imageResults.array)',
-        'updateTotalResults(imageResults.total)'
+        'updateQueryResults(imageResults.splices)'
       ],
 
-      getTitle: function(count, totalResults) {
-        if(totalResults) {
-          var title = totalResults + ' Image' + (totalResults === 1 ? '' : 's');
-          if(count && count < totalResults) {
-            return count + ' of ' + title;
-          }
-          return title;
+      /**
+       * Returns the title for this image viewer based on the displayResults and the totalResults.
+       */
+      computeTitle: function(count, total) {
+        if(total) {
+          return ((count && count < total) ? (count + ' of ') : '') + total + ' Image' + (total === 1 ? '' : 's');
         }
         return 'No Images';
       },
 
-      updateQueryResults: function(queryResults) {
-        this.set('queryResults', queryResults);
-      },
-
-      updateTotalResults: function(totalResults) {
-        this.set('totalResults', totalResults);
+      updateQueryResults: function() {
+        this.set('queryResults', this.imageResults);
       }
     });
   })();
