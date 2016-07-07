@@ -202,12 +202,18 @@
      ></json-transform>
     
     <!-- Get hourly phone+locations data for event drops viz-->
-    <query-builder
+    <json-transform
+     data-in="{{webpageDisplay}}"
+     data-out="{{phonesArray}}"
+     transform-function="[[clientConfig.transforms.dropsTimeline.extractPhonesFromWebpageDisplayData]]"
+     ></json-transform>
+
+    <bool-query-builder
       query="{{hourlyLocationTimelineQuery}}"
-      query-template="{{config.queryTemplates.hourlyLocationTimeline}}"
-      field="[[mainEntityOfPage.mentions]]"
-      value="[[webpageDisplay.phones[0]]]">
-    </query-builder>
+      query-template="{{config.queryTemplates.hourlyLocationTimeline.query}}"  
+      paths-to-values="{{config.queryTemplates.hourlyLocationTimeline.pathsToValues}}"
+      value="{{phonesArray}}"
+    ></bool-query-builder>
 
     <elastic-search
       client="[[esclient]]"
@@ -222,7 +228,7 @@
      data-in="[[hourlyLocationTimelineRes]]"
      data-out="{{hourlyLocationTimelineData}}"
      transform-function="[[clientConfig.transforms.dropsTimeline.timeline]]"
-     ></json-transform> 
+     ></json-transform>   
 
     <!-- Display Content -->
     <div class="entity">
@@ -468,7 +474,7 @@
                   <!-- Event drops timeline -->
                   <template is="dom-if" if="{{hourlyLocationTimelineData}}">
                     <section class="where flex-auto">
-                      <drops-timeline payload="{{hourlyLocationTimelineData}}" width="1000"></drops-timeline>
+                      <drops-timeline payload="{{hourlyLocationTimelineData}}"></drops-timeline>
                     </section>
                   </template>
               </paper-material>

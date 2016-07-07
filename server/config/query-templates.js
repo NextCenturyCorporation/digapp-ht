@@ -53,7 +53,7 @@ module.exports = {
       "aggs": {
         "phone": {
           "filter": {
-            "term": {
+            "terms": {
               "{{field}}": "{{value}}"
             }
           },
@@ -254,34 +254,36 @@ module.exports = {
        "size": 0
     },
     hourlyLocationTimeline : {
-      "aggs": {
-        "phone": {
-          "filter": {
-            "term": {
-              "mainEntityOfPage.mentions": "http://dig.isi.edu/ht/data/phone/1-2163741665"
-            }
-          },
+      query: {  
           "aggs": {
-            "city": {
-              "terms": {
-                "field": "availableAtOrFrom.address.key",
-                "size": 20
+            "phone": {
+              "filter": {
+                "terms": {
+                    "mainEntityOfPage.mentions": "{{value}}"
+                }
               },
               "aggs": {
-                "timeline": {
-                  "date_histogram": {
-                    "field": "validFrom",
-                    "min_doc_count" : 1,
-                    "interval": "hour"
+                "city": {
+                  "terms": {
+                    "field": "availableAtOrFrom.address.key",
+                    "size": 20
+                  },
+                  "aggs": {
+                    "timeline": {
+                      "date_histogram": {
+                        "field": "validFrom",
+                        "min_doc_count" : 1,
+                        "interval": "hour"
+                      }
+                    }
                   }
                 }
               }
             }
-          }
-        }
-      },
-      "size": 0
+          },
+          "size": 0
+        },
+      pathsToValues :["aggs.phone.filter.terms['mainEntityOfPage.mentions']"]  
     }
-
   }
 };

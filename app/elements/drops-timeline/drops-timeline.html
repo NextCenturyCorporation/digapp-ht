@@ -6,7 +6,14 @@
 <dom-module id="drops-timeline">
   <style>
     :host {
-      display: block;
+      display: block;  
+      width:100%;    
+    }
+
+    #timeline-container {
+      margin-top: 20px;
+      margin-bottom: 20px;
+      width: 100%;
     }
 
     .zoom,
@@ -28,9 +35,10 @@
         position: absolute;
         z-index: 50
     }
+
     text {
         stroke: none;
-        fill: #000
+        fill: #37474F;        
     }
     .graph-body .line {
         height: 20px;
@@ -44,21 +52,22 @@
       margin: 0;
     }
     
-    #svgElement{
-      width: 100%;
-      height: 100px;
-    }
-    
     paper-button{
       background-color: var(--text-primary-color);
       color: var(--primary-text-color);
       font-size: 12px;
     }
-    
+
+    #timeline {
+      width:100%;
+    }
+
   </style>
   <template>
     <div class="layout horizontal">
-        <div id="timeline"></div> 
+        <div class="flex auto" id="timeline-container">
+          <div id="timeline"></div>   
+        </div>        
       </div>
     </div>    
   </template>
@@ -77,12 +86,11 @@
             return {};
           },
           notify: true
-        },
-        width: {
-          type : Number
         }
       },
-      observers: [],      
+      observers: [
+        'setupChart(payload)'
+      ],      
       getEndTime : function() {
         if (this.payload.timestamps.length)           
           return  Math.max.apply(null, this.payload.timestamps)+(60*60*24*30*1000);             
@@ -99,19 +107,29 @@
 
         var color = d3.scale.category20();
         var endTime = this.getEndTime();   
-        var startTime = this.getStartTime();
-                      
+        var startTime = this.getStartTime();              
+        var width = this.parentNode.offsetWidth || 1400;
         var chart = d3.chart.eventDrops()
             .eventLineColor(function (datum, index) {
                   return color(index);
               })
             .start(new Date(startTime))
             .end(new Date(endTime))
-            .width(this.width);               
+            .width(width);            
 
-        d3.select("#timeline")
-        .datum(this.payload.data)      
-        .call(chart);
+        var node = this.$.timeline;
+
+        d3.select(node)
+        .datum(this.payload.data)           
+        .call(chart);        
+
+        d3.select(window).on('resize', function() {
+          setupChart();  
+        });
+      },
+
+      ready :  function() {
+       this.setupChart();
       }
     });
   })();

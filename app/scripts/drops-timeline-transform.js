@@ -1,10 +1,8 @@
-var dropsTimelineTransform = (function() {
+var dropsTimelineTransform = (function(_) {
 
 	return {
-		timeline : function(data) {
+		timeline : function(data) {			
 
-			console.log('test',data);
-			
 			var timestamps = [];
 			var transformedData = [];
 
@@ -35,15 +33,18 @@ var dropsTimelineTransform = (function() {
 		      var dates = cityAggs[city]
 		      transformedData.push({
 		        name: city.split(':')[0],
-		        dates: dates 
+		        data: dates 
 		      });
 		    }  
-
+		  
 		  return {
 		  	data: transformedData,
 		  	timestamps: timestamps
 		  }
+		},
+		extractPhonesFromWebpageDisplayData : function(data) {			
+			return _.map(data.phones, '_id');			
 		}
 	}	
 
-})();
+})(_);
