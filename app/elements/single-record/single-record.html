@@ -20,6 +20,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
+<link rel="import" href="../dig-behaviors/create-link-behavior.html">
+<link rel="import" href="../dig-behaviors/data-type-behavior.html">
 
 <dom-module id="single-record">
   <template>
@@ -39,7 +41,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       annotate-record {
         /* Margin between annotation icon and text (left) / 'open' button (right). */
-        margin: 15px;
+        margin: 0 15px;
       }
 
       .list-item-body {
@@ -68,7 +70,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="record">
       <paper-material class$="list-item-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
         <paper-icon-item>
-          <iron-icon class$="list-item-icon [[getIconClass(item._type)]]" icon$="[[getIcon(item._type)]]" item-icon></iron-icon>
+          <iron-icon class$="list-item-icon [[getItemTypeStyleClass(item, '_type')]]" icon$="[[getItemTypeIronIcon(item, '_type')]]" item-icon></iron-icon>
 
           <template is="dom-if" if="[[showDetails]]">
             <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
@@ -86,14 +88,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <div secondary>
                 <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
                   <template is="dom-if" if="[[descriptor.id]]">
-                    <a class="icon-with-text" target="[[getTarget(newTab)]]" href$="[[createURL(descriptor.type, descriptor.id)]]" title="Open [[descriptor.text]]">
-                      <iron-icon class$="iron-icon-small [[getIconClass(descriptor.type)]]" icon$="[[getIcon(descriptor.type)]]"></iron-icon>
+                    <a class="icon-with-text" target="[[getTarget(newTab)]]" href$="[[createIdLink(descriptor, 'type', 'id')]]" title="Open [[descriptor.text]]">
+                      <iron-icon class$="iron-icon-small [[getTypeStyleClass(descriptor.type)]]" icon$="[[getTypeIronIcon(descriptor.type)]]"></iron-icon>
                       <strong>[[descriptor.text]]</strong>
                     </a>
                   </template>
                   <template is="dom-if" if="[[!descriptor.id]]">
                     <span class="icon-with-text" title="[[descriptor.text]]">
-                      <iron-icon class$="iron-icon-small [[getIconClass(descriptor.type)]]" icon$="[[getIcon(descriptor.type)]]"></iron-icon>
+                      <iron-icon class$="iron-icon-small [[getTypeStyleClass(descriptor.type)]]" icon$="[[getTypeIronIcon(descriptor.type)]]"></iron-icon>
                       <strong>[[descriptor.text]]</strong>
                     </span>
                   </template>
@@ -110,14 +112,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               annotation-relevant="[[annotationRelevant]]"
               query-template="{{annotationQueryTemplate}}"
               item="{{item}}"
-              item-type="[[getItemType(item._type, 'true')]]"
+              item-type="[[getItemTypeText(item, '_type', 'true')]]"
               current-user="[[currentUser]]">
             </annotate-record>
           </template>
 
           <!-- secondary actions -->
-          <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
-            <paper-button class="list-item-button">open {{getItemType(item._type)}}</paper-button>
+          <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createIdLink(item, '_type', '_id')]]">
+            <paper-button class="list-item-button">open {{getItemTypeText(item, '_type')}}</paper-button>
           </a>
         </paper-icon-item>
       </paper-material>
@@ -146,8 +148,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <image-viewer images="[[imageUrls]]" blur="[[blur]]"></image-viewer>
             </template>
 
-            <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createURL(item._type, item._id)]]">
-              <paper-button class="list-item-button" raised>open {{getItemType(item._type)}}</paper-button>
+            <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createIdLink(item, '_type', '_id')]]">
+              <paper-button class="list-item-button" raised>open {{getItemTypeText(item, '_type')}}</paper-button>
             </a>
           </paper-material>
         </iron-collapse>
@@ -157,11 +159,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
-    /* globals _, Mustache */
+    /* globals _, DigBehaviors, Mustache */
     'use strict';
 
     Polymer({
       is: 'single-record',
+
+      behaviors: [DigBehaviors.CreateLinkBehavior, DigBehaviors.DataTypeBehavior],
 
       properties: {
         /**
@@ -345,10 +349,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      createURL: function(type, value) {
-        return (value ? ('/' + type + '.html?value=' + value + '&field=_id') : '#');
-      },
-
       /**
        * Adds the image URLs from the hits in the given image query results to item.imageUrls.
        */
@@ -384,38 +384,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       getHeaderClass: function(opened) {
         return (opened ? 'opened' : 'closed');
-      },
-
-      getIconClass: function(type) {
-        return 'entity-' + type + '-font';
-      },
-
-      getIcon: function(type) {
-        switch(type) {
-          case 'date': return 'icons:date-range';
-          case 'email': return 'communication:email';
-          case 'offer': return 'maps:local-offer';
-          case 'phone': return 'communication:phone';
-          case 'provider': return 'icons:account-circle';
-          case 'seller': return 'group-work';
-          case 'webpage': return 'av:web';
-        }
-      },
-
-      getItemType: function(type, lengthen) {
-        if(type === 'offer') {
-          return 'ad';
-        }
-        if(type === 'seller') {
-          return 'email/phone cluster';
-        }
-        if(lengthen && type === 'email') {
-          return 'email address';
-        }
-        if(lengthen && type === 'phone') {
-          return 'telephone number';
-        }
-        return type;
       },
 
       getTarget: function(newTab) {

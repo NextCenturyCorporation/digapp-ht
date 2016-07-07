@@ -29,55 +29,51 @@ var commonTransforms = (function(_) {
     return geos;
   }
 
+  /**
+  * Changes the key/value names of buckets given from an aggregation
+  * to names preferred by the user.
+  */
+  function transformBuckets(buckets, keyName, alternateKey) {
+    buckets = _.map(buckets, function(bucket) {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var obj = {
+        count: bucket.doc_count
+      };
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      if(alternateKey) {
+        obj[keyName] = bucket[alternateKey];
+      } else {
+        obj[keyName] = bucket.key;
+      }
+      return obj;
+    });
+    return buckets;
+  }
+
   return {
     /**
     * Changes the key/value names of buckets given from an aggregation
     * to names preferred by the user.
     */
     transformBuckets: function(buckets, keyName, alternateKey) {
-      buckets = _.map(buckets, function(bucket) {
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        var obj = {
-          count: bucket.doc_count
-        };
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        if(alternateKey) {
-          obj[keyName] = bucket[alternateKey];
-        } else {
-          obj[keyName] = bucket.key;
-        }
-        return obj;
-      });
-      return buckets;
+      return transformBuckets(buckets, keyName, alternateKey);
     },
 
     /**
         Get people aggregation info:
 
-        "people": {
-            "names": [
-                {"name": "Emily", "count": 14},
-                {"name": "Erin", "count": 12},
-                {"name": "Jane", "count": 3}
-            ],
-            "ethnicities": [
-                {"ethnicity": "white", "count": 19}
-            ],
-            "heights": [{"height": 64, "count":5, "unitOfMeasure": "inches"}],
-            "weights": [{"weight": 115, "count": 5, "unitOfMeasure": "pounds"}],
-            "ages": [{"age": 30, "count": 9}]
-        }
+        "features": [
+            {"key": "Emily", "count": 14},
+            {"key": "Erin", "count": 12},
+            {"key": "Jane", "count": 3}
+        ]
     */
-    getPeople: function(aggs) {
+    peopleFeatures: function(data) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var people = {
-        names: this.transformBuckets(aggs.people_names.buckets, 'name'),
-        ethnicities: this.transformBuckets(aggs.people_ethnicities.buckets, 'ethnicity'),
-        ages: this.transformBuckets(aggs.people_ages.buckets, 'age')
+      return {
+        features: transformBuckets(data.aggregations.people_features.buckets, 'key')
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      return people;
     },
 
     /**

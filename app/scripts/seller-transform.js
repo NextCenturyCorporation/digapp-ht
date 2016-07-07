@@ -9,121 +9,136 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-  /**
-      * Gives two level heirarchies for the aggregrations - and the thir hierarchy as just an info
-      * Example filter level1 by date and level2 by city and pulblisher as info
-         {
-              date:[{
-                  date: 1455657767
-                  city:{
-                      city: "Los Angeles",
-                      info: '"abc.com", "rg.com"''
-                  }
-              },
-         }
-  */
-  function infoBuckets(buckets, levelOne, levelTwo, keys, renames) {
-    buckets = _.reduce(buckets, function(results, bucket) {
-      var objLevelOne = {};
-      objLevelOne[levelOne] = bucket.key;
+  function createLocationTimelineDetails(bucket) {
+    var details = [];
 
-      if(bucket[levelTwo].buckets.length) {
-        objLevelOne[levelTwo] = _.map(bucket[levelTwo].buckets, function(buck) {
-          var objLevelTwo = {};
-          objLevelTwo[levelTwo] = buck.key;
-          objLevelTwo.data = [];
+    if(bucket.publisher) {
+      details.push({
+        name: 'Website',
+        items: _.map(bucket.publisher.buckets, function(publisher) {
+          return {
+            text: publisher.key,
+            type: 'webpage'
+          };
+        })
+      });
+    }
 
-          for(var key in keys) {
-            var ele = {};
-            ele.key = keys[key];
-
-            if(_.has(renames, ele.key)) {
-              ele.key = renames[ele.key];
-            }
-
-            if(_.has(buck,keys[key])) {
-              if(keys[key] === 'mentions') {
-                ele.value = _.map(buck[keys[key]].buckets, function(buc) {
-                  return buc.key;
-                });
-                var phoneAndEmail = commonTransforms.getEmailAndPhoneFromMentions(ele.value);
-
-                for(var argKey in phoneAndEmail) {
-                  if(phoneAndEmail[argKey].length) {
-                    ele = {};
-                    if(argKey === 'phones') {
-                      ele.key = 'Phone';
-                    }
-                    if(argKey === 'emails') {
-                      ele.key = 'Email';
-                    }
-
-                    ele.value = _.map(phoneAndEmail[argKey], function(b) {
-                      return b.title;
-                    }).join(', ');
-                    objLevelTwo.data.push(ele);
-                  }
-                }
-              } else {
-                ele.value = _.map(buck[keys[key]].buckets, function(buc) {
-                  return buc.key;
-                }).join(', ');
-                objLevelTwo.data.push(ele);
-              }
-            }
-          }
-          return objLevelTwo;
+    if(bucket.mentions) {
+      var emailAndPhoneLists = commonTransforms.getEmailAndPhoneFromMentions(_.map(bucket.mentions.buckets, function(mention) {
+        return mention.key;
+      }));
+      if(emailAndPhoneLists.phones.length) {
+        details.push({
+          name: 'Telephone Number',
+          items: _.map(emailAndPhoneLists.phones, function(phone) {
+            return {
+              text: phone.title,
+              type: 'phone',
+              id: phone._id
+            };
+          })
         });
-        objLevelOne.id = results.length;
-        results.push(objLevelOne);
       }
-      return results;
+      if(emailAndPhoneLists.emails.length) {
+        details.push({
+          name: 'Email Address',
+          items: _.map(emailAndPhoneLists.emails, function(email) {
+            return {
+              text: email.title,
+              type: 'email',
+              id: email._id
+            };
+          })
+        });
+      }
+    }
+
+    return details;
+  }
+
+  /**
+   * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
+   * and details for each location.
+   * [{
+   *     date: 1455657767,
+   *     subtitle: "Mountain View, CA",
+   *     locations: [{
+   *         name: "Mountain View, CA, USA",
+   *         type: "location",
+   *         count: 12,
+   *         details: [{
+   *             name: "Email Address",
+   *             items: [{
+   *                 text: "abc@xyz.com",
+   *                 type: "email",
+   *                 id: "http://email/abc@xyz.com"
+   *             }]
+   *         }, {
+   *             name: "Telephone Number",
+   *             items: [{
+   *                 text: "1234567890",
+   *                 type: "phone",
+   *                 id: "http://phone/1234567890"
+   *             }, {
+   *                 text: "0987654321",
+   *                 type: "phone",
+   *                 id: "http://phone/0987654321"
+   *             }]
+   *         }, {
+   *             name: "Website",
+   *             items: [{
+   *                 text: "google.com",
+   *                 type: "webpage"
+   *             }]
+   *         }]
+   *     }]
+   * }]
+   */
+  function createLocationTimeline(buckets) {
+    var timeline = _.reduce(buckets, function(timeline, bucket) {
+      var dateBucket = {
+        date: bucket.key
+      };
+
+      if(bucket.locations.buckets.length) {
+        var sum = 0;
+        var subtitle = [];
+
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
+          sum += locationBucket.doc_count;
+          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
+          return {
+            name: locationBucket.key.split(':').slice(0, 3).join(', '),
+            type: 'location',
+            count: locationBucket.doc_count,
+            details: createLocationTimelineDetails(locationBucket)
+          };
+        });
+
+        if(sum < bucket.doc_count) {
+          dateBucket.locations.push({
+            type: 'location',
+            count: bucket.doc_count - sum,
+            details: []
+          });
+        }
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+        dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
+        timeline.push(dateBucket);
+      }
+
+      return timeline;
     }, []);
 
     // Sort newest first.
-    buckets.sort(function(a, b) {
+    timeline.sort(function(a, b) {
       return b.date - a.date;
     });
 
-    return buckets;
-  }
-
-  function processLocationGraph(records) {
-    var data = [];
-    _.each(records, function(record) {
-      var point = {};
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      point.date = record.key_as_string;
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      point.cityCounts = {};
-
-      var sum = 0;
-      if(record.localities.buckets) {
-        _.each(record.localities.buckets, function(location) {
-          var geoData = location.key.split(':');
-          var city = geoData[0];
-          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          point.cityCounts[city] = location.doc_count;
-          sum += location.doc_count;
-          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        });
-      }
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      point.cityCounts.Other = record.doc_count - sum;
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      data.push(point);
-    });
-    return data;
-  }
-
-  function getGeoCities(record) {
-    var geos = [];
-    _.each(record, function(key) {
-      var geoData = key.key.split(':');
-      geos.push(geoData[0]);
-    });
-    geos.push('Other');
-    return geos;
+    return timeline;
   }
 
   function getSellerTitle(phones, emails) {
@@ -185,33 +200,12 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
-    people: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        newData = commonTransforms.getPeople(data.aggregations);
-      }
-
-      return newData;
-    },
-    itinerary: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        var aggs = data.aggregations;
-        newData.date = infoBuckets(aggs.phone.timeline.buckets,'date','city',['publisher','mentions'],{'publisher': 'Info'});
-      }
-      return newData;
-    },
     locationTimeline: function(data) {
-      var newData = {};
-
-      if(data.aggregations) {
-        var aggs = data.aggregations;
-        newData.locations = getGeoCities(aggs.offersPhone.locations.buckets);
-        newData.data = processLocationGraph(aggs.offersPhone.offerTimeline.buckets);
-      }
-      return newData;
+      return {
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        dates: data.aggregations ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      };
     }
   };
 })(_, relatedEntityTransform, commonTransforms);

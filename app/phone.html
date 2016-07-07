@@ -29,6 +29,7 @@
   <style is="custom-style" include="icon-with-text-styles"></style>
   <style is="custom-style" include="list-item-styles"></style>
   <style is="custom-style" include="map-styles"></style>
+  <style is="custom-style" include="web-component-styles"></style>
 </head>
 
 <body unresolved class="fullbleed layout vertical">
@@ -81,28 +82,6 @@
      data-in="[[phone]]"
      data-out="{{phoneDisplay.telephone}}"
      transform-function="[[clientConfig.transforms.phone.telephone]]"
-     ></json-transform>
-
-    <!-- phoneDisplay.people query and transform -->
-    <query-builder
-      query="{{peopleAggQuery}}"
-      query-template="{{config.queryTemplates.phoneOrEmailPeopleAgg}}"
-      field="offers.mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[peopleAggQuery]]'
-      results="{{peopleAggs}}"
-      elastic-type='["adultservice"]'
-      last-error="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[peopleAggs]]"
-     data-out="{{phoneDisplay.people}}"
-     transform-function="[[clientConfig.transforms.phone.people]]"
      ></json-transform>
 
      <!-- Get the seller Object -->
@@ -193,34 +172,10 @@
        transform-function="[[clientConfig.transforms.phone.phoneOffersData]]"
        ></json-transform>
 
-       <!-- Itinerary component (aggs) -->
-
-      <query-builder
-        query="{{itineraryAggQuery}}"
-        query-template="{{config.queryTemplates.itineraryPhone}}"
-        field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
-      </query-builder>
-
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        query='[[itineraryAggQuery]]'
-        results="{{relatedServiceItAggs}}"
-        elastic-type='["offer"]'
-        last-error="{{error}}">
-      </elastic-search>
-
-      <json-transform
-       data-in="[[relatedServiceItAggs]]"
-       data-out="{{phoneDisplay.itinerary}}"
-       transform-function="[[clientConfig.transforms.seller.itinerary]]"
-       ></json-transform>
-
-
-    <!-- Graph component (aggs) -->
+    <!-- Location timeline for bar chart and itinerary -->
 
     <query-builder
-      query="{{offerStackGraphQuery}}"
+      query="{{locationTimelineQuery}}"
       query-template="{{config.queryTemplates.locationTimeline}}"
       field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
     </query-builder>
@@ -228,14 +183,15 @@
     <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[offerStackGraphQuery]]'
-      results="{{locationAggs}}"
+      query="[[locationTimelineQuery]]"
+      results="{{locationTimelineResults}}"
       elastic-type='["offer"]'
+      loading="{{loadingLocationTimeline}}"
       lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[locationAggs]]"
+     data-in="[[locationTimelineResults]]"
      data-out="{{phoneDisplay.locationTimeline}}"
      transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
      ></json-transform>
@@ -288,7 +244,11 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <zoomable-bar-chart data='{{phoneDisplay.locationTimeline.data}}' locations='{{phoneDisplay.locationTimeline.locations}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  <zoomable-bar-chart
+                    data="[[phoneDisplay.locationTimeline.dates]]"
+                    min-x="{{minXValue}}"
+                    max-x="{{maxXValue}}"
+                    loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
                 </section>
               </paper-material>
@@ -299,20 +259,27 @@
               <paper-material>
                 <section class="who">
 
-                  <!-- Multi-person summary layout, could probably be improved -->
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
                     <div>Summary of Provider Attributes</div>
                   </div>
-                  <person-features class="flex-2" people="[[phoneDisplay.people]]"></person-features>
 
+                  <people-features
+                    query-template="{{config.queryTemplates.peopleFeatures}}"
+                    filter-field="offers.mainEntityOfPage.mentions"
+                    filter-value="[[phoneDisplay.telephone._id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["adultservice"]'
+                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                  </people-features>
                 </section>
               </paper-material>
 
-              <div class="h-divider"></div>
-
               <!-- Seller section -->
               <template is="dom-if" if="{{showSeller}}">
+                <div class="h-divider"></div>
+
                 <paper-material>
                   <section class="who">
                     <div class="paper-font-title">Email/Phone Cluster</div>
@@ -331,7 +298,10 @@
                       </div>
                     </div>
                     <records-grid
-                      records="[[showSeller]]">
+                      data-id="_id"
+                      data-text="title"
+                      data-type="_type"
+                      data="[[showSeller]]">
                     </records-grid>
                   </section>
                 </paper-material>
@@ -341,6 +311,11 @@
 
               <paper-material>
                 <section class="photos">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
+                    <div>[[imageDisplayTitle]]</div>
+                  </div>
+
                   <image-query-and-display
                     image-query-template="{{config.queryTemplates.commonTermQuery}}"
                     image-query-field="isImagePartOf.mentions"
@@ -349,6 +324,7 @@
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
                     image-transform="[[clientConfig.transforms.image.images]]"
+                    image-display-title="{{imageDisplayTitle}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -360,10 +336,14 @@
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
-                    Location Timeline ([[phoneDisplay.itinerary.date.length]] Events)
+                    Location Timeline ([[phoneDisplay.locationTimeline.dates.length]] Events)
                   </div>
 
-                  <itinerary-list data="{{phoneDisplay.itinerary.date}}"></itinerary-list>
+                  <itinerary-list
+                    data-items="locations"
+                    data="[[phoneDisplay.locationTimeline.dates]]"
+                    loading="[[loadingLocationTimeline]]">
+                  </itinerary-list>
                 </section>
               </paper-material>
 
@@ -393,7 +373,7 @@
 
                   <!-- City summary -->
                   <section class="where-details flex-none">
-                    <feature-aggregation title="Offers per city" key="name" agg="[[phoneDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                    <feature-aggregation feature-title="Offers per City" key="name" agg="[[phoneDisplay.offerLocation.offerLocation]]"></feature-aggregation>
                   </section>
                 </template>
               </paper-material>

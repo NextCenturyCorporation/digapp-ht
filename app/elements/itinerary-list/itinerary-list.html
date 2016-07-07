@@ -15,11 +15,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../records-grid/records-grid.html">
+<link rel="import" href="../dig-behaviors/data-type-behavior.html">
 
 <dom-module id="itinerary-list">
   <template>
     <style include="icon-styles"></style>
     <style include="list-item-styles"></style>
+    <style include="web-component-styles"></style>
 
     <style>
       :host {
@@ -29,46 +32,67 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         overflow: auto;
       }
 
-      .list-item-body paper-item {
-        padding: 0 40px;
+      .list-item-body paper-item,
+      .list-item-body records-grid {
+        margin: 0 40px;
       }
     </style>
 
-    <template is="dom-repeat" items="{{data}}">
+    <div class="loading-container">
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <span class="button-height-text">Loading Timeline...</span>
+      </template>
+    </div>
+
+    <template is="dom-repeat" items="[[data]]" as="dateItem">
       <div class="itinerary">
-        <paper-material class$="list-item-head {{getHeaderClass(item.opened)}}" clickable on-tap="toggleItinerary">
+        <paper-material class$="list-item-head [[getHeaderClass(dateItem.opened)]]" clickable on-tap="toggleItinerary">
           <paper-icon-item>
-            <iron-icon class="list-item-icon entity-date-font" icon="icons:date-range" item-icon></iron-icon>
+            <iron-icon class$="list-item-icon [[getTypeStyleClass('date')]]" icon="[[getTypeIronIcon('date')]]" item-icon></iron-icon>
             <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
             <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
 
             <paper-item-body two-line>
-              <div><strong>{{formatDate(item.date)}}</strong></div>
-              <div secondary><strong>{{getLocationsForHeader(item.city)}}</strong></div>
+              <div><strong title="[[formatDate(dateItem, dataDate)]]">[[formatDate(dateItem, dataDate)]]</strong></div>
+              <div secondary><strong title="[[getProperty(dateItem, dataSubtitle)]]">[[getProperty(dateItem, dataSubtitle)]]</strong></div>
             </paper-item-body>
           </paper-icon-item>
         </paper-material>
 
-        <iron-collapse id="itinerary_{{item.date}}">
+        <iron-collapse id$="[[getId(dateItem, dataDate)]]">
           <div class="list-item-collapse-body">
-            <template is="dom-repeat" items='{{item.city}}' as="city">
+            <template is="dom-repeat" items="[[getProperty(dateItem, dataItems)]]" as="materialItem">
               <paper-material class="list-item-body">
                 <paper-icon-item>
-                  <iron-icon class="list-item-icon entity-location-font" icon="communication:location-on" item-icon></iron-icon>
+                  <iron-icon class$="list-item-icon [[getItemTypeStyleClass(materialItem, dataItemType)]]" icon="[[getItemTypeIronIcon(materialItem, dataItemType)]]" item-icon></iron-icon>
                   <paper-item-body>
-                    <div><strong>{{getLocation(city.city)}}</strong></div>
+                    <div><strong>[[getProperty(materialItem, dataItemName, 'Unknown')]]</strong></div>
                   </paper-item-body>
                 </paper-icon-item>
 
-                <template is="dom-repeat" items='{{city.data}}' as="cityItem">
+                <paper-item>
+                  <paper-item-body>
+                    <div>
+                      <strong>Count:</strong>
+                      <span secondary>[[getProperty(materialItem, dataItemCount, 'Unknown')]]</span>
+                    </div>
+                  </paper-item-body>
+                </paper-item>
+
+                <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetails)]]" as="detailItem">
                   <paper-item>
                     <paper-item-body>
-                      <span>
-                        <strong class="capitalize">{{cityItem.key}}:</strong>
-                        <span>{{cityItem.value}}</span>
-                      </span>
+                      <div><strong class="capitalize">[[getProperty(detailItem, dataDetailName)]]:</strong></div>
                     </paper-item-body>
                   </paper-item>
+
+                  <records-grid
+                    data-id="id"
+                    data-text="text"
+                    data-type="type"
+                    data="[[getProperty(detailItem, dataDetailItems)]]">
+                  </records-grid>
                 </template>
               </paper-material>
             </template>
@@ -79,10 +103,97 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
 
   <script>
+    /* globals DigBehaviors */
     Polymer({
       is: 'itinerary-list',
 
+      behaviors: [DigBehaviors.DataTypeBehavior],
+
       properties: {
+        /**
+         * The property for the date for each object in the data.
+         */
+        dataDate: {
+          type: String,
+          value: 'date',
+          notify: true
+        },
+
+        /**
+         * The property for the items for each object in the data.
+         */
+        dataItems: {
+          type: String,
+          value: 'items',
+          notify: true
+        },
+
+        /**
+         * The property for the name for each item in the items for each object in the data.
+         */
+        dataItemName: {
+          type: String,
+          value: 'name',
+          notify: true
+        },
+
+        /**
+         * The property for the type for each item in the items for each object in the data.
+         */
+        dataItemType: {
+          type: String,
+          value: 'type',
+          notify: true
+        },
+
+        /**
+         * The property for the count for each item in the items for each object in the data.
+         */
+        dataItemCount: {
+          type: String,
+          value: 'count',
+          notify: true
+        },
+
+        /**
+         * The property for the details for each item in the items for each object in the data.
+         */
+        dataItemDetails: {
+          type: String,
+          value: 'details',
+          notify: true
+        },
+
+        /**
+         * The property for the name for each detail in the details for each item in the items for each object in the data.
+         */
+        dataDetailName: {
+          type: String,
+          value: 'name',
+          notify: true
+        },
+
+        /**
+         * The property for the items for each detail in the details for each item in the items for each object in the data.
+         */
+        dataDetailItems: {
+          type: String,
+          value: 'items',
+          notify: true
+        },
+
+        /**
+         * The property for the subtitle for each object in the data.
+         */
+        dataSubtitle: {
+          type: String,
+          value: 'subtitle',
+          notify: true
+        },
+
+        /**
+         * The data to show.
+         */
         data: {
           type: Array,
           value: function() {
@@ -90,36 +201,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true
         },
+
+        /**
+         * Whether the data is loading.
+         */
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
+        }
       },
 
-      getLocation: function(city) {
-        return city.split(':').slice(0,2).join(', ');
+      formatDate: function(item, dataDate) {
+        return new Date(item[dataDate]).toDateString();
+      },
+
+      getProperty: function(item, property, defaultValue) {
+        return item[property] || defaultValue;
       },
 
       getHeaderClass: function(opened) {
         return (opened ? 'opened' : 'closed');
       },
 
+      getId: function(item, dataDate) {
+        return 'itinerary_' + item[dataDate];
+      },
+
       toggleItinerary: function(event) {
-        event.model.set('item.opened', !event.model.item.opened);
-        this.$$('#itinerary_' + event.model.item.date).toggle();
-      },
-
-      formatDate: function(date) {
-        return new Date(date).toDateString();
-      },
-
-      getLocationsForHeader: function(cities) {
-        var locations = '';
-        for(var i = 0; i < cities.length; ++i) {
-          if(i > 2) {
-            locations += ', and ' + (cities.length - 3) + ' more';
-            break;
-          } else {
-            locations += (i > 0 ? ', ' : '') + cities[i].city.split(':')[0];
-          }
-        }
-        return locations;
+        event.model.set('dateItem.opened', !event.model.dateItem.opened);
+        this.$$('#itinerary_' + event.model.dateItem[this.dataDate]).toggle();
       }
     });
   </script>

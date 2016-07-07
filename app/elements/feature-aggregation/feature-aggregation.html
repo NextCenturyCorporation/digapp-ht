@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../dig-behaviors/create-link-behavior.html">
 <!--
 ### Styling
 The following custom properties and mixins are available for styling:
@@ -23,69 +24,78 @@ Custom property | Description | Default
 
 <dom-module id="feature-aggregation">
   <template>
+    <style include="web-component-styles"></style>
+
     <style>
       :host {
         display: block;
       }
 
-      .feature-set {
-        margin: 0 10px;
-        @apply(--paper-font-body1);
+      .feature-wrapper {
+        margin: 10px;
         min-width: 100px;
       }
 
-      .agg {
-        /* Max Height = Height of 20 Items */
-        max-height: 440px;
+      .feature-title {
+        color: var(--secondary-text-color);
+        font-size: 14px;
+        line-height: 24px;
+        text-transform: uppercase;
+      }
+
+      .feature-label {
+        color: var(--primary-text-color);
+        font-size: 14px;
+        line-height: 24px;
+      }
+
+      .feature-content {
+        font-size: 12px;
+        line-height: 20px;
         overflow: auto;
+        /* Max Height = Height of 20 Items */
+        max-height: 480px;
+      }
+
+      .small {
+        /* Max Height = Height of 10 Items + Height of Show More Button */
+        max-height: 290px;
       }
 
       .bar-wrapper {
         position: relative;
-        height: var(--feature-agg-bar-height, 22px);
+        height: var(--feature-agg-bar-height, 24px);
         @apply(--layout-horizontal);
         @apply(--layout-center-center);
       }
 
       .bar {
         background-color: var(--feature-agg-bar-color, --light-primary-color);
-        border-radius: 1px;
+        border-radius: 2px;
         position: absolute;
         left: 0;
-        top: 1px;
-        bottom: 1px;
-      }
-
-      .bar-count {
-        font-size: 11px;
-        font-weight: 600;
-        text-align: right;
-        padding: 0 5px;
-        color: rgba(0,0,0,var(--dark-secondary-opacity));
-        position: relative;
+        top: 2px;
+        bottom: 2px;
       }
 
       .bar-title {
         color: var(--feature-agg-title-color, --primary-text-color);
-        font-size: 12px;
-        position: relative;
         padding: 0 5px;
+        position: relative;
         text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
-        white-space: nowrap;
         text-overflow: ellipsis;
+        white-space: nowrap;
       }
 
-      .feature-title {
-        font-size: 12px;
-        color: var(--secondary-text-color);
-        text-transform: uppercase;
+      .bar-count {
+        color: var(--feature-agg-count-color, --secondary-text-color);
+        font-weight: bold;
+        padding: 0 5px;
+        position: relative;
+        text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
       }
 
-      a:link {
-        color: var(--feature-agg-title-color, --primary-text-color);
-        /* color: var(--dark-link-text-color); */
-      }
-
+      a:link,
       a:visited {
         color: var(--feature-agg-title-color, --primary-text-color);
         /* color: var(--dark-link-text-color); */
@@ -94,47 +104,68 @@ Custom property | Description | Default
       a:hover {
         color: var(--secondary-text-color);
       }
-
-      paper-button {
-        font-size: 12px;
-        padding: 5px;
-      }
-
     </style>
 
-    <section class="feature-set">
-      <span class="feature-title">{{title}}</span>
-      <div class="agg">
-        <template id="barList" is="dom-repeat" items="{{agg}}" filter="filterToLimit">
+    <div class="feature-wrapper">
+      <div class="feature-title">[[featureTitle]]</div>
+      <template is="dom-if" if="[[!agg.length]]">
+        <div class="feature-label">None</div>
+      </template>
+
+      <div class$="feature-content [[isSmall(small)]]">
+        <template id="barList" is="dom-repeat" items="[[agg]]" filter="filterToLimit">
           <div class="bar-wrapper">
-            <!-- placeholder: displaying bars to illustrate counts for now - might want something different -->
-            <div class="bar" style$="{{getWidth(item)}}"></div>
+            <div class="bar" style$="[[getWidth(item)]]"></div>
             <div class="bar-title flex">
               <template is="dom-if" if="[[showLink]]">
-                <a href$="[[createURL(item)]]">{{getItemKey(item)}}</a>
+                <a href$="[[createLink(linkType, getItemKey(item), linkField)]]">[[getItemKey(item)]]</a>
               </template>
               <template is="dom-if" if="[[!showLink]]">
-                {{getItemKey(item)}}
+                [[getItemKey(item)]]
               </template>
             </div>
-            <div class="bar-count flex-none">{{item.count}}</div>
+            <div class="bar-count flex-none">[[item.count]]</div>
           </div>
         </template>
       </div>
-      <div class="layout horizontal center-center" hidden$="[[!canShowMore]]">
-        <paper-button on-click="showMore">Show More</paper-button>
+
+      <template is="dom-if" if="[[small]]">
+        <template is="dom-if" if="[[loading]]">
+          <div class="feature-label">Loading...</div>
+        </template>
+      </template>
+
+      <div class$="loading-container [[isSmall(small)]]">
+        <template is="dom-if" if="[[small]]">
+          <template is="dom-if" if="[[canShowMore]]">
+            <paper-button raised on-tap="showMore">Show More</paper-button>
+          </template>
+        </template>
+        <template is="dom-if" if="[[!small]]">
+          <template is="dom-if" if="[[canShowMore]]">
+            <paper-button raised on-tap="showMore">Show More Features</paper-button>
+          </template>
+          <template is="dom-if" if="[[loading]]">
+            <paper-spinner active="[[loading]]"></paper-spinner>
+            <span class="button-height-text">Loading Features...</span>
+          </template>
+        </template>
       </div>
-    </section>
+    </div>
   </template>
 
   <script>
   (function() {
     'use strict';
 
+    /* globals DigBehaviors */
     Polymer({
       is: 'feature-aggregation',
+
+      behaviors: [DigBehaviors.CreateLinkBehavior],
+
       properties: {
-        title: {
+        featureTitle: {
           type: String
         },
         agg: {
@@ -163,15 +194,30 @@ Custom property | Description | Default
         linkField: {
           type: String,
           notify: true
+        },
+        small: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
         }
       },
 
-      createURL: function(item) {
-        // if showLink is enabled, use linkType and linkField to create URL
-        if(this.showLink && this.linkType && this.linkField) {
-          return '/' + this.linkType + '.html?value=' + this.getItemKey(item) + '&field=' + this.linkField;
+      filterToLimit: function() {
+        if(!this.itemCount) {
+          this.itemCount = 1;
         }
-        return null;
+        if(this.itemCount > this.limit) {
+          this.canShowMore = true;
+          return false;
+        } else {
+          this.itemCount += 1;
+          return true;
+        }
       },
 
       getItemKey: function(item) {
@@ -189,17 +235,8 @@ Custom property | Description | Default
         return 'width: ' + (widthCalc === 0 && item.count > 0 ? 1 : widthCalc) + '%;';
       },
 
-      filterToLimit: function() {
-        if(!this.itemCount) {
-          this.itemCount = 1;
-        }
-        if(this.itemCount > this.limit) {
-          this.canShowMore = true;
-          return false;
-        } else {
-          this.itemCount += 1;
-          return true;
-        }
+      isSmall: function(small) {
+        return small ? 'small' : '';
       },
 
       showMore: function(e) {
