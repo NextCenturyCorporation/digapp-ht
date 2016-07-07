@@ -19,24 +19,140 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
   <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
 
-  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../bower_components/polymer/polymer.html">
   <link rel="import" href="../elements/dig-behaviors/result-list-behavior.html">
-
 </head>
 <body>
 
+<dom-module id="test-result-list-component">
+  <template>
+  </template>
+  <script>
+    /* globals DigBehaviors, HTMLImports, Polymer */
+    HTMLImports.whenReady(function() {
+      Polymer({
+        is: 'test-result-list-component',
+        behaviors: [DigBehaviors.ResultListBehavior]
+      });
+    });
+  </script>
+</dom-module>
+
+<test-fixture id="result-list-fixture">
+  <template>
+    <test-result-list-component></test-result-list-component>
+  </template>
+</test-fixture>
+
 <script>
-  /* globals DigBehaviors, suite, setup, test, expect */
+  /* globals suite, setup, fixture, test, expect */
   /* jshint -W030 */
   suite('result-list-behavior tests', function() {
-    var behavior;
+    var component;
 
     setup(function() {
-      behavior = DigBehaviors ? DigBehaviors.ResultListBehavior : undefined;
+      component = fixture('result-list-fixture');
     });
 
-    test('ResultListBehavior exists', function() {
-      expect(behavior).to.exist;
+    test('page, showMore, and loading are set to defaults', function() {
+      expect(component.page).to.equal(1);
+      expect(component.showMore).to.be.false;
+      expect(component.loading).to.be.false;
+    });
+
+    test('goToNextPage does not increase the page if showMore is false', function() {
+      expect(component.showMore).is.false;
+      expect(component.page).to.equal(1);
+      component.goToNextPage();
+      expect(component.page).to.equal(1);
+    });
+
+    test('goToNextPage does increase the page if showMore is true', function() {
+      component.showMore = true;
+      expect(component.page).to.equal(1);
+      component.goToNextPage();
+      expect(component.page).to.equal(2);
+    });
+
+    test('updateDisplayResults does set the displayResults', function() {
+      expect(component.displayResults).to.be.undefined;
+      component.updateDisplayResults(['result1', 'result2'], false);
+      expect(component.displayResults).to.deep.equal(['result1', 'result2']);
+    });
+
+    test('updateDisplayResults does not set the displayResults if loading', function() {
+      expect(component.displayResults).to.be.undefined;
+      component.updateDisplayResults(['result1', 'result2'], true);
+      expect(component.displayResults).to.be.undefined;
+    });
+
+    test('updateDisplayResults does reset the existing displayResults', function() {
+      component.displayResults = ['result0'];
+      component.updateDisplayResults(['result1', 'result2'], false);
+      expect(component.displayResults).to.deep.equal(['result1', 'result2']);
+    });
+
+    test('updateDisplayResults does not reset the existing displayResults if page is above one', function() {
+      component.displayResults = ['result0'];
+      component.page = 2;
+      component.updateDisplayResults(['result1', 'result2'], false);
+      expect(component.displayResults).to.deep.equal(['result0', 'result1', 'result2']);
+    });
+
+    test('updateDisplayResults does change showMore to true', function() {
+      component.showMore = false;
+      component.totalResults = 10;
+      component.updateDisplayResults(['result1', 'result2'], false);
+      expect(component.showMore).to.be.true;
+    });
+
+    test('updateDisplayResults does change showMore to false', function() {
+      component.showMore = true;
+      component.totalResults = 2;
+      component.updateDisplayResults(['result1', 'result2'], false);
+      expect(component.showMore).to.be.false;
+    });
+
+    test('updateDisplayResults does not change showMore if loading', function() {
+      component.showMore = false;
+      component.totalResults = 10;
+      component.updateDisplayResults(['result1', 'result2'], true);
+      expect(component.showMore).to.be.false;
+    });
+
+    test('updateShowMore does change showMore to true if displayResults.length is below totalResults', function() {
+      component.showMore = false;
+      component.updateShowMore(1, 2, false);
+      expect(component.showMore).to.be.true;
+    });
+
+    test('updateShowMore does change showMore to false if displayResults.length equals totalResults', function() {
+      component.showMore = true;
+      component.updateShowMore(2, 2, false);
+      expect(component.showMore).to.be.false;
+    });
+
+    test('updateShowMore does not change showMore if loading', function() {
+      component.showMore = false;
+      component.updateShowMore(1, 2, true);
+      expect(component.showMore).to.be.false;
+    });
+
+    test('setting loading changes showMore', function() {
+      component.displayResults = ['result1', 'result2'];
+      component.totalResults = 10;
+      component.showMore = true;
+      component.loading = true;
+      expect(component.showMore).to.be.false;
+    });
+
+    test('setting queryResults changes displayResults and showMore', function() {
+      component.showMore = false;
+      component.totalResults = 10;
+      expect(component.displayResults).to.be.undefined;
+      component.queryResults = ['result1', 'result2'];
+      expect(component.displayResults).to.deep.equal(['result1', 'result2']);
+      expect(component.showMore).to.be.true;
     });
 
     // TODO
