@@ -64,11 +64,13 @@ This runs the unit tests defined in the `app/test` directory through [web-compon
 
 #### Build & Vulcanize
 
+First update the version in package.json.  Then run:
+
 ```sh
 gulp
 ```
 
-Build and optimize the current project, ready for deployment. This includes vulcanization, image, script, stylesheet and HTML optimization and minification.
+Build and optimize the current project, ready for deployment. This includes vulcanization, image, script, stylesheet and HTML optimization and minification.  The version from package.json will also be available in the user settings dropdown menu (the gear icon in the upper-right corner of each page).
 
 
 ## Unit Testing
@@ -82,6 +84,11 @@ Pull requests are welcome.  Please fork this repo, then create a topic branch on
 
 ## Deployment
 
+First update the version in package.json.  Then run:
 
+```sh
+gulp docker
+```
 
+This will build & vulcanize the application, build the docker container (using the version from package.json), and push it to docker hub.
 
