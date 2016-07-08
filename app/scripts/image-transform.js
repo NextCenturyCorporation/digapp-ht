@@ -26,6 +26,8 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return images;
     },
     image: function(data) {
+      console.log(data);
+
       var newData = {};
       if(data.hits.hits.length > 0) {
         newData = data.hits.hits[0]._source;
@@ -36,10 +38,13 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
         };
 
         newData.isImagePartOf.forEach(function(service) {
-          adultService.array.push(service.mainEntity.itemOffered.uri);
+          if (service.mainEntity)
+            adultService.array.push(service.mainEntity.itemOffered.uri);
         });
+
         newData.adultService = adultService;
       }
+      console.log(newData);
       return newData;
     },
     offerLocationData: function(data) {

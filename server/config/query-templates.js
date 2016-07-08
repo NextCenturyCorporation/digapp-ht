@@ -79,6 +79,15 @@ module.exports = {
             }
           }
         }
+      },
+      "aggs": {
+        "people_features": {
+          "terms": {
+            "field": "{{aggregationField}}",
+            "size": 0
+          }
+        }
+      }
     },
     phoneOrEmailPeopleAggForImages: {
        "query": {
@@ -137,8 +146,7 @@ module.exports = {
                     "size": 0
                 }
             }
-        }
-      }
+        },
     },
 
     offerRevisions: {

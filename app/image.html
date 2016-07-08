@@ -24,12 +24,11 @@
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
 
-  <!-- For shared styles, shared-styles.html import in elements.html -->
-  <style is="custom-style" include="shared-styles"></style>
   <style is="custom-style" include="entity-view-styles"></style>
   <style is="custom-style" include="icon-styles"></style>
+  <style is="custom-style" include="icon-with-text-styles"></style>
+  <style is="custom-style" include="list-item-styles"></style>
   <style is="custom-style" include="map-styles"></style>
-
 </head>
 
 <body unresolved class="fullbleed layout vertical">
@@ -84,31 +83,8 @@
      transform-function="[[clientConfig.transforms.image.image]]"
      ></json-transform>
 
-    <!-- Display.people query and transform -->
-    <query-builder
-      query="{{peopleAggQuery}}"
-      query-template="{{config.queryTemplates.phoneOrEmailPeopleAggForImages}}"
-      path-to-value="query.ids['values']" value="[[imageDisplay.adultService.array]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[peopleAggQuery]]'
-      results="{{peopleAggs}}"
-      elastic-type='["adultservice"]'
-      last-error="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[peopleAggs]]"
-     data-out="{{imageDisplay.people}}"
-     transform-function="[[clientConfig.transforms.phone.people]]"
-     ></json-transform>
-
      <!-- Get the seller Object -->
-<!--      
-    <query-builder
+     <query-builder
       query="{{sellerQuery}}"
       query-template="{{config.queryTemplates.commonMatchQuery}}"
       field="[[params.field]]" value="[[phoneDisplay.telephone.sellerId]]">
@@ -140,9 +116,7 @@
       data-in2="[[phoneDisplay.telephone.number]]"
       data-out="{{showSeller}}"
       combine-function="[[clientConfig.transforms.phone.computeShowSeller]]"
-    ></json-combine> 
-
-  -->
+    ></json-combine>
 
 
       <!--
@@ -151,7 +125,7 @@
        <query-builder
         query="{{offerLocationQuery}}"
         query-template="{{config.queryTemplates.offerLocation}}"
-        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+        field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
       </query-builder>
 
       <elastic-search
@@ -165,17 +139,17 @@
 
       <json-transform
        data-in="[[offerLocationAggs]]"
-       data-out="{{imageDisplay.offerLocation}}"
-       transform-function="[[clientConfig.transforms.image.offerLocationData]]"
+       data-out="{{phoneDisplay.offerLocation}}"
+       transform-function="[[clientConfig.transforms.phone.offerLocationData]]"
        ></json-transform>
 
        <!--
-        Get all the offers for this image
+        Get all the offers for this phone
        -->
       <query-builder
-        query="{{imageOffersQuery}}"
+        query="{{phoneOffersQuery}}"
         query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
-        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+        field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
       </query-builder>
 
       <elastic-search
@@ -183,8 +157,8 @@
         index="[[config.elasticIndex]]"
         page="{{pageNum}}"
         page-size="{{pageSize}}"
-        query='[[imageOffersQuery]]'
-        results="{{imageOffers}}"
+        query='[[phoneOffersQuery]]'
+        results="{{phoneOffers}}"
         elastic-type='["offer"]'
         loading="{{offersLoading}}"
         last-error="{{error}}">
@@ -192,55 +166,31 @@
       </elastic-search>
 
       <json-transform
-       data-in="[[imageOffers]]"
-       data-out="{{imageDisplay.imageOffers}}"
-       transform-function="[[clientConfig.transforms.image.imageOffersData]]"
+       data-in="[[phoneOffers]]"
+       data-out="{{phoneDisplay.phoneOffers}}"
+       transform-function="[[clientConfig.transforms.phone.phoneOffersData]]"
        ></json-transform>
 
-       <!-- Itinerary component (aggs) -->
+    <!-- Location timeline for bar chart and itinerary -->
 
-      <query-builder
-        query="{{itineraryAggQuery}}"
-        query-template="{{config.queryTemplates.itineraryPhone}}"
-        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
-      </query-builder>
-
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        query='[[itineraryAggQuery]]'
-        results="{{relatedServiceItAggs}}"
-        elastic-type='["offer"]'
-        last-error="{{error}}">
-      </elastic-search>
-
-      <json-transform
-       data-in="[[relatedServiceItAggs]]"
-       data-out="{{imageDisplay.itinerary}}"
-       transform-function="[[clientConfig.transforms.seller.itinerary]]"
-       ></json-transform>
-
-
-    <!-- Graph component (aggs) -->
-
-    <query-builder 
-      query="{{offerStackGraphQuery}}" 
-      query-template="{{config.queryTemplates.locationTimeline}}" 
-      field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+    <query-builder
+      query="{{locationTimelineQuery}}"
+      query-template="{{config.queryTemplates.locationTimeline}}"
+      field="mainEntityOfPage.mentions" value="[[phoneDisplay.telephone._id]]">
     </query-builder>
 
-    <elastic-search 
+    <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[offerStackGraphQuery]]'
-      results="{{locationAggs}}"
+      query='[[locationTimelineQuery]]'
+      results="{{locationTimelineResults}}"
       elastic-type='["offer"]'
       lastError="{{error}}">
     </elastic-search>
 
     <json-transform
-     data-in="[[locationAggs]]"
-     data-out="{{imageDisplay.locationTimeline}}"
+     data-in="[[locationTimelineResults]]"
+     data-out="{{phoneDisplay.locationTimeline}}"
      transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
      ></json-transform>
 
@@ -254,7 +204,7 @@
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
-            <iron-icon class="iron-icon-huge entity-phone-font" icon="image:image"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-phone-font" icon="communication:phone"></iron-icon>
             <section>
               <div class="paper-font-display1">
                 Image: <phone-formatter input="[[imageDisplay.identifier]]"></phone-formatter>
@@ -264,8 +214,10 @@
           <annotate-record client="[[esclient]]"
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
+            annotation-relevant="[[config.annotationRelevant]]"
             query-template="{{config.queryTemplates.annotationQuery}}"
             item="{{phoneDisplay.telephone}}"
+            item-type="telephone number"
             current-user="[[config.username]]">
           </annotate-record>
           <user-settings username="[[config.username]]" blur-images="{{blurImages}}"></user-settings>
@@ -282,6 +234,16 @@
 
               <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
 
+
+              <paper-material>
+                <section class="when">
+                  <iron-image style="width:400px; height:400px; background-color: lightgray;"
+                    sizing="cover" preload fade src="{{imageDisplay.url}}" blurImages class="small-blur"></iron-image>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
               <paper-material>
                 <section class="when">
                   <div class="paper-font-title layout horizontal start center">
@@ -290,30 +252,35 @@
                       Offers between {{minXValue}} and {{maxXValue}}
                     </div>
                   </div>
-                  <zoomable-bar-chart data='{{imageDisplay.locationTimeline.data}}' locations='{{imageDisplay.locationTimeline.locations}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  <zoomable-bar-chart data='{{imageDisplay.locationTimeline.dates}}' locations='{{imageDisplay.locationTimeline.dates}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
                   </zoomable-bar-chart>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
-              
 
               <!-- Services -->
               <paper-material>
                 <section class="who">
 
-                  <!-- Multi-person summary layout, could probably be improved -->
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-person-font" icon="icons:account-circle"></iron-icon>
+                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
                     <div>Summary of Provider Attributes</div>
                   </div>
-                  <person-features class="flex-2" people="[[imageDisplay.people]]"></person-features>
 
+                  <people-features
+                    query-template="{{config.queryTemplates.peopleFeatures}}"
+                    filter-field="offers.mainEntityOfPage.mentions"
+                    filter-value="[[phoneDisplay.telephone._id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["adultservice"]'
+                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                  </people-features>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
-
 
               <!-- Seller section -->
               <template is="dom-if" if="{{showSeller}}">
@@ -327,6 +294,7 @@
                           client="[[esclient]]"
                           annotation-index="[[config.annotationIndex]]"
                           annotation-type="[[config.annotationType]]"
+                          annotation-relevant="[[config.annotationRelevant]]"
                           annotation-query-template="{{config.queryTemplates.annotationQuery}}"
                           current-user="[[config.username]]"
                           blur="[[blurImages]]">
@@ -334,7 +302,10 @@
                       </div>
                     </div>
                     <records-grid
-                      records="[[showSeller]]">
+                      data-id="_id"
+                      data-text="title"
+                      data-type="_type"
+                      data="[[showSeller]]">
                     </records-grid>
                   </section>
                 </paper-material>
@@ -363,10 +334,10 @@
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
-                    Location Timeline ([[imageDisplay.itinerary.date.length]] Events)
+                    Location Timeline ([[phoneDisplay.locationTimeline.dates.length]] Events)
                   </div>
 
-                  <itinerary-list data="{{imageDisplay.itinerary.date}}"></itinerary-list>
+                  <itinerary-list data-items="locations" data="{{phoneDisplay.locationTimeline.dates}}"></itinerary-list>
                 </section>
               </paper-material>
 
@@ -383,20 +354,20 @@
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[imageDisplay.offerLocation.offerLocation.length]] Locations</div>
+                    <div>[[phoneDisplay.offerLocation.offerLocation.length]] Locations</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[imageDisplay.offerLocation.offerLocation.length]]">
+                <template is="dom-if" if="[[phoneDisplay.offerLocation.offerLocation.length]]">
                   <section class="where flex-auto">
-                    <leaflet-wrapper map-data="{{imageDisplay.offerLocation.offerLocation}}">
+                    <leaflet-wrapper map-data="{{phoneDisplay.offerLocation.offerLocation}}">
                     </leaflet-wrapper>
                   </section>
 
                   <!-- City summary -->
                   <section class="where-details flex-none">
-                    <feature-aggregation title="Offers per city" key="name" agg="[[imageDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                    <feature-aggregation big feature-title="Offers per City" key="name" agg="[[phoneDisplay.offerLocation.offerLocation]]"></feature-aggregation>
                   </section>
                 </template>
               </paper-material>
@@ -408,7 +379,7 @@
                 <section>
                   <div class="section-header">
                     <div class="paper-font-title">
-                      [[imageDisplay.imageOffers.relatedOffers.count]] Offers
+                      [[phoneDisplay.phoneOffers.relatedOffers.count]] Offers
                     </div>
                   </div>
                   <records-list
@@ -420,12 +391,14 @@
                     image-query-value="_id"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
+                    annotation-relevant="[[config.annotationRelevant]]"
                     annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                     current-user="[[config.username]]"
-                    query-results="[[imageDisplay.imageOffers.relatedOffers.data]]"
-                    total-results="{{imageDisplay.imageOffers.relatedOffers.count}}"
+                    query-results="[[phoneDisplay.phoneOffers.relatedOffers.data]]"
+                    total-results="{{phoneDisplay.phoneOffers.relatedOffers.count}}"
                     page="{{pageNum}}"
-                    loading="{{offersLoading}}" blur="[[blurImages]]">
+                    loading="{{offersLoading}}"
+                    blur="[[blurImages]]">
                   </records-list>
                 </section>
               </paper-material>
@@ -441,6 +414,11 @@
   </template>
 
   <script>
+
+  function blurImages(){
+    console.log("hi");
+  }
+
   (function(document) {
     var app = document.querySelector('#app');
 
@@ -453,14 +431,14 @@
       var queryString = window.location.search.slice(1, window.location.search.length);
       var params = queryString.split('&');
       app.params = {};
-      for (var i = 0; i < params.length; i++) {
+      for(var i = 0; i < params.length; i++) {
         var paramPair = params[i].split('=');
         app.params[paramPair[0]] =  paramPair[1];
       }
     };
 
     app.getURLParams();
-    app.phoneDisplay = {};
+    app.imageDisplay = {};
 
   })(document);
   </script>
