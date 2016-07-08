@@ -117,15 +117,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('details start collapsed', function() {
       expect(singleRecordElem.opened).to.be.false;
-      var recordHead = singleRecordElem.$$('.list-item-head');
-      expect(recordHead).to.exist;
-      expect(recordHead.classList.contains('closed')).to.be.true;
-      var recordDetail = singleRecordElem.$$('#recordDetail');
-      expect(recordDetail).to.exist;
-      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+      var head = singleRecordElem.$$('.list-item-head');
+      expect(head).to.exist;
+      expect(head.classList.contains('closed')).to.be.true;
+      expect(head.classList.contains('opened')).to.be.false;
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      expect(ironCollapse).to.exist;
+      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('toggleRecord() opens the details', function() {
+    test('toggleRecord() opens the details', function(done) {
       var mockEvent = {
         target: {
           classList: {
@@ -137,14 +139,54 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       };
 
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      singleRecordElem.transitionEndListener = function() {
+        var head = singleRecordElem.$$('.list-item-head');
+        expect(head).to.exist;
+        expect(head.classList.contains('opened')).to.be.true;
+        expect(head.classList.contains('closed')).to.be.false;
+        expect(ironCollapse).to.exist;
+        expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.true;
+        expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.false;
+        done();
+      };
+      singleRecordElem.listen(ironCollapse, 'transitionend', 'transitionEndListener');
       singleRecordElem.toggleRecord(mockEvent);
       expect(singleRecordElem.opened).to.be.true;
-      var recordHead = singleRecordElem.$$('.list-item-head');
-      expect(recordHead).to.exist;
-      expect(recordHead.classList.contains('opened')).to.be.true;
-      var recordDetail = singleRecordElem.$$('#recordDetail');
-      expect(recordDetail).to.exist;
-      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.false;
+    });
+
+    test('toggleRecord() closes the details', function(done) {
+      singleRecordElem.opened = true;
+
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function() {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      singleRecordElem.transitionEndListener = function(event) {
+        if(event.target.opened) {
+          singleRecordElem.toggleRecord(mockEvent);
+          expect(singleRecordElem.opened).to.be.false;
+        } else {
+          var head = singleRecordElem.$$('.list-item-head');
+          expect(head).to.exist;
+          expect(head.classList.contains('closed')).to.be.true;
+          expect(head.classList.contains('opened')).to.be.false;
+          expect(ironCollapse).to.exist;
+          expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+          expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
+          done();
+        }
+      };
+      singleRecordElem.listen(ironCollapse, 'transitionend', 'transitionEndListener');
+      ironCollapse.show();
     });
 
     test('toggleRecord() does nothing if a paper-button is clicked', function() {
@@ -161,12 +203,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       singleRecordElem.toggleRecord(mockEvent);
       expect(singleRecordElem.opened).to.be.false;
-      var recordHead = singleRecordElem.$$('.list-item-head');
-      expect(recordHead).to.exist;
-      expect(recordHead.classList.contains('closed')).to.be.true;
-      var recordDetail = singleRecordElem.$$('#recordDetail');
-      expect(recordDetail).to.exist;
-      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+      var head = singleRecordElem.$$('.list-item-head');
+      expect(head).to.exist;
+      expect(head.classList.contains('closed')).to.be.true;
+      expect(head.classList.contains('opened')).to.be.false;
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      expect(ironCollapse).to.exist;
+      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
     test('toggleRecord() does nothing if a paper-icon-button is clicked', function() {
@@ -183,26 +227,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       singleRecordElem.toggleRecord(mockEvent);
       expect(singleRecordElem.opened).to.be.false;
-      var recordHead = singleRecordElem.$$('.list-item-head');
-      expect(recordHead).to.exist;
-      expect(recordHead.classList.contains('closed')).to.be.true;
-      var recordDetail = singleRecordElem.$$('#recordDetail');
-      expect(recordDetail).to.exist;
-      expect(recordDetail.classList.contains('iron-collapse-closed')).to.be.true;
+      var head = singleRecordElem.$$('.list-item-head');
+      expect(head).to.exist;
+      expect(head.classList.contains('closed')).to.be.true;
+      expect(head.classList.contains('opened')).to.be.false;
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      expect(ironCollapse).to.exist;
+      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('onItemChange() closes the details', function() {
+    test('onItemChange() closes the details', function(done) {
       singleRecordElem.opened = true;
-      var recordDetail = singleRecordElem.$$('#recordDetail');
-      recordDetail.classList.remove('iron-collapse-closed');
-      recordDetail.classList.add('iron-collapse-opened');
-
-      singleRecordElem.onItemChange();
-      expect(singleRecordElem.opened).to.be.false;
-      expect(recordDetail.classList.contains('iron-collapse-opened')).to.be.false;
-      var recordHead = singleRecordElem.$$('.list-item-head');
-      expect(recordHead).to.exist;
-      expect(recordHead.classList.contains('closed')).to.be.true;
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      singleRecordElem.transitionEndListener = function(event) {
+        if(event.target.opened) {
+          singleRecordElem.onItemChange();
+          expect(singleRecordElem.opened).to.be.false;
+        } else {
+          var head = singleRecordElem.$$('.list-item-head');
+          expect(head).to.exist;
+          expect(head.classList.contains('closed')).to.be.true;
+          expect(head.classList.contains('opened')).to.be.false;
+          expect(ironCollapse).to.exist;
+          expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+          expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
+          done();
+        }
+      };
+      singleRecordElem.listen(ironCollapse, 'transitionend', 'transitionEndListener');
+      ironCollapse.show();
     });
 
     test('item.imageSources is undefined', function() {
@@ -247,11 +301,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       singleRecordElem.toggleRecord(mockEvent);
       expect(singleRecordElem.opened).to.be.false;
-      var recordHead = singleRecordElem.$$('.list-item-head');
-      expect(recordHead).to.exist;
-      expect(recordHead.classList.contains('closed')).to.be.true;
-      var recordDetail = singleRecordElem.$$('#recordDetail');
-      expect(recordDetail).to.not.exist;
+      var head = singleRecordElem.$$('.list-item-head');
+      expect(head).to.exist;
+      expect(head.classList.contains('closed')).to.be.true;
+      expect(head.classList.contains('opened')).to.be.false;
+      var ironCollapse = singleRecordElem.$$('#recordDetail');
+      expect(ironCollapse).to.not.exist;
     });
 
     test('updateImageSrcFromUrls() sets imageSrc and showDetails', function() {
