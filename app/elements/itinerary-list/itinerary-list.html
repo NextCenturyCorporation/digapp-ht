@@ -22,6 +22,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <template>
     <style include="icon-styles"></style>
     <style include="list-item-styles"></style>
+    <style include="web-component-styles"></style>
 
     <style>
       :host {
@@ -36,6 +37,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin: 0 40px;
       }
     </style>
+
+    <div class="loading-container">
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <span class="button-height-text">Loading Timeline...</span>
+      </template>
+    </div>
 
     <template is="dom-repeat" items="[[data]]" as="dateItem">
       <div class="itinerary">
@@ -59,9 +67,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 <paper-icon-item>
                   <iron-icon class$="list-item-icon [[getItemTypeStyleClass(materialItem, dataItemType)]]" icon="[[getItemTypeIronIcon(materialItem, dataItemType)]]" item-icon></iron-icon>
                   <paper-item-body>
-                    <div><strong>[[getProperty(materialItem, dataItemName)]]</strong></div>
+                    <div><strong>[[getProperty(materialItem, dataItemName, 'Unknown')]]</strong></div>
                   </paper-item-body>
                 </paper-icon-item>
+
+                <paper-item>
+                  <paper-item-body>
+                    <div>
+                      <strong>Count:</strong>
+                      <span secondary>[[getProperty(materialItem, dataItemCount, 'Unknown')]]</span>
+                    </div>
+                  </paper-item-body>
+                </paper-item>
 
                 <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetails)]]" as="detailItem">
                   <paper-item>
@@ -130,6 +147,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * The property for the count for each item in the items for each object in the data.
+         */
+        dataItemCount: {
+          type: String,
+          value: 'count',
+          notify: true
+        },
+
+        /**
          * The property for the details for each item in the items for each object in the data.
          */
         dataItemDetails: {
@@ -174,15 +200,50 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return [];
           },
           notify: true
+        },
+
+        /**
+         * The source of the data to use in the title for this itinerary.
+         */
+        source: {
+          type: String,
+          value: '',
+          notify: true
+        },
+
+        /**
+         * The title for this itinerary.
+         */
+        itineraryTitle: {
+          type: String,
+          value: 'No Data',
+          computed: 'computeTitle(source, data.length)',
+          notify: true
+        },
+
+        /**
+         * Whether the data is loading.
+         */
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
         }
+      },
+
+      /**
+       * Returns the title for this itinerary based on the source and the data.
+       */
+      computeTitle: function(source, count) {
+        return (source ? source + ' ' : '') + 'Timeline (' + (count ? count : 'No') + ' Date' + (count === 1 ? '' : 's') + ')';
       },
 
       formatDate: function(item, dataDate) {
         return new Date(item[dataDate]).toDateString();
       },
 
-      getProperty: function(item, property) {
-        return item[property];
+      getProperty: function(item, property, defaultValue) {
+        return item[property] || defaultValue;
       },
 
       getHeaderClass: function(opened) {

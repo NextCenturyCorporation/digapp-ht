@@ -24,6 +24,8 @@ Custom property | Description | Default
 
 <dom-module id="feature-aggregation">
   <template>
+    <style include="web-component-styles"></style>
+
     <style>
       :host {
         display: block;
@@ -36,28 +38,28 @@ Custom property | Description | Default
 
       .feature-title {
         color: var(--secondary-text-color);
-        font-size: 12px;
+        font-size: 14px;
         line-height: 24px;
         text-transform: uppercase;
       }
 
       .feature-label {
         color: var(--primary-text-color);
-        font-size: 12px;
+        font-size: 14px;
         line-height: 24px;
       }
 
       .feature-content {
         font-size: 12px;
         line-height: 20px;
-        /* Max Height = Height of 10 Items + Height of Show More Button */
-        max-height: 280px;
         overflow: auto;
-      }
-
-      .big {
         /* Max Height = Height of 20 Items */
         max-height: 480px;
+      }
+
+      .small {
+        /* Max Height = Height of 10 Items + Height of Show More Button */
+        max-height: 290px;
       }
 
       .bar-wrapper {
@@ -102,29 +104,15 @@ Custom property | Description | Default
       a:hover {
         color: var(--secondary-text-color);
       }
-
-      paper-button {
-        font-size: 12px;
-        line-height: 20px;
-        margin: 5px;
-        padding: 5px;
-        @apply(--shadow-elevation-4dp);
-      }
-
-      paper-button:hover {
-        @apply(--shadow-elevation-8dp);
-      }
     </style>
 
     <div class="feature-wrapper">
       <div class="feature-title">[[featureTitle]]</div>
-      <template is="dom-if" if="[[loading]]">
-        <div class="feature-label">Loading...</div>
-      </template>
       <template is="dom-if" if="[[!agg.length]]">
         <div class="feature-label">None</div>
       </template>
-      <div class$="feature-content [[isBig(big)]]">
+
+      <div class$="feature-content [[isSmall(small)]]">
         <template id="barList" is="dom-repeat" items="[[agg]]" filter="filterToLimit">
           <div class="bar-wrapper">
             <div class="bar" style$="[[getWidth(item)]]"></div>
@@ -140,8 +128,28 @@ Custom property | Description | Default
           </div>
         </template>
       </div>
-      <div class="layout horizontal center-center" hidden$="[[!canShowMore]]">
-        <paper-button on-click="showMore">Show More</paper-button>
+
+      <template is="dom-if" if="[[small]]">
+        <template is="dom-if" if="[[loading]]">
+          <div class="feature-label">Loading...</div>
+        </template>
+      </template>
+
+      <div class$="loading-container [[isSmall(small)]]">
+        <template is="dom-if" if="[[small]]">
+          <template is="dom-if" if="[[canShowMore]]">
+            <paper-button raised on-tap="showMore">Show More</paper-button>
+          </template>
+        </template>
+        <template is="dom-if" if="[[!small]]">
+          <template is="dom-if" if="[[canShowMore]]">
+            <paper-button raised on-tap="showMore">Show More Features</paper-button>
+          </template>
+          <template is="dom-if" if="[[loading]]">
+            <paper-spinner active="[[loading]]"></paper-spinner>
+            <span class="button-height-text">Loading Features...</span>
+          </template>
+        </template>
       </div>
     </div>
   </template>
@@ -187,7 +195,7 @@ Custom property | Description | Default
           type: String,
           notify: true
         },
-        big: {
+        small: {
           type: Boolean,
           value: false,
           notify: true
@@ -199,8 +207,17 @@ Custom property | Description | Default
         }
       },
 
-      isBig: function(big) {
-        return big ? 'big' : '';
+      filterToLimit: function() {
+        if(!this.itemCount) {
+          this.itemCount = 1;
+        }
+        if(this.itemCount > this.limit) {
+          this.canShowMore = true;
+          return false;
+        } else {
+          this.itemCount += 1;
+          return true;
+        }
       },
 
       getItemKey: function(item) {
@@ -218,17 +235,8 @@ Custom property | Description | Default
         return 'width: ' + (widthCalc === 0 && item.count > 0 ? 1 : widthCalc) + '%;';
       },
 
-      filterToLimit: function() {
-        if(!this.itemCount) {
-          this.itemCount = 1;
-        }
-        if(this.itemCount > this.limit) {
-          this.canShowMore = true;
-          return false;
-        } else {
-          this.itemCount += 1;
-          return true;
-        }
+      isSmall: function(small) {
+        return small ? 'small' : '';
       },
 
       showMore: function(e) {

@@ -29,6 +29,7 @@
   <style is="custom-style" include="icon-with-text-styles"></style>
   <style is="custom-style" include="list-item-styles"></style>
   <style is="custom-style" include="map-styles"></style>
+  <style is="custom-style" include="web-component-styles"></style>
 </head>
 
 <body unresolved class="fullbleed layout vertical">
@@ -182,9 +183,10 @@
     <elastic-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[locationTimelineQuery]]'
+      query="[[locationTimelineQuery]]"
       results="{{locationTimelineResults}}"
       elastic-type='["offer"]'
+      loading="{{loadingLocationTimeline}}"
       lastError="{{error}}">
     </elastic-search>
 
@@ -237,12 +239,14 @@
               <paper-material>
                 <section class="when">
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-date-font" icon="icons:timeline"></iron-icon>
-                    <div>
-                      Offers between {{minXValue}} and {{maxXValue}}
-                    </div>
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[barChartTitle]]</div>
                   </div>
-                  <zoomable-bar-chart data='{{phoneDisplay.locationTimeline.dates}}' min-x="{{minXValue}}" max-x="{{maxXValue}}">
+                  <zoomable-bar-chart
+                    data="[[phoneDisplay.locationTimeline.dates]]"
+                    source="Ads"
+                    bar-chart-title="{{barChartTitle}}"
+                    loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
                 </section>
               </paper-material>
@@ -270,10 +274,10 @@
                 </section>
               </paper-material>
 
-              <div class="h-divider"></div>
-
               <!-- Seller section -->
               <template is="dom-if" if="{{showSeller}}">
+                <div class="h-divider"></div>
+
                 <paper-material>
                   <section class="who">
                     <div class="paper-font-title">Email/Phone Cluster</div>
@@ -305,6 +309,11 @@
 
               <paper-material>
                 <section class="photos">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
+                    <div>[[imageDisplayTitle]]</div>
+                  </div>
+
                   <image-query-and-display
                     image-query-template="{{config.queryTemplates.commonTermQuery}}"
                     image-query-field="isImagePartOf.mentions"
@@ -313,6 +322,8 @@
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
                     image-transform="[[clientConfig.transforms.image.images]]"
+                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
+                    image-display-title="{{imageDisplayTitle}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -324,10 +335,17 @@
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
-                    Location Timeline ([[phoneDisplay.locationTimeline.dates.length]] Events)
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[itineraryTitle]]</div>
                   </div>
 
-                  <itinerary-list data-items="locations" data="{{phoneDisplay.locationTimeline.dates}}"></itinerary-list>
+                  <itinerary-list
+                    data-items="locations"
+                    data="[[phoneDisplay.locationTimeline.dates]]"
+                    source="Ads"
+                    itinerary-title="{{itineraryTitle}}"
+                    loading="[[loadingLocationTimeline]]">
+                  </itinerary-list>
                 </section>
               </paper-material>
 
@@ -357,7 +375,7 @@
 
                   <!-- City summary -->
                   <section class="where-details flex-none">
-                    <feature-aggregation big feature-title="Offers per City" key="name" agg="[[phoneDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                    <feature-aggregation feature-title="Offers per City" key="name" agg="[[phoneDisplay.offerLocation.offerLocation]]"></feature-aggregation>
                   </section>
                 </template>
               </paper-material>
@@ -367,11 +385,11 @@
               <!-- Offers for the phone -->
               <paper-material>
                 <section>
-                  <div class="section-header">
-                    <div class="paper-font-title">
-                      [[phoneDisplay.phoneOffers.relatedOffers.count]] Offers
-                    </div>
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
+                    <div>{{recordsListTitle}}</div>
                   </div>
+
                   <records-list
                     client="[[esclient]]"
                     elastic-index="[[config.elasticIndex]]"
@@ -383,11 +401,13 @@
                     annotation-type="[[config.annotationType]]"
                     annotation-relevant="[[config.annotationRelevant]]"
                     annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                    current-user="[[config.username]]"
                     query-results="[[phoneDisplay.phoneOffers.relatedOffers.data]]"
                     total-results="{{phoneDisplay.phoneOffers.relatedOffers.count}}"
                     page="{{pageNum}}"
                     loading="{{offersLoading}}"
+                    type="Ad"
+                    records-list-title="{{recordsListTitle}}"
+                    current-user="[[config.username]]"
                     blur="[[blurImages]]">
                   </records-list>
                 </section>

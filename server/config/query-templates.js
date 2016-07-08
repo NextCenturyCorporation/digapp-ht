@@ -74,8 +74,8 @@ module.exports = {
       "query": {
         "filtered": {
           "filter": {
-            "term": {
-              "{{filterField}}": "{{filterValue}}"
+            "terms": {
+              "{{filterField}}": ["{{filterValue}}"]
             }
           }
         }

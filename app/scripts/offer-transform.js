@@ -38,37 +38,46 @@ var offerTransform = (function(_, commonTransforms) {
   function getPerson(record) {
     /** build person object:
     "person": {
-        "name": "Emily",
+        "_id": "id",
+        "_type": "provider",
+        "names": ["Emily"],
+        "ages": [20],
         "ethnicities": ["white"],
-        "height": 64,
-        "weight": 115,
-        "ages": [20]
+        "hairColors": ["blonde"],
+        "eyeColors": ["blue"],
+        "heights": [64],
+        "weights": [115],
+        "title": "Emily, 20, white",
+        "show": true
     }
     */
     var person = {};
     person._id = _.get(record, 'itemOffered.uri');
     person._type = 'provider';
-    person.name = _.get(record, 'itemOffered.name', 'Name N/A');
-    person.ethnicities = _.get(record, 'itemOffered.ethnicity') || [];
-    person.height = _.get(record, 'itemOffered.height');
-    person.weight = _.get(record, 'itemOffered.weight');
+
+    person.names = _.get(record, 'itemOffered.name') || [];
+    person.names = (_.isArray(person.names) ? person.names : [person.names]);
     person.ages = _.get(record, 'itemOffered.age') || [];
-
-    person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
     person.ages = (_.isArray(person.ages) ? person.ages : [person.ages]);
+    person.ethnicities = _.get(record, 'itemOffered.ethnicity') || [];
+    person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
+    person.hairColors = _.get(record, 'itemOffered.hairColor') || [];
+    person.hairColors = (_.isArray(person.hairColors) ? person.hairColors : [person.hairColors]);
+    person.eyeColors = _.get(record, 'itemOffered.eyeColor') || [];
+    person.eyeColors = (_.isArray(person.eyeColors) ? person.eyeColors : [person.eyeColors]);
+    person.heights = _.get(record, 'itemOffered.height') || [];
+    person.heights = (_.isArray(person.heights) ? person.heights : [person.heights]);
+    person.weights = _.get(record, 'itemOffered.weight') || [];
+    person.weights = (_.isArray(person.weights) ? person.weights : [person.weights]);
 
-    var title = (person.name !== 'Name N/A') ? person.name : '';
-    var sep = (title === '') ? '' : ', ';
-
+    var title = (person.names.length) ? [person.names[0]] : [];
     if(person.ages && person.ages.length) {
-      title += sep + person.ages[0];
-      sep = ', ';
+      title.push(person.ages[0]);
     }
     if(person.ethnicities && person.ethnicities.length) {
-      title += sep + person.ethnicities[0];
-      sep = ', ';
+      title.push(person.ethnicities[0]);
     }
-    person.title = title;
+    person.title = title.join(', ');
     person.show = (title.length > 0) ? true : false;
     return person;
   }

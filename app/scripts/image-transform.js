@@ -16,12 +16,9 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
   return {
     // expected data is from an elasticsearch
     images: function(data) {
-      var images = {
-        total: data.hits.total,
-        array: []
-      };
+      var images = [];
       data.hits.hits.forEach(function(hit) {
-        images.array.push(getImageUrl(hit._source));
+        images.push(getImageUrl(hit._source));
       });
       return images;
     },
@@ -55,5 +52,9 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       newData.relatedOffers = relatedEntityTransform.offer(data); 
       return newData;
     },
+
+    imageTotal: function(data) {
+      return data.hits.total;
+    }
   };
 })(_, relatedEntityTransform, commonTransforms);
