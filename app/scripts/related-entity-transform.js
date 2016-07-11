@@ -276,7 +276,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     // expected data is from an elasticsearch query
     offer: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getOfferSummary(record));
         });
@@ -286,7 +286,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     phone: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getPhoneSummary(record));
         });
@@ -296,7 +296,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     email: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getEmailSummary(record));
         });
@@ -306,7 +306,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     seller: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getSellerSummary(record));
         });
@@ -316,7 +316,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     service: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getServiceSummary(record));
         });
@@ -338,7 +338,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     // transform for combined sets of results not separated by type
     combinedResults: function(data) {
       var newObj = {data: [], count: 0};
-      if(data && data.hits && data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           switch(record._type) {
             case 'email': newObj.data.push(getEmailSummary(record)); break;

@@ -71,7 +71,7 @@ var commonTransforms = (function(_) {
     peopleFeatures: function(data) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       return {
-        features: transformBuckets(data.aggregations.people_features.buckets, 'key')
+        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.buckets, 'key') : []
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     },
@@ -187,7 +187,7 @@ var commonTransforms = (function(_) {
     offerLocationData: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         var aggs = data.aggregations;
         newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
       }

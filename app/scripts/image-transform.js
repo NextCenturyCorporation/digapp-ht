@@ -17,14 +17,16 @@ var imageTransform = (function(_) {
     // expected data is from an elasticsearch
     images: function(data) {
       var images = [];
-      data.hits.hits.forEach(function(hit) {
-        images.push(getImageUrl(hit._source));
-      });
+      if(data) {
+        data.hits.hits.forEach(function(hit) {
+          images.push(getImageUrl(hit._source));
+        });
+      }
       return images;
     },
 
     imageTotal: function(data) {
-      return data.hits.total;
+      return (data && data.hits) ? data.hits.total : 0;
     }
   };
 })(_);
