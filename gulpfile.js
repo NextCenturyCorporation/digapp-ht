@@ -26,7 +26,7 @@ try {
 
 var version = '0.0.0';
 try {
-  var packageJson = require('./package.json')
+  var packageJson = require('./package.json');
   if(packageJson && packageJson.version) {
     version = packageJson.version;
   }
