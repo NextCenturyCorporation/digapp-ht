@@ -2,9 +2,9 @@
  * transform elastic search related entity query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms, dateFormat */
+/* globals _, commonTransforms */
 /* exported relatedEntityTransform */
-var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
+var relatedEntityTransform = (function(_, commonTransforms) {
 
   function getOfferSummary(record) {
     /**  build offer summary record:
@@ -23,7 +23,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     var validFromDateString = _.get(record, '_source.validFrom');
     var validFromDate;
     if(validFromDateString) {
-      validFromDate = dateFormat(new Date(validFromDateString), 'mmmm dd, yyyy');
+      validFromDate = commonTransforms.getDate(validFromDateString);
     }
     var datePhoneEmail = [];
     if(validFromDate) {
@@ -206,7 +206,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     if(xDate) {
       webpageObj.descriptors.push({
         type: 'date',
-        text: dateFormat(new Date(xDate), 'mmmm dd, yyyy')
+        text: commonTransforms.getDate(xDate)
       });
     }
 
@@ -354,4 +354,4 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
       return newObj;
     }
   };
-})(_, commonTransforms, dateFormat);
+})(_, commonTransforms);

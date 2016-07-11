@@ -2,12 +2,12 @@
  * Common transform functions used.
  */
 
-/* globals _ */
+/* globals _, dateFormat */
 /* exported commonTransforms */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope */
-var commonTransforms = (function(_) {
+var commonTransforms = (function(_, dateFormat) {
 
   function getGeoFromKeys(record) {
     var geos = [];
@@ -184,6 +184,13 @@ var commonTransforms = (function(_) {
       return result;
     },
 
+    /**
+     * Returns the string for the given date number/string in UTC format.
+     */
+    getDate: function(date) {
+      return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
+    },
+
     offerLocationData: function(data) {
       var newData = {};
 
@@ -260,4 +267,4 @@ var commonTransforms = (function(_) {
       return [val1, val2];
     }
   };
-})(_);
+})(_, dateFormat);

@@ -98,7 +98,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
   function createLocationTimeline(buckets) {
     var timeline = _.reduce(buckets, function(timeline, bucket) {
       var dateBucket = {
-        date: bucket.key
+        date: commonTransforms.getDate(bucket.key)
       };
 
       if(bucket.locations.buckets.length) {
@@ -135,7 +135,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     // Sort newest first.
     timeline.sort(function(a, b) {
-      return b.date - a.date;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
     return timeline;
