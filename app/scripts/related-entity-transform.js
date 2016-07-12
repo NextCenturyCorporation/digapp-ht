@@ -143,7 +143,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     var addresses = [];
     var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
 
-    addressesArr.forEach(function(addressElem) {
+    (_.isArray(addressesArr) ? addressesArr : [addressesArr]).forEach(function(addressElem) {
       var locality = _.get(addressElem, 'addressLocality');
       var region = _.get(addressElem, 'addressRegion');
       var country = _.get(addressElem, 'addressCountry');
