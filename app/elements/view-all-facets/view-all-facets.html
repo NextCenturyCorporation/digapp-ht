@@ -31,6 +31,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .hide-facets {
         display: none;
       }
+      .show-more-btn {
+        margin-top: 10px;
+        margin-bottom: 5px;
+      }
     </style>
     <template is="dom-if" if="[[checkForBuckets(buckets)]]">
       <template is="dom-if" if="[[loading]]">
@@ -43,10 +47,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <paper-dialog id="facetsModal" modal>
       <section class="layout vertical modal-section">
         <h4>[[title]]</h4>
-
         <paper-dialog-scrollable class="layout flex">
           <template is="dom-if" if="[[initializing]]">
-            <div>Loading full facet list...</div>
+            <div>[[getInitializationText(paging)]]</div>
           </template>
           <div class$="[[getFacetClass(initializing)]]">
             <elastic-client-checkbox-list
@@ -59,6 +62,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               combination-type="or"
               show="0">
             </elastic-client-checkbox-list>
+            <template is="dom-if" if="[[displayShowMore(paging, loading, facetsFullList, aggCount)]]">
+              <paper-button raised class="show-more-btn" on-tap="showMoreAggs">Show More</paper-button>
+            </template>
             <template is="dom-if" if="[[!facetsFullList.length]]">
               <div>[[createFacetText(loading, error)]]</div>
             </template>
@@ -122,13 +128,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         initializing: {
           type: Boolean,
           readOnly: true
+        },
+        paging: {
+          type: Boolean,
+          value: false
         }
+      },
+      getInitializationText: function(paging) {
+        return (paging ? 'Loading more facets...' : 'Loading full facet list...');
+      },
+      displayShowMore: function(paging, loading, facetsFullList, aggCount) {
+        return paging && !loading && facetsFullList.length >= aggCount;
+      },
+      showMoreAggs: function() {
+        this.aggCount += this.currentMaxFacets;
       },
       checkForBuckets: function(buckets) {
         return (buckets && buckets.length > 0 ? true : false);
       },
       openFacetsModal: function() {
-        this.aggCount = 0;
+        this.aggCount = this.paging ? this.aggCount += this.currentMaxFacets : 0;
         this._setInitializing(this.loading ? true : false);
         this.$.facetsModal.open();
       },
