@@ -172,26 +172,28 @@
        ></json-transform>
 
     <!-- Location timeline for bar chart and itinerary -->
-      <query-builder
-        query="{{itineraryAggQuery}}"
-        query-template="{{config.queryTemplates.itineraryPhone}}"
-        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
-      </query-builder>
 
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        query='[[itineraryAggQuery]]'
-        results="{{relatedServiceItAggs}}"
-        elastic-type='["offer"]'
-        last-error="{{error}}">
-      </elastic-search>
+    <query-builder
+      query="{{locationTimelineQuery}}"
+      query-template="{{config.queryTemplates.locationTimeline}}"
+      field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+    </query-builder>
 
-      <json-transform
-       data-in="[[relatedServiceItAggs]]"
-       data-out="{{imageDisplay.itinerary}}"
-       transform-function="[[clientConfig.transforms.seller.itinerary]]"
-       ></json-transform>
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query="[[locationTimelineQuery]]"
+      results="{{locationTimelineResults}}"
+      elastic-type='["offer"]'
+      loading="{{loadingLocationTimeline}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[locationTimelineResults]]"
+     data-out="{{imageDisplay.locationTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
+     ></json-transform>
 
     <!-- Main Content -->
     <div class="entity">
@@ -203,10 +205,10 @@
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
-            <iron-icon class="iron-icon-huge entity-phone-font" icon="communication:phone"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-phone-font" icon="image:image"></iron-icon>
             <section>
               <div class="paper-font-display1">
-                Image: <phone-formatter input="[[imageDisplay.identifier]]"></phone-formatter>
+                Image
               </div>
             </section>
           </div>
@@ -249,7 +251,7 @@
                     <div>[[barChartTitle]]</div>
                   </div>
                   <zoomable-bar-chart
-                    data="[[phoneDisplay.locationTimeline.dates]]"
+                    data="[[imageDisplay.locationTimeline.dates]]"
                     source="Ads"
                     bar-chart-title="{{barChartTitle}}"
                     loading="[[loadingLocationTimeline]]">
@@ -290,13 +292,14 @@
 
                     <div class="who">
                       <div class="paper-font-title">
-                        <single-record item="{{sellerObject}}"
+                        <single-record
                           client="[[esclient]]"
                           annotation-index="[[config.annotationIndex]]"
                           annotation-type="[[config.annotationType]]"
                           annotation-relevant="[[config.annotationRelevant]]"
                           annotation-query-template="{{config.queryTemplates.annotationQuery}}"
                           current-user="[[config.username]]"
+                          item="{{sellerObject}}"
                           blur="[[blurImages]]">
                         </single-record>
                       </div>
@@ -315,14 +318,21 @@
 
               <paper-material>
                 <section class="photos">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
+                    <div>Similar Images</div>
+                  </div>
+
                   <image-query-and-display
-                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
-                    image-query-field="isImagePartOf.mentions"
-                    image-query-value="[[phoneDisplay.telephone._id]]"
+                    image-query-template="{{config.queryTemplates.commonTermsPathToValueQuery}}"
+                    image-query-path-to-value="query.terms['identifier']"
+                    image-query-value="[[imageDisplay.similarImages.array]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
                     image-transform="[[clientConfig.transforms.image.images]]"
+                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
+                    image-display-title="{{imageDisplayTitle}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -330,14 +340,20 @@
 
               <!-- Itinerary section -->
               <div class="h-divider"></div>
-
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
-                    Location Timeline ([[imageDisplay.locationTimeline.dates.length]] Events)
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[itineraryTitle]]</div>
                   </div>
 
-                  <itinerary-list data-items="locations" data="{{imageDisplay.locationTimeline.dates}}"></itinerary-list>
+                  <itinerary-list
+                    data-items="locations"
+                    data="[[imageDisplay.locationTimeline.dates]]"
+                    source="Ads"
+                    itinerary-title="{{itineraryTitle}}"
+                    loading="[[loadingLocationTimeline]]">
+                  </itinerary-list>
                 </section>
               </paper-material>
 
@@ -384,11 +400,6 @@
                   </div>
                   <records-list
                     client="[[esclient]]"
-                    elastic-index="[[config.elasticIndex]]"
-                    index-types='["image"]'
-                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
-                    image-query-field="isImagePartOf.mainEntity.uri"
-                    image-query-value="_id"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     annotation-relevant="[[config.annotationRelevant]]"
@@ -412,11 +423,6 @@
     </div>
   </template>
   <script>
-
-  function blurImages() {
-    console.log('hi');
-  }
-
   (function(document) {
     var app = document.querySelector('#app');
 
