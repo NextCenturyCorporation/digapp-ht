@@ -63,16 +63,17 @@
       page-size="{{pageSize}}"
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
-      results="{{searchResult}}"
-      last-error="{{error}}"
+      results="{{searchResults}}"
+      last-error="{{searchError}}"
       result-count="{{resultCount}}"
+      aggregations="[]"
       filters="[[buildStarArray(countryFilter.*, cityFilter.*, phoneFilter.*, emailFilter.*, publisherFilter.*, nameFilter.*, ageFilter.*, ethnicityFilter.*, heightFilter.*, weightFilter.*, hairColorFilter.*, eyeColorFilter.*)]]"
       sort="{{sort}}"
       loading="{{loading}}">
     </elastic-client-search>
 
     <json-transform
-      data-in="{{searchResult}}"
+      data-in="{{searchResults}}"
       data-out="{{records}}"
       transform-function="[[clientConfig.transforms.relatedEntities.webpage]]">
     </json-transform>
@@ -609,7 +610,14 @@
         <paper-header-panel main>
           <section>
             <div class="search-results-header">
-              <div class="paper-font-title flex">{{recordsListTitle}}</div>
+              <template is="dom-if" if="[[!searchError]]">
+                <div class="paper-font-title flex">[[recordsListTitle]]</div>
+              </template>
+
+              <template is="dom-if" if="[[searchError]]">
+                <div class="paper-font-title flex">[[searchError]]</div>
+              </template>
+
               <div class="flex-none">
                 <!-- Place search controls or view options here -->
               </div>
@@ -619,11 +627,6 @@
               <section class="main-search-results">
                 <records-list
                   client="[[esclient]]"
-                  elastic-index="[[config.elasticIndex]]"
-                  index-types='["image"]'
-                  image-query-template="[[config.queryTemplates.commonTermQuery]]"
-                  image-query-field="isImagePartOf.mainEntity.uri"
-                  image-query-value="_id"
                   annotation-index="[[config.annotationIndex]]"
                   annotation-type="[[config.annotationType]]"
                   annotation-relevant="[[config.annotationRelevant]]"

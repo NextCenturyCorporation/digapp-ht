@@ -28,7 +28,7 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
     email: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         newData = getEmail(data.hits.hits[0]._source);
       }
 

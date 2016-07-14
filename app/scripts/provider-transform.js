@@ -48,7 +48,7 @@ var providerTransform = (function(_) {
     provider: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         newData = getProvider(data.hits.hits[0]._source);
       }
 

@@ -2,12 +2,12 @@
  * Common transform functions used.
  */
 
-/* globals _ */
+/* globals _, dateFormat */
 /* exported commonTransforms */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope */
-var commonTransforms = (function(_) {
+var commonTransforms = (function(_, dateFormat) {
 
   function getGeoFromKeys(record) {
     var geos = [];
@@ -71,7 +71,7 @@ var commonTransforms = (function(_) {
     peopleFeatures: function(data) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       return {
-        features: transformBuckets(data.aggregations.people_features.buckets, 'key')
+        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.buckets, 'key') : []
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     },
@@ -184,10 +184,17 @@ var commonTransforms = (function(_) {
       return result;
     },
 
+    /**
+     * Returns the string for the given date number/string in UTC format.
+     */
+    getDate: function(date) {
+      return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
+    },
+
     offerLocationData: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         var aggs = data.aggregations;
         newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
       }
@@ -260,4 +267,4 @@ var commonTransforms = (function(_) {
       return [val1, val2];
     }
   };
-})(_);
+})(_, dateFormat);

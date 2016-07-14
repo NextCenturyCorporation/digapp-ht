@@ -124,7 +124,7 @@ var offerTransform = (function(_, commonTransforms) {
     offer: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         newData = parseOffer(data.hits.hits[0]._source);
       }
 
@@ -134,7 +134,7 @@ var offerTransform = (function(_, commonTransforms) {
     revisions: function(data) {
       var newData = [];
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         data.hits.hits.forEach(function(elem) {
           var offer = parseOffer(elem._source);
           offer._id = elem._id;

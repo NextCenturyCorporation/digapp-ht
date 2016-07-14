@@ -98,7 +98,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
   function createLocationTimeline(buckets) {
     var timeline = _.reduce(buckets, function(timeline, bucket) {
       var dateBucket = {
-        date: bucket.key
+        date: commonTransforms.getDate(bucket.key)
       };
 
       if(bucket.locations.buckets.length) {
@@ -135,7 +135,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     // Sort newest first.
     timeline.sort(function(a, b) {
-      return b.date - a.date;
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
 
     return timeline;
@@ -163,7 +163,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     seller: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         newData._id = _.get(data.hits.hits[0], '_id');
         newData._type = _.get(data.hits.hits[0], '_type');
         newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
@@ -177,7 +177,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     phoneEmails: function(data) {
       var newData = [];
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         var telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
         var emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
 
@@ -203,7 +203,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     locationTimeline: function(data) {
       return {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        dates: data.aggregations ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
+        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       };
     }
