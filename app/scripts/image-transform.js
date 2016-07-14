@@ -35,8 +35,10 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
         };
 
         newData.isImagePartOf.forEach(function(service) {
-          if (service.mainEntity)
+          if(service.mainEntity) {
             adultService.array.push(service.mainEntity.itemOffered.uri);
+          }
+
         });
 
         newData.adultService = adultService;
@@ -49,7 +51,8 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
     },
     imageOffersData: function(data) {
       var newData = {};
-      newData.relatedOffers = relatedEntityTransform.offer(data); 
+      newData.relatedOffers = relatedEntityTransform.offer(data);
+      console.log(newData);
       return newData;
     },
 

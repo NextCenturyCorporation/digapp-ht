@@ -92,7 +92,7 @@ module.exports = {
     phoneOrEmailPeopleAggForImages: {
        "query": {
            "ids":{
-                "values": "{{value}}"
+                "{{filterField}}": ["{{filterValue}}"]
            }
        },
        "aggs" : {
