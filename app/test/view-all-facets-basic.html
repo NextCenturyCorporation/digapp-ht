@@ -66,10 +66,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.filterName, 'facet');
       assert.isNull(element.error);
       assert.equal(element.field, 'test');
-      assert.deepEqual(element.filter, {});
       assert.equal(element.aggCount, 10);
       assert.equal(element.currentMaxFacets, 10);
       assert.isUndefined(element.initializing);
+      assert.isFalse(element.paging);
+      assert.isObject(element.filter);
+      assert.deepEqual(element.filter.toJSON(), {match_all: {}});
+    });
+
+    test('getInitializationText returns correct text', function() {
+      assert.equal(element.getInitializationText(true), 'Loading more facets...');
+      assert.equal(element.getInitializationText(false), 'Loading full facet list...');
+    });
+
+    test('displayShowMore returns correct boolean value', function() {
+      assert.isTrue(element.displayShowMore(true, false, element.facetsFullList, 5));
+      assert.isFalse(element.displayShowMore(false, false, element.facetsFullList, 5));
+      assert.isFalse(element.displayShowMore(true, true, element.facetsFullList, 5));
+      assert.isFalse(element.displayShowMore(true, false, element.facetsFullList, 15));
+    });
+
+    test('showMoreAggs returns correct value', function() {
+      element.showMoreAggs();
+      assert.equal(element.aggCount, 20);
+      element.showMoreAggs();
+      assert.equal(element.aggCount, 30);
     });
 
     test('checkForBuckets returns correct boolean value', function() {
@@ -101,6 +122,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       element.loading = false;
       assert.isFalse(element.initializing);
+    });
+
+    test('openFacetsModal sets aggCount to 20 if paging is set to true', function() {
+      element.paging = true;
+      element.openFacetsModal();
+      assert.isTrue(element.$.facetsModal.opened);
+      assert.equal(element.aggCount, 20);
     });
 
     test('closeFacetsModal resets correct properties', function() {
