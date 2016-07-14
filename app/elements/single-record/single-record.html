@@ -58,15 +58,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
-    <elastic-search
-      client="[[client]]"
-      index="[[index]]"
-      elastic-type="[[indexTypes]]"
-      query="[[imageQuery]]"
-      results="{{imageQueryResults}}"
-      last-error="{{error}}">
-    </elastic-search>
-
     <div class="record">
       <paper-material class$="list-item-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
         <paper-icon-item>
@@ -159,7 +150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
-    /* globals _, DigBehaviors, Mustache */
+    /* globals _, DigBehaviors */
     'use strict';
 
     Polymer({
@@ -209,55 +200,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          * query template to find existing annotations
          */
         annotationQueryTemplate: {
-          type: Object
-        },
-
-        /**
-         * The elasticsearch index.
-         */
-        index: {
-          type: String
-        },
-
-        /**
-         * The array of elasticsearch index types.
-         */
-        indexTypes: {
-          type: Array
-        },
-
-        /**
-         * The query template to find images.
-         */
-        imageQueryTemplate: {
-          type: Object
-        },
-
-        /**
-         * The field of the image query template.
-         */
-        imageQueryField: {
-          type: String
-        },
-
-        /**
-         * The field of the item for the value of the image query template.
-         */
-        imageQueryValue: {
-          type: String
-        },
-
-        /**
-         * The query to find images.
-         */
-        imageQuery: {
-          type: Object
-        },
-
-        /**
-         * The results of the query to find images.
-         */
-        imageQueryResults: {
           type: Object
         },
 
@@ -328,38 +270,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       observers: [
-          'createImageQuery(item, imageQueryTemplate, imageQueryField, imageQueryValue)',
-          'findSrcInImageQueryResults(item, imageQueryResults)',
           'updateImageSrcFromItemUrls(item.imageUrls.splices)',
           'updateImageSrcFromPropertyUrls(imageUrls.splices)',
           'updateShowDetails(item.details)'
       ],
-
-      /**
-       * Sets this.imageQuery using the given variables.
-       */
-      createImageQuery: function(item, imageQueryTemplate, imageQueryField, imageQueryValue) {
-        if(!this.imageUrls || !this.imageUrls.length) {
-          var view = {
-            field: imageQueryField,
-            value: item[imageQueryValue]
-          };
-          this.imageQuery = JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(imageQueryTemplate), view)));
-        }
-      },
-
-      /**
-       * Adds the image URLs from the hits in the given image query results to item.imageUrls.
-       */
-      findSrcInImageQueryResults: function(item, imageQueryResults) {
-        if(imageQueryResults) {
-          this.set('item.imageUrls', []);
-          var self = this;
-          imageQueryResults.hits.hits.forEach(function(hit) {
-            self.push('item.imageUrls', hit._source.url);
-          });
-        }
-      },
 
       getBlurClass: function(blur) {
         return (blur ? 'small-blur' : '');

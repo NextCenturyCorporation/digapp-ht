@@ -6,6 +6,16 @@
 /* exported relatedEntityTransform */
 var relatedEntityTransform = (function(_, commonTransforms) {
 
+  /**
+   * Returns the list of image URLs from the given webpage record.
+   */
+  function getImageUrls(record, path) {
+    var images = _.get(record, '_source.' + path, []);
+    return (_.isArray(images) ? images : [images]).map(function(image) {
+      return image.url;
+    });
+  }
+
   function getOfferSummary(record) {
     /**  build offer summary record:
         {
@@ -59,6 +69,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       _type: record._type,
       title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
       descriptors: datePhoneEmail,
+      imageUrls: getImageUrls(record, 'mainEntityOfPage.hasImagePart'),
       details: {
         description: _.get(record, '_source.mainEntityOfPage.description'),
         address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
@@ -192,6 +203,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         type: 'webpage',
         text: _.get(record, '_source.publisher.name', 'Publisher N/A')
       }],
+      imageUrls: getImageUrls(record, 'hasImagePart'),
       offer: _.get(record, '_source.mainEntity.uri'),
       details: {
         url: _.get(record, '_source.url'),
