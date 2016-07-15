@@ -7,7 +7,6 @@
   <style>
     :host {
       display: block;  
-      width:100%;    
     }
 
     #timeline-container {
@@ -65,7 +64,7 @@
 
   </style>
   <template>
-    <div class="layout horizontal">
+    <div class="layout horizontal">                
         <div class="flex auto" id="timeline-container">
           <div id="timeline"></div>   
         </div>        
@@ -106,18 +105,24 @@
       },
       setupChart : function() {
 
+        if (_.isEmpty(this.payload)) {
+          return;
+        }
+
         var color = d3.scale.category20();
         var endTime = this.getEndTime();   
         var startTime = this.getStartTime();              
-        var width = this.$['timeline-container'].offsetWidth || this.parentNode.offsetWidth || 1400;
-
+        var width = (this.offsetWidth || this.parentNode.offsetWidth || 1400) + 200;
+        
         var chart = d3.chart.eventDrops()
             .eventLineColor(function (datum, index) {
                   return color(index);
               })
             .start(new Date(startTime))
             .end(new Date(endTime))
-            .width(width);            
+            .width(width)
+            .metaballs(true);
+            
 
         var node = this.$.timeline;
 
@@ -125,13 +130,10 @@
         .datum(this.payload.data)           
         .call(chart);        
 
+        var _t = this;
         d3.select(window).on('resize', function() {
-          setupChart();  
+          _t.setupChart();  
         });
-      },
-
-      ready :  function() {
-       this.setupChart();
       }
     });
   })();

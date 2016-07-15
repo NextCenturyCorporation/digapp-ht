@@ -1,5 +1,15 @@
 var dropsTimelineTransform = (function(_) {
 
+	var offsetDates = function (dates) {
+		var sorted = _.sortBy(dates);
+		for( var i=1; i < sorted.length; i++ ){
+			if (sorted[i] == sorted[i-1])
+				sorted[i] = new Date(sorted[i].getTime() + 300);
+		}
+
+		return sorted;		
+	};
+
 	return {
 		timeline : function(data) {			
 
@@ -26,11 +36,12 @@ var dropsTimelineTransform = (function(_) {
 		          timestamps.push(timelineBucket.key);
 		        }
 		      }                   
-		    }
+		    }		    
 
 		    /* Transform data */
 		    for (var city in cityAggs) {
-		      var dates = cityAggs[city]
+		      var dates = offsetDates(cityAggs[city]);
+
 		      transformedData.push({
 		        name: city.split(':')[0],
 		        data: dates 
