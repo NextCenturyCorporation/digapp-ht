@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../dig-behaviors/create-link-behavior.html">
 
 <dom-module id="full-size-image-view">
   <template>
@@ -20,7 +21,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
-      paper-dialog.gallery {
+      .gallery {
         --paper-dialog-background-color: transparent;
         box-shadow: none;
         display: inline-block;
@@ -28,14 +29,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin: 0;
       }
 
-      .gallery-header {
-        @apply(--layout-horizontal);
-        @apply(--layout-end-justified);
+      .exit-button {
+        margin: 0;
+        padding: 0;
         position: absolute;
         right: 0;
       }
 
-      .layout {
+      .layout-override {
         height: 100%;
         margin: 0;
         padding: 0;
@@ -62,18 +63,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding: 0;
         margin: 0;
       }
+
+      .open-image {
+        text-decoration: none;
+      }
+
+      .open-image paper-button {
+        color: white;
+        font-size: 16px;
+        margin: 0;
+        padding: 20px;
+        width: 100%;
+      }
     </style>
 
     <paper-dialog id="imageModal" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation" class="gallery">
-      <paper-button class="gallery-header gallery-toggle" on-click="closeDialog">
-        <iron-icon icon="clear"></iron-icon>
-      </paper-button>
-      <div class="layout horizontal center-justified self-center">
-         <paper-button class="gallery-toggle self-center" disabled="{{!hasPrevious(currentIndex)}}" on-click="clickPrevious">
+      <div class="layout horizontal center layout-override">
+        <paper-button disabled="{{!hasPrevious(currentIndex)}}" on-click="clickPrevious">
           <iron-icon icon="image:navigate-before"></iron-icon>
         </paper-button>
-        <iron-image src="{{currentImage}}" class$="center-justified self-center [[getBlurClass(blur)]]"></iron-image>
-        <paper-button class="gallery-toggle self-center" disabled="{{!hasNext(currentIndex)}}" on-click="clickNext">
+
+        <div class="layout vertical">
+          <paper-button class="exit-button" on-click="closeDialog">
+            <iron-icon icon="clear"></iron-icon>
+          </paper-button>
+
+          <iron-image src="[[getProperty(currentImage, imageSource, '')]]" class$="[[getBlurClass(blur)]]"></iron-image>
+
+          <a class="open-image" href$="[[createIdLinkWithType('image', currentImage, imageId)]]">
+            <paper-button>Open Image</paper-button>
+          </a>
+        </div>
+
+        <paper-button disabled="{{!hasNext(currentIndex)}}" on-click="clickNext">
           <iron-icon icon="image:navigate-next"></iron-icon>
         </paper-button>
       </div>
@@ -82,12 +104,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
+    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'full-size-image-view',
 
+      behaviors: [DigBehaviors.CreateLinkBehavior],
+
       properties: {
+        /**
+         * The array of image objects.
+         */
         images: {
           type: Array,
           value: function() {
@@ -96,16 +124,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
-        currentImage: {
+        /**
+         * The property of the image objects for their unique ID.
+         */
+        imageId: {
           type: String,
+          value: 'id'
+        },
+
+        /**
+         * The property of the image objects for their source URL.
+         */
+        imageSource: {
+          type: String,
+          value: 'source'
+        },
+
+        /**
+         * The image currently displayed.
+         */
+        currentImage: {
+          type: Object,
           notify: true
         },
 
+        /**
+         * The index in the array of images of the image currently displayed.
+         */
         currentIndex: {
           type: Number,
           notify: true
         },
 
+        /**
+         * Whether to blur the images.
+         */
         blur: {
           type: Boolean,
           value: true,
@@ -113,12 +166,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      attached: function() {
+        this.$.imageModal.open();
+      },
+
       getBlurClass: function(blur) {
         return (blur ? 'large-blur' : '');
       },
 
-      attached: function() {
-        this.$.imageModal.open();
+      getProperty: function(item, property, defaultValue) {
+        return item[property] || defaultValue;
       },
 
       hasPrevious: function(index) {
