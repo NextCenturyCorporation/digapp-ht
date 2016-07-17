@@ -29,6 +29,14 @@
   <style is="custom-style" include="icon-with-text-styles"></style>
   <style is="custom-style" include="list-item-styles"></style>
   <style is="custom-style" include="map-styles"></style>
+  <style>
+    .image-style {
+      --iron-image-width: auto;
+      --iron-image-height: auto;
+      padding: 0;
+      margin: 0;
+    }
+  </style>
 </head>
 
 <body unresolved class="fullbleed layout vertical">
@@ -83,42 +91,6 @@
      transform-function="[[clientConfig.transforms.image.image]]"
      ></json-transform>
 
-     <!-- Get the seller Object -->
-     <query-builder
-      query="{{sellerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[phoneDisplay.telephone.sellerId]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["seller"]'
-      query='[[sellerQuery]]'
-      results="{{seller}}"
-      last-error="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerPhoneEmails}}"
-     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
-     ></json-transform>
-
-    <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerObject}}"
-     transform-function="[[clientConfig.transforms.seller.seller]]"
-     ></json-transform>
-
-    <json-combine
-      data-in1="[[sellerPhoneEmails]]"
-      data-in2="[[phoneDisplay.telephone.number]]"
-      data-out="{{showSeller}}"
-      combine-function="[[clientConfig.transforms.phone.computeShowSeller]]"
-    ></json-combine>
-
-
       <!--
         build the query for offer locations
       -->
@@ -144,7 +116,7 @@
        ></json-transform>
 
        <!--
-        Get all the offers for this phone
+        Get all the offers for this image
        -->
       <query-builder
         query="{{imageOffersQuery}}"
@@ -205,7 +177,7 @@
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
-            <iron-icon class="iron-icon-huge entity-phone-font" icon="image:image"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-image-font" icon="image:image"></iron-icon>
             <section>
               <div class="paper-font-display1">
                 Image
@@ -217,7 +189,7 @@
             annotation-type="[[config.annotationType]]"
             annotation-relevant="[[config.annotationRelevant]]"
             query-template="{{config.queryTemplates.annotationQuery}}"
-            item="{{phoneDisplay.telephone}}"
+            item="{{imageDisplay.image}}"
             item-type="telephone number"
             current-user="[[config.username]]">
           </annotate-record>
@@ -238,8 +210,8 @@
 
               <paper-material>
                 <section class="when">
-                  <iron-image id="mainImage" style="width:400px; height:400px; background-color: lightgray;"
-                    sizing="cover" preload fade src="{{imageDisplay.url}}" blurImages class="small-blur"></iron-image>
+                  <iron-image id="mainImage" 
+src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></iron-image>
                 </section>
               </paper-material>
 
@@ -390,7 +362,7 @@
 
               <div class="h-divider"></div>
 
-              <!-- Offers for the phone -->
+              <!-- Offers for the image-->
               <paper-material>
                 <section>
                   <div class="section-header">
@@ -429,6 +401,10 @@
     app.showConfig = function(req, res) {
       console.log('REQ: ', req);
       console.log('RES: ', res);
+    };
+
+    app.getBlurClass =  function(blur) {
+      return (blur ? 'large-blur' : '');
     };
 
     app.getURLParams = function() {

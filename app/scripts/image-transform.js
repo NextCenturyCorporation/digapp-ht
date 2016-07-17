@@ -33,6 +33,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           total: newData.isImagePartOf.length,
           array: []
         };
+        newData.isImagePartOf = _.isArray(newData.isImagePartOf) ? newData.isImagePartOf : [newData.isImagePartOf];
         newData.isImagePartOf.forEach(function(service) {
           if(service.mainEntity) {
             adultService.array.push(service.mainEntity.itemOffered.uri);

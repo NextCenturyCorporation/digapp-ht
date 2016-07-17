@@ -95,66 +95,6 @@ module.exports = {
         }
       }
     },
-    phoneOrEmailPeopleAggForImages: {
-       "query": {
-           "ids":{
-                "{{filterField}}": ["{{filterValue}}"]
-           }
-       },
-       "aggs" : {
-           "people_names": {
-               "terms": {
-                   "field": "name.raw",
-                   "size": 0
-               }
-           },
-           "people_ages": {
-               "terms": {
-                   "field": "age",
-                   "size": 0
-               }
-           },
-           "people_ethnicities": {
-               "terms": {
-                   "field": "ethnicity",
-                   "size": 0
-               }
-           }
-       }
-    },
-    // same one used in phone/email
-    sellerPeopleAggs: {
-        "query": {
-            "filtered": {
-                "filter": {
-                    "term": {
-                        "{{field}}": "{{value}}"
-                    }
-                }
-            }
-        },
-        "aggs" : {
-            "people_names": {
-                "terms": {
-                    "field": "name.raw",
-                    "size": 0
-                }
-            },
-            "people_ages": {
-                "terms": {
-                    "field": "age",
-                    "size": 0
-                }
-            },
-            "people_ethnicities": {
-                "terms": {
-                    "field": "ethnicity",
-                    "size": 0
-                }
-            }
-        },
-    },
-
     offerRevisions: {
         query: {
             "query": {
