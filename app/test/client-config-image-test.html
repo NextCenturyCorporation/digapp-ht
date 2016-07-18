@@ -23,7 +23,7 @@
 
 <script>
   'use strict';
-  /* globals suite, test, expect, setup, fixture, imageResult */
+  /* globals suite, test, expect, setup, fixture, imageResult, assert */
   /* jshint -W030 */
 
   suite('<client-config> image tests: image entity transform', function() {
@@ -88,6 +88,61 @@
 
       expect(imageTotal).to.exist;
       expect(imageTotal).to.equal(0);
+    });
+  });
+  
+  suite('<client-config> image object test: image entity transform', function() {
+    var myEl;
+    var dataout;
+
+    setup(function() {
+      myEl = fixture('client-config-fixture');
+      var imageTransform = myEl.config.transforms.image.image;
+      dataout = imageTransform(imageResult);
+      console.log(dataout);
+    });
+
+    test('defines config object', function(done) {
+      expect(myEl).to.exist;
+      expect(myEl.config).to.exist;
+      expect(myEl.config).to.be.an('Object');
+      expect(myEl.config.transforms.image.image).to.be.a('Function');
+      done();
+    });
+
+    test('defines image details', function() {
+      assert.equal(dataout.uri, 'http://dig.isi.edu/ht/data/myImageId1');
+      assert.equal(dataout.identifier, 'myImageId1');
+      assert.equal(dataout.isImagePartOf.length, 4);
+
+      expect(dataout.isImagePartOf).to.be.an('Array');
+      expect(dataout.adultService).to.exist;
+      expect(dataout.similarImages).to.exist;
+    });
+
+  });
+
+  suite('<client-config> image object test: image entity transform if no results from query', function() {
+    var clientConfig;
+    var noResults;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+      noResults = {hits: {hits: [], total: 0}};
+    });
+
+    test('defines config object', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+    });
+
+    test('defines empty object for image', function() {
+      expect(clientConfig.config.transforms.image.image).to.be.a('Function');
+      var image = clientConfig.config.transforms.image.image(noResults);
+
+      expect(image).to.exist;
+      expect(image).to.be.an('Object');
     });
   });
 </script>
