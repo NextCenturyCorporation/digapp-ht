@@ -1,0 +1,428 @@
+<!doctype html>
+
+<html lang="">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="generator" content="Polymer Starter Kit" />
+  <title>DIG</title>
+  <!-- Place favicon.ico in the `app/` directory -->
+
+  <!-- build:css styles/main.css -->
+  <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
+  <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
+  <link rel="stylesheet" href="styles/main.css">
+  <!-- endbuild-->
+
+  <!-- build:js bower_components/webcomponentsjs/webcomponents-lite.min.js -->
+  <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <!-- endbuild -->
+
+  <!-- will be replaced with elements/elements.vulcanized.html -->
+  <link rel="import" href="elements/elements.html">
+  <!-- endreplace-->
+
+  <style is="custom-style" include="entity-view-styles"></style>
+  <style is="custom-style" include="icon-styles"></style>
+  <style is="custom-style" include="icon-with-text-styles"></style>
+  <style is="custom-style" include="list-item-styles"></style>
+  <style is="custom-style" include="map-styles"></style>
+  <style>
+    .image-style {
+      --iron-image-width: auto;
+      --iron-image-height: auto;
+      padding: 0;
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body unresolved class="fullbleed layout vertical">
+  <span id="browser-sync-binding"></span>
+  <template is="dom-bind" id="app">
+
+    <!-- exposes clientConfig object which is a container for data
+      transform functions -->
+    <client-config config="{{clientConfig}}"></client-config>
+
+    <!--get app configuration from server -->
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}"
+      on-response="showConfig">
+    </iron-ajax>
+
+    <!--initialize new elastic client connection to server
+      esclient can be used throughout the application lifecycle -->
+    <elastic-client
+      config="[[config.elasticConfig]]"
+      client="{{esclient}}">
+    </elastic-client>
+
+    <!--look up and build an entity query for the entity specified in the
+      query string for:
+      field: the field in elasticsearch to use in the query
+      value: value of the field above -->
+
+    <!-- imageDisplay.image query and transform -->
+    <query-builder
+      query="{{imageQuery}}"
+      query-template="{{config.queryTemplates.commonMatchQuery}}"
+      field="[[params.field]]" value="[[params.value]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query='[[imageQuery]]'
+      results="{{imageResults}}"
+      elastic-type='["image"]'
+      last-error="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[imageResults]]"
+     data-out="{{imageDisplay}}"
+     transform-function="[[clientConfig.transforms.image.image]]"
+     ></json-transform>
+
+      <!--
+        build the query for offer locations
+      -->
+       <query-builder
+        query="{{offerLocationQuery}}"
+        query-template="{{config.queryTemplates.offerLocation}}"
+        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+      </query-builder>
+
+      <elastic-search
+        client="[[esclient]]"
+        index="[[config.elasticIndex]]"
+        query='[[offerLocationQuery]]'
+        results="{{offerLocationAggs}}"
+        elastic-type='["offer"]'
+        last-error="{{error}}">
+      </elastic-search>
+
+      <json-transform
+       data-in="[[offerLocationAggs]]"
+       data-out="{{imageDisplay.offerLocation}}"
+       transform-function="[[clientConfig.transforms.image.offerLocationData]]"
+       ></json-transform>
+
+       <!--
+        Get all the offers for this image
+       -->
+      <query-builder
+        query="{{imageOffersQuery}}"
+        query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
+        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+      </query-builder>
+
+      <elastic-search
+        client="[[esclient]]"
+        index="[[config.elasticIndex]]"
+        page="{{pageNum}}"
+        page-size="{{pageSize}}"
+        query='[[imageOffersQuery]]'
+        results="{{imageOffers}}"
+        elastic-type='["offer"]'
+        loading="{{offersLoading}}"
+        last-error="{{error}}">
+
+      </elastic-search>
+
+      <json-transform
+       data-in="[[imageOffers]]"
+       data-out="{{imageDisplay.imageOffers}}"
+       transform-function="[[clientConfig.transforms.image.imageOffersData]]"
+       ></json-transform>
+
+    <!-- Location timeline for bar chart and itinerary -->
+
+    <query-builder
+      query="{{locationTimelineQuery}}"
+      query-template="{{config.queryTemplates.locationTimeline}}"
+      field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
+    </query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      query="[[locationTimelineQuery]]"
+      results="{{locationTimelineResults}}"
+      elastic-type='["offer"]'
+      loading="{{loadingLocationTimeline}}"
+      lastError="{{error}}">
+    </elastic-search>
+
+    <json-transform
+     data-in="[[locationTimelineResults]]"
+     data-out="{{imageDisplay.locationTimeline}}"
+     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
+     ></json-transform>
+
+    <!-- Main Content -->
+    <div class="entity">
+
+      <paper-header-panel class="flex" mode="waterfall-tall">
+
+        <!-- Entity header -->
+        <section class="paper-header layout horizontal">
+
+          <!-- Entity title -->
+          <div class="layout horizontal center flex">
+            <iron-icon class="iron-icon-huge entity-photo-font" icon="image:image"></iron-icon>
+            <section>
+              <div class="paper-font-display1">
+                Image
+              </div>
+            </section>
+          </div>
+          <annotate-record client="[[esclient]]"
+            annotation-index="[[config.annotationIndex]]"
+            annotation-type="[[config.annotationType]]"
+            annotation-relevant="[[config.annotationRelevant]]"
+            query-template="{{config.queryTemplates.annotationQuery}}"
+            item="{{imageDisplay.uri}}"
+            item-type="image"
+            current-user="[[config.username]]">
+          </annotate-record>
+          <user-settings username="[[config.username]]" blur-images="{{blurImages}}"></user-settings>
+
+        </section>
+
+        <!-- Entity body -->
+        <div class="entity-page">
+
+          <div class="content">
+
+            <!-- Left Pane -->
+            <div class="flex layout vertical">
+
+              <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
+
+
+              <paper-material>
+                <section class="when">
+                  <iron-image id="mainImage" 
+src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></iron-image>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+              <paper-material>
+                <section class="when">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[barChartTitle]]</div>
+                  </div>
+                  <zoomable-bar-chart
+                    data="[[imageDisplay.locationTimeline.dates]]"
+                    source="Ads"
+                    bar-chart-title="{{barChartTitle}}"
+                    loading="[[loadingLocationTimeline]]">
+                  </zoomable-bar-chart>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Services -->
+              <paper-material>
+                <section class="who">
+
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
+                    <div>Summary of Provider Attributes</div>
+                  </div>
+
+                  <people-features
+                    query-template="{{config.queryTemplates.peopleFeatures}}"
+                    filter-field="_id"
+                    filter-value="[[imageDisplay.adultService.array]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["adultservice"]'
+                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                  </people-features>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Seller section -->
+              <template is="dom-if" if="{{showSeller}}">
+                <paper-material>
+                  <section class="who">
+                    <div class="paper-font-title">Email/Phone Cluster</div>
+
+                    <div class="who">
+                      <div class="paper-font-title">
+                        <single-record
+                          client="[[esclient]]"
+                          annotation-index="[[config.annotationIndex]]"
+                          annotation-type="[[config.annotationType]]"
+                          annotation-relevant="[[config.annotationRelevant]]"
+                          annotation-query-template="{{config.queryTemplates.annotationQuery}}"
+                          current-user="[[config.username]]"
+                          item="{{sellerObject}}"
+                          blur="[[blurImages]]">
+                        </single-record>
+                      </div>
+                    </div>
+                    <records-grid
+                      data-id="_id"
+                      data-text="title"
+                      data-type="_type"
+                      data="[[showSeller]]">
+                    </records-grid>
+                  </section>
+                </paper-material>
+              </template>
+
+              <div class="h-divider"></div>
+
+              <paper-material>
+                <section class="photos">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
+                    <div>Similar Images</div>
+                  </div>
+
+                  <image-query-and-display
+                    image-query-template="{{config.queryTemplates.commonTermsPathToValueQuery}}"
+                    image-query-path-to-value="query.terms['identifier']"
+                    image-query-value="[[imageDisplay.similarImages.array]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-transform="[[clientConfig.transforms.image.images]]"
+                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
+                    image-display-title="{{imageDisplayTitle}}"
+                    blur="[[blurImages]]">
+                  </image-query-and-display>
+                </section>
+              </paper-material>
+
+              <!-- Itinerary section -->
+              <div class="h-divider"></div>
+              <paper-material>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[itineraryTitle]]</div>
+                  </div>
+
+                  <itinerary-list
+                    data-items="locations"
+                    data="[[imageDisplay.locationTimeline.dates]]"
+                    source="Ads"
+                    itinerary-title="{{itineraryTitle}}"
+                    loading="[[loadingLocationTimeline]]">
+                  </itinerary-list>
+                </section>
+              </paper-material>
+
+            </div>
+
+            <div class="v-divider"></div>
+
+            <!-- Right Pane -->
+            <div class="flex layout vertical">
+
+              <!-- Map -->
+              <paper-material>
+                <!-- City summary -->
+                <section class="where-header flex-none">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[imageDisplay.offerLocation.offerLocation.length]] Locations</div>
+                  </div>
+                </section>
+
+                <!-- Leaflet map -->
+                <template is="dom-if" if="[[imageDisplay.offerLocation.offerLocation.length]]">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper map-data="{{imageDisplay.offerLocation.offerLocation}}">
+                    </leaflet-wrapper>
+                  </section>
+
+                  <!-- City summary -->
+                  <section class="where-details flex-none">
+                    <feature-aggregation big feature-title="Offers per City" key="name" agg="[[imageDisplay.offerLocation.offerLocation]]"></feature-aggregation>
+                  </section>
+                </template>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Offers for the image-->
+              <paper-material>
+                <section>
+                  <div class="section-header">
+                    <div class="paper-font-title">
+                      [[imageDisplay.imageOffers.relatedOffers.count]] Offers
+                    </div>
+                  </div>
+                  <records-list
+                    client="[[esclient]]"
+                    annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    annotation-relevant="[[config.annotationRelevant]]"
+                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
+                    current-user="[[config.username]]"
+                    query-results="[[imageDisplay.imageOffers.relatedOffers.data]]"
+                    total-results="{{imageDisplay.imageOffers.relatedOffers.count}}"
+                    page="{{pageNum}}"
+                    loading="{{offersLoading}}"
+                    blur="[[blurImages]]">
+                  </records-list>
+                </section>
+              </paper-material>
+
+            </div>
+
+          </div>
+
+        </div>
+      </paper-header-panel>
+    </div>
+  </template>
+  <script>
+  (function(document) {
+    var app = document.querySelector('#app');
+
+    app.showConfig = function(req, res) {
+      console.log('REQ: ', req);
+      console.log('RES: ', res);
+    };
+
+    app.getBlurClass =  function(blur) {
+      return (blur ? 'large-blur' : '');
+    };
+
+    app.getURLParams = function() {
+      var queryString = window.location.search.slice(1, window.location.search.length);
+      var params = queryString.split('&');
+      app.params = {};
+      for(var i = 0; i < params.length; i++) {
+        var paramPair = params[i].split('=');
+        app.params[paramPair[0]] =  paramPair[1];
+      }
+    };
+
+    app.getURLParams();
+    app.imageDisplay = {};
+
+  })(document);
+  </script>
+
+</body>
+
+</html>
