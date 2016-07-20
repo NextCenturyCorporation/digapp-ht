@@ -31,7 +31,7 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
     // expected data is from an elasticsearch
     telephone: function(data) {
       var newData = {};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         newData = getTelephone(data.hits.hits[0]._source);
       }
 
@@ -59,3 +59,4 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
     }
   };
 })(_, relatedEntityTransform, commonTransforms);
+

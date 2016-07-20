@@ -2,9 +2,22 @@
  * transform elastic search related entity query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms, dateFormat */
+/* globals _, commonTransforms */
 /* exported relatedEntityTransform */
-var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
+var relatedEntityTransform = (function(_, commonTransforms) {
+
+  /**
+   * Returns the list of image objects from the given record using the given path from its _source.
+   */
+  function getImages(record, path) {
+    var images = _.get(record, '_source.' + path, []);
+    return (_.isArray(images) ? images : [images]).map(function(image) {
+      return {
+        id: image.uri,
+        source: image.url
+      };
+    });
+  }
 
   function getOfferSummary(record) {
     /**  build offer summary record:
@@ -23,7 +36,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     var validFromDateString = _.get(record, '_source.validFrom');
     var validFromDate;
     if(validFromDateString) {
-      validFromDate = dateFormat(new Date(validFromDateString), 'mmmm dd, yyyy');
+      validFromDate = commonTransforms.getDate(validFromDateString);
     }
     var datePhoneEmail = [];
     if(validFromDate) {
@@ -59,6 +72,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
       _type: record._type,
       title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
       descriptors: datePhoneEmail,
+      images: getImages(record, 'mainEntityOfPage.hasImagePart'),
       details: {
         description: _.get(record, '_source.mainEntityOfPage.description'),
         address: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality'),
@@ -143,7 +157,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     var addresses = [];
     var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
 
-    addressesArr.forEach(function(addressElem) {
+    (_.isArray(addressesArr) ? addressesArr : [addressesArr]).forEach(function(addressElem) {
       var locality = _.get(addressElem, 'addressLocality');
       var region = _.get(addressElem, 'addressRegion');
       var country = _.get(addressElem, 'addressCountry');
@@ -192,6 +206,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
         type: 'webpage',
         text: _.get(record, '_source.publisher.name', 'Publisher N/A')
       }],
+      images: getImages(record, 'hasImagePart'),
       offer: _.get(record, '_source.mainEntity.uri'),
       details: {
         url: _.get(record, '_source.url'),
@@ -206,7 +221,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     if(xDate) {
       webpageObj.descriptors.push({
         type: 'date',
-        text: dateFormat(new Date(xDate), 'mmmm dd, yyyy')
+        text: commonTransforms.getDate(xDate)
       });
     }
 
@@ -276,7 +291,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     // expected data is from an elasticsearch query
     offer: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getOfferSummary(record));
         });
@@ -286,7 +301,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     phone: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getPhoneSummary(record));
         });
@@ -296,7 +311,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     email: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getEmailSummary(record));
         });
@@ -306,7 +321,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     seller: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getSellerSummary(record));
         });
@@ -316,7 +331,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     },
     service: function(data) {
       var newObj = {data: [], count: 0};
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           newObj.data.push(getServiceSummary(record));
         });
@@ -338,7 +353,7 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
     // transform for combined sets of results not separated by type
     combinedResults: function(data) {
       var newObj = {data: [], count: 0};
-      if(data && data.hits && data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           switch(record._type) {
             case 'email': newObj.data.push(getEmailSummary(record)); break;
@@ -354,4 +369,4 @@ var relatedEntityTransform = (function(_, commonTransforms, dateFormat) {
       return newObj;
     }
   };
-})(_, commonTransforms, dateFormat);
+})(_, commonTransforms);

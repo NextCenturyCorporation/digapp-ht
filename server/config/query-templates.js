@@ -36,6 +36,12 @@ module.exports = {
         }
     },
 
+    commonTermsPathToValueQuery: {
+        query:{
+            terms:{}
+        }
+    },
+
     commonMatchQueryOfferSorted: {
         query:{
             match:{ '{{field}}' : '{{value}}' }
@@ -74,8 +80,8 @@ module.exports = {
       "query": {
         "filtered": {
           "filter": {
-            "term": {
-              "{{filterField}}": "{{filterValue}}"
+            "terms": {
+              "{{filterField}}": ["{{filterValue}}"]
             }
           }
         }
@@ -89,7 +95,6 @@ module.exports = {
         }
       }
     },
-
     offerRevisions: {
         query: {
             "query": {

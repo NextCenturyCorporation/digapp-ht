@@ -11,7 +11,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
 <link rel="import" href="../../bower_components/json-transform/json-transform.html">
-<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
@@ -22,32 +21,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <dom-module id="image-query-and-display">
   <template>
     <style include="icon-styles"></style>
+    <style include="web-component-styles"></style>
 
     <style>
-      .paper-font-title iron-icon {
-        margin-right: 10px;
-      }
-
       iron-scroll-threshold {
         margin-top: 10px;
         /* The height of 5 rows of images. */
-        max-height: 660px;
-      }
-
-      .end-of-list {
-        margin-top: 10px;
-        text-align: center;
-      }
-
-      .end-of-list paper-spinner {
-        height: 16px;
-        width: 16px;
-        margin-right: 10px;
-      }
-
-      .load-text {
-        /* Match the height of the Show More button. */
-        line-height: 41px;
+        max-height: 850px;
       }
     </style>
 
@@ -76,26 +56,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       transform-function="[[imageTransform]]">
     </json-transform>
 
-    <div class="paper-font-title layout horizontal start center">
-      <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
-      <div>[[getTitle(displayResults.length, totalResults)]]</div>
-    </div>
+    <json-transform
+      data-in="[[imageQueryResults]]"
+      data-out="{{totalResults}}"
+      transform-function="[[imageTotalTransform]]">
+    </json-transform>
 
     <template is="dom-if" if="[[displayResults.length]]">
       <iron-scroll-threshold id="scrollThreshold">
         <image-viewer id="imageViewer" images="[[displayResults]]" blur="[[blur]]"></image-viewer>
       </iron-scroll-threshold>
-
-      <div class="end-of-list">
-        <template is="dom-if" if="{{showMore}}">
-          <paper-button raised on-click="goToNextPage">Show More</paper-button>
-        </template>
-        <template is="dom-if" if="{{loading}}">
-          <paper-spinner active="true"></paper-spinner>
-          <span class="load-text">Loading Results...</span>
-        </template>
-      </div>
     </template>
+
+    <div class="loading-container">
+      <template is="dom-if" if="[[showMore]]">
+        <paper-button raised on-tap="goToNextPage">Show More Results</paper-button>
+      </template>
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <span class="button-height-text">Loading Results...</span>
+      </template>
+    </div>
   </template>
 
   <script>
@@ -134,7 +115,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         imageResults: {
-          type: Object,
+          type: Array,
           notify: true
         },
 
@@ -154,6 +135,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
+        imageTotalTransform: {
+          type: Object
+        },
+
+        imageDisplayTitle: {
+          type: String,
+          value: 'No Images',
+          computed: 'computeTitle(displayResults.length, totalResults)',
+          notify: true
+        },
+
         error: {
           type: Object
         },
@@ -165,27 +157,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       observers: [
-        'updateQueryResults(imageResults.array)',
-        'updateTotalResults(imageResults.total)'
+        'updateQueryResults(imageResults.splices)'
       ],
 
-      getTitle: function(count, totalResults) {
-        if(totalResults) {
-          var title = totalResults + ' Image' + (totalResults === 1 ? '' : 's');
-          if(count && count < totalResults) {
-            return count + ' of ' + title;
-          }
-          return title;
+      /**
+       * Returns the title for this image viewer based on the displayResults and the totalResults.
+       */
+      computeTitle: function(count, total) {
+        if(total) {
+          return ((count && count < total) ? (count + ' of ') : '') + total + ' Image' + (total === 1 ? '' : 's');
         }
         return 'No Images';
       },
 
-      updateQueryResults: function(queryResults) {
-        this.set('queryResults', queryResults);
-      },
-
-      updateTotalResults: function(totalResults) {
-        this.set('totalResults', totalResults);
+      updateQueryResults: function() {
+        this.set('queryResults', this.imageResults);
       }
     });
   })();

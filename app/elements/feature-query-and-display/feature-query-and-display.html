@@ -25,9 +25,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <elastic-search
       client="[[client]]"
       index="[[index]]"
-      elastic-type='[[indexTypes]]'
-      query='[[query]]'
+      elastic-type="[[indexTypes]]"
+      query="[[query]]"
       results="{{queryResults}}"
+      loading="{{loading}}"
       last-error="{{error}}">
     </elastic-search>
 
@@ -37,7 +38,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       transform-function="[[transform]]">
     </json-transform>
 
-    <feature-aggregation class="flex" title="[[title]]" key="[[key]]" agg="[[transformResults.features]]"></feature-aggregation>
+    <feature-aggregation class="flex" small
+      feature-title="[[featureTitle]]"
+      key="[[key]]"
+      agg="[[transformResults.features]]"
+      loading="[[loading]]">
+    </feature-aggregation>
   </template>
 
   <script>
@@ -58,7 +64,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         filterValue: {
-          type: String,
+          // Can deserialize strings too.
+          type: Array,
           notify: true
         },
 
@@ -87,7 +94,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
-        title: {
+        featureTitle: {
           type: String,
           notify: true
         },
@@ -112,16 +119,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
         error: {
           type: Object
         }
       },
 
       buildQuery: function(queryTemplate, filterField, filterValue, aggregationField) {
-        /* globals Mustache */
+        /* globals _, Mustache */
         return JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(queryTemplate), {
           filterField: filterField,
-          filterValue: encodeURIComponent(filterValue),
+          filterValue: encodeURIComponent(_.isArray(filterValue) ? filterValue.join('\",\"') : filterValue),
           aggregationField: aggregationField
         })));
       }

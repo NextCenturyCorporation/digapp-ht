@@ -34,13 +34,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <script>
   /* globals suite, setup, fixture, test, expect */
   suite('feature-query-and-display tests', function() {
-    var element;
+    var component;
 
     setup(function() {
-      element = fixture('feature-query-and-display-fixture');
-      element.key = 'key';
-      element.title = 'title';
-      element.transformResults = {
+      component = fixture('feature-query-and-display-fixture');
+      component.key = 'key';
+      component.title = 'title';
+      component.transformResults = {
         features: [{
           key: 'alice',
           count: 8
@@ -55,10 +55,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('set properties', function() {
-      expect(element.key).to.equal('key');
-      expect(element.title).to.equal('title');
-      expect(element.transformResults).to.be.an('Object');
-      expect(element.transformResults).to.be.deep.equal({
+      expect(component.key).to.equal('key');
+      expect(component.title).to.equal('title');
+      expect(component.transformResults).to.be.an('Object');
+      expect(component.transformResults).to.be.deep.equal({
         features: [{
           key: 'alice',
           count: 8
@@ -73,7 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('build query', function() {
-      element.queryTemplate = {
+      component.queryTemplate = {
         query: {
           filtered: {
             filter: {
@@ -92,11 +92,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         }
       };
-      element.filterField = 'alpha';
-      element.filterValue = 'beta';
-      element.aggregationField = 'gamma';
+      component.filterField = 'alpha';
+      component.filterValue = 'beta';
+      component.aggregationField = 'omega';
 
-      expect(element.query).to.deep.equal({
+      expect(component.query).to.deep.equal({
         query: {
           filtered: {
             filter: {
@@ -109,7 +109,52 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         aggs: {
           features: {
             terms: {
-              field: 'gamma',
+              field: 'omega',
+              size: 0
+            }
+          }
+        }
+      });
+    });
+
+    test('build array query', function() {
+      component.queryTemplate = {
+        query: {
+          filtered: {
+            filter: {
+              terms: {
+                '{{filterField}}': ['{{filterValue}}']
+              }
+            }
+          }
+        },
+        aggs: {
+          features: {
+            terms: {
+              field: '{{aggregationField}}',
+              size: 0
+            }
+          }
+        }
+      };
+      component.filterField = 'alpha';
+      component.filterValue = ['beta', 'gamma', 'delta'];
+      component.aggregationField = 'omega';
+
+      expect(component.query).to.deep.equal({
+        query: {
+          filtered: {
+            filter: {
+              terms: {
+                alpha: ['beta', 'gamma', 'delta']
+              }
+            }
+          }
+        },
+        aggs: {
+          features: {
+            terms: {
+              field: 'omega',
               size: 0
             }
           }
@@ -118,7 +163,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('show feature-aggregation', function() {
-      expect(document.querySelector('feature-aggregation')).to.exist;
+      // TODO Don't know why this line causes a jslint error...
+      expect(component.$$('feature-aggregation')).to.exist; // jshint ignore:line
     });
   });
 </script>

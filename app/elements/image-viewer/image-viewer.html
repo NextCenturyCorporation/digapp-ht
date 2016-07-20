@@ -11,59 +11,67 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../dig-behaviors/create-link-behavior.html">
 
 <dom-module id="image-viewer">
   <template>
+    <style include="list-item-styles"></style>
+
     <style>
       :host {
         display: block;
       }
 
-      .img-viewer {
-        flex: auto;
-        width: 0;
-        overflow-x: auto;
-        overflow-y: hidden;
+      .list-item-head {
+        padding: 10px;
       }
 
-      .img-viewer-thumb {
-        width: 100px;
-        height: 100px;
-        margin: 5px;
-      }
-
-      paper-button {
+      .image-container {
         margin: 0;
+        padding: 0;
       }
 
-      iron-image {
+      .image-container iron-image {
         --iron-image-width: 100%;
         --iron-image-height: 100%;
-        padding: 0;
-        margin: 0;
+        width: 100px;
+        height: 100px;
+      }
+
+      .list-item-button {
+        margin: 10px 0 5px;
       }
     </style>
 
-    <div class="horizontal layout" on-tap="stopClickPropagation">
-      <div class="img-viewer">
-        <template is="dom-repeat" items="{{images}}">
-          <paper-button data-dialog="{{item}}" on-click="createDialogElement">
-            <iron-image class$="img-viewer-thumb [[getBlurClass(blur)]]" src="{{item}}" sizing="contain">
-            </iron-image>
+    <div class="layout horizontal flex wrap" on-tap="stopClickPropagation">
+      <template is="dom-repeat" items="{{images}}">
+        <div class="layout vertical center list-item-head">
+          <paper-button class="image-container" data-dialog="[[getProperty(item, imageSource)]]" on-click="createDialogElement">
+            <iron-image class$="[[getBlurClass(blur)]]" src="[[getProperty(item, imageSource, '')]]" sizing="contain"></iron-image>
           </paper-button>
-        </template>
-      </div>
+
+          <a class="list-item-link" href$="[[createIdLinkWithType('image', item, imageId)]]">
+            <paper-button class="list-item-button">Open Image</paper-button>
+          </a>
+        </div>
+      </template>
     </div>
   </template>
 
   <script>
   (function() {
+    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'image-viewer',
 
+      behaviors: [DigBehaviors.CreateLinkBehavior],
+
       properties: {
+        /**
+         * The array of image objects.
+         */
         images: {
           type: Array,
           value: function() {
@@ -72,6 +80,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
+        /**
+         * The property of the image objects for their unique ID.
+         */
+        imageId: {
+          type: String,
+          value: 'id'
+        },
+
+        /**
+         * The property of the image objects for their source URL.
+         */
+        imageSource: {
+          type: String,
+          value: 'source'
+        },
+
+        /**
+         * Whether to blur the images.
+         */
         blur: {
           type: Boolean,
           value: true
@@ -80,6 +107,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       getBlurClass: function(blur) {
         return (blur ? 'small-blur' : '');
+      },
+
+      getProperty: function(item, property, defaultValue) {
+        return item[property] || defaultValue;
       },
 
       stopClickPropagation: function(event) {

@@ -13,6 +13,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id='zoomable-bar-chart'>
   <template>
+    <style include="web-component-styles"></style>
+
     <style>
       :host {
         display: block;
@@ -37,17 +39,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       #barChart {
-        width: 100%;
-        height: 400px;
+        display: none;
       }
 
       .axis {
         font-size: 11px;
         fill: var(--secondary-text-color);
-      }
-
-      .overview {
-        margin-top: 300px;
       }
 
       .axis line, .axis path {
@@ -61,6 +58,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         shape-rendering: crispEdges;
       }
     </style>
+
+    <div class="loading-container">
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <span class="button-height-text">Loading Bar Chart...</span>
+      </template>
+    </div>
 
     <div class='layout horizontal'>
       <div id='chartContainer' class='flex auto'>
@@ -102,15 +106,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             notify: true
           },
 
-          minX: {
+          /**
+           * The source of the data to use in the title for this bar chart.
+           */
+          source: {
             type: String,
-            value: 'N/A',
+            value: 'Data',
             notify: true
           },
 
-          maxX: {
+          /**
+           * The title for this bar chart.
+           */
+          barChartTitle: {
             type: String,
-            value: 'N/A',
+            value: 'No Data',
+            computed: 'computeTitle(source, barChartData.length)',
+            notify: true
+          },
+
+          /**
+           * Whether the data is loading.
+           */
+          loading: {
+            type: Boolean,
+            value: false,
             notify: true
           }
         },
@@ -122,46 +142,43 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         checkData: function(data) {
           if(data && data.length) {
             this.processData(data);
-            this.minX = this.getItemKey(this.barChartData[0]);
-            this.maxX = this.getItemKey(this.barChartData[this.barChartData.length - 1]);
             this.createElements();
-          } else {
-            this.minX = 'N/A';
-            this.maxX = 'N/A';
           }
         },
 
-        getItemKey: function(item) {
-          var format = d3.time.format('%Y-%m-%d');
-          var formattedDate = format(new Date(item.date));
-          return formattedDate;
+        /**
+         * Returns the title for this bar chart based on the source and the barChartData.
+         */
+        computeTitle: function(source, count) {
+          if(count > 1) {
+            return source + ' from ' + this.barChartData[count - 1].text + ' to ' + this.barChartData[0].text;
+          }
+          return count ? (source + ' at ' + this.barChartData[0].text) : ('No ' + source);
         },
 
         processData: function(data) {
           var barChartData = [];
           var barChartLegend = {};
-          var parseDate = d3.time.format('%d/%m/%Y');
 
           if(data) {
             data.forEach(function(item) {
-              var date = parseDate(new Date(item.date)); // turn the date string into a date object
-              date = d3.time.format('%d/%m/%Y').parse(date);
               var yMax = 0; // keeps track of where the 'previous' value 'ended'
               var bars = [];
               item.locations.forEach(function(location) {
                 if(location.count) {
                   bars.push({
-                    name: location.place || 'Other',
+                    name: location.name || 'Other',
                     yAxisStart: yMax,
                     yAxisEnd: yMax + location.count
                   });
                   yMax += location.count;
-                  barChartLegend[location.place || 'Other'] = true;
+                  barChartLegend[location.name || 'Other'] = true;
                 }
               });
               barChartData.push({
                 bars: bars,
-                date: date,
+                date: new Date(item.date),
+                text: item.date,
                 yMax: yMax
               });
             });
@@ -368,6 +385,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // Add chart to DOM
           this.$.barChart.style.height = this.height;
           this.$.barChart.style.width = this.width;
+          this.$.barChart.style.display = 'block';
 
           var children = Polymer.dom(this.$.barChart).children;
           // delete previous nodes if they exist

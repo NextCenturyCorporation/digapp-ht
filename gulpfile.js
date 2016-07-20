@@ -24,6 +24,14 @@ try {
   localConfig = require('./server/config/local.env');
 } catch(e) {}
 
+var version = '0.0.0';
+try {
+  var packageJson = require('./package.json');
+  if(packageJson && packageJson.version) {
+    version = packageJson.version;
+  }
+} catch(e) {}
+
 var AUTOPREFIXER_BROWSERS = [
   'ie >= 10',
   'ie_mob >= 10',
@@ -208,7 +216,7 @@ gulp.task('vulcanize', function() {
       inlineCss: true,
       inlineScripts: true
     }))
-    .pipe(gulp.dest(dist('elements')))
+    .pipe(gulp.dest(dist('elements-tmp')))
     .pipe($.size({title: 'vulcanize'}));
 });
 
@@ -335,6 +343,7 @@ gulp.task('default', ['clean'], function(cb) {
     'elements',
     ['lint', 'images', 'fonts', 'html'],
     'vulcanize', // 'cache-config',
+    'version',
     cb);
 });
 
@@ -357,6 +366,21 @@ gulp.task('deploy-gh-pages', function() {
       branch: 'gh-pages'
     }), $.ghPages()));
 });
+
+gulp.task('version', function() {
+  gulp.src(dist('elements-tmp/elements.html'))
+    .pipe($.replace('DIG_VERSION', version))
+    .pipe(gulp.dest(dist('elements')));
+
+  del(dist('elements-tmp'));
+});
+
+gulp.task('docker', ['default'], $.shell.task([
+  'echo "Building docker container for digmemex/digapp version ' + version + '"',
+  'docker build -t digmemex/digapp:' + version + ' .',
+  'echo "Pushing docker container for digmemex/digapp version ' + version + '"',
+  'docker push digmemex/digapp:' + version
+]));
 
 // Load tasks for web-component-tester
 // Adds tasks for `gulp test:local` and `gulp test:remote`

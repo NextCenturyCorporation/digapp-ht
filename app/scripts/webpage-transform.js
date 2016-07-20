@@ -13,7 +13,7 @@ var webpageTransform = (function(_, commonTransforms) {
     webpage: function(data) {
       var newData = {};
 
-      if(data.hits.hits.length > 0) {
+      if(data && data.hits.hits.length > 0) {
         newData._id = _.get(data.hits.hits[0], '_id');
         newData.date = _.get(data.hits.hits[0]._source, 'dateCreated');
         newData.address = commonTransforms.getAddress(data.hits.hits[0]._source.mainEntity);
@@ -32,10 +32,9 @@ var webpageTransform = (function(_, commonTransforms) {
     pageRevisions: function(data) {
       var newData = {};
 
-      if(data.aggregations) {
-        var aggs = data.aggregations;
+      if(data && data.aggregations) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        newData = commonTransforms.transformBuckets(aggs.page_revisions.buckets, 'date', 'key_as_string');
+        newData = commonTransforms.transformBuckets(data.aggregations.page_revisions.buckets, 'date', 'key_as_string');
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       }
 
