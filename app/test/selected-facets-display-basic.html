@@ -23,26 +23,97 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </head>
 <body>
 
-<test-fixture id="basic">
+<test-fixture id="selected-facets-display-fixture">
   <template>
     <selected-facets-display></selected-facets-display>
   </template>
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, test */
+  /* globals suite, setup, fixture, test, assert */
   /* jshint -W030 */
   suite('selected-facets-display tests', function() {
     var element;
 
     setup(function() {
-      element = fixture('basic');
+      element = fixture('selected-facets-display-fixture');
     });
 
-    test('', function() {
-
+    test('initial values are correct', function() {
+      assert.isObject(element.facetSelection);
+      assert.deepEqual(element.facetSelection, {});
+      assert.isArray(element.facetSelectionAsArray);
+      assert.equal(element.facetSelectionAsArray.length, 0);
     });
 
+    test('facetSelectionAsArray is updated when facetSelection is added and notifyPath fires', function() {
+      element.facetSelection['Los Angeles, CA'] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
+
+      assert.equal(element.facetSelectionAsArray.length, 1);
+      assert.equal(element.facetSelectionAsArray[0], element.facetSelection['Los Angeles, CA']);
+    });
+
+    test('facetSelectionAsArray is updated when facetSelection is unchecked and notifyPath fires', function() {
+      element.facetSelection['Los Angeles, CA'] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+
+      element.facetSelectionAsArray[0] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+
+      element.facetSelection['Los Angeles, CA'].enabled = false;
+      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
+
+      assert.equal(element.facetSelectionAsArray.length, 0);
+    });
+
+    test('getItemText returns text or key property of argument', function() {
+      assert.deepEqual(element.getItemText({text: 'text here', key: 'some key'}), 'text here');
+      assert.deepEqual(element.getItemText({key: 'some key'}), 'some key');
+    });
+
+    test('removeFacet removes facet from facetSelectionArray', function() {
+      element.facetSelection['Los Angeles, CA'] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+
+      element.facetSelectionAsArray[0] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+
+      var eventToPassIn = document.createEvent('UIEvent');
+      eventToPassIn.model = {
+        item: element.facetSelection['Los Angeles, CA']
+      };
+      element.removeFacet(eventToPassIn);
+
+      assert.isFalse(element.facetSelection['Los Angeles, CA'].enabled);
+      assert.equal(element.facetSelectionAsArray.length, 0);
+    });
   });
 </script>
 
