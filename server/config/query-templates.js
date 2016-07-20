@@ -36,6 +36,12 @@ module.exports = {
         }
     },
 
+    commonTermsPathToValueQuery: {
+        query:{
+            terms:{}
+        }
+    },
+
     offerRevisions: {
         query: {
             "query": {
