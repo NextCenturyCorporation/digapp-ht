@@ -9,10 +9,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-filter-builder/elastic-client-filter-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/json-transform/json-transform.html">
 <link rel="import" href="../feature-aggregation/feature-aggregation.html">
-<link rel='import' href='../mustache.html'>
 
 <dom-module id="feature-query-and-display">
   <template>
@@ -22,15 +25,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
-    <elastic-search
+    <elastic-client-aggregation-builder
+      name="[[aggregationName]]"
+      type="terms"
+      count="0"
+      field="[[aggregationField]]"
+      ejs-aggregation="{{aggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-filter-builder
+      type="terms"
+      field="[[filterField]]"
+      values="[[filterValues]]"
+      ejs-filter="{{producedFilter}}">
+    </elastic-client-filter-builder>
+
+    <elastic-client-query-builder
+      type="terms"
+      field="[[queryField]]"
+      values="[[queryValues]]"
+      ejs-query="{{query}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[client]]"
       index="[[index]]"
-      elastic-type="[[indexTypes]]"
+      elastic-types="[[indexTypes]]"
       query="[[query]]"
+      aggregations="[[buildArray(aggregation)]]"
+      filters="[[consumedFilters]]"
       results="{{queryResults}}"
       loading="{{loading}}"
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
     <json-transform
       data-in="[[queryResults]]"
@@ -40,8 +67,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <feature-aggregation class="flex" small
       feature-title="[[featureTitle]]"
-      key="[[key]]"
-      agg="[[transformResults.features]]"
+      data-id="[[dataId]]"
+      data-text="[[dataText]]"
+      data-text="[[dataCount]]"
+      data="[[getData(transformResults, transformProperty)]]"
+      filter-values="{{filterValues}}"
       loading="[[loading]]">
     </feature-aggregation>
   </template>
@@ -53,76 +83,167 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'feature-query-and-display',
       properties: {
-        queryTemplate: {
-          type: Object,
-          notify: true
+        /**
+         * The name for the elasticsearch aggregation.
+         */
+        aggregationName: {
+          type: String
         },
 
-        filterField: {
-          type: String,
-          notify: true
-        },
-
-        filterValue: {
-          // Can deserialize strings too.
-          type: Array,
-          notify: true
-        },
-
+        /**
+         * The field for the elasticsearch aggregation.
+         */
         aggregationField: {
-          type: String,
-          notify: true
+          type: String
         },
 
-        client: {
+        /**
+         * The elasticjs aggregation created by this component.
+         */
+        aggregation: {
           type: Object,
           notify: true
         },
 
-        index: {
-          type: String,
-          notify: true
+        /**
+         * The field for the elasticsearch filter.
+         */
+        filterField: {
+          type: String
         },
 
-        indexTypes: {
-          type: Array,
-          notify: true
+        /**
+         * The string value or array of values for the elasticsearch filter.
+         */
+        filterValues: {
+          type: Array
         },
 
-        transform: {
+        /**
+         * The elasticjs filter created by this component.
+         */
+        producedFilter: {
           type: Object,
           notify: true
         },
 
-        featureTitle: {
-          type: String,
-          notify: true
+        /**
+         * The field for the elasticsearch query.
+         */
+        queryField: {
+          type: String
         },
 
-        key: {
-          type: String,
-          notify: true
+        /**
+         * The string value or array of values for the elasticsearch query.
+         */
+        queryValues: {
+          type: Array
         },
 
+        /**
+         * The elasticjs query created by this component.
+         */
         query: {
           type: Object,
-          computed: 'buildQuery(queryTemplate, filterField, filterValue, aggregationField)'
+          notify: true
         },
 
+        /**
+         * The elasticsearch client.
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The elasticsearch index to query.
+         */
+        index: {
+          type: String
+        },
+
+        /**
+         * The elasticsearch index types to query.
+         */
+        indexTypes: {
+          type: Array
+        },
+
+        /**
+         * The list of elasticjs filters used in the aggregations run by this component.
+         */
+        consumedFilters: {
+          type: Array,
+          notify: true
+        },
+
+        /**
+         * The results of the query run by this component.
+         */
         queryResults: {
           type: Object,
           notify: true
         },
 
+        /**
+         * Whether the query run by this component is loading.
+         */
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * The transform for the query results.
+         */
+        transform: {
+          type: Object
+        },
+
+        /**
+         * The property with the data in the transform results object.  By default, uses the transform results object itself.
+         */
+        transformProperty: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The results of the transform run by this component.
+         */
         transformResults: {
           type: Object,
           notify: true
         },
 
-        loading: {
-          type: Boolean,
-          value: false,
-          notify: true
+        /**
+         * Property in the data objects containing a unique ID (used to set the filter values).
+         */
+        dataId: {
+          type: String
+        },
+
+        /**
+         * Property in the data objects containing the text to display.
+         */
+        dataText: {
+          type: String
+        },
+
+        /**
+         * Property in the data objects containing the count to display.
+         */
+        dataCount: {
+          type: String
+        },
+
+        /**
+         * The title for this component.
+         */
+        featureTitle: {
+          type: String
         },
 
         error: {
@@ -130,13 +251,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      buildQuery: function(queryTemplate, filterField, filterValue, aggregationField) {
-        /* globals _, Mustache */
-        return JSON.parse(decodeURIComponent(Mustache.render(JSON.stringify(queryTemplate), {
-          filterField: filterField,
-          filterValue: encodeURIComponent(_.isArray(filterValue) ? filterValue.join('\",\"') : filterValue),
-          aggregationField: aggregationField
-        })));
+      buildArray: function(item) {
+        return item ? [item] : [];
+      },
+
+      getData: function(data, property) {
+        return property ? data[property] : data;
       }
     });
   })();

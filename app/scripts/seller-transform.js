@@ -12,10 +12,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
   function createLocationTimelineDetails(bucket) {
     var details = [];
 
-    if(bucket.publisher) {
+    if(bucket.publishers) {
       details.push({
         name: 'Website',
-        items: _.map(bucket.publisher.buckets, function(publisher) {
+        items: _.map(bucket.publishers.buckets, function(publisher) {
           return {
             text: publisher.key,
             type: 'webpage'
@@ -174,6 +174,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
+
     phoneEmails: function(data) {
       var newData = [];
 
@@ -192,19 +193,16 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
-    offerLocationData: function(data) {
-      return commonTransforms.offerLocationData(data);
-    },
+
     sellerOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
+
     locationTimeline: function(data) {
       return {
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.dates.dates.buckets) : undefined
       };
     }
   };

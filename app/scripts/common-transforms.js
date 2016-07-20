@@ -15,6 +15,7 @@ var commonTransforms = (function(_, dateFormat) {
       var geoData = key.key.split(':');
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var geo = {
+        key: key.key,
         city: geoData[0],
         state: geoData[1],
         country: geoData[2],
@@ -71,7 +72,7 @@ var commonTransforms = (function(_, dateFormat) {
     peopleFeatures: function(data) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       return {
-        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.buckets, 'key') : []
+        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.people_features.buckets, 'key') : []
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     },
@@ -192,14 +193,9 @@ var commonTransforms = (function(_, dateFormat) {
     },
 
     offerLocationData: function(data) {
-      var newData = {};
-
-      if(data && data.hits.hits.length > 0) {
-        var aggs = data.aggregations;
-        newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
-      }
-
-      return newData;
+      return {
+        offerLocation: (data && data.hits.hits.length) ? getGeoFromKeys(data.aggregations.city.city.buckets) : []
+      };
     },
 
     getSellerId: function(record) {

@@ -36,60 +36,6 @@ module.exports = {
         }
     },
 
-    commonMatchQueryOfferSorted: {
-        query:{
-            match:{ '{{field}}' : '{{value}}' }
-        },
-        "sort": [
-                  {
-                    "validFrom": {
-                    "order": "desc"
-                }
-            }
-        ] 
-    },
-
-    offerLocation:{
-      "aggs": {
-        "phone": {
-          "filter": {
-            "term": {
-              "{{field}}": "{{value}}"
-            }
-          },
-          "aggs": {
-            "city": {
-              "terms": {
-                "field": "availableAtOrFrom.address.key",
-                "size": 0
-              }
-            }
-          }
-        }
-      },
-      "size": 0
-    },
-
-    peopleFeatures: {
-      "query": {
-        "filtered": {
-          "filter": {
-            "terms": {
-              "{{filterField}}": ["{{filterValue}}"]
-            }
-          }
-        }
-      },
-      "aggs": {
-        "people_features": {
-          "terms": {
-            "field": "{{aggregationField}}",
-            "size": 0
-          }
-        }
-      }
-    },
-
     offerRevisions: {
         query: {
             "query": {
@@ -131,50 +77,6 @@ module.exports = {
                 }
             }
         }
-    },
-
-    locationTimeline: {
-      "aggs": {
-        "location_timeline": {
-          "filter": {
-            "term": {
-              '{{field}}': '{{value}}'
-            }
-          },
-          "aggs": {
-            "dates": {
-              "date_histogram": {
-                "field": "validFrom",
-                "interval": "day"
-              },
-              "aggs": {
-                "locations": {
-                  "terms": {
-                    "field": "availableAtOrFrom.address.key",
-                    "order": { "_term" : "asc" },
-                    "size": 0
-                  },
-                  "aggs": {
-                    "publisher": {
-                      "terms": {
-                        "field": "mainEntityOfPage.publisher.name.raw",
-                        "size": 0
-                      }
-                    },
-                    "mentions": {
-                      "terms": {
-                        "field": "mainEntityOfPage.mentions",
-                        "size": 0
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "size": 0
     }
   }
 };

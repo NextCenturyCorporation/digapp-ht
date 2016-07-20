@@ -62,139 +62,159 @@
       field: the field in elasticsearch to use in the query
       value: value of the field above -->
 
-    <!-- emailDisplay.telephone query and transform -->
-    <query-builder
-      query="{{emailQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[params.value]]">
-    </query-builder>
+    <!-- Email query -->
 
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[params.value]]"
+      ejs-query="{{emailQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[emailQuery]]'
+      elastic-types='["email"]'
+      query="[[emailQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{email}}"
-      elastic-type='["email"]'
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[email]]"
-     data-out="{{emailDisplay.email}}"
-     transform-function="[[clientConfig.transforms.email.email]]"
-     ></json-transform>
+      data-in="[[email]]"
+      data-out="{{emailDisplay.email}}"
+      transform-function="[[clientConfig.transforms.email.email]]">
+    </json-transform>
 
-      <!--
-        build the query for offer locations
-      -->
-     <query-builder
-      query="{{offerLocationQuery}}"
-      query-template="{{config.queryTemplates.offerLocation}}"
-      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
-    </query-builder>
+    <!-- Seller query -->
 
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerLocationQuery]]'
-      results="{{offerLocationAggs}}"
-      elastic-type='["offer"]'
-      last-error="{{error}}">
-    </elastic-search>
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[emailDisplay.email.sellerId]]"
+      ejs-query="{{sellerQuery}}">
+    </elastic-client-query-builder>
 
-    <json-transform
-     data-in="[[offerLocationAggs]]"
-     data-out="{{emailDisplay.offerLocation}}"
-     transform-function="[[clientConfig.transforms.email.offerLocationData]]"
-     ></json-transform>
-
-    <!-- Get the seller Object -->
-     <query-builder
-      query="{{sellerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[emailDisplay.email.sellerId]]">
-    </query-builder>
-
-    <elastic-search
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["seller"]'
-      query='[[sellerQuery]]'
+      query="[[sellerQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{seller}}"
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerPhoneEmails}}"
-     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
-     ></json-transform>
+      data-in="[[seller]]"
+      data-out="{{sellerPhoneEmails}}"
+      transform-function="[[clientConfig.transforms.seller.phoneEmails]]">
+    </json-transform>
 
     <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerObject}}"
-     transform-function="[[clientConfig.transforms.seller.seller]]"
-     ></json-transform>
+      data-in="[[seller]]"
+      data-out="{{sellerObject}}"
+      transform-function="[[clientConfig.transforms.seller.seller]]">
+    </json-transform>
 
     <json-combine
       data-in1="[[sellerPhoneEmails]]"
       data-in2="[[emailDisplay.email.emailAddress]]"
       data-out="{{showSeller}}"
-      combine-function="[[clientConfig.transforms.email.computeShowSeller]]"
-    ></json-combine>
+      combine-function="[[clientConfig.transforms.email.computeShowSeller]]">
+    </json-combine>
 
-    <!--
-        Get all the offers for this email
-    -->
-    <query-builder
-      query="{{emailOffersQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
-      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
-    </query-builder>
+    <!-- Offer query -->
 
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="mainEntityOfPage.mentions"
+      values="[[emailDisplay.email._id]]"
+      ejs-query="{{emailOffersQuery}}">
+    </elastic-client-query-builder>
+
+    <!-- Offer search -->
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
       page="{{pageNum}}"
       page-size="{{pageSize}}"
-      query='[[emailOffersQuery]]'
+      query="[[emailOffersQuery]]"
+      aggregations="[]"
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      sort-field="validFrom"
+      sort-order="desc"
       results="{{emailOffers}}"
-      elastic-type='["offer"]'
       loading="{{offersLoading}}"
       last-error="{{error}}">
-
-    </elastic-search>
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[emailOffers]]"
-     data-out="{{emailDisplay.emailOffers}}"
-     transform-function="[[clientConfig.transforms.email.emailOffersData]]"
-     ></json-transform>
+      data-in="[[emailOffers]]"
+      data-out="{{emailDisplay.emailOffers}}"
+      transform-function="[[clientConfig.transforms.email.emailOffersData]]">
+    </json-transform>
 
     <!-- Location timeline for bar chart and itinerary -->
 
-    <query-builder
-      query="{{locationTimelineQuery}}"
-      query-template="{{config.queryTemplates.locationTimeline}}"
-      field="mainEntityOfPage.mentions" value="[[emailDisplay.email._id]]">
-    </query-builder>
+    <elastic-client-aggregation-builder
+      name="mentions"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentions"
+      ejs-aggregation="{{mentionsAggregation}}">
+    </elastic-client-aggregation-builder>
 
-    <elastic-search
+    <elastic-client-aggregation-builder
+      name="publishers"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.publisher.name.raw"
+      ejs-aggregation="{{publishersAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="locations"
+      type="terms"
+      count="0"
+      order="_term"
+      direction="asc"
+      field="availableAtOrFrom.address.key"
+      nested-aggregations="[[buildArray(mentionsAggregation, publishersAggregation)]]"
+      ejs-aggregation="{{locationsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="dates"
+      type="date_histogram"
+      count="0"
+      field="validFrom"
+      nested-aggregations="[[buildArray(locationsAggregation)]]"
+      ejs-aggregation="{{datesAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query="[[locationTimelineQuery]]"
+      elastic-types='["offer"]'
+      query="[[emailOffersQuery]]"
+      aggregations="[[buildArray(datesAggregation)]]"
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
       results="{{locationTimelineResults}}"
-      elastic-type='["offer"]'
       loading="{{loadingLocationTimeline}}"
-      lastError="{{error}}">
-    </elastic-search>
+      last-error="{{error}}">
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[locationTimelineResults]]"
-     data-out="{{emailDisplay.locationTimeline}}"
-     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
-     ></json-transform>
-
+      data-in="[[locationTimelineResults]]"
+      data-out="{{emailDisplay.locationTimeline}}"
+      transform-function="[[clientConfig.transforms.seller.locationTimeline]]">
+    </json-transform>
 
     <!-- Main Content -->
     <div class="entity">
@@ -261,13 +281,13 @@
                   </div>
 
                   <people-features
-                    query-template="{{config.queryTemplates.peopleFeatures}}"
-                    filter-field="offers.mainEntityOfPage.mentions"
-                    filter-value="[[emailDisplay.email._id]]"
+                    query-field="mainEntityOfPage.mentions"
+                    query-values="[[emailDisplay.email._id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
-                    index-types='["adultservice"]'
-                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                    consumed-filters="[[buildArray(locationFilter)]]"
+                    produced-filters="{{peopleFilters}}"
+                    transforms="[[clientConfig.transforms]]">
                   </people-features>
                 </section>
               </paper-material>
@@ -371,12 +391,28 @@
                     <leaflet-wrapper map-data="{{emailDisplay.offerLocation.offerLocation}}">
                     </leaflet-wrapper>
                   </section>
+                </template>
 
                   <!-- City summary -->
-                  <section class="where-details flex-none">
-                    <feature-aggregation feature-title="Offers per City" key="name" agg="[[emailDisplay.offerLocation.offerLocation]]"></feature-aggregation>
-                  </section>
-                </template>
+                <section class="where-details flex-none">
+                  <feature-query-and-display
+                    aggregation-name="city"
+                    aggregation-field="availableAtOrFrom.address.key"
+                    filter-field="availableAtOrFrom.address.key"
+                    produced-filter="{{locationFilter}}"
+                    query="[[emailOffersQuery]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    consumed-filters="[[buildArray(peopleFilters)]]"
+                    transform="[[clientConfig.transforms.common.offerLocationData]]"
+                    transform-results="{{emailDisplay.offerLocation}}"
+                    transform-property="offerLocation"
+                    data-id="key"
+                    data-text="name"
+                    feature-title="Offers per City">
+                  </feature-query-and-display>
+                </section>
               </paper-material>
 
               <div class="h-divider"></div>
@@ -415,6 +451,7 @@
 
   <script>
   (function(document) {
+    /* globals _ */
     var app = document.querySelector('#app');
 
     app.showConfig = function(req, res) {
@@ -430,6 +467,18 @@
         var paramPair = params[i].split('=');
         app.params[paramPair[0]] =  paramPair[1];
       }
+    };
+
+    app.buildArray = function() {
+      var array = [];
+      _.each(arguments, function(value) {
+        if(_.isArray(value)) {
+          array = array.concat(value);
+        } else if(value) {
+          array.push(value);
+        }
+      });
+      return array;
     };
 
     app.getURLParams();

@@ -34,14 +34,13 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
-    offerLocationData: function(data) {
-      return commonTransforms.offerLocationData(data);
-    },
+
     emailOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
+
     computeShowSeller: function(seller, email) {
       var sellerOut = [];
       _.each(seller, function(record) {

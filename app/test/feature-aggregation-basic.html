@@ -32,188 +32,366 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals describe, before, fixture, expect, it */
+  /* globals suite, setup, fixture, expect, test */
   /* jshint -W030 */
   'use strict';
 
-  describe('initial feature-aggregation tests', function() {
-    var element;
-    var arrayToPassIn;
+  suite('feature-aggregation basic tests', function() {
+    var component;
 
-    before(function() {
-
-      arrayToPassIn = [
-        {age: 24, count: 4},
-        {age: 18, count: 3}
-      ];
-
-      element = fixture('feature-aggregation-fixture');
-      element.featureTitle = 'Ages';
-      element.agg = arrayToPassIn;
-      element.key = 'age';
-      element.limit = 5;
-
+    setup(function() {
+      component = fixture('feature-aggregation-fixture');
+      component.data = [{
+        id: 1,
+        text: 'a',
+        count: 4
+      }, {
+        id: 2,
+        text: 'b',
+        count: 3
+      }];
     });
 
-    it('featureTitle is set correctly', function() {
-      expect(element.featureTitle).to.be.a('string');
-      expect(element.featureTitle).to.be.equal('Ages');
+    test('data is set correctly', function() {
+      expect(component.data).to.be.an('array');
+      expect(component.data).to.deep.equal([{
+        id: 1,
+        text: 'a',
+        count: 4
+      }, {
+        id: 2,
+        text: 'b',
+        count: 3
+      }]);
     });
 
-    it('key is set correctly', function() {
-      expect(element.key).to.be.a('string');
-      expect(element.key).to.be.equal('age');
+    test('properties are set to defaults correctly', function() {
+      expect(component.dataId).to.be.a('string');
+      expect(component.dataId).to.equal('id');
+      expect(component.dataText).to.be.a('string');
+      expect(component.dataText).to.equal('text');
+      expect(component.dataCount).to.be.a('string');
+      expect(component.dataCount).to.equal('count');
+      expect(component.limit).to.be.a('number');
+      expect(component.limit).to.equal(10);
+      expect(component.loading).to.be.a('boolean');
+      expect(component.loading).to.be.false;
+      expect(component.showMore).to.be.a('boolean');
+      expect(component.showMore).to.be.false;
+      expect(component.showLink).to.be.a('boolean');
+      expect(component.showLink).to.be.false;
+      expect(component.linkType).to.equal(undefined);
+      expect(component.linkField).to.equal(undefined);
+      expect(component.small).to.be.a('boolean');
+      expect(component.small).to.be.false;
+      expect(component.featureTitle).to.be.a('string');
+      expect(component.featureTitle).to.equal('Features');
+      expect(component.filterValues).to.be.an('array');
+      expect(component.filterValues).to.deep.equal([]);
+      expect(component.selectedItems).to.be.an('array');
+      expect(component.selectedItems).to.deep.equal([]);
     });
 
-    it('agg array is set correctly', function() {
-      expect(element.agg).to.be.an('array');
-      expect(element.agg).to.be.deep.equal(arrayToPassIn);
+    test('displayAggregations is set correctly', function() {
+      expect(component.displayAggregations).to.be.an('array');
+      expect(component.displayAggregations).to.deep.equal([{
+        id: 1,
+        text: 'a',
+        count: 4
+      }, {
+        id: 2,
+        text: 'b',
+        count: 3
+      }]);
     });
 
-    it('limit is set correctly', function() {
-      expect(element.limit).to.be.an('number');
-      expect(element.limit).to.be.equal(5);
+    test('changing data also changes displayAggregations', function() {
+      component.data = [{
+        id: 3,
+        text: 'c',
+        count: 2
+      }];
+      expect(component.displayAggregations).to.be.an('array');
+      expect(component.displayAggregations).to.deep.equal([{
+        id: 3,
+        text: 'c',
+        count: 2
+      }]);
     });
 
-    it('showLink defaults to false', function() {
-      expect(element.showLink).to.be.a('boolean');
-      expect(element.showLink).to.be.equal(false);
+    test('doesOverflow returns overflow if data length is greater than limit', function() {
+      expect(component.doesOverflow(3, 2)).to.equal('overflow');
     });
 
-    it('linkType defaults to undefined', function() {
-      expect(element.linkType).to.be.equal(undefined);
+    test('doesOverflow returns empty if data length is less than or equal to limit', function() {
+      expect(component.doesOverflow(0, 2)).to.equal('');
+      expect(component.doesOverflow(1, 2)).to.equal('');
+      expect(component.doesOverflow(2, 2)).to.equal('');
     });
 
-    it('linkField defaults to undefined', function() {
-      expect(element.linkField).to.be.equal(undefined);
+    test('doesShowNoAggregationsText returns true with no data', function() {
+      expect(component.doesShowNoAggregationsText(0, false)).to.be.true;
     });
 
-    it('getItemKey returns correct value', function() {
-      var item = element.agg[0];
-      var result = element.getItemKey(item);
-
-      expect(result).to.be.a('number');
-      expect(result).to.be.deep.equal(item.age);
+    test('doesShowNoAggregationsText returns false if loading or with data', function() {
+      expect(component.doesShowNoAggregationsText(0, true)).to.be.false;
+      expect(component.doesShowNoAggregationsText(2, false)).to.be.false;
     });
 
-    it('getWidth returns correct width', function() {
-      var item = element.agg[0];
-      var result = element.getWidth(item);
-
-      expect(result).to.be.a('string');
-      expect(result).to.be.deep.equal('width: ' + Math.round((item.count / element.agg[0].count) * 100) + '%;');
+    test('isSmall returns small if small is true', function() {
+      expect(component.isSmall(true)).to.equal('small');
     });
 
-    // Do we need to test filterToLimit here?
-
-    it('canShowMore is false', function() {
-      var result = element.canShowMore;
-
-      expect(result).to.be.a('boolean');
-      expect(result).to.be.deep.equal(false);
+    test('isSmall returns empty if small is false', function() {
+      expect(component.isSmall(false)).to.equal('');
     });
 
+    test('getProperty returns correct values', function() {
+      var item = {
+        id: 1,
+        text: 'a',
+        count: 4
+      };
+      expect(component.getProperty(item, component.dataId)).to.equal(1);
+      expect(component.getProperty(item, component.dataText)).to.equal('a');
+      expect(component.getProperty(item, component.dataCount)).to.equal(4);
+    });
+
+    test('getWidth returns correct widths based on the data', function() {
+      expect(component.getWidth({
+        count: 4
+      }, 'count')).to.equal('width: 100%;');
+      expect(component.getWidth({
+        count: 3
+      }, 'count')).to.equal('width: 75%;');
+      expect(component.getWidth({
+        count: 2
+      }, 'count')).to.equal('width: 50%;');
+      expect(component.getWidth({
+        count: 1
+      }, 'count')).to.equal('width: 25%;');
+    });
+
+    test('adding selectedItems adds to filterValues', function() {
+      component.selectedItems = [{
+        id: 1,
+        text: 'a',
+        count: 4
+      }];
+      expect(component.filterValues).to.deep.equal([1]);
+      component.selectedItems = component.data;
+      expect(component.filterValues).to.deep.equal([1, 2]);
+    });
+
+    test('toggleItem selects the item', function() {
+      expect(component.data[1].selected).to.be.undefined;
+
+      component.toggleItem({
+        model: {
+          item: component.data[1]
+        }
+      });
+      expect(component.data[1].selected).to.be.true;
+      expect(component.selectedItems).to.deep.equal([{
+        selected: true,
+        id: 2,
+        text: 'b',
+        count: 3
+      }]);
+      expect(component.filterValues).to.deep.equal([2]);
+    });
+
+    test('toggleItem deselects the item', function() {
+      component.data[1].selected = true;
+      component.selectedItems = [component.data[1]];
+
+      component.toggleItem({
+        model: {
+          item: component.data[1]
+        }
+      });
+      expect(component.data[1].selected).to.be.false;
+      expect(component.selectedItems).to.deep.equal([]);
+      expect(component.filterValues).to.deep.equal([]);
+    });
   });
 
-  describe('feature-aggregation test -- edge cases for width of bar', function() {
-    var element;
-    var arrayToPassIn;
+  suite('feature-aggregation with properties tests', function() {
+    var component;
 
-    before(function() {
-
-      arrayToPassIn = [
-        {age: 24, count: 300},
-        {age: 19, count: 1},
-        {age: 18, count: 0}
-      ];
-
-      element = fixture('feature-aggregation-fixture');
-      element.featureTitle = 'Ages';
-      element.agg = arrayToPassIn;
-      element.key = 'age';
-      element.limit = 5;
-      element.showLink = true;
-
+    setup(function() {
+      component = fixture('feature-aggregation-fixture');
+      component.dataId = 'uuid';
+      component.dataText = 'name';
+      component.dataCount = 'number';
+      component.limit = 2;
+      component.small = true;
+      component.featureTitle = 'Test';
+      component.data = [{
+        uuid: 1,
+        name: 'a',
+        number: 4
+      }, {
+        uuid: 2,
+        name: 'b',
+        number: 3
+      }, {
+        uuid: 3,
+        name: 'c',
+        number: 2
+      }, {
+        uuid: 4,
+        name: 'd',
+        number: 2
+      }, {
+        uuid: 5,
+        name: 'e',
+        number: 1
+      }];
     });
 
-    it('getWidth returns correct width if calculated width is 0 but count is not', function() {
-      var item = element.agg[1];
-      var result = element.getWidth(item);
-      var calculatedWidth = Math.round((item.count / element.agg[0].count) * 100);
+    test('dataId, dataText, dataCount, limit, small, featureTitle, and data are set correctly', function() {
+      expect(component.dataId).to.be.a('string');
+      expect(component.dataId).to.equal('uuid');
+      expect(component.dataText).to.be.a('string');
+      expect(component.dataText).to.equal('name');
+      expect(component.dataCount).to.be.a('string');
+      expect(component.dataCount).to.equal('number');
+      expect(component.limit).to.be.a('number');
+      expect(component.limit).to.equal(2);
+      expect(component.small).to.be.a('boolean');
+      expect(component.small).to.be.true;
+      expect(component.featureTitle).to.be.a('string');
+      expect(component.featureTitle).to.equal('Test');
+      expect(component.data).to.be.an('array');
+      expect(component.data).to.deep.equal([{
+        uuid: 1,
+        name: 'a',
+        number: 4
+      }, {
+        uuid: 2,
+        name: 'b',
+        number: 3
+      }, {
+        uuid: 3,
+        name: 'c',
+        number: 2
+      }, {
+        uuid: 4,
+        name: 'd',
+        number: 2
+      }, {
+        uuid: 5,
+        name: 'e',
+        number: 1
+      }]);
+    });
+
+    test('properties are set to defaults correctly', function() {
+      expect(component.loading).to.be.a('boolean');
+      expect(component.loading).to.be.false;
+      expect(component.showLink).to.be.a('boolean');
+      expect(component.showLink).to.be.false;
+      expect(component.linkType).to.equal(undefined);
+      expect(component.linkField).to.equal(undefined);
+      expect(component.filterValues).to.be.an('array');
+      expect(component.filterValues).to.deep.equal([]);
+      expect(component.selectedItems).to.be.an('array');
+      expect(component.selectedItems).to.deep.equal([]);
+    });
+
+    test('displayAggregations is set correctly', function() {
+      expect(component.displayAggregations).to.be.an('array');
+      expect(component.displayAggregations).to.deep.equal([{
+        uuid: 1,
+        name: 'a',
+        number: 4
+      }, {
+        uuid: 2,
+        name: 'b',
+        number: 3
+      }]);
+    });
+
+    test('showMore is set to true', function() {
+      expect(component.showMore).to.be.a('boolean');
+      expect(component.showMore).to.be.true;
+    });
+
+    test('showMoreAggregations changes displayAggregations and showMore', function() {
+      component.showMoreAggregations();
+      expect(component.displayAggregations).to.be.an('array');
+      expect(component.displayAggregations).to.deep.equal(component.data);
+      expect(component.showMore).to.be.a('boolean');
+      expect(component.showMore).to.be.false;
+    });
+  });
+
+  suite('feature-aggregation test -- edge cases for width of bar', function() {
+    var component;
+
+    setup(function() {
+      component = fixture('feature-aggregation-fixture');
+      component.data = [{
+        count: 300
+      }, {
+        count: 1
+      }, {
+        count: 0
+      }];
+    });
+
+    test('getWidth returns correct width if calculated width is 0 but count is not', function() {
+      var item = component.data[1];
+      var result = component.getWidth(item, 'count');
+      var calculatedWidth = Math.round((item.count / component.data[0].count) * 100);
 
       expect(result).to.be.a('string');
       expect(calculatedWidth).to.be.equal(0);
-      expect(result).to.be.deep.equal('width: 1%;');
+      expect(result).to.deep.equal('width: 1%;');
     });
 
-    it('getWidth returns correct width if item.count is 0', function() {
-      var item = element.agg[2];
-      var result = element.getWidth(item);
-      var calculatedWidth = Math.round((item.count / element.agg[0].count) * 100);
+    test('getWidth returns correct width if item.count is 0', function() {
+      var item = component.data[2];
+      var result = component.getWidth(item, 'count');
+      var calculatedWidth = Math.round((item.count / component.data[0].count) * 100);
 
       expect(result).to.be.a('string');
       expect(calculatedWidth).to.be.equal(0);
-      expect(result).to.be.deep.equal('width: 0%;');
-    });
-
-  });
-
-  describe('feature-aggregation test -- if showLink enabled but linkType/linkField not present', function() {
-    var element;
-    var arrayToPassIn;
-
-    before(function() {
-
-      arrayToPassIn = [
-        {age: 24, count: 4},
-        {age: 18, count: 3}
-      ];
-
-      element = fixture('feature-aggregation-fixture');
-      element.featureTitle = 'Ages';
-      element.agg = arrayToPassIn;
-      element.key = 'age';
-      element.limit = 5;
-      element.showLink = true;
-
+      expect(result).to.deep.equal('width: 0%;');
     });
   });
 
-  describe('feature-aggregation test -- if showLink enabled and linkType/linkField present', function() {
-    var element;
-    var arrayToPassIn;
+  suite('feature-aggregation test -- if showLink enabled and linkType/linkField present', function() {
+    var component;
 
-    before(function() {
-
-      arrayToPassIn = [
-        {age: 24, count: 4},
-        {age: 18, count: 3}
-      ];
-
-      element = fixture('feature-aggregation-fixture');
-      element.featureTitle = 'Ages';
-      element.agg = arrayToPassIn;
-      element.key = 'age';
-      element.limit = 5;
-      element.showLink = true;
-      element.linkType = 'provider';
-      element.linkField = 'age';
-
+    setup(function() {
+      component = fixture('feature-aggregation-fixture');
+      component.data = [{
+        age: 24,
+        count: 4
+      }, {
+        age: 18,
+        count: 3
+      }];
+      component.showLink = true;
+      component.linkType = 'provider';
+      component.linkField = 'age';
     });
 
-    it('showLink is set correctly', function() {
-      expect(element.showLink).to.be.a('boolean');
-      expect(element.showLink).to.be.equal(true);
+    test('showLink is set correctly', function() {
+      expect(component.showLink).to.be.a('boolean');
+      expect(component.showLink).to.be.equal(true);
     });
 
-    it('linkType is set correctly', function() {
-      expect(element.linkType).to.be.a('string');
-      expect(element.linkType).to.be.equal('provider');
+    test('linkType is set correctly', function() {
+      expect(component.linkType).to.be.a('string');
+      expect(component.linkType).to.be.equal('provider');
     });
 
-    it('linkField is set correctly', function() {
-      expect(element.linkField).to.be.a('string');
-      expect(element.linkField).to.be.equal('age');
+    test('linkField is set correctly', function() {
+      expect(component.linkField).to.be.a('string');
+      expect(component.linkField).to.be.equal('age');
     });
   });
 </script>

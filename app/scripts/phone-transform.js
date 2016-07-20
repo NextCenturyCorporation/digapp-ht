@@ -37,14 +37,13 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
-    offerLocationData: function(data) {
-      return commonTransforms.offerLocationData(data);
-    },
+
     phoneOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
+
     computeShowSeller: function(seller, phone) {
       var sellerOut = [];
       _.each(seller, function(record) {
