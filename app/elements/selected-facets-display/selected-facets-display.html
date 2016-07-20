@@ -1,0 +1,98 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="selected-facets-display">
+  <template>
+    <style include="icon-styles"></style>
+    <style>
+      :host {
+        display: block;
+      }
+      .selected-facet {
+        background: var(--paper-blue-grey-200);
+        padding: 5px;
+        white-space: nowrap;
+        margin: 5px;
+      }
+      iron-icon {
+        margin-bottom: 3px;
+      }
+      iron-icon:hover {
+        color: var(--dark-link-text-color);
+      }
+    </style>
+    <div class="horizontal layout wrap">
+      <template is="dom-repeat" items="{{facetSelectionAsArray}}">
+        <span class="selected-facet">
+          <span>[[item.category]]: [[getItemText(item)]]</span>
+          <iron-icon class="iron-icon-small" title="Remove Facet" on-tap="removeFacet" icon="close"></iron-icon>
+        </span>
+      </template>
+    </div>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+    /* globals _ */
+
+    Polymer({
+      is: 'selected-facets-display',
+
+      properties: {
+        facetSelection: {
+          type: Object,
+          value: function() {
+            return {};
+          },
+          notify: true
+        },
+        facetSelectionAsArray: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true
+        }
+      },
+      observers: [
+        'displayFacets(facetSelection.*)'
+      ],
+      displayFacets: function(facetSelection) {
+        var me = this;
+
+        if(facetSelection && facetSelection.path === 'facetSelection.*' && facetSelection.value) {
+          if(facetSelection.value.enabled) {
+            this.push('facetSelectionAsArray', facetSelection.value);
+          } else {
+            var index = _.findIndex(me.facetSelectionAsArray, function(facet) {
+              return facet.key === facetSelection.value.key &&
+                facet.category === facetSelection.value.category;
+            });
+
+            if(index !== -1) {
+              this.splice('facetSelectionAsArray', index, 1);
+            }
+          }
+        }
+      },
+      getItemText: function(item) {
+        return item.text ? item.text : item.key;
+      },
+      removeFacet: function() {
+        var facet = event.model.item;
+        this.facetSelection[facet.key].enabled = false;
+        this.notifyPath('facetSelection.*', this.facetSelection[facet.key]);
+      }
+    });
+  })();
+  </script>
+</dom-module>
