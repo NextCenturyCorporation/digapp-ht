@@ -125,7 +125,7 @@ Custom property | Description | Default
 
     <div class="feature-wrapper">
       <div class="feature-title">[[featureTitle]]</div>
-      <template is="dom-if" if="[[doesShowNoAggregationsText(data.length, loading)]]">
+      <template is="dom-if" if="[[doesShowNoAggregationsText(combinedData.length, loading)]]">
         <div class="feature-label">None</div>
       </template>
 
@@ -135,12 +135,12 @@ Custom property | Description | Default
         </template>
       </template>
 
-      <div class$="feature-content [[doesOverflow(data.length, limit)]] [[isSmall(small)]]">
+      <div class$="feature-content [[doesOverflow(combinedData.length, limit)]] [[isSmall(small)]]">
         <template id="barList" is="dom-repeat" items="[[displayAggregations]]">
           <div class="row-wrapper layout horizontal">
             <paper-checkbox name="[[getProperty(item, dataText)]]" checked="[[item.selected]]" on-change="toggleItem" class="bar-checkbox"></paper-checkbox>
             <div class="bar-wrapper layout horizontal center center-justified">
-              <div class="bar" style$="[[getWidth(item, dataCount)]]"></div>
+              <div class="bar" style$="width: [[item.width]]%;"></div>
               <div class="bar-title flex">
                 <template is="dom-if" if="[[showLink]]">
                   <a href$="[[createLink(linkType, getProperty(item, dataText), linkField)]]">[[getProperty(item, dataText)]]</a>
@@ -209,12 +209,11 @@ Custom property | Description | Default
          */
         data: {
           type: Array,
-          notify: true,
-          observer: 'updateDisplayAggregations'
+          notify: true
         },
 
         /**
-         * The limit on the initial amount of display data for this component.
+         * The limit on the initial amount of display data for this component (or 0 to display all data).
          */
         limit: {
           type: Number,
@@ -270,11 +269,13 @@ Custom property | Description | Default
         },
 
         /**
-         * The display data for this component.
+         * The selected items on which to filter.
          */
-        displayAggregations: {
+        selectedItems: {
           type: Array,
-          notify: true
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -287,14 +288,68 @@ Custom property | Description | Default
         },
 
         /**
-         * The selected items on which to filter.
+         * The combined list of selected items and data for this component.
          */
-        selectedItems: {
+        combinedData: {
           type: Array,
-          value: function() {
-            return [];
-          }
+          notify: true,
+          computed: 'computeCombinedData(data, selectedItems)',
+          observer: 'updateDisplayAggregations'
+        },
+
+        /**
+         * The display data for this component.
+         */
+        displayAggregations: {
+          type: Array,
+          notify: true
         }
+      },
+
+      /**
+       * Returns the combined list of selected items and data for this component.  Sets the 'selected' and 'width' properties for the items.
+       */
+      computeCombinedData: function() {
+        var self = this;
+        var combinedData = [];
+
+        // Ensure that the count for each selected item is up-to-date based on the new input data.
+        this.selectedItems.forEach(function(selectedItem) {
+          var index = self.data.map(function(item) {
+            return self.getProperty(item, self.dataId);
+          }).indexOf(self.getProperty(selectedItem, self.dataId));
+
+          // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
+          var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.data[index]));
+          clonedItem.selected = true;
+          combinedData.push(clonedItem);
+        });
+
+        // Ensure that the selected item with the highest count is on top.
+        combinedData.sort(function(a, b) {
+          return b[self.dataCount] - a[self.dataCount];
+        });
+
+        var topCount = Math.max((combinedData.length ? combinedData[0][this.dataCount] : 0), (this.data.length ? this.data[0][this.dataCount] : 0));
+
+        // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
+        combinedData.forEach(function(item) {
+          item.width = self.getWidth(item[self.dataCount], topCount);
+        });
+
+        this.data.forEach(function(item) {
+          var index = self.filterValues.indexOf(self.getProperty(item, self.dataId));
+          if(index < 0) {
+            // Ensure that this component does not affect the input data by creating a copy.
+            var clonedItem = _.cloneDeep(item);
+            // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
+            clonedItem.selected = false;
+            clonedItem.width = self.getWidth(clonedItem[self.dataCount], topCount);
+            combinedData.push(clonedItem);
+          }
+        });
+
+        return combinedData;
       },
 
       /**
@@ -333,12 +388,12 @@ Custom property | Description | Default
       /**
        * Returns the width of the bar for the given item in CSS syntax.
        */
-      getWidth: function(item, property) {
+      getWidth: function(count, topCount) {
         // This returns bar widths relative to the highest count item, assuming it's first.
         // Could also sum up all counts and do widths relative to the total.
         // Will return a minimum of 1 as the width if the count is greater than 0.
-        var widthCalc = Math.round((item[property] / this.displayAggregations[0][property]) * 100);
-        return 'width: ' + (widthCalc === 0 && item[property] > 0 ? 1 : widthCalc) + '%;';
+        var widthCalc = Math.round((count / topCount) * 100);
+        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
       },
 
       /**
@@ -352,8 +407,8 @@ Custom property | Description | Default
        * Adds all of the aggregation results to the list of display aggregations.
        */
       showMoreAggregations: function() {
-        for(var i = this.limit; i < this.data.length; ++i) {
-          this.push('displayAggregations', this.data[i]);
+        for(var i = this.limit; i < this.combinedData.length; ++i) {
+          this.push('displayAggregations', this.combinedData[i]);
         }
         this.set('showMore', false);
         this.$.barList.render();
@@ -368,7 +423,7 @@ Custom property | Description | Default
         var self = this;
         var change = false;
         var filters = [];
-        this.data.forEach(function(item) {
+        this.displayAggregations.forEach(function(item) {
           var index = self.selectedItems.map(function(selectedItem) {
             return self.getProperty(selectedItem, self.dataId);
           }).indexOf(self.getProperty(item, self.dataId));
@@ -392,34 +447,11 @@ Custom property | Description | Default
        */
       updateDisplayAggregations: function() {
         this.set('displayAggregations', []);
-        var list = [];
-        var self = this;
-
-        this.selectedItems.forEach(function(selectedItem) {
-          var index = self.data.map(function(item) {
-            return self.getProperty(item, self.dataId);
-          }).indexOf(self.getProperty(selectedItem, self.dataId));
-
-          if(index >= 0) {
-            // Ensure selected items are marked correctly.
-            self.data[index].selected = true;
-          } else {
-            // Add any selected items that do not exist in the aggregation results.
-            list.push(selectedItem);
-          }
-        });
-
-        list = _.isArray(this.data) ? list.concat(this.data) : list;
-        for(var i = 0; i < list.length; ++i) {
-          if(i === this.limit) {
-            break;
-          }
-          // Ensure the selected property is set to true or false because the paper-checkbox may be shaded if the selected property is undefined.
-          list[i].selected = list[i].selected || false;
-          this.push('displayAggregations', list[i]);
+        var limit = (this.limit > 0 ? Math.min(this.combinedData.length, this.limit) : this.combinedData.length);
+        for(var i = 0; i < limit; ++i) {
+          this.push('displayAggregations', this.combinedData[i]);
         }
-
-        this.set('showMore', (list.length >= this.limit));
+        this.set('showMore', (this.combinedData.length > this.limit));
       }
     });
   })();

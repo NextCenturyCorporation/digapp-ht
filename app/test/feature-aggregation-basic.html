@@ -92,16 +92,58 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.selectedItems).to.deep.equal([]);
     });
 
-    test('displayAggregations is set correctly', function() {
-      expect(component.displayAggregations).to.be.an('array');
-      expect(component.displayAggregations).to.deep.equal([{
+    test('combinedData is set correctly', function() {
+      expect(component.combinedData).to.be.an('array');
+      expect(component.combinedData).to.deep.equal([{
+        selected: false,
+        width: 100,
         id: 1,
         text: 'a',
         count: 4
       }, {
+        selected: false,
+        width: 75,
         id: 2,
         text: 'b',
         count: 3
+      }]);
+    });
+
+    test('displayAggregations is set correctly', function() {
+      expect(component.displayAggregations).to.be.an('array');
+      expect(component.displayAggregations).to.deep.equal([{
+        selected: false,
+        width: 100,
+        id: 1,
+        text: 'a',
+        count: 4
+      }, {
+        selected: false,
+        width: 75,
+        id: 2,
+        text: 'b',
+        count: 3
+      }]);
+    });
+
+    test('objects in combinedData are the same as objects in displayAggregations', function() {
+      expect(component.combinedData[0]).to.equal(component.displayAggregations[0]);
+      expect(component.combinedData[1]).to.equal(component.displayAggregations[1]);
+    });
+
+    test('changing data also changes combinedData', function() {
+      component.data = [{
+        id: 3,
+        text: 'c',
+        count: 2
+      }];
+      expect(component.combinedData).to.be.an('array');
+      expect(component.combinedData).to.deep.equal([{
+        selected: false,
+        width: 100,
+        id: 3,
+        text: 'c',
+        count: 2
       }]);
     });
 
@@ -113,6 +155,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }];
       expect(component.displayAggregations).to.be.an('array');
       expect(component.displayAggregations).to.deep.equal([{
+        selected: false,
+        width: 100,
         id: 3,
         text: 'c',
         count: 2
@@ -157,19 +201,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.getProperty(item, component.dataCount)).to.equal(4);
     });
 
-    test('getWidth returns correct widths based on the data', function() {
-      expect(component.getWidth({
-        count: 4
-      }, 'count')).to.equal('width: 100%;');
-      expect(component.getWidth({
-        count: 3
-      }, 'count')).to.equal('width: 75%;');
-      expect(component.getWidth({
-        count: 2
-      }, 'count')).to.equal('width: 50%;');
-      expect(component.getWidth({
-        count: 1
-      }, 'count')).to.equal('width: 25%;');
+    test('getWidth returns correct widths', function() {
+      expect(component.getWidth(4, 4)).to.equal(100);
+      expect(component.getWidth(3, 4)).to.equal(75);
+      expect(component.getWidth(2, 4)).to.equal(50);
+      expect(component.getWidth(1, 4)).to.equal(25);
     });
 
     test('adding selectedItems adds to filterValues', function() {
@@ -183,17 +219,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.filterValues).to.deep.equal([1, 2]);
     });
 
-    test('toggleItem selects the item', function() {
-      expect(component.data[1].selected).to.be.undefined;
+    test('selecting an item moves it to the start of combinedData and displayAggregations', function() {
+      var unselectedItem = component.displayAggregations[0];
+      var selectedItem = component.displayAggregations[1];
+      selectedItem.selected = true;
+      component.selectedItems = [selectedItem];
 
+      expect(component.combinedData[0]).to.deep.equal(selectedItem);
+      expect(component.combinedData[1]).to.deep.equal(unselectedItem);
+      expect(component.displayAggregations[0]).to.deep.equal(selectedItem);
+      expect(component.displayAggregations[1]).to.deep.equal(unselectedItem);
+    });
+
+    test('toggleItem selects the item', function() {
+      var itemToSelect = component.displayAggregations[1];
       component.toggleItem({
         model: {
-          item: component.data[1]
+          item: itemToSelect
         }
       });
-      expect(component.data[1].selected).to.be.true;
+
+      expect(component.selectedItems.length).to.equal(1);
+      expect(component.selectedItems[0].id).to.equal(itemToSelect.id);
+      expect(component.combinedData[0].id).to.equal(itemToSelect.id);
+      expect(component.displayAggregations[0].id).to.equal(itemToSelect.id);
+      expect(component.combinedData[0].selected).to.be.true;
+      expect(component.displayAggregations[0].selected).to.be.true;
       expect(component.selectedItems).to.deep.equal([{
         selected: true,
+        width: 75,
         id: 2,
         text: 'b',
         count: 3
@@ -202,15 +256,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('toggleItem deselects the item', function() {
-      component.data[1].selected = true;
-      component.selectedItems = [component.data[1]];
-
+      var itemToDeselect = component.displayAggregations[1];
+      itemToDeselect.selected = true;
+      component.selectedItems = [itemToDeselect];
+      // Get the cloned item.
+      itemToDeselect = component.displayAggregations[0];
       component.toggleItem({
         model: {
-          item: component.data[1]
+          item: itemToDeselect
         }
       });
-      expect(component.data[1].selected).to.be.false;
+
+      expect(component.selectedItems.length).to.equal(0);
+      expect(component.combinedData[1].id).to.equal(itemToDeselect.id);
+      expect(component.displayAggregations[1].id).to.equal(itemToDeselect.id);
+      expect(component.combinedData[0].selected).to.be.false;
+      expect(component.combinedData[1].selected).to.be.false;
+      expect(component.displayAggregations[0].selected).to.be.false;
+      expect(component.displayAggregations[1].selected).to.be.false;
       expect(component.selectedItems).to.deep.equal([]);
       expect(component.filterValues).to.deep.equal([]);
     });
@@ -300,13 +363,52 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.selectedItems).to.deep.equal([]);
     });
 
-    test('displayAggregations is set correctly', function() {
-      expect(component.displayAggregations).to.be.an('array');
-      expect(component.displayAggregations).to.deep.equal([{
+    test('combinedData is set correctly', function() {
+      expect(component.combinedData).to.be.an('array');
+      expect(component.combinedData).to.deep.equal([{
+        selected: false,
+        width: 100,
         uuid: 1,
         name: 'a',
         number: 4
       }, {
+        selected: false,
+        width: 75,
+        uuid: 2,
+        name: 'b',
+        number: 3
+      }, {
+        selected: false,
+        width: 50,
+        uuid: 3,
+        name: 'c',
+        number: 2
+      }, {
+        selected: false,
+        width: 50,
+        uuid: 4,
+        name: 'd',
+        number: 2
+      }, {
+        selected: false,
+        width: 25,
+        uuid: 5,
+        name: 'e',
+        number: 1
+      }]);
+    });
+
+    test('displayAggregations is set correctly', function() {
+      expect(component.displayAggregations).to.be.an('array');
+      expect(component.displayAggregations).to.deep.equal([{
+        selected: false,
+        width: 100,
+        uuid: 1,
+        name: 'a',
+        number: 4
+      }, {
+        selected: false,
+        width: 75,
         uuid: 2,
         name: 'b',
         number: 3
@@ -321,7 +423,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('showMoreAggregations changes displayAggregations and showMore', function() {
       component.showMoreAggregations();
       expect(component.displayAggregations).to.be.an('array');
-      expect(component.displayAggregations).to.deep.equal(component.data);
+      expect(component.displayAggregations).to.deep.equal(component.combinedData);
       expect(component.showMore).to.be.a('boolean');
       expect(component.showMore).to.be.false;
     });
@@ -343,22 +445,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('getWidth returns correct width if calculated width is 0 but count is not', function() {
       var item = component.data[1];
-      var result = component.getWidth(item, 'count');
+      var result = component.getWidth(item.count, component.data[0].count);
       var calculatedWidth = Math.round((item.count / component.data[0].count) * 100);
 
-      expect(result).to.be.a('string');
       expect(calculatedWidth).to.be.equal(0);
-      expect(result).to.deep.equal('width: 1%;');
+      expect(result).to.equal(1);
     });
 
     test('getWidth returns correct width if item.count is 0', function() {
       var item = component.data[2];
-      var result = component.getWidth(item, 'count');
+      var result = component.getWidth(item.count, component.data[0].count);
       var calculatedWidth = Math.round((item.count / component.data[0].count) * 100);
 
-      expect(result).to.be.a('string');
       expect(calculatedWidth).to.be.equal(0);
-      expect(result).to.deep.equal('width: 0%;');
+      expect(result).to.equal(0);
     });
   });
 
