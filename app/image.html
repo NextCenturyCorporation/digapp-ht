@@ -122,59 +122,17 @@
 
     <!-- Location timeline for bar chart and itinerary -->
 
-    <elastic-client-aggregation-builder
-      name="mentions"
-      type="terms"
-      count="0"
-      field="mainEntityOfPage.mentions"
-      ejs-aggregation="{{mentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="publishers"
-      type="terms"
-      count="0"
-      field="mainEntityOfPage.publisher.name.raw"
-      ejs-aggregation="{{publishersAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="locations"
-      type="terms"
-      count="0"
-      order="_term"
-      direction="asc"
-      field="availableAtOrFrom.address.key"
-      nested-aggregations="[[buildArray(mentionsAggregation, publishersAggregation)]]"
-      ejs-aggregation="{{locationsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="dates"
-      type="date_histogram"
-      count="0"
-      field="validFrom"
-      nested-aggregations="[[buildArray(locationsAggregation)]]"
-      ejs-aggregation="{{datesAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-search
+    <location-timeline
+      field="mainEntityOfPage.hasImagePart.uri"
+      value="[[imageDisplay.uri]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      query="[[imageOffersQuery]]"
-      aggregations="[[buildArray(datesAggregation)]]"
       filters="[[buildArray(locationFilter, peopleFilters)]]"
-      results="{{locationTimelineResults}}"
+      transforms="[[clientConfig.transforms]]"
+      results="{{imageDisplay.locationTimeline}}"
       loading="{{loadingLocationTimeline}}"
-      last-error="{{error}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[locationTimelineResults]]"
-      data-out="{{imageDisplay.locationTimeline}}"
-      transform-function="[[clientConfig.transforms.seller.locationTimeline]]">
-    </json-transform>
+      error="{{locationTimelineError}}">
+    </location-timeline>
 
     <!-- Main Content -->
     <div class="entity">
