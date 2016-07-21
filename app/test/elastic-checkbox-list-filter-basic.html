@@ -23,26 +23,83 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </head>
 <body>
 
-<test-fixture id="basic">
+<test-fixture id="elastic-checkbox-list-filter-fixture">
   <template>
-    <elastic-checkbox-list-filter></elastic-checkbox-list-filter>
+    <elastic-checkbox-list-filter field="testField" filter-name="name">
+    </elastic-checkbox-list-filter>
   </template>
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, test */
+  /* globals suite, setup, fixture, test, assert, ejs */
   /* jshint -W030 */
-  suite('elastic-checkbox-list-filter tests', function() {
+  suite('elastic-checkbox-list-filter tests - or combo type', function() {
     var element;
 
     setup(function() {
-      element = fixture('basic');
+      element = fixture('elastic-checkbox-list-filter-fixture');
+      element.combinationType = 'or';
     });
 
-    test('', function() {
-
+    test('ejsFilter initialized to match all filter', function() {
+      assert.deepEqual(element.ejsFilter.toJSON(), ejs.MatchAllFilter().toJSON());
     });
 
+    test('when facetSelection changes and selection is enabled, changeFilter() creates an ejs.OrFilter', function() {
+      element.facetSelection['Los Angeles, CA'] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
+
+      var createdFilter = element.ejsFilter.toJSON();
+      assert.equal(createdFilter.or.filters.length, 1);
+      assert.deepEqual(createdFilter.or.filters[0], ejs.TermFilter('testField', 'Los Angeles, CA').toJSON());
+    });
+
+    test('when facetSelection changes but selection is not enabled, selection is not included in ejsFilter', function() {
+      element.facetSelection['Los Angeles, CA'] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: false,
+        category: 'City'
+      };
+      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
+
+      assert.deepEqual(element.ejsFilter.toJSON(), ejs.MatchAllFilter().toJSON());
+    });
+  });
+
+  suite('elastic-checkbox-list-filter tests - and combo type', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('elastic-checkbox-list-filter-fixture');
+      element.combinationType = 'and';
+    });
+
+    test('ejsFilter initialized to match all filter', function() {
+      assert.deepEqual(element.ejsFilter.toJSON(), ejs.MatchAllFilter().toJSON());
+    });
+
+    test('when facetSelection changes and selection is enabled, changeFilter() creates an ejs.AndFilter', function() {
+      element.facetSelection['Los Angeles, CA'] = {
+        text: 'Los Angeles, CA',
+        key: 'Los Angeles, CA',
+        count: 10,
+        enabled: true,
+        category: 'City'
+      };
+      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
+
+      var createdFilter = element.ejsFilter.toJSON();
+      assert.equal(createdFilter.and.filters.length, 1);
+      assert.deepEqual(createdFilter.and.filters[0], ejs.TermFilter('testField', 'Los Angeles, CA').toJSON());
+    });
   });
 </script>
 
