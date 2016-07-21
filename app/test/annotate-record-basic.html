@@ -16,6 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/elastic.js/dist/elastic.js"></script>
 
   <!-- Step 1: import the element to test -->
   <link rel="import" href="../elements/annotate-record/annotate-record.html">
@@ -26,22 +27,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <test-fixture id="annotate-record-fixture">
   <template>
     <annotate-record annotation-index="dig-annotations" annotation-type="annotation"
-      query-template='{"query": {"query": {"bool" : {"must" : [{"term" : { "uri" : "" }},
-        {"term" : { "user" : "mockUser" }}]}}}, "pathsToValues": ["query.bool.must[0].term.uri"]}'
       item='{"_id": "http://offer/ABC123", "_type": "offer"}' current-user="mockUser">
     </annotate-record>
   </template>
 </test-fixture>
 
 <script>
-  /* globals suite, test, assert, setup, fixture */
+  /* globals ejs, suite, test, assert, expect, setup, fixture, flush */
   /* jshint -W030 */
 
   suite('annotate-record tests', function() {
     var element;
 
-    setup(function() {
+    setup(function(done) {
       element = fixture('annotate-record-fixture');
+      flush(function() {
+        done();
+      });
     });
 
     test('annotationIndex defined correctly', function() {
@@ -50,11 +52,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('annotationType defined correctly', function() {
       assert.equal(element.annotationType, 'annotation');
-    });
-
-    test('queryTemplate defined correctly', function() {
-      assert.isObject(element.queryTemplate.query.query);
-      assert.isArray(element.queryTemplate.pathsToValues);
     });
 
     test('item defined correctly', function() {
@@ -127,10 +124,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.getFlagIcon(element.noAnswer), 'fa:flag-o');
     });
 
-    test('getValuesForQuery returns item._id and currentUser in an array', function() {
-      assert.deepEqual(element.getValuesForQuery(element.item, element.currentUser), ['http://offer/ABC123', 'mockUser']);
-    });
-
     test('isSelected given equal values returns selected', function() {
       assert.equal(element.isSelected(element.veryRelevant, element.veryRelevant), 'selected');
       assert.equal(element.isSelected(element.somewhatRelevant, element.somewhatRelevant), 'selected');
@@ -153,27 +146,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isNull(element.$.dropdownMenu.getAttribute('aria-hidden'));
     });
 
-    test('buildAnnotationQuery replaces appropriate values in queryTemplate', function() {
-      var queryToUse = element.buildAnnotationQuery(element.item, element.queryTemplate, element.currentUser);
-
-      assert.equal(queryToUse.query.bool.must[0].term.uri, element.item._id);
-      assert.equal(queryToUse.query.bool.must[1].term.user, element.currentUser);
+    test('uriQuery was built correctly', function() {
+      expect(element.uriQuery).to.exist;
+      expect(element.uriQuery.toJSON()).to.deep.equal(ejs.TermQuery('uri', 'http://offer/ABC123').toJSON());
     });
 
-    test('buildAnnotationQuery returns undefined if an argument is undefined or if item is empty', function() {
-      var undefinedItem = element.buildAnnotationQuery(undefined, element.queryTemplate, element.currentUser);
-      var emptyItem = element.buildAnnotationQuery({}, element.queryTemplate);
-
-      assert.isUndefined(undefinedItem);
-      assert.isUndefined(emptyItem);
+    test('userQuery was built correctly', function() {
+      expect(element.userQuery).to.exist;
+      expect(element.userQuery.toJSON()).to.deep.equal(ejs.TermQuery('user', 'mockUser').toJSON());
     });
 
-    test('buildAnnotationQuery returns undefined if queryTemplate undefined', function() {
-      var undefinedTemplate = element.buildAnnotationQuery(element.item, undefined, element.currentUser);
-      var undefinedUser = element.buildAnnotationQuery(element.item, element.queryTemplate, undefined);
-
-      assert.isUndefined(undefinedTemplate);
-      assert.isUndefined(undefinedUser);
+    test('annotationQuery was built correctly', function() {
+      expect(element.annotationQuery).to.exist;
+      expect(element.annotationQuery.toJSON()).to.deep.equal(ejs.BoolQuery().must(ejs.TermQuery('uri', 'http://offer/ABC123')).must(ejs.TermQuery('user', 'mockUser')).toJSON());
     });
 
     test('transformOrigResult if originalSearchResult not defined', function() {

@@ -29,13 +29,11 @@ var webpageTransform = (function(_, commonTransforms) {
 
       return newData;
     },
-    pageRevisions: function(data) {
+    webpageRevisions: function(data) {
       var newData = {};
 
       if(data && data.aggregations) {
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        newData = commonTransforms.transformBuckets(data.aggregations.page_revisions.buckets, 'date', 'key_as_string');
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        newData = commonTransforms.transformBuckets(data.aggregations.revisions.revisions.buckets, 'date', 'key_as_string');
       }
 
       return newData;

@@ -10,7 +10,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
-<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/elastic-update/elastic-update.html">
 <link rel="import" href="../../bower_components/iron-dropdown/iron-dropdown.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
@@ -20,6 +21,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../dig-behaviors/array-behavior.html">
 
 <dom-module id="annotate-record">
   <template>
@@ -89,14 +91,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <!-- Search for an existing annotation record -->
     <!-- Don't perform search until annotationTypeAsArray is ready -->
     <template is="dom-if" if="{{annotationTypeAsArray}}">
-      <elastic-search
+      <elastic-client-query-builder
+        type="term"
+        field="uri"
+        values="[[item._id]]"
+        ejs-query="{{uriQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-query-builder
+        type="term"
+        field="user"
+        values="[[currentUser]]"
+        ejs-query="{{userQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-query-builder
+        type="bool"
+        ejs-bool-queries="[[buildArrayIfAllExist(uriQuery, userQuery)]]"
+        ejs-query="{{annotationQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-search
         client="[[client]]"
-        elastic-type="{{annotationTypeAsArray}}"
         index="[[annotationIndex]]"
-        query="{{buildAnnotationQuery(item, queryTemplate, currentUser)}}"
+        elastic-types="[[annotationTypeAsArray]]"
+        query="[[annotationQuery]]"
+        aggregations="[]"
+        filters="[]"
         results="{{originalSearchResult}}"
         last-error="{{error}}">
-      </elastic-search>
+      </elastic-client-search>
     </template>
 
     <div class="layout horizontal">
@@ -164,9 +188,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function() {
     'use strict';
 
-    /* globals _ */
+    /* globals DigBehaviors */
     Polymer({
       is: 'annotate-record',
+
+      behaviors: [DigBehaviors.ArrayBehavior],
 
       properties: {
         /**
@@ -226,12 +252,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         annotationRelevant: {
           type: String,
           value: ''
-        },
-        /**
-         * query template to use to create annotation query
-         */
-        queryTemplate: {
-          type: Object
         },
         /**
          * the record to add an associated annotation for,
@@ -299,6 +319,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           value: true
         },
+        uriQuery: {
+          type: Object
+        },
+        userQuery: {
+          type: Object
+        },
+        annotationQuery: {
+          type: Object
+        },
         annotationTypeAsArray: {
           type: Array,
           computed: 'computeTypeArray(annotationType)'
@@ -352,9 +381,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getFlagIcon: function(label) {
         return (label === this.noAnswer ? 'fa:flag-o' : 'fa:flag');
       },
-      getValuesForQuery: function(item, currentUser) {
-        return [item._id, currentUser];
-      },
       isSelected: function(label, value) {
         return (label === value ? 'selected' : '');
       },
@@ -405,33 +431,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       stopPropagation: function(event) {
         event.stopPropagation();
-      },
-      buildAnnotationQuery: function(item, queryTemplate, currentUser) {
-        // ignore empty items, and don't rerun query if
-        // query for this item has already been run
-
-        if(!_.isEmpty(item) && queryTemplate && currentUser) {
-          var self = this;
-
-          // clear body for create/update components to ensure a
-          // create or update isn't triggered yet
-          this.annotationResult = undefined;
-          this._setAnnotationCreateBody(undefined);
-          this._setAnnotationUpdateBody(undefined);
-
-          var values = self.getValuesForQuery(item, currentUser);
-          var paths = queryTemplate.pathsToValues;
-
-          _.each(paths, function(path, count) {
-            var value = values[count];
-
-            if(value) {
-              _.set(queryTemplate.query, path, value);
-            }
-          });
-
-          return {query: queryTemplate.query.query};
-        }
       },
       transformOrigResult: function() {
         if(this.originalSearchResult) {

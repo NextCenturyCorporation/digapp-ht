@@ -49,6 +49,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           newData.similarImages = similarImages;
         }
       }
+      newData._id = newData.uri;
       return newData;
     },
     offerLocationData: function(data) {
