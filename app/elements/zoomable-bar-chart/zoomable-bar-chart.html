@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
+
 <script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
 
 <dom-module id='zoomable-bar-chart'>
@@ -19,6 +20,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
         --bar-chart-axis: var(--secondary-text-color);
+        --bar-chart-text: var(--main-text-color);
         --bar-chart-amber: var(--amber);
         --bar-chart-black: var(--dark-primary-color);
         --bar-chart-blue: var(--blue);
@@ -174,6 +176,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               item.locations.forEach(function(location) {
                 if(location.count) {
                   bars.push({
+                    date: item.date,
                     name: location.name || 'Other',
                     yAxisStart: yMax,
                     yAxisEnd: yMax + location.count
@@ -181,6 +184,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                   yMax += location.count;
                   barChartLegend[location.name || 'Other'] = true;
                 }
+              });
+              bars.forEach(function(bar) {
+                bar.yMax = yMax;
               });
               barChartData.push({
                 bars: bars,
@@ -201,7 +207,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           var self = this;
           this.width = 600;
-          this.height = 300;
+          this.height = 400;
 
           // Use the width of the bar chart container.
           var container = document.getElementById('chartContainer');
@@ -210,11 +216,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
 
           // sizing information, including margins so there is space for labels, etc
-          var margin = {top: 10, right: 30, bottom: 80, left: 40};
-          var marginOverview = {top: 260, right: 10, bottom: 20, left: 40};
-          var chartWidth = this.width - margin.left - margin.right;
-          var chartHeight = this.height - margin.top - margin.bottom;
-          var heightOverview = this.height - marginOverview.top - marginOverview.bottom;
+          var marginLeft = 40;
+          var marginRight = 20;
+          var marginTopInfo = 20;
+          var marginTopMain = 35;
+          var marginBottomMain = 135;
+          var marginTopInstructions = 310;
+          var marginTopOverview = 325;
+          var marginBottomOverview = 20;
+
+          var chartWidth = this.width - marginLeft - marginRight;
+          var chartHeight = this.height - marginTopMain - marginBottomMain;
+          var overviewHeight = this.height - marginTopOverview - marginBottomOverview;
+
           // some colors to use for the bars
           var overviewColor = this.getComputedStyleValue('--bar-chart-black');
           var otherGroupColor = this.getComputedStyleValue('--bar-chart-grey');
@@ -238,43 +252,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           ]);
 
           // mathematical scales for the x and y axes
-          var x = d3.time.scale()
-                    .range([0, chartWidth]);
-
-          var y = d3.scale.linear()
-                    .range([chartHeight, 0]);
-          var xOverview = d3.time.scale()
-                            .range([0, chartWidth]);
-          var yOverview = d3.scale.linear()
-                            .range([heightOverview, 0]);
+          var x = d3.time.scale().range([0, chartWidth]);
+          var y = d3.scale.linear().range([chartHeight, 0]);
+          var xOverview = d3.time.scale().range([0, chartWidth]);
+          var yOverview = d3.scale.linear().range([overviewHeight, 0]);
 
           // rendering for the x and y axes
-          var xAxis = d3.svg.axis()
-                        .scale(x)
-                        .orient('bottom');
+          var xAxis = d3.svg.axis().scale(x).orient('bottom');
+          var yAxis = d3.svg.axis().scale(y).orient('left').tickFormat(d3.format('.0f'));
+          var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom');
 
-          var yAxis = d3.svg.axis()
-                        .scale(y)
-                        .orient('left')
-                        .tickFormat(d3.format('.0f'));
+          var svg = d3.select(document.createElement('div')).append('svg');
 
-          var xAxisOverview = d3.svg.axis()
-                                .scale(xOverview)
-                                .orient('bottom');
-
-          var elemToAdd = document.createElement('div');
-
-          var svg = d3.select(elemToAdd).append('svg') // the overall space
-                      .attr('width', chartWidth + margin.left + margin.right)
-                      .attr('height', chartHeight + margin.top + margin.bottom);
+          var info = svg.append('text')
+            .attr('class', 'info')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopInfo + ')')
+            .style('fill', this.getComputedStyleValue('--bar-chart-text'))
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .text('');
 
           var main = svg.append('g')
-                        .attr('class', 'main')
-                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+            .attr('class', 'main')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopMain + ')');
+
+          svg.append('text')
+            .attr('class', 'instructions')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopInstructions + ')')
+            .style('fill', this.getComputedStyleValue('--bar-chart-text'))
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .text('Click and drag on the chart below to zoom.');
 
           var overview = svg.append('g')
-                            .attr('class', 'overview')
-                            .attr('transform', 'translate(' + marginOverview.left + ',' + marginOverview.top + ')');
+            .attr('class', 'overview')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopOverview + ')');
 
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.date; }));
@@ -301,19 +313,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .call(yAxis);
           overview.append('g')
             .attr('class', 'x axis')
-            .attr('transform', 'translate(0,' + heightOverview + ')')
+            .attr('transform', 'translate(0,' + overviewHeight + ')')
             .call(xAxisOverview);
-
-          var tooltip = svg.append('g')
-            .attr('class', 'tooltip')
-            .style('display', 'none');
-
-          tooltip.append('text')
-            .attr('x', 15)
-            .attr('dy', '1.2em')
-            .style('text-anchor', 'middle')
-            .attr('font-size', '12px')
-            .attr('font-weight', 'bold');
 
           var grid = main.append('g').attr('class', 'grid');
 
@@ -359,15 +360,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 }
                 return color(d.name);
               })
-              .style('cursor', 'crosshair')
-              .on('mouseover', function() { tooltip.style('display', null); })
-              .on('mouseout', function() { tooltip.style('display', 'none'); })
+              .style('cursor', 'pointer')
+              .on('mouseout', function() {
+                info.text('');
+              })
               .on('mousemove', function(d) {
-                var rectPos = this.getBoundingClientRect();
-                var xPosition = rectPos.left - 60;
-                var yPosition = d3.mouse(this)[1] - 10;
-                tooltip.attr('transform', 'translate(' + xPosition + ',' + yPosition + ')');
-                tooltip.select('text').text(d.name + ' (' + (d.yAxisEnd - d.yAxisStart) + ')');
+                info.text(d.date + ':  ' + d.name + ' (' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.yMax + ')');
               });
 
           overview.append('g')
@@ -379,7 +377,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               .attr('x', function(d) { return xOverview(d.date) - 3; })
               .attr('width', 8)
               .attr('y', function(d) { return yOverview(d.yMax); })
-              .attr('height', function(d) { return heightOverview - yOverview(d.yMax); })
+              .attr('height', function(d) { return overviewHeight - yOverview(d.yMax); })
               .style('fill', overviewColor);
 
           var brush = d3.svg.brush().x(xOverview);
@@ -429,7 +427,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // need to manually set the height because the brush has
             // no y scale, i.e. we should see the extent being marked
             // over the full height of the overview chart
-            .attr('height', heightOverview + 7);  // +7 is magic number for styling
+            .attr('height', overviewHeight + 7);  // +7 is magic number for styling
 
           // Add chart to DOM
           this.$.barChart.style.height = this.height;
