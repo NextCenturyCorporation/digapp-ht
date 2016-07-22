@@ -101,34 +101,32 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         date: commonTransforms.getDate(bucket.key)
       };
 
-      if(bucket.locations.buckets.length) {
-        var sum = 0;
-        var subtitle = [];
+      var sum = 0;
+      var subtitle = [];
 
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
-          sum += locationBucket.doc_count;
-          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
-          return {
-            name: locationBucket.key.split(':').slice(0, 3).join(', '),
-            type: 'location',
-            count: locationBucket.doc_count,
-            details: createLocationTimelineDetails(locationBucket)
-          };
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
+        sum += locationBucket.doc_count;
+        subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
+        return {
+          name: locationBucket.key.split(':').slice(0, 3).join(', '),
+          type: 'location',
+          count: locationBucket.doc_count,
+          details: createLocationTimelineDetails(locationBucket)
+        };
+      });
+
+      if(sum < bucket.doc_count) {
+        dateBucket.locations.push({
+          type: 'location',
+          count: bucket.doc_count - sum,
+          details: []
         });
-
-        if(sum < bucket.doc_count) {
-          dateBucket.locations.push({
-            type: 'location',
-            count: bucket.doc_count - sum,
-            details: []
-          });
-        }
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-        dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
-        timeline.push(dateBucket);
       }
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
+      timeline.push(dateBucket);
 
       return timeline;
     }, []);

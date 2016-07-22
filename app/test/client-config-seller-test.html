@@ -320,13 +320,12 @@
   });
 
   suite('<client-config> seller tests: transform for location timeline (itinerary)', function() {
-    var myEl;
+    var component;
     var dataout;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
-      var sellerTransform = myEl.config.transforms.seller.locationTimeline;
-      dataout = sellerTransform(offerAgg);
+      component = fixture('client-config-fixture');
+      dataout = component.config.transforms.seller.locationTimeline(offerAgg);
     });
 
     test('defines result object', function() {
@@ -375,6 +374,47 @@
       assert.equal(dataout.dates[0].locations[2].count, 1);
       assert.isArray(dataout.dates[0].locations[2].details);
       assert.equal(dataout.dates[0].locations[2].details.length, 0);
+    });
+
+    test('defines array of dates with no locations', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var data = component.config.transforms.seller.locationTimeline({
+        aggregations: {
+          dates: {
+            dates: {
+              buckets: [{
+                doc_count: 10,
+                key: 1445558400000,
+                locations: {
+                  buckets: []
+                }
+              }, {
+                doc_count: 20,
+                key: 1445299200000,
+                locations: {
+                  buckets: []
+                }
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      assert.isArray(data.dates);
+      assert.equal(data.dates.length, 2);
+      assert.equal(data.dates[0].subtitle, '');
+      assert.equal(data.dates[0].date, 'October 23, 2015');
+      assert.isArray(data.dates[0].locations);
+      assert.equal(data.dates[0].locations.length, 1);
+      assert.isUndefined(data.dates[0].locations[0].name);
+      assert.equal(data.dates[0].locations[0].count, 10);
+      assert.equal(data.dates[1].subtitle, '');
+      assert.equal(data.dates[1].date, 'October 20, 2015');
+      assert.isArray(data.dates[1].locations);
+      assert.equal(data.dates[1].locations.length, 1);
+      assert.isUndefined(data.dates[1].locations[0].name);
+      assert.equal(data.dates[1].locations[0].count, 20);
     });
   });
 </script>
