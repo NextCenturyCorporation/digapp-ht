@@ -18,6 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style>
       :host {
         display: block;
+        --bar-chart-axis: var(--secondary-text-color);
         --bar-chart-amber: var(--amber);
         --bar-chart-black: var(--dark-primary-color);
         --bar-chart-blue: var(--blue);
@@ -50,12 +51,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .axis {
         font-size: 11px;
-        fill: var(--secondary-text-color);
+        fill: var(--bar-chart-axis);
       }
 
       .axis line, .axis path {
         fill: none;
-        stroke: var(--secondary-text-color);
+        stroke: var(--bar-chart-axis);
         shape-rendering: crispEdges;
       }
 
@@ -83,7 +84,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     (function() {
       'use strict';
 
-      /* globals d3 */
+      /* globals _, d3 */
       Polymer({
         is: 'zoomable-bar-chart',
 
@@ -254,7 +255,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           var yAxis = d3.svg.axis()
                         .scale(y)
-                        .orient('left');
+                        .orient('left')
+                        .tickFormat(d3.format('.0f'));
 
           var xAxisOverview = d3.svg.axis()
                                 .scale(xOverview)
@@ -274,41 +276,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                             .attr('class', 'overview')
                             .attr('transform', 'translate(' + marginOverview.left + ',' + marginOverview.top + ')');
 
-          var brush = d3.svg.brush()
-                        .x(xOverview);
-
-          function brushed() {
-            // update the main chart's x axis data range
-            x.domain(brush.empty() ? xOverview.domain() : brush.extent());
-            var xAxisWidth = main.select('.x.axis path').node().getBBox().width;
-            var yAxisMax = 0;
-            // redraw the bars on the main chart
-            main.selectAll('.bar.stack')
-              .attr('transform', function(d) {
-                var barX = x(d.date);
-                if(barX > 0 && barX < xAxisWidth) {
-                  yAxisMax = Math.max(yAxisMax, d.yMax);
-                  return 'translate(' + barX + ',0)';
-                } else {
-                  return 'translate(0,0),scale(0)';
-                }
-              });
-            y.domain([0, yAxisMax]);
-            yAxis.ticks(yAxisMax <= 10 ? yAxisMax : null);
-            // redraw the x axis of the main chart
-            main.select('.x.axis').call(xAxis);
-            main.select('.y.axis').call(yAxis);
-            main.selectAll('.bar.stack rect')
-              .attr('y', function(d) { return y(d.yAxisEnd); })
-              .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); });
-          }
-          // brush tool to let us zoom and pan using the overview chart
-          brush.on('brush', brushed);
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.date; }));
+          var xAxisMax = x(data[0].date);
           var yAxisMax = d3.max(data, function(d) { return d.yMax; });
           y.domain([0, yAxisMax]);
-          yAxis.ticks(yAxisMax <= 10 ? yAxisMax : null);
+          yAxis.tickValues(this.getYAxisTickValues(yAxisMax));
           xOverview.domain(x.domain());
           yOverview.domain(y.domain());
 
@@ -342,6 +315,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .attr('font-size', '12px')
             .attr('font-weight', 'bold');
 
+          var grid = main.append('g').attr('class', 'grid');
+
+          var createGridLines = function(yAxisMax) {
+            grid.selectAll('line.gridline').remove();
+            grid.selectAll('line.gridline')
+              .data(self.getYAxisTickValues(yAxisMax))
+              .enter()
+              .append('line')
+              .attr('class', 'gridline')
+              .attr('x1', 0)
+              .attr('x2', xAxisMax)
+              .attr('y1', function(d) { return y(d); })
+              .attr('y2', function(d) { return y(d); })
+              .style('fill', 'none')
+              .style('shape-rendering', 'crispEdges')
+              .style('stroke', self.getComputedStyleValue('--bar-chart-axis'))
+              .style('stroke-width', '1px');
+          };
+
+          createGridLines(yAxisMax);
+
           // draw the bars
           main.append('g')
             .attr('class', 'bars')
@@ -365,6 +359,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 }
                 return color(d.name);
               })
+              .style('cursor', 'crosshair')
               .on('mouseover', function() { tooltip.style('display', null); })
               .on('mouseout', function() { tooltip.style('display', 'none'); })
               .on('mousemove', function(d) {
@@ -386,6 +381,43 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               .attr('y', function(d) { return yOverview(d.yMax); })
               .attr('height', function(d) { return heightOverview - yOverview(d.yMax); })
               .style('fill', overviewColor);
+
+          var brush = d3.svg.brush().x(xOverview);
+
+          var onBrushed = function() {
+            // update the main chart's x axis data range
+            x.domain(brush.empty() ? xOverview.domain() : brush.extent());
+
+            // redraw the bars on the main chart
+            var yAxisMax = 0;
+            main.selectAll('.bar.stack')
+              .attr('transform', function(d) {
+                var barX = x(d.date);
+                if(barX > 0 && barX < xAxisMax) {
+                  yAxisMax = Math.max(yAxisMax, d.yMax);
+                  return 'translate(' + barX + ',0)';
+                } else {
+                  return 'translate(0,0),scale(0)';
+                }
+              });
+
+            y.domain([0, yAxisMax]);
+            yAxis.tickValues(self.getYAxisTickValues(yAxisMax));
+
+            // redraw the x axis of the main chart
+            main.select('.x.axis').call(xAxis);
+            main.select('.y.axis').call(yAxis);
+
+            main.selectAll('.bar.stack rect')
+              .attr('y', function(d) { return y(d.yAxisEnd); })
+              .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); });
+
+            grid.selectAll('line.gridline').remove();
+            createGridLines(yAxisMax);
+          };
+
+          // brush tool to let us zoom and pan using the overview chart
+          brush.on('brush', onBrushed);
 
           // add the brush target area on the overview chart
           overview.append('g')
@@ -414,6 +446,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           d3.select(window).on('resize', function() {
             self.resize();
           });
+        },
+
+        getYAxisTickValues: function(yAxisMax) {
+          if(yAxisMax < 10) {
+            return _.range(yAxisMax + 1);
+          }
+          // Return at most 10 tick values based on the number of digits in the maximum.
+          var string = yAxisMax.toString();
+          var digits = string.length;
+          var step = Math.pow(10, digits - 1);
+          if(string.indexOf('1') === 0) {
+            step = 2 * Math.pow(10, digits - 2);
+          }
+          if(string.indexOf('2') === 0 || string.indexOf('3') === 0 || string.indexOf('4') === 0) {
+            step = 5 * Math.pow(10, digits - 2);
+          }
+          // Set the end to the max plus one so the max is added to the range if evenly divisible.
+          return _.range(0, yAxisMax + 1, step);
         },
 
         resize: function() {
