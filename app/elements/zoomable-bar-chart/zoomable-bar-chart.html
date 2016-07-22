@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
+<link rel='import' href='../dateformat.html'>
 
 <script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
 
@@ -86,7 +87,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     (function() {
       'use strict';
 
-      /* globals _, d3 */
+      /* globals _, d3, dateFormat */
       Polymer({
         is: 'zoomable-bar-chart',
 
@@ -111,8 +112,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             type: Array,
             value: function() {
               return [];
-            },
-            notify: true
+            }
           },
 
           /**
@@ -120,8 +120,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
            */
           source: {
             type: String,
-            value: 'Data',
-            notify: true
+            value: 'Data'
           },
 
           /**
@@ -160,9 +159,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         computeTitle: function(source, count) {
           if(count > 1) {
-            return source + ' from ' + this.barChartData[count - 1].text + ' to ' + this.barChartData[0].text;
+            return source + ' from ' + this.barChartData[count - 1].dateString + ' to ' + this.barChartData[0].dateString;
           }
-          return count ? (source + ' at ' + this.barChartData[0].text) : ('No ' + source);
+          return count ? (source + ' at ' + this.barChartData[0].dateString) : ('No ' + source);
         },
 
         processData: function(data) {
@@ -190,8 +189,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               });
               barChartData.push({
                 bars: bars,
-                date: new Date(item.date),
-                text: item.date,
+                dateObject: new Date(item.date),
+                dateString: item.date,
                 yMax: yMax
               });
             });
@@ -289,13 +288,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .attr('transform', 'translate(' + marginLeft + ',' + marginTopOverview + ')');
 
           // data ranges for the x and y axes
-          x.domain(d3.extent(data, function(d) { return d.date; }));
-          var xAxisMax = x(data[0].date);
+          x.domain(d3.extent(data, function(d) { return d.dateObject; }));
+          var xAxisMax = x(data[0].dateObject);
           var yAxisMax = d3.max(data, function(d) { return d.yMax; });
           y.domain([0, yAxisMax]);
           yAxis.tickValues(this.getYAxisTickValues(yAxisMax));
           xOverview.domain(x.domain());
           yOverview.domain(y.domain());
+
+          var createExtentText = function() {
+            var domain = x.domain();
+            // TODO Combine with use of dateFormat in commonTransforms.getDate().
+            return dateFormat(domain[0], 'mmmm dd, yyyy', true) + ' to ' + dateFormat(domain[1], 'mmmm dd, yyyy', true);
+          };
+
+          info.text(createExtentText());
 
           // data range for the bar colors
           // (essentially maps attribute names to color values)
@@ -345,7 +352,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .data(data)
             .enter().append('g')
               .attr('class', 'bar stack')
-              .attr('transform', function(d) { return 'translate(' + x(d.date) + ',0)'; })
+              .attr('transform', function(d) { return 'translate(' + x(d.dateObject) + ',0)'; })
             // a bar for each value in the stack, positioned in the correct y positions
             .selectAll('rect')
             .data(function(d) { return d.bars; })
@@ -362,7 +369,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               })
               .style('cursor', 'pointer')
               .on('mouseout', function() {
-                info.text('');
+                info.text(createExtentText());
               })
               .on('mousemove', function(d) {
                 info.text(d.date + ':  ' + d.name + ' (' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.yMax + ')');
@@ -374,7 +381,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .data(data)
             .enter().append('rect')
               .attr('class', 'bar')
-              .attr('x', function(d) { return xOverview(d.date) - 3; })
+              .attr('x', function(d) { return xOverview(d.dateObject) - 3; })
               .attr('width', 8)
               .attr('y', function(d) { return yOverview(d.yMax); })
               .attr('height', function(d) { return overviewHeight - yOverview(d.yMax); })
@@ -386,12 +393,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // update the main chart's x axis data range
             x.domain(brush.empty() ? xOverview.domain() : brush.extent());
 
+            info.text(createExtentText());
+
             // redraw the bars on the main chart
             var yAxisMax = 0;
             main.selectAll('.bar.stack')
               .attr('transform', function(d) {
-                var barX = x(d.date);
-                if(barX > 0 && barX < xAxisMax) {
+                var barX = x(d.dateObject);
+                if(barX > -5 && barX < xAxisMax) {
                   yAxisMax = Math.max(yAxisMax, d.yMax);
                   return 'translate(' + barX + ',0)';
                 } else {
