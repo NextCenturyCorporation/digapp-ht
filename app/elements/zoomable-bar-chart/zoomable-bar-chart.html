@@ -250,16 +250,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // rendering for the x and y axes
           var xAxis = d3.svg.axis()
                         .scale(x)
-                        .orient('bottom')
-                        .ticks(4);
+                        .orient('bottom');
 
           var yAxis = d3.svg.axis()
                         .scale(y)
                         .orient('left');
+
           var xAxisOverview = d3.svg.axis()
                                 .scale(xOverview)
-                                .orient('bottom')
-                                .ticks(4);
+                                .orient('bottom');
 
           var elemToAdd = document.createElement('div');
 
@@ -281,23 +280,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           function brushed() {
             // update the main chart's x axis data range
             x.domain(brush.empty() ? xOverview.domain() : brush.extent());
+            var xAxisWidth = main.select('.x.axis path').node().getBBox().width;
+            var yAxisMax = 0;
             // redraw the bars on the main chart
             main.selectAll('.bar.stack')
               .attr('transform', function(d) {
-                if(x(d.date) > 0) {
-                  return 'translate(' + x(d.date) + ',0)';
+                var barX = x(d.date);
+                if(barX > 0 && barX < xAxisWidth) {
+                  yAxisMax = Math.max(yAxisMax, d.yMax);
+                  return 'translate(' + barX + ',0)';
                 } else {
-                  return 'translate(240,240)scale(0)';
+                  return 'translate(0,0),scale(0)';
                 }
               });
+            y.domain([0, yAxisMax]);
+            yAxis.ticks(yAxisMax <= 10 ? yAxisMax : null);
             // redraw the x axis of the main chart
             main.select('.x.axis').call(xAxis);
+            main.select('.y.axis').call(yAxis);
+            main.selectAll('.bar.stack rect')
+              .attr('y', function(d) { return y(d.yAxisEnd); })
+              .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); });
           }
           // brush tool to let us zoom and pan using the overview chart
           brush.on('brush', brushed);
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.date; }));
-          y.domain([0, d3.max(data, function(d) { return d.yMax; })]);
+          var yAxisMax = d3.max(data, function(d) { return d.yMax; });
+          y.domain([0, yAxisMax]);
+          yAxis.ticks(yAxisMax <= 10 ? yAxisMax : null);
           xOverview.domain(x.domain());
           yOverview.domain(y.domain());
 
@@ -345,7 +356,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .data(function(d) { return d.bars; })
             .enter().append('rect')
               .attr('class', 'bar')
-              .attr('width', 6)
+              .attr('width', 8)
               .attr('y', function(d) { return y(d.yAxisEnd); })
               .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
               .style('fill', function(d) {
@@ -371,7 +382,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .enter().append('rect')
               .attr('class', 'bar')
               .attr('x', function(d) { return xOverview(d.date) - 3; })
-              .attr('width', 6)
+              .attr('width', 8)
               .attr('y', function(d) { return yOverview(d.yMax); })
               .attr('height', function(d) { return heightOverview - yOverview(d.yMax); })
               .style('fill', overviewColor);
