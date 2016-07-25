@@ -2,12 +2,12 @@
  * transform elastic search offer query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
+/* globals _, commonTransforms, relatedEntityTransform */
 /* exported offerTransform */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope, as well as commonTransforms */
-var offerTransform = (function(_, commonTransforms) {
+var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
   function getGeolocation(record) {
     /** build geolocation array object:
@@ -132,18 +132,7 @@ var offerTransform = (function(_, commonTransforms) {
     },
 
     revisions: function(data) {
-      var newData = [];
-
-      if(data && data.hits.hits.length > 0) {
-        data.hits.hits.forEach(function(elem) {
-          var offer = parseOffer(elem._source);
-          offer._id = elem._id;
-          offer._type = 'offer';
-          newData.push(offer);
-        });
-      }
-
-      return newData;
+      return relatedEntityTransform.offer(data);
     },
 
     computeShowSeller: function(sellerPhoneEmails, webpageData) {
@@ -153,4 +142,4 @@ var offerTransform = (function(_, commonTransforms) {
       return sellerPhoneEmails.length !== (webpageEmailsLen + webpagePhonesLen);
     }
   };
-})(_, commonTransforms);
+})(_, commonTransforms, relatedEntityTransform);
