@@ -28,9 +28,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: var(--dark-link-text-color);
       }
     </style>
-    <template is="dom-repeat" items="{{facetSelectionAsArray}}">
+    <template is="dom-repeat" items="{{getFacetSelectionKeys(facetSelection.*)}}" as="facetKey">
       <span class="selected-facet">
-        <span>[[item.category]]: [[getItemText(item)]]</span>
+        <span>[[getFacetProperty(facetKey, 'category')]]: [[getFacetProperty(facetKey, 'text')]]</span>
         <iron-icon class="iron-icon-small" title="Remove Facet" on-tap="removeFacet" icon="close"></iron-icon>
       </span>
     </template>
@@ -50,43 +50,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return {};
           },
           notify: true
-        },
-        facetSelectionAsArray: {
-          type: Array,
-          value: function() {
-            return [];
-          },
-          notify: true
         }
       },
-      observers: [
-        'displayFacets(facetSelection.*)'
-      ],
-      displayFacets: function(facetSelection) {
+      getFacetProperty: function(key, prop) {
+        return this.facetSelection[key][prop];
+      },
+      getFacetSelectionKeys: function() {
         var me = this;
-
-        if(facetSelection && facetSelection.path === 'facetSelection.*' && facetSelection.value) {
-          if(facetSelection.value.enabled) {
-            this.push('facetSelectionAsArray', facetSelection.value);
-          } else {
-            var index = _.findIndex(me.facetSelectionAsArray, function(facet) {
-              return facet.key === facetSelection.value.key &&
-                facet.category === facetSelection.value.category;
-            });
-
-            if(index !== -1) {
-              this.splice('facetSelectionAsArray', index, 1);
-            }
-          }
-        }
-      },
-      getItemText: function(item) {
-        return item.text ? item.text : item.key;
+        var keys = _.keys(this.facetSelection);
+        var filtered = _.filter(keys, function(key) {
+          return me.facetSelection[key].enabled === true;
+        });
+        return filtered;
       },
       removeFacet: function(event) {
-        var facet = event.model.item;
-        this.facetSelection[facet.key].enabled = false;
-        this.notifyPath('facetSelection.*', this.facetSelection[facet.key]);
+        var facetKey = event.model.facetKey;
+        this.facetSelection[facetKey].enabled = false;
+        this.notifyPath('facetSelection.*', this.facetSelection[facetKey]);
       }
     });
   })();

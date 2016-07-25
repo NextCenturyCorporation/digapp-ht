@@ -42,25 +42,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('initial values are correct', function() {
       assert.isObject(element.facetSelection);
       assert.deepEqual(element.facetSelection, {});
-      assert.isArray(element.facetSelectionAsArray);
-      assert.equal(element.facetSelectionAsArray.length, 0);
     });
 
-    test('facetSelectionAsArray is updated when facetSelection is added and notifyPath fires', function() {
-      element.facetSelection['Los Angeles, CA'] = {
-        text: 'Los Angeles, CA',
-        key: 'Los Angeles, CA',
-        count: 10,
-        enabled: true,
-        category: 'City'
-      };
-      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
-
-      assert.equal(element.facetSelectionAsArray.length, 1);
-      assert.equal(element.facetSelectionAsArray[0], element.facetSelection['Los Angeles, CA']);
-    });
-
-    test('facetSelectionAsArray is updated when facetSelection is unchecked and notifyPath fires', function() {
+    test('when facetSelection is added, getFacetSelectionKeys and getFacetProperty return appropriate values', function() {
       element.facetSelection['Los Angeles, CA'] = {
         text: 'Los Angeles, CA',
         key: 'Los Angeles, CA',
@@ -69,35 +53,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         category: 'City'
       };
 
-      element.facetSelectionAsArray[0] = {
-        text: 'Los Angeles, CA',
-        key: 'Los Angeles, CA',
-        count: 10,
-        enabled: true,
-        category: 'City'
-      };
+      var facet = element.facetSelection['Los Angeles, CA'];
+      var facetKeys = element.getFacetSelectionKeys();
 
-      element.facetSelection['Los Angeles, CA'].enabled = false;
-      element.notifyPath('facetSelection.*', element.facetSelection['Los Angeles, CA']);
-
-      assert.equal(element.facetSelectionAsArray.length, 0);
+      assert.equal(facetKeys.length, 1);
+      assert.equal(facetKeys[0], 'Los Angeles, CA');
+      assert.equal(element.getFacetProperty('Los Angeles, CA', 'category'), facet.category);
+      assert.equal(element.getFacetProperty('Los Angeles, CA', 'text'), facet.text);
     });
 
-    test('getItemText returns text or key property of argument', function() {
-      assert.deepEqual(element.getItemText({text: 'text here', key: 'some key'}), 'text here');
-      assert.deepEqual(element.getItemText({key: 'some key'}), 'some key');
-    });
-
-    test('removeFacet removes facet from facetSelectionArray', function() {
+    test('when facetSelection is unchecked, getFacetSelectionKeys returns appropriate value', function() {
       element.facetSelection['Los Angeles, CA'] = {
         text: 'Los Angeles, CA',
         key: 'Los Angeles, CA',
         count: 10,
-        enabled: true,
+        enabled: false,
         category: 'City'
       };
 
-      element.facetSelectionAsArray[0] = {
+      var facetKeys = element.getFacetSelectionKeys();
+
+      assert.equal(facetKeys.length, 0);
+    });
+
+    test('removeFacet disables facet', function() {
+      element.facetSelection['Los Angeles, CA'] = {
         text: 'Los Angeles, CA',
         key: 'Los Angeles, CA',
         count: 10,
@@ -107,12 +87,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       var eventToPassIn = document.createEvent('UIEvent');
       eventToPassIn.model = {
-        item: element.facetSelection['Los Angeles, CA']
+        facetKey: 'Los Angeles, CA'
       };
       element.removeFacet(eventToPassIn);
 
       assert.isFalse(element.facetSelection['Los Angeles, CA'].enabled);
-      assert.equal(element.facetSelectionAsArray.length, 0);
     });
   });
 </script>
