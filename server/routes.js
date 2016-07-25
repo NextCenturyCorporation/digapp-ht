@@ -21,7 +21,8 @@ module.exports = function(app) {
             annotationIndex: config.annotationIndex,
             annotationType: config.annotationType,
             annotationRelevant: config.annotationRelevant,
-            username: req.headers.user ? req.headers.user : 'mockUser'
+            username: req.headers.user ? req.headers.user : 'mockUser',
+            memexImageSimilarity: JSON.parse(config.memexImageSimilarity)
         });
     });
 

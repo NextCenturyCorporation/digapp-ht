@@ -46,7 +46,8 @@ var all = {
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
     annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
-    queryTemplates: templates.QUERY_TEMPLATES || '{}'
+    queryTemplates: templates.QUERY_TEMPLATES || '{}',
+    memexImageSimilarity: process.env.MEMEX_IMAGE_SIMILARITY || ''
  
 };
 
