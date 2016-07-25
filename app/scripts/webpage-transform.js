@@ -25,6 +25,8 @@ var webpageTransform = (function(_, commonTransforms) {
         var extractedMentions = commonTransforms.getEmailAndPhoneFromMentions(mentions);
         newData.phones = extractedMentions.phones;
         newData.emails = extractedMentions.emails;
+        newData.communications = extractedMentions.phones.concat(extractedMentions.emails);
+        newData.showCommunications = (newData.communications.length > 1);
       }
 
       return newData;
@@ -33,7 +35,8 @@ var webpageTransform = (function(_, commonTransforms) {
       var newData = {};
 
       if(data && data.aggregations) {
-        newData = commonTransforms.transformBuckets(data.aggregations.revisions.revisions.buckets, 'date', 'key_as_string');
+        newData.list = commonTransforms.transformBuckets(data.aggregations.revisions.revisions.buckets, 'date', 'key_as_string');
+        newData.show = (newData.list.length > 1);
       }
 
       return newData;

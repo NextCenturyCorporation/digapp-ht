@@ -168,28 +168,16 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
         newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
         newData.descriptors = [];
+        newData.communications = newData.telephone.concat(newData.emailAddress);
       }
 
       return newData;
     },
 
-    phoneEmails: function(data) {
-      var newData = [];
-
-      if(data && data.hits.hits.length > 0) {
-        var telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
-        var emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-
-        if(telephone && emailAddress) {
-          newData = telephone.concat(emailAddress);
-        } else if(telephone) {
-          newData = telephone;
-        } else if(emailAddress) {
-          newData = emailAddress;
-        }
-      }
-
-      return newData;
+    removeItemFromCommunications: function(communications, title) {
+      return (communications || []).filter(function(communication) {
+        return communication.title !== title;
+      });
     },
 
     sellerOffersData: function(data) {

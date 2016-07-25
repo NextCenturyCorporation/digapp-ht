@@ -133,13 +133,6 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     revisions: function(data) {
       return relatedEntityTransform.offer(data);
-    },
-
-    computeShowSeller: function(sellerPhoneEmails, webpageData) {
-      var webpagePhonesLen = (webpageData.phones) ? webpageData.phones.length : 0;
-      var webpageEmailsLen = (webpageData.emails) ? webpageData.emails.length : 0;
-
-      return sellerPhoneEmails.length !== (webpageEmailsLen + webpagePhonesLen);
     }
   };
 })(_, commonTransforms, relatedEntityTransform);
