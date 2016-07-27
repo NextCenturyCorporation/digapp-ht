@@ -149,7 +149,7 @@ var commonTransforms = (function(_, dateFormat) {
       var arrayToReturn = [];
       var initialArray = _.get(record, pathToArray, []);
 
-      initialArray.forEach(function(element) {
+      (_.isArray(initialArray) ? initialArray : [initialArray]).forEach(function(element) {
         arrayToReturn.push(_.get(element, pathToString));
       });
 
@@ -159,27 +159,17 @@ var commonTransforms = (function(_, dateFormat) {
     getClickableObjectArr: function(records, type) {
       var result = [];
       if(records) {
-        if(records.constructor === Array) {
-          records.forEach(function(record) {
-            if(record.name) {
-              var obj = {
-                _id: record.uri,
-                _type: type,
-                title: type === 'email' ? decodeURIComponent(record.name) : record.name,
-                descriptors: []
-              };
-              result.push(obj);
-            }
-          });
-        } else {
-          var obj = {
-            _id: records.uri,
-            _type: type,
-            title: type === 'email' ? decodeURIComponent(records.name) : records.name,
-            descriptors: []
-          };
-          result.push(obj);
-        }
+        (_.isArray(records) ? records : [records]).forEach(function(record) {
+          if(record.name) {
+            var obj = {
+              _id: record.uri,
+              _type: type,
+              title: type === 'email' ? decodeURIComponent(record.name) : record.name,
+              descriptors: []
+            };
+            result.push(obj);
+          }
+        });
       }
 
       return result;
@@ -220,7 +210,7 @@ var commonTransforms = (function(_, dateFormat) {
       newData.emails = [];
 
       if(mentions) {
-        mentions.forEach(function(elem) {
+        (_.isArray(mentions) ? mentions : [mentions]).forEach(function(elem) {
           var type = 'none';
           if(elem.indexOf('phone') !== -1) {
             type = 'phone';
