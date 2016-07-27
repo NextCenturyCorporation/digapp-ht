@@ -32,6 +32,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           total: newData.isImagePartOf.length,
           array: []
         };
+
         newData.isImagePartOf = _.isArray(newData.isImagePartOf) ? newData.isImagePartOf : [newData.isImagePartOf];
         newData.isImagePartOf.forEach(function(service) {
           if(service.mainEntity) {
@@ -41,12 +42,12 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
         newData.adultService = adultService;
 
-        if(newData.similarImageId.similarImageId) {
-          var similarImages = {
+        if(newData.similarImageId && newData.similarImageId.similarImageId) {
+          newData.similarImageId.similarImageId = _.isArray(newData.similarImageId.similarImageId) ? newData.similarImageId.similarImageId : [newData.similarImageId.similarImageId];
+          newData.similarImages = {
             total: newData.similarImageId.similarImageId.length,
             array: newData.similarImageId.similarImageId
           };
-          newData.similarImages = similarImages;
         }
       }
       newData._id = newData.uri;
