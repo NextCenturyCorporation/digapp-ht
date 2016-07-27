@@ -54,20 +54,22 @@ var relatedEntityTransform = (function(_, commonTransforms) {
 
     if(mentions) {
       var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
-      if(communications.phones && communications.phones.length > 0) {
-        //get only first phone to show in title
-        datePhoneEmail.push({
-          id: communications.phones[0]._id,
-          text: communications.phones[0].title,
-          type: 'phone'
+      if(communications.phones && communications.phones.length) {
+        communications.phones.forEach(function(phone) {
+          datePhoneEmail.push({
+            id: phone._id,
+            text: phone.title,
+            type: 'phone'
+          });
         });
       }
-      if(communications.emails && communications.emails.length > 0) {
-        //get only first email to show in title
-        datePhoneEmail.push({
-          id: communications.emails[0]._id,
-          text: decodeURIComponent(communications.emails[0].title),
-          type: 'email'
+      if(communications.emails && communications.emails.length) {
+        communications.emails.forEach(function(email) {
+          datePhoneEmail.push({
+            id: email._id,
+            text: decodeURIComponent(email.title),
+            type: 'email'
+          });
         });
       }
     }
@@ -269,30 +271,34 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     var mentions = _.get(record, '_source.mentions');
     if(mentions) {
       var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
-      if(communications.phones.length > 0) {
+      if(communications.phones.length) {
         webpageObj.details.push({
           label: 'telephone numbers',
           value: communications.phones.map(function(phone) {
             return phone.title;
           }).join(', ')
         });
-        webpageObj.descriptors.push({
-          id: communications.phones[0]._id,
-          text: communications.phones[0].title,
-          type: 'phone'
+        communications.phones.forEach(function(phone) {
+          webpageObj.descriptors.push({
+            id: phone._id,
+            text: phone.title,
+            type: 'phone'
+          });
         });
       }
-      if(communications.emails.length > 0) {
+      if(communications.emails.length) {
         webpageObj.details.push({
           label: 'email addresses',
           value: communications.emails.map(function(email) {
             return email.title;
           }).join(', ')
         });
-        webpageObj.descriptors.push({
-          id: communications.emails[0]._id,
-          text: decodeURIComponent(communications.emails[0].title),
-          type: 'email'
+        communications.emails.forEach(function(email) {
+          webpageObj.descriptors.push({
+            id: email._id,
+            text: decodeURIComponent(email.title),
+            type: 'email'
+          });
         });
       }
     }
