@@ -22,8 +22,7 @@
 
 <script>
   'use strict';
-  /* globals suite, test, expect, setup, fixture, webpageResult,
-    webpageAgg, assert */
+  /* globals suite, test, expect, setup, fixture, webpageResult, assert */
   /* jshint -W030 */
   suite('<client-config> webpage tests', function() {
     var myEl;
@@ -138,30 +137,60 @@
     });
   });
 
-  suite('<client-config> webpage tests for aggregation on url', function() {
+  suite('<client-config> webpage revisions tests', function() {
     var myEl;
-    var dataOut;
 
     setup(function() {
       myEl = fixture('client-config-fixture');
-      var webpageRevisionsTransform = myEl.config.transforms.webpage.webpageRevisions;
-      dataOut = webpageRevisionsTransform(webpageAgg);
     });
 
-    test('defines page revision agg array', function() {
+    test('defines webpage revisions for multiple items', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var dataOut = myEl.config.transforms.webpage.webpageRevisions({
+        aggregations: {
+          revisions: {
+            revisions: {
+              buckets: [{
+                key_as_string: '2016-01-01T00:00:00.000Z',
+                doc_count: 1
+              }, {
+                key_as_string: '2016-01-02T00:00:00.000Z',
+                doc_count: 5
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
       expect(dataOut).to.exist;
-      expect(dataOut).to.be.an('Object');
-      expect(dataOut.list).to.exist;
-      expect(dataOut.list).to.be.an('Array');
-      expect(dataOut.show).to.exist;
-      expect(dataOut.show).to.be.a('Boolean');
+      expect(dataOut).to.be.an('Array');
+      assert.equal(dataOut.length, 2);
+      assert.equal(dataOut[0].date, 'January 01, 2016');
+      assert.equal(dataOut[0].count, 1);
+      assert.equal(dataOut[1].date, 'January 02, 2016');
+      assert.equal(dataOut[1].count, 5);
     });
 
-    test('defines page revision items', function() {
-      assert.equal(dataOut.list.length, 1);
-      assert.equal(dataOut.list[0].date, '2015-09-28T00:00:00.000Z');
-      assert.equal(dataOut.list[0].count, 1);
-      assert.isFalse(dataOut.show);
+    test('defines webpage revisions for a single item as an empty array', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var dataOut = myEl.config.transforms.webpage.webpageRevisions({
+        aggregations: {
+          revisions: {
+            revisions: {
+              buckets: [{
+                key_as_string: '2016-01-01T00:00:00.000Z',
+                doc_count: 1
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(dataOut).to.exist;
+      expect(dataOut).to.be.an('Array');
+      assert.equal(dataOut.length, 0);
     });
   });
 </script>

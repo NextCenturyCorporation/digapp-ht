@@ -32,14 +32,18 @@ var webpageTransform = (function(_, commonTransforms) {
       return newData;
     },
     webpageRevisions: function(data) {
-      var newData = {};
-
       if(data && data.aggregations) {
-        newData.list = commonTransforms.transformBuckets(data.aggregations.revisions.revisions.buckets, 'date', 'key_as_string');
-        newData.show = (newData.list.length > 1);
+        var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            date: commonTransforms.getDate(bucket.key_as_string),
+            count: bucket.doc_count
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+        return (revisions.length < 2 ? [] : revisions);
       }
-
-      return newData;
+      return [];
     }
   };
 })(_, commonTransforms);
