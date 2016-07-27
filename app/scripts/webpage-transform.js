@@ -33,15 +33,17 @@ var webpageTransform = (function(_, commonTransforms) {
     },
     webpageRevisions: function(data) {
       if(data && data.aggregations) {
+        var total = 0;
         var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          total += bucket.doc_count;
           return {
             date: commonTransforms.getDate(bucket.key_as_string),
             count: bucket.doc_count
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
-        return (revisions.length < 2 ? [] : revisions);
+        return (total < 2 ? [] : revisions);
       }
       return [];
     }
