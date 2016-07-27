@@ -49,7 +49,7 @@ var filterAggTransform = (function(_) {
       }
       return cityResultsObj;
     },
-    mentionsPhoneResults: function(data) {
+    mentionsPhoneResults: function(data, limit) {
       var phoneResultsObj = {};
       if(data && data.aggregations && data.aggregations.phoneEmailAgg &&
           data.aggregations.phoneEmailAgg.phoneEmailAgg.buckets) {
@@ -66,10 +66,9 @@ var filterAggTransform = (function(_) {
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
             phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.push(newObj);
 
-            // since phoneEmailAgg returns all buckets, return only the
-            // first 20 for now until the show more button is added
-            // for filters
-            if(phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.length === 20) {
+            // since phoneEmailAgg returns all buckets, return only up to the limit
+            // specified
+            if(phoneResultsObj.aggregations.phoneAgg.phoneAgg.buckets.length === limit) {
               return false;
             }
           }
@@ -77,7 +76,7 @@ var filterAggTransform = (function(_) {
       }
       return phoneResultsObj;
     },
-    mentionsEmailResults: function(data) {
+    mentionsEmailResults: function(data, limit) {
       var emailResultsObj = {};
       if(data && data.aggregations && data.aggregations.phoneEmailAgg &&
           data.aggregations.phoneEmailAgg.phoneEmailAgg.buckets) {
@@ -94,10 +93,9 @@ var filterAggTransform = (function(_) {
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
             emailResultsObj.aggregations.emailAgg.emailAgg.buckets.push(newObj);
 
-            // since phoneEmailAgg returns all buckets, return only the
-            // first 20 for now until the show more button is added
-            // for filters
-            if(emailResultsObj.aggregations.emailAgg.emailAgg.buckets.length === 20) {
+            // since phoneEmailAgg returns all buckets, return only up to the limit
+            // specified
+            if(emailResultsObj.aggregations.emailAgg.emailAgg.buckets.length === limit) {
               return false;
             }
           }

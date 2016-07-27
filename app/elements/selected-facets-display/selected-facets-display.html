@@ -1,0 +1,76 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="selected-facets-display">
+  <template>
+    <style include="icon-styles"></style>
+    <style>
+      .selected-facet {
+        font-size: small;
+        background: var(--paper-blue-grey-200);
+        white-space: nowrap;
+        display: inline-block;
+        padding: 1px 0px 0px 3px;
+        margin: 3px 1px 3px 1px;
+      }
+      iron-icon {
+        margin-bottom: 2px;
+      }
+      iron-icon:hover {
+        color: var(--dark-link-text-color);
+        cursor: pointer;
+      }
+    </style>
+    <template is="dom-repeat" items="{{getFacetSelectionKeys(facetSelection.*)}}" as="facetKey">
+      <span class="selected-facet">
+        <span>[[getFacetProperty(facetKey, 'category')]]: [[getFacetProperty(facetKey, 'text')]]</span>
+        <iron-icon class="iron-icon-small" title="Remove Facet" on-tap="disableFacet" icon="close"></iron-icon>
+      </span>
+    </template>
+  </template>
+  <script>
+  (function() {
+    'use strict';
+    /* globals _ */
+
+    Polymer({
+      is: 'selected-facets-display',
+
+      properties: {
+        facetSelection: {
+          type: Object,
+          value: function() {
+            return {};
+          },
+          notify: true
+        }
+      },
+      getFacetProperty: function(key, prop) {
+        return this.facetSelection[key][prop];
+      },
+      getFacetSelectionKeys: function() {
+        var me = this;
+        var keys = _.keys(this.facetSelection);
+        var filtered = _.filter(keys, function(key) {
+          return me.facetSelection[key].enabled === true;
+        });
+        return filtered;
+      },
+      disableFacet: function(event) {
+        var facetKey = event.model.facetKey;
+        this.facetSelection[facetKey].enabled = false;
+        this.notifyPath('facetSelection.*', this.facetSelection[facetKey]);
+      }
+    });
+  })();
+  </script>
+</dom-module>
