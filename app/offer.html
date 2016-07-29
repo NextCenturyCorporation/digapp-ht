@@ -122,7 +122,7 @@
       aggregations="[]"
       filters="[]"
       results="{{seller}}"
-      last-error="{{error}}">
+      last-error="{{sellerError}}">
     </elastic-client-search>
 
     <json-transform
@@ -163,7 +163,8 @@
       aggregations="[[webpageRevisionsAggregation]]"
       filters="[]"
       results="{{webpageRevisionsResults}}"
-      last-error="{{error}}">
+      loading="{{webpageRevisionsLoading}}"
+      last-error="{{webpageRevisionsError}}">
     </elastic-client-search>
 
     <json-transform
@@ -177,13 +178,6 @@
       data-out="{{webpageDisplay}}"
       transform-function="[[clientConfig.transforms.webpage.webpage]]">
     </json-transform>
-
-    <json-combine
-      data-in1="[[sellerPhoneEmails]]"
-      data-in2="[[webpageDisplay]]"
-      data-out="{{showSeller}}"
-      combine-function="[[clientConfig.transforms.offer.computeShowSeller]]">
-    </json-combine>
 
     <!-- Offer revisions query -->
 
@@ -214,7 +208,7 @@
       results="{{offersWithSameUrlES}}"
       page="{{pageNum}}"
       loading="{{offersWithSameUrlLoading}}"
-      last-error="{{error}}">
+      last-error="{{offersWithSameUrlError}}">
     </elastic-client-search>
 
     <json-transform
@@ -357,6 +351,10 @@
                     <div>[[imageDisplayTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[imageError]]">
+                    <error-message error="[[imageError]]"></error-message>
+                  </template>
+
                   <image-query-and-display
                     image-query-field="isImagePartOf.mainEntity.uri"
                     image-query-values="[[offerDisplay._id]]"
@@ -367,6 +365,7 @@
                     image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
                     image-results="{{imageResults}}"
                     image-display-title="{{imageDisplayTitle}}"
+                    error="{{imageError}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -472,11 +471,15 @@
               </template>
 
               <!-- Seller section -->
-              <template is="dom-if" if="{{showSeller}}">
+              <template is="dom-if" if="[[webpageDisplay.showCommunications]]">
                 <div class="h-divider"></div>
                 <paper-material>
                   <section class="who">
                     <div class="paper-font-title">Email/Phone Cluster</div>
+
+                    <template is="dom-if" if="[[sellerError]]">
+                      <error-message error="[[sellerError]]"></error-message>
+                    </template>
 
                     <div class="who">
                       <single-record
@@ -484,7 +487,7 @@
                         annotation-index="[[config.annotationIndex]]"
                         annotation-type="[[config.annotationType]]"
                         annotation-relevant="[[config.annotationRelevant]]"
-                        item="{{sellerObject}}"
+                        item="[[sellerObject]]"
                         current-user="[[config.username]]"
                         blur="[[blurImages]]">
                       </single-record>
@@ -493,7 +496,7 @@
                       data-id="_id"
                       data-text="title"
                       data-type="_type"
-                      data="[[sellerPhoneEmails]]">
+                      data="[[sellerObject.communications]]">
                     </records-grid>
                   </section>
                 </paper-material>
@@ -523,24 +526,38 @@
               </paper-material>
 
               <!-- Revisions Timeline -->
-              <template is="dom-if" if="[[hasMultipleElements(webpageRevisions)]]">
-                <div class="h-divider"></div>
+              <div class="h-divider"></div>
 
-                <paper-material>
-                    <section class="when">
-                      <div class="paper-font-title layout horizontal start center">
-                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                        <div>
-                          Revisions to this page between {{minXValue}} and {{maxXValue}}
-                        </div>
-                      </div>
-                      <bar-chart y-axis-label="" data="[[webpageRevisions]]"
-                        chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                        min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                      </bar-chart>
-                    </section>
-                </paper-material>
-              </template>
+              <paper-material>
+                <section class="when">
+                  <template is="dom-if" if="[[!webpageRevisions.length]]">
+                    <div class="paper-font-title layout horizontal start center">
+                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                      <div>No Revisions</div>
+                    </div>
+                  </template>
+
+                  <template is="dom-if" if="[[webpageRevisions.length]]">
+                    <div class="paper-font-title layout horizontal start center">
+                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                      <div>[[revisionsTitle]]</div>
+                    </div>
+                  </template>
+
+                  <template is="dom-if" if="[[webpageRevisionsError]]">
+                    <error-message error="[[webpageRevisionsError]]"></error-message>
+                  </template>
+
+                  <zoomable-bar-chart
+                    data="[[webpageRevisions]]"
+                    default-bar-name="Revisions"
+                    height="300"
+                    source="Revisions"
+                    bar-chart-title="{{revisionsTitle}}"
+                    loading="{{webpageRevisionsLoading}}">
+                  </zoomable-bar-chart>
+                </section>
+              </paper-material>
 
               <!-- All Revisions - Offers -->
               <template is="dom-if" if="{{offersWithSameUrl.data.length}}">
@@ -552,6 +569,10 @@
                       <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
                       <div>{{recordsListTitle}}</div>
                     </div>
+
+                    <template is="dom-if" if="[[offersWithSameUrlError]]">
+                      <error-message error="[[offersWithSameUrlError]]"></error-message>
+                    </template>
 
                     <records-list
                       client="[[esclient]]"
@@ -578,7 +599,7 @@
     </div>
   </template>
 
-  <script src="elements/dig-behaviors/browser-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
 
   <script>
   (function(document) {
@@ -586,10 +607,6 @@
     var app = document.querySelector('#app');
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
-
-    app.hasMultipleElements = function(array) {
-      return array.length > 1;
-    };
   })(document);
   </script>
 </body>

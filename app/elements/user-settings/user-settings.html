@@ -30,6 +30,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: var(--primary-text-color);
         white-space: nowrap;
       }
+      .dropdown-trigger {
+        @apply(--paper-icon-button);
+      }
       .info {
         min-height: 48px;
         padding: 0 16px;
@@ -41,7 +44,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .divider {
         border: 1px solid #eee;
       }
-      .blur-setting:hover {
+      .setting:hover {
         cursor: pointer;
       }
       .checkbox {
@@ -60,8 +63,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <span>{{username}}</span>
             </div>
           </div>
+          <template is="dom-if" if="[[showAdvancedSearch]]">
+            <div class="divider"></div>
+            <paper-item class="setting" on-tap="advancedSearchToggle">
+              <iron-icon class="checkbox" icon$="{{checkboxToShow(advancedSearch)}}"></iron-icon>Advanced Search
+            </paper-item>
+          </template>
           <div class="divider"></div>
-          <paper-item class="blur-setting" on-tap="blurToggle">
+          <paper-item class="setting" on-tap="blurToggle">
             <iron-icon class="checkbox" icon$="{{checkboxToShow(blurImages)}}"></iron-icon>Blur Images
           </paper-item>
           <div class="divider"></div>
@@ -88,6 +97,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true,
           observer: 'usernameObserver'
         },
+        showAdvancedSearch: {
+          type: Boolean,
+          value: false
+        },
+        advancedSearch: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
         blurImages: {
           type: Boolean,
           value: true,
@@ -95,9 +113,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       ready: function() {
+        if(sessionStorage.getItem('advancedSearch')) {
+          this.advancedSearch = sessionStorage.getItem('advancedSearch') === 'true' ? true : false;
+        }
         if(sessionStorage.getItem('blurImages')) {
           this.blurImages = sessionStorage.getItem('blurImages') === 'true' ? true : false;
         }
+      },
+      advancedSearchToggle: function() {
+        this.advancedSearch = !this.advancedSearch;
+        sessionStorage.setItem('advancedSearch', this.advancedSearch);
       },
       blurToggle: function() {
         this.blurImages = !this.blurImages;
@@ -106,8 +131,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       open: function() {
         this.$.settings.open();
       },
-      checkboxToShow: function(blurImages) {
-        return blurImages ? 'check-box' : 'check-box-outline-blank';
+      checkboxToShow: function(setting) {
+        return setting ? 'check-box' : 'check-box-outline-blank';
       },
       usernameObserver: function() {
         /* jshint ignore:start */

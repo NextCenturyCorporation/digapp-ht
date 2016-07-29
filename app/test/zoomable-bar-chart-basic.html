@@ -42,7 +42,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       zoomableBarChart = fixture('zoomable-bar-chart-fixture');
       zoomableBarChart.data = [{
         date: 'July 01, 2016',
-        locations: [{
+        list: [{
           name: 'Houston, TX, USA',
           count: 4
         }, {
@@ -60,7 +60,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('data should equal array input', function() {
       expect(zoomableBarChart.data).to.be.deep.equal([{
         date: 'July 01, 2016',
-        locations: [{
+        list: [{
           name: 'Houston, TX, USA',
           count: 4
         }, {
@@ -127,6 +127,75 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(zoomableBarChart.getYAxisTickValues(200)).to.deep.equal([0, 50, 100, 150, 200]);
       expect(zoomableBarChart.getYAxisTickValues(500)).to.deep.equal([0, 100, 200, 300, 400, 500]);
       expect(zoomableBarChart.getYAxisTickValues(1000)).to.deep.equal([0, 200, 400, 600, 800, 1000]);
+    });
+  });
+
+  suite('<zoomable-bar-chart> with non-default properties', function() {
+    var zoomableBarChart;
+
+    setup(function(done) {
+      zoomableBarChart = fixture('zoomable-bar-chart-fixture');
+      zoomableBarChart.dataDateProperty = 'myDate';
+      zoomableBarChart.dataListProperty = 'myList';
+      zoomableBarChart.dataNameProperty = 'myName';
+      zoomableBarChart.dataCountProperty = 'myCount';
+      zoomableBarChart.defaultBarName = 'Thing';
+      zoomableBarChart.data = [{
+        myDate: 'July 01, 2016',
+        myList: [{
+          myName: 'Houston, TX, USA',
+          myCount: 4
+        }, {
+          myName: 'Austin, TX, USA',
+          myCount: 0
+        }, {
+          myCount: 2
+        }]
+      }];
+      flush(function() {
+        done();
+      });
+    });
+
+    test('data should equal array input', function() {
+      expect(zoomableBarChart.data).to.be.deep.equal([{
+        myDate: 'July 01, 2016',
+        myList: [{
+          myName: 'Houston, TX, USA',
+          myCount: 4
+        }, {
+          myName: 'Austin, TX, USA',
+          myCount: 0
+        }, {
+          myCount: 2
+        }]
+      }]);
+    });
+
+    test('barChartData is correct', function() {
+      expect(zoomableBarChart.barChartData).to.be.an('array');
+      expect(zoomableBarChart.barChartData.length).to.equal(1);
+      expect(zoomableBarChart.barChartData[0]).to.be.an('object');
+      expect(zoomableBarChart.barChartData[0].bars).to.be.deep.equal([{
+        date: 'July 01, 2016',
+        name: 'Houston, TX, USA',
+        yAxisStart: 0,
+        yAxisEnd: 4,
+        yMax: 6,
+      }, {
+        date: 'July 01, 2016',
+        name: 'Thing',
+        yAxisStart: 4,
+        yAxisEnd: 6,
+        yMax: 6,
+      }]);
+      expect(zoomableBarChart.barChartData[0].dateObject).to.be.a('date');
+      expect(zoomableBarChart.barChartData[0].dateString).to.equal('July 01, 2016');
+      expect(zoomableBarChart.barChartData[0].yMax).to.equal(6);
+    });
+
+    test('barChartLegend is correct', function() {
+      expect(zoomableBarChart.barChartLegend).to.be.deep.equal(['Houston, TX, USA', 'Thing']);
     });
   });
 

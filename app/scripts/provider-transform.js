@@ -33,7 +33,7 @@ var providerTransform = (function(_) {
     person.sellers = [];
     var offers = _.get(record, 'offers');
     if(offers) {
-      offers.forEach(function(offer) {
+      (_.isArray(offers) ? offers : [offers]).forEach(function(offer) {
         var seller = _.get(offer, 'seller');
         if(seller) {
           person.sellers.push(_.get(seller, 'uri'));

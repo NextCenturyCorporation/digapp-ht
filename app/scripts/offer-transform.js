@@ -87,7 +87,7 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     var prices = _.get(record, 'priceSpecification');
     if(prices) {
       var sep = '';
-      prices.forEach(function(elem) {
+      (_.isArray(prices) ? prices : [prices]).forEach(function(elem) {
         var price = elem.name;
         if(price !== '-per-min') {
           result = result + sep + price;
@@ -133,13 +133,6 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     revisions: function(data) {
       return relatedEntityTransform.offer(data);
-    },
-
-    computeShowSeller: function(sellerPhoneEmails, webpageData) {
-      var webpagePhonesLen = (webpageData.phones) ? webpageData.phones.length : 0;
-      var webpageEmailsLen = (webpageData.emails) ? webpageData.emails.length : 0;
-
-      return sellerPhoneEmails.length !== (webpageEmailsLen + webpagePhonesLen);
     }
   };
 })(_, commonTransforms, relatedEntityTransform);

@@ -40,7 +40,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecord = fixture('single-record-fixture');
-      singleRecord.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle', 'details': {'address': ['LA', 'SF'], 'date': '2016-01-01', 'description': 'myDesc', 'publisher': 'myPublisher'}};
+      singleRecord.item = {
+        _id: '1',
+        _type: 'offer',
+        title: 'myTitle',
+        details: [{
+          label: 'address',
+          value: ['LA', 'SF']
+        }, {
+          label: 'date',
+          value: '2016-01-01'
+        }, {
+          label: 'description',
+          value: 'myDesc'
+        }, {
+          label: 'publisher',
+          value: 'myPublisher'
+        }]
+      };
       flush(function() {
         done();
       });
@@ -58,23 +75,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecord.showDetails).to.be.true;
     });
 
-    test('getDetailArrayForKey() returns correct value for undefined', function() {
-      var details = singleRecord.getDetailArrayForKey({}, 'address');
+    test('getDetailValueArray() returns correct value for undefined', function() {
+      var details = singleRecord.getDetailValueArray();
       expect(details).to.exist;
       expect(details).to.be.an('Array');
       expect(details.length).to.equal(0);
     });
 
-    test('getDetailArrayForKey() returns correct value for single item', function() {
-      var details = singleRecord.getDetailArrayForKey({address: 'LA'}, 'address');
+    test('getDetailValueArray() returns correct value for no value', function() {
+      var details = singleRecord.getDetailValueArray({});
+      expect(details).to.exist;
+      expect(details).to.be.an('Array');
+      expect(details.length).to.equal(0);
+    });
+
+    test('getDetailValueArray() returns correct value for one value', function() {
+      var details = singleRecord.getDetailValueArray({value: 'LA'});
       expect(details).to.exist;
       expect(details).to.be.an('Array');
       expect(details.length).to.equal(1);
       expect(details[0]).to.equal('LA');
     });
 
-    test('getDetailArrayForKey() returns correct value for list', function() {
-      var details = singleRecord.getDetailArrayForKey({address: ['LA', 'SF']}, 'address');
+    test('getDetailValueArray() returns correct value for array value', function() {
+      var details = singleRecord.getDetailValueArray({value: ['LA', 'SF']});
       expect(details).to.exist;
       expect(details).to.be.an('Array');
       expect(details.length).to.equal(2);
@@ -94,21 +118,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('replaceCamelCaseText() adds spaces to camel cased strings', function() {
       expect(singleRecord.replaceCamelCaseText('test')).to.be.equal('test');
       expect(singleRecord.replaceCamelCaseText('camelCase')).to.be.equal('camel Case');
-    });
-
-    test('getDetailKeysArray() returns all the keys from the details', function() {
-      var details = {'address': ['LA', 'SF'], 'date': '2016-01-01', 'description': 'myDesc', 'publisher': 'myPublisher'};
-      expect(singleRecord.getDetailKeysArray(details)).to.be.deep.equal(['address', 'date', 'description', 'publisher']);
-    });
-
-    test('getDetailKeysArray() returns [] if no details exist', function() {
-      var item = {title: 'record'};
-      expect(singleRecord.getDetailKeysArray(item.details)).to.be.deep.equal([]);
-    });
-
-    test('getDetailKeysArray() returns sorted keys if available', function() {
-      var details = {'address': ['LA', 'SF'], 'date': '2016-01-01', 'description': 'myDesc', 'publisher': 'myPublisher', '_sortedKeys': ['description', 'address', 'publisher']};
-      expect(singleRecord.getDetailKeysArray(details)).to.be.deep.equal(['description', 'address', 'publisher']);
     });
 
     test('getTarget() returns "_self" when newTab is false', function() {
@@ -238,7 +247,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('item.imageSources is undefined', function() {
-      expect(singleRecord.item.imageSources).to.be.undefined;
+      expect(singleRecord.item.imageSources).to.not.exist;
     });
 
     test('has no iron-image element', function() {

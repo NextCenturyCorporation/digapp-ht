@@ -10,6 +10,29 @@
   <title>DIG</title>
   <!-- Place favicon.ico in the `app/` directory -->
 
+  <!-- Chrome for Android theme color -->
+  <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+
   <!-- build:css styles/main.css -->
   <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
   <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
@@ -103,7 +126,7 @@
       sort-order="desc"
       results="{{imageOffers}}"
       loading="{{offersLoading}}"
-      last-error="{{error}}">
+      last-error="{{offersError}}">
     </elastic-client-search>
 
     <json-transform
@@ -178,7 +201,13 @@
                     <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
                     <div>[[barChartTitle]]</div>
                   </div>
+
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <error-message error="[[locationTimelineError]]"></error-message>
+                  </template>
+
                   <zoomable-bar-chart
+                    data-list-property="locations"
                     data="[[imageDisplay.locationTimeline.dates]]"
                     source="Ads"
                     bar-chart-title="{{barChartTitle}}"
@@ -212,43 +241,16 @@
 
               <div class="h-divider"></div>
 
-              <!-- Seller section -->
-              <template is="dom-if" if="{{showSeller}}">
-                <paper-material>
-                  <section class="who">
-                    <div class="paper-font-title">Email/Phone Cluster</div>
-
-                    <div class="who">
-                      <div class="paper-font-title">
-                        <single-record
-                          client="[[esclient]]"
-                          annotation-index="[[config.annotationIndex]]"
-                          annotation-type="[[config.annotationType]]"
-                          annotation-relevant="[[config.annotationRelevant]]"
-                          current-user="[[config.username]]"
-                          item="{{sellerObject}}"
-                          blur="[[blurImages]]">
-                        </single-record>
-                      </div>
-                    </div>
-                    <records-grid
-                      data-id="_id"
-                      data-text="title"
-                      data-type="_type"
-                      data="[[showSeller]]">
-                    </records-grid>
-                  </section>
-                </paper-material>
-              </template>
-
-              <div class="h-divider"></div>
-
               <paper-material>
                 <section class="photos">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
                     <div>[[imageDisplayTitle]]</div>
                   </div>
+
+                  <template is="dom-if" if="[[imageError]]">
+                    <error-message error="[[imageError]]"></error-message>
+                  </template>
 
                   <image-query-and-display
                     image-query-field="identifier"
@@ -260,6 +262,7 @@
                     image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
                     type="Similar Image"
                     image-display-title="{{imageDisplayTitle}}"
+                    error="{{imageError}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -273,6 +276,10 @@
                     <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
                     <div>[[itineraryTitle]]</div>
                   </div>
+
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <error-message error="[[locationTimelineError]]"></error-message>
+                  </template>
 
                   <itinerary-list
                     data-items="locations"
@@ -311,6 +318,10 @@
 
                 <!-- City summary -->
                 <section class="where-details flex-none">
+                  <template is="dom-if" if="[[locationError]]">
+                    <error-message error="[[locationError]]"></error-message>
+                  </template>
+
                   <feature-query-and-display
                     aggregation-name="city"
                     aggregation-field="availableAtOrFrom.address.key"
@@ -320,6 +331,7 @@
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["offer"]'
+                    error="{{locationError}}"
                     consumed-filters="[[buildArray(peopleFilters)]]"
                     transform="[[clientConfig.transforms.common.offerLocationData]]"
                     transform-results="{{imageDisplay.offerLocation}}"
@@ -340,6 +352,10 @@
                     <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
                     <div>{{recordsListTitle}}</div>
                   </div>
+
+                  <template is="dom-if" if="[[offersError]]">
+                    <error-message error="[[offersError]]"></error-message>
+                  </template>
 
                   <records-list
                     client="[[esclient]]"
@@ -367,8 +383,8 @@
     </div>
   </template>
 
-  <script src="elements/dig-behaviors/array-behavior.js"></script>
-  <script src="elements/dig-behaviors/browser-behavior.js"></script>
+  <script src="behaviors/array-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
 
   <script>
   (function(document) {

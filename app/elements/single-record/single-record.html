@@ -18,10 +18,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../behaviors.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
-
-<script src="../dig-behaviors/create-link-behavior.js"></script>
-<script src="../dig-behaviors/data-type-behavior.js"></script>
 
 <dom-module id="single-record">
   <template>
@@ -117,13 +115,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-if" if="[[showDetails]]">
         <iron-collapse id="recordDetail">
           <paper-material class="list-item-collapse-body list-item-body">
-            <template is="dom-repeat" items="[[getDetailKeysArray(item.details)]]" as="key">
+            <template is="dom-repeat" items="[[item.details]]" as="detail">
               <paper-item>
                 <paper-item-body>
                   <span>
-                    <strong class="capitalize">[[replaceCamelCaseText(key)]]:</strong>
-                    <template is="dom-repeat" items="[[getDetailArrayForKey(item.details, key)]]" as="value">
-                      <span>[[value]]</span>
+                    <strong class="capitalize">[[replaceCamelCaseText(detail.label)]]:</strong>
+                    <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
+                      <template is="dom-if" if="[[detail.url]]">
+                        <a target="_blank" href$="[[value]]">[[value]]</a>
+                      </template>
+                      <template is="dom-if" if="[[!detail.url]]">
+                        <span>[[value]]</span>
+                      </template>
                     </template>
                   </span>
                 </paper-item-body>
@@ -270,20 +273,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return (blur ? 'small-blur' : '');
       },
 
-      getDetailArrayForKey: function(details, key) {
-        if(details && details[key]) {
-          return (_.isArray(details[key]) ? details[key] : [details[key]]);
-        }
-        return [];
-      },
-
-      getDetailKeysArray: function(details) {
-        if(details) {
-          return (details._sortedKeys ? details._sortedKeys : _.keys(details)).filter(function(key) {
-            return details[key];
-          });
-        }
-        return [];
+      getDetailValueArray: function(detail) {
+        return (detail && detail.value) ? (_.isArray(detail.value) ? detail.value : [detail.value]) : [];
       },
 
       getHeaderClass: function(opened) {
@@ -348,7 +339,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Sets whether to show details based on the existence of the given details object.
        */
       updateShowDetails: function(details) {
-        this.set('showDetails', !!details);
+        this.set('showDetails', (!!details && !!details.length));
       }
     });
   })();

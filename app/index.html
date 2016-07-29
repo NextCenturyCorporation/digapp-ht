@@ -8,9 +8,30 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="generator" content="Polymer Starter Kit" />
   <title>DIG</title>
+  <!-- Place favicon.ico in the `app/` directory -->
 
   <!-- Chrome for Android theme color -->
   <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
 
   <!-- build:css styles/main.css -->
   <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
@@ -239,22 +260,26 @@
         </elastic-type-selector>
         -->
         <div class="v-divider"></div>
-        <paper-button on-tap="showAll" title="Show All Matching the Selected Facets" style="margin-top: 20px;">Show All</paper-button>
-        <div class="v-divider"></div>
         <div class="flex-6">
             <elastic-client-input class="white-input-container"
               field="_all"
               value="{{queryValue}}"
               query="{{ejsQuery}}"
-              label="Search"
+              label="Enter Keywords"
+              advanced="[[advancedSearch]]"
               autobuild="true">
             </elastic-client-input>
         </div>
         <a href="." style="color: #ffffff;">
-          <paper-icon-button icon="clear" title="Reset Page" style="margin-top: 20px;"></paper-icon-button>
+          <paper-icon-button icon="clear" title="Reset Page"></paper-icon-button>
         </a>
         <!-- Add a top margin to the user settings so it aligns vertically with the buttons in the elastic-client-input -->
-        <user-settings username="[[config.username]]" blur-images="{{blurImages}}" style="margin-top: 20px;"></user-settings>
+        <user-settings
+          username="[[config.username]]"
+          show-advanced-search
+          advanced-search="{{advancedSearch}}"
+          blur-images="{{blurImages}}">
+        </user-settings>
 
       </paper-toolbar>
 
@@ -268,6 +293,20 @@
               <elastic-sort-input sort-string="{{offerSortString}}" field="dateCreated"></elastic-sort-input>
               <elastic-sort input-string="{{offerSortString}}" sort="{{sort}}"></elastic-sort>
 
+              <div class="h-divider"></div>
+              <selected-facets-display facet-selection="{{countryFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{cityFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{phoneFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{emailFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{websiteFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{nameFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{ageFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{ethnicityFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{heightFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{weightFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{hairColorFacetSelection}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{eyeColorFacetSelection}}"></selected-facets-display>
+
               <div id="country" class="facet-header">
                 <span class="facet-toggle" title="Toggle Country Facet List" on-tap="toggleList">Country</span>
                 <iron-icon id="country-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Country Facet List" on-tap="toggleList"></iron-icon>
@@ -277,23 +316,40 @@
               <elastic-client-aggregation-builder
                 name="countryAgg"
                 field="mainEntity.availableAtOrFrom.address.addressCountry"
-                count="20"
+                count="{{countryCount}}"
                 ejs-aggregation="{{countryAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="country-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Country"
+                buckets="[[countryResult.aggregations.countryAgg.countryAgg.buckets]]"
+                loading="[[countryLoading]]"
+                error="[[countryError]]"
+                facet-selection="{{countryFacetSelection}}"
+                agg-count="{{countryCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="country-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[countryResult.aggregations.countryAgg.countryAgg.buckets]]"
-                  filter-name="countryAgg"
-                  field="mainEntity.availableAtOrFrom.address.addressCountry"
-                  ejs-filter="{{countryFilter}}"
+                  facet-selection="{{countryFacetSelection}}"
                   facets="{{countryFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!countryFacets.length]]">
-                  <div>[[createFacetText(countryLoading, countryError)]]</div>
-                </template>
+                  category="Country">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{countryFacetSelection}}"
+                  filter-name="countryAgg"
+                  combination-type="or"
+                  field="mainEntity.availableAtOrFrom.address.addressCountry"
+                  ejs-filter="{{countryFilter}}">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[countryFacets]]"
+                  loading="[[countryLoading]]"
+                  error="[[countryError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="city" class="facet-header">
@@ -305,7 +361,7 @@
               <elastic-client-aggregation-builder
                 name="cityAgg"
                 field="mainEntity.availableAtOrFrom.address.key"
-                count="20"
+                count="{{cityCount}}"
                 ejs-aggregation="{{cityAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
@@ -316,18 +372,36 @@
                 transform-function="[[clientConfig.transforms.filterAggs.cityResults]]">
               </json-transform>
 
-              <iron-collapse id="city-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="City"
+                buckets="[[cityAndStateResult.aggregations.cityAgg.cityAgg.buckets]]"
+                loading="[[cityLoading]]"
+                error="[[cityError]]"
+                facet-selection="{{cityFacetSelection}}"
+                agg-count="{{cityCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="city-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[cityAndStateResult.aggregations.cityAgg.cityAgg.buckets]]"
+                  facet-selection="{{cityFacetSelection}}"
+                  facets="{{cityFacets}}"
+                  category="City">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{cityFacetSelection}}"
                   filter-name="cityAgg"
+                  combination-type="or"
                   field="mainEntity.availableAtOrFrom.address.key"
                   ejs-filter="{{cityFilter}}"
-                  facets="{{cityFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!cityFacets.length]]">
-                  <div>[[createFacetText(cityLoading, cityError)]]</div>
-                </template>
+                  category="City">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[cityFacets]]"
+                  loading="[[cityLoading]]"
+                  error="[[cityError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <!-- Phone and email use a transform on the same aggregation set -->
@@ -345,24 +419,46 @@
                 <iron-icon id="phone-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Telephone Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
-              <json-transform
+              <facets-transform
                 data-in="{{phoneEmailResult}}"
                 data-out="{{phoneResult}}"
+                limit="{{phoneCount}}"
                 transform-function="[[clientConfig.transforms.filterAggs.mentionsPhoneResults]]">
-              </json-transform>
+              </facets-transform>
 
-              <iron-collapse id="phone-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Telephone"
+                buckets="[[phoneResult.aggregations.phoneAgg.phoneAgg.buckets]]"
+                current-max-facets="[[phoneFacetMax]]"
+                loading="[[phoneEmailLoading]]"
+                error="[[phoneEmailError]]"
+                facet-selection="{{phoneFacetSelection}}"
+                agg-count="{{phoneCount}}"
+                paging="true">
+              </view-all-facets>
+
+              <iron-collapse id="phone-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[phoneResult.aggregations.phoneAgg.phoneAgg.buckets]]"
+                  facet-selection="{{phoneFacetSelection}}"
+                  facets="{{phoneFacets}}"
+                  show="{{phoneFacetMax}}"
+                  category="Telephone">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{phoneFacetSelection}}"
                   filter-name="phoneAgg"
+                  combination-type="or"
                   field="mentions"
                   ejs-filter="{{phoneFilter}}"
-                  facets="{{phoneFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!phoneFacets.length]]">
-                  <div>[[createFacetText(phoneEmailLoading, phoneEmailError)]]</div>
-                </template>
+                  category="Telephone">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[phoneFacets]]"
+                  loading="[[phoneEmailLoading]]"
+                  error="[[phoneEmailError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="email" class="facet-header">
@@ -371,24 +467,46 @@
                 <iron-icon id="email-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Email Address Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
-              <json-transform
+              <facets-transform
                 data-in="{{phoneEmailResult}}"
                 data-out="{{emailResult}}"
+                limit="{{emailCount}}"
                 transform-function="[[clientConfig.transforms.filterAggs.mentionsEmailResults]]">
-              </json-transform>
+              </facets-transform>
 
-              <iron-collapse id="email-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Email Address"
+                buckets="[[emailResult.aggregations.emailAgg.emailAgg.buckets]]"
+                current-max-facets="[[emailFacetMax]]"
+                loading="[[phoneEmailLoading]]"
+                error="[[phoneEmailError]]"
+                facet-selection="{{emailFacetSelection}}"
+                agg-count="{{emailCount}}"
+                paging="true">
+              </view-all-facets>
+
+              <iron-collapse id="email-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[emailResult.aggregations.emailAgg.emailAgg.buckets]]"
+                  facet-selection="{{emailFacetSelection}}"
+                  facets="{{emailFacets}}"
+                  show="{{emailFacetMax}}"
+                  category="Email Address">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{emailFacetSelection}}"
                   filter-name="emailAgg"
+                  combination-type="or"
                   field="mentions"
                   ejs-filter="{{emailFilter}}"
-                  facets="{{emailFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!emailFacets.length]]">
-                  <div>[[createFacetText(phoneEmailLoading, phoneEmailError)]]</div>
-                </template>
+                  category="Email Address">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[emailFacets]]"
+                  loading="[[phoneEmailLoading]]"
+                  error="[[phoneEmailError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="website" class="facet-header">
@@ -400,23 +518,41 @@
               <elastic-client-aggregation-builder
                 name="publisherAgg"
                 field="publisher.name.raw"
-                count="20"
+                count="{{publisherCount}}"
                 ejs-aggregation="{{publisherAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="website-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Website"
+                buckets="[[publisherResult.aggregations.publisherAgg.publisherAgg.buckets]]"
+                loading="[[publisherLoading]]"
+                error="[[publisherError]]"
+                facet-selection="{{websiteFacetSelection}}"
+                agg-count="{{publisherCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="website-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[publisherResult.aggregations.publisherAgg.publisherAgg.buckets]]"
+                  facet-selection="{{websiteFacetSelection}}"
+                  facets="{{publisherFacets}}"
+                  category="Website">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{websiteFacetSelection}}"
                   filter-name="publisherAgg"
+                  combination-type="or"
                   field="publisher.name.raw"
                   ejs-filter="{{publisherFilter}}"
-                  facets="{{publisherFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!publisherFacets.length]]">
-                  <div>[[createFacetText(publisherLoading, publisherError)]]</div>
-                </template>
+                  category="Website">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[publisherFacets]]"
+                  loading="[[publisherLoading]]"
+                  error="[[publisherError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="name" class="facet-header">
@@ -428,23 +564,41 @@
               <elastic-client-aggregation-builder
                 name="nameAgg"
                 field="mainEntity.itemOffered.name.raw"
-                count="20"
+                count="{{nameCount}}"
                 ejs-aggregation="{{nameAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="name-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Name"
+                buckets="[[nameResult.aggregations.nameAgg.nameAgg.buckets]]"
+                loading="[[nameLoading]]"
+                error="[[nameError]]"
+                facet-selection="{{nameFacetSelection}}"
+                agg-count="{{nameCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="name-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[nameResult.aggregations.nameAgg.nameAgg.buckets]]"
+                  facet-selection="{{nameFacetSelection}}"
+                  facets="{{nameFacets}}"
+                  category="Name">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{nameFacetSelection}}"
                   filter-name="nameAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.name.raw"
                   ejs-filter="{{nameFilter}}"
-                  facets="{{nameFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!nameFacets.length]]">
-                  <div>[[createFacetText(nameLoading, nameError)]]</div>
-                </template>
+                  category="Name">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[nameFacets]]"
+                  loading="[[nameLoading]]"
+                  error="[[nameError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="age" class="facet-header">
@@ -456,23 +610,41 @@
               <elastic-client-aggregation-builder
                 name="ageAgg"
                 field="mainEntity.itemOffered.age"
-                count="20"
+                count="{{ageCount}}"
                 ejs-aggregation="{{ageAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="age-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Age"
+                buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
+                loading="[[ageLoading]]"
+                error="[[ageError]]"
+                facet-selection="{{ageFacetSelection}}"
+                agg-count="{{ageCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="age-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
+                  facet-selection="{{ageFacetSelection}}"
+                  facets="{{ageFacets}}"
+                  category="Age">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{ageFacetSelection}}"
                   filter-name="ageAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.age"
                   ejs-filter="{{ageFilter}}"
-                  facets="{{ageFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!ageFacets.length]]">
-                  <div>[[createFacetText(ageLoading, ageError)]]</div>
-                </template>
+                  category="Age">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[ageFacets]]"
+                  loading="[[ageLoading]]"
+                  error="[[ageError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="ethnicity" class="facet-header">
@@ -484,23 +656,41 @@
               <elastic-client-aggregation-builder
                 name="ethnicityAgg"
                 field="mainEntity.itemOffered.ethnicity"
-                count="20"
+                count="{{ethnicityCount}}"
                 ejs-aggregation="{{ethnicityAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="ethnicity-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Ethnicity"
+                buckets="[[ethnicityResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
+                loading="[[ethnicityLoading]]"
+                error="[[ethnicityError]]"
+                facet-selection="{{ethnicityFacetSelection}}"
+                agg-count="{{ethnicityCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="ethnicity-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[ethnicityResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
+                  facet-selection="{{ethnicityFacetSelection}}"
+                  facets="{{ethnicityFacets}}"
+                  category="Ethnicity">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{ethnicityFacetSelection}}"
                   filter-name="ethnicityAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.ethnicity"
                   ejs-filter="{{ethnicityFilter}}"
-                  facets="{{ethnicityFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!ethnicityFacets.length]]">
-                  <div>[[createFacetText(ethnicityLoading, ethnicityError)]]</div>
-                </template>
+                  category="Ethnicity">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[ethnicityFacets]]"
+                  loading="[[ethnicityLoading]]"
+                  error="[[ethnicityError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="height" class="facet-header">
@@ -512,23 +702,41 @@
               <elastic-client-aggregation-builder
                 name="heightAgg"
                 field="mainEntity.itemOffered.height"
-                count="20"
+                count="{{heightCount}}"
                 ejs-aggregation="{{heightAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="height-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Height (cm)"
+                buckets="[[heightResult.aggregations.heightAgg.heightAgg.buckets]]"
+                loading="[[heightLoading]]"
+                error="[[heightError]]"
+                facet-selection="{{heightFacetSelection}}"
+                agg-count="{{heightCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="height-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[heightResult.aggregations.heightAgg.heightAgg.buckets]]"
+                  facets="{{heightFacets}}"
+                  facet-selection="{{heightFacetSelection}}"
+                  category="Height (cm)">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{heightFacetSelection}}"
                   filter-name="heightAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.height"
                   ejs-filter="{{heightFilter}}"
-                  facets="{{heightFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!heightFacets.length]]">
-                  <div>[[createFacetText(heightLoading, heightError)]]</div>
-                </template>
+                  category="Height (cm)">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[heightFacets]]"
+                  loading="[[heightLoading]]"
+                  error="[[heightError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="weight" class="facet-header">
@@ -540,23 +748,41 @@
               <elastic-client-aggregation-builder
                 name="weightAgg"
                 field="mainEntity.itemOffered.weight"
-                count="20"
+                count="{{weightCount}}"
                 ejs-aggregation="{{weightAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="weight-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Weight (kg)"
+                buckets="[[weightResult.aggregations.weightAgg.weightAgg.buckets]]"
+                loading="[[weightLoading]]"
+                error="[[weightError]]"
+                facet-selection="{{weightFacetSelection}}"
+                agg-count="{{weightCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="weight-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[weightResult.aggregations.weightAgg.weightAgg.buckets]]"
+                  facets="{{weightFacets}}"
+                  facet-selection="{{weightFacetSelection}}"
+                  category="Weight (kg)">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{weightFacetSelection}}"
                   filter-name="weightAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.weight"
                   ejs-filter="{{weightFilter}}"
-                  facets="{{weightFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!weightFacets.length]]">
-                  <div>[[createFacetText(weightLoading, weightError)]]</div>
-                </template>
+                  category="Weight (kg)">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[weightFacets]]"
+                  loading="[[weightLoading]]"
+                  error="[[weightError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="hair-color" class="facet-header">
@@ -568,23 +794,41 @@
               <elastic-client-aggregation-builder
                 name="hairColorAgg"
                 field="mainEntity.itemOffered.hairColor"
-                count="20"
+                count="{{hairColorCount}}"
                 ejs-aggregation="{{hairColorAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="hair-color-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Hair Color"
+                buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
+                loading="[[hairColorLoading]]"
+                error="[[hairColorError]]"
+                facet-selection="{{hairColorFacetSelection}}"
+                agg-count="{{hairColorCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="hair-color-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
+                  facets="{{hairColorFacets}}"
+                  facet-selection="{{hairColorFacetSelection}}"
+                  category="Hair Color">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{hairColorFacetSelection}}"
                   filter-name="hairColorAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.hairColor"
                   ejs-filter="{{hairColorFilter}}"
-                  facets="{{hairColorFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!hairColorFacets.length]]">
-                  <div>[[createFacetText(hairColorLoading, hairColorError)]]</div>
-                </template>
+                  category="Hair Color">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[hairColorFacets]]"
+                  loading="[[hairColorLoading]]"
+                  error="[[hairColorError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
 
               <div id="eye-color" class="facet-header">
@@ -596,23 +840,42 @@
               <elastic-client-aggregation-builder
                 name="eyeColorAgg"
                 field="mainEntity.itemOffered.eyeColor"
-                count="20"
+                count="{{eyeColorCount}}"
                 ejs-aggregation="{{eyeColorAgg}}"
                 type="terms">
               </elastic-client-aggregation-builder>
 
-              <iron-collapse id="eye-color-list" class="facet-list" closed>
-                <elastic-client-checkbox-list
+              <view-all-facets
+                title="Eye Color"
+                buckets="[[eyeColorResult.aggregations.eyeColorAgg.eyeColorAgg.buckets]]"
+                loading="[[eyeColorLoading]]"
+                error="[[eyeColorError]]"
+                facet-selection="{{eyeColorFacetSelection}}"
+                filter="{{eyeColorFilter}}"
+                agg-count="{{eyeColorCount}}">
+              </view-all-facets>
+
+              <iron-collapse id="eye-color-list" class="facet-list" opened>
+                <checkbox-list-display
                   buckets="[[eyeColorResult.aggregations.eyeColorAgg.eyeColorAgg.buckets]]"
+                  facets="{{eyeColorFacets}}"
+                  facet-selection="{{eyeColorFacetSelection}}"
+                  category="Eye Color">
+                </checkbox-list-display>
+                <elastic-checkbox-list-filter
+                  facet-selection="{{eyeColorFacetSelection}}"
                   filter-name="eyeColorAgg"
+                  combination-type="or"
                   field="mainEntity.itemOffered.eyeColor"
                   ejs-filter="{{eyeColorFilter}}"
-                  facets="{{eyeColorFacets}}"
-                  combination-type="or">
-                </elastic-client-checkbox-list>
-                <template is="dom-if" if="[[!eyeColorFacets.length]]">
-                  <div>[[createFacetText(eyeColorLoading, eyeColorError)]]</div>
-                </template>
+                  category="Eye Color">
+                </elastic-checkbox-list-filter>
+                <state-message
+                  array="[[eyeColorFacets]]"
+                  loading="[[eyeColorLoading]]"
+                  error="[[eyeColorError]]"
+                  label="Facets">
+                </state-message>
               </iron-collapse>
             </section>
 
@@ -634,7 +897,9 @@
               </template>
 
               <template is="dom-if" if="[[searchError]]">
-                <div class="paper-font-title flex">[[searchError]]</div>
+                <div class="paper-font-title flex">
+                  <error-message error="[[searchError]]"></error-message>
+                </div>
               </template>
 
               <div class="flex-none">
@@ -671,7 +936,7 @@
 
   </template>
 
-  <script src="elements/dig-behaviors/array-behavior.js"></script>
+  <script src="behaviors/array-behavior.js"></script>
 
   <script>
     (function(document) {
@@ -682,17 +947,6 @@
 
       app.getElasticTypes = function() {
         return ['webpage'];
-      };
-
-      app.showAll = function() {
-        app.queryValue = null;
-      };
-
-      /**
-       * Creates and returns the text to display for an empty facet based on whether it is loading or has an error.
-       */
-      app.createFacetText = function(loading, error) {
-        return (loading ? 'Loading...' : (error ? error : 'No Facets'));
       };
 
       /**
@@ -708,6 +962,7 @@
           }
         }
       };
+
     })(document);
   </script>
 </body>

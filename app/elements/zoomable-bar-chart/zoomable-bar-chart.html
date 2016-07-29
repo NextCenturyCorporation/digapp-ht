@@ -92,27 +92,52 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         is: 'zoomable-bar-chart',
 
         properties: {
-          data: {
-            type: Array,
-            value: function() {
-              return [];
-            },
-            notify: true
+          /**
+           * The property containing the date of the objects in the data.
+           */
+          dataDateProperty: {
+            type: String,
+            value: 'date'
           },
 
-          barChartData: {
-            type: Array,
-            value: function() {
-              return [];
-            },
-            notify: true
+          /**
+           * The property containing the list of the objects for a date in the data.
+           */
+          dataListProperty: {
+            type: String,
+            value: 'list'
           },
 
-          barChartLegend: {
-            type: Array,
-            value: function() {
-              return [];
-            }
+          /**
+           * The property containing the name of the objects in the list of the objects for a date in the data.
+           */
+          dataNameProperty: {
+            type: String,
+            value: 'name'
+          },
+
+          /**
+           * The property containing the count of the objects in the list of the objects for a date in the data.
+           */
+          dataCountProperty: {
+            type: String,
+            value: 'count'
+          },
+
+          /**
+           * The name to give to bars that do not have a name.
+           */
+          defaultBarName: {
+            type: String,
+            value: 'Other'
+          },
+
+          /**
+           * The height for this bar chart.
+           */
+          height: {
+            type: Number,
+            value: 400
           },
 
           /**
@@ -121,6 +146,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           source: {
             type: String,
             value: 'Data'
+          },
+
+          /**
+           * The data to display in the bar chart.
+           */
+          data: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+          },
+
+          /**
+           * The data that is displayed in the bar chart.  Computed from the data.
+           */
+          barChartData: {
+            type: Array,
+            value: function() {
+              return [];
+            }
+          },
+
+          /**
+           * The set of parts that are displayed in the bar chart.  Computed from the data.
+           */
+          barChartLegend: {
+            type: Array,
+            value: function() {
+              return [];
+            }
           },
 
           /**
@@ -165,32 +221,47 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         processData: function(data) {
+          var self = this;
           var barChartData = [];
           var barChartLegend = {};
 
           if(data) {
-            data.forEach(function(item) {
+            data.forEach(function(dateItem) {
               var yMax = 0; // keeps track of where the 'previous' value 'ended'
               var bars = [];
-              item.locations.forEach(function(location) {
-                if(location.count) {
-                  bars.push({
-                    date: item.date,
-                    name: location.name || 'Other',
-                    yAxisStart: yMax,
-                    yAxisEnd: yMax + location.count
-                  });
-                  yMax += location.count;
-                  barChartLegend[location.name || 'Other'] = true;
-                }
-              });
-              bars.forEach(function(bar) {
-                bar.yMax = yMax;
-              });
+              if(dateItem[self.dataListProperty]) {
+                dateItem[self.dataListProperty].forEach(function(listItem) {
+                  if(listItem[self.dataCountProperty]) {
+                    var name = listItem[self.dataNameProperty] || self.defaultBarName;
+                    bars.push({
+                      date: dateItem[self.dataDateProperty],
+                      name: name,
+                      yAxisStart: yMax,
+                      yAxisEnd: yMax + listItem[self.dataCountProperty]
+                    });
+                    yMax += listItem[self.dataCountProperty];
+                    barChartLegend[name] = true;
+                  }
+                });
+                bars.forEach(function(bar) {
+                  bar.yMax = yMax;
+                });
+              } else if(dateItem[self.dataCountProperty]) {
+                yMax = dateItem[self.dataCountProperty];
+                var name = dateItem[self.dataNameProperty] || self.defaultBarName;
+                bars.push({
+                  date: dateItem[self.dataDateProperty],
+                  name: name,
+                  yAxisStart: 0,
+                  yAxisEnd: yMax,
+                  yMax: yMax
+                });
+                barChartLegend[name] = true;
+              }
               barChartData.push({
                 bars: bars,
-                dateObject: new Date(item.date),
-                dateString: item.date,
+                dateObject: new Date(dateItem[self.dataDateProperty]),
+                dateString: dateItem[self.dataDateProperty],
                 yMax: yMax
               });
             });
@@ -205,23 +276,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var data = this.barChartData;
 
           var self = this;
-          this.width = 600;
-          this.height = 400;
 
           // Use the width of the bar chart container.
           var container = document.getElementById('chartContainer');
-          if(container) {
-            this.width = parseInt(container.offsetWidth, 10);
-          }
+          this.width = (container ? parseInt(container.offsetWidth, 10) : 600);
 
           // sizing information, including margins so there is space for labels, etc
           var marginLeft = 40;
           var marginRight = 20;
           var marginTopInfo = 20;
-          var marginTopMain = 35;
-          var marginBottomMain = 135;
-          var marginTopInstructions = 310;
-          var marginTopOverview = 325;
+          var marginTopMain = 40;
+          var marginBottomMain = 130;
+          var marginTopInstructions = this.height - 80;
+          var marginTopOverview = this.height - 60;
           var marginBottomOverview = 20;
 
           var chartWidth = this.width - marginLeft - marginRight;
@@ -289,7 +356,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.dateObject; }));
-          var xAxisMax = x(data[0].dateObject);
+          var xAxisMax = _.max(_.map(data, function(item) {
+            return x(item.dateObject);
+          }));
           var yAxisMax = d3.max(data, function(d) { return d.yMax; });
           y.domain([0, yAxisMax]);
           yAxis.tickValues(this.getYAxisTickValues(yAxisMax));
@@ -307,7 +376,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // data range for the bar colors
           // (essentially maps attribute names to color values)
           color.domain(this.barChartLegend.filter(function(key) {
-            return key !== 'Other';
+            return key !== self.defaultBarName;
           }));
 
           // draw the axes now that they are fully set up
@@ -362,7 +431,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               .attr('y', function(d) { return y(d.yAxisEnd); })
               .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
               .style('fill', function(d) {
-                if(d.name === 'Other' || d.name === 'other') {
+                if(d.name === self.defaultBarName || !color(d.name)) {
                   return otherGroupColor;
                 }
                 return color(d.name);
@@ -372,7 +441,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 info.text(createExtentText());
               })
               .on('mousemove', function(d) {
-                info.text(d.date + ':  ' + d.name + ' (' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.yMax + ')');
+                info.text(d.date + ':  ' + (d.name ? (d.name + ' ') : '') + '(' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.yMax + ')');
               });
 
           overview.append('g')
@@ -400,7 +469,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             main.selectAll('.bar.stack')
               .attr('transform', function(d) {
                 var barX = x(d.dateObject);
-                if(barX > -5 && barX < xAxisMax) {
+                // A buffer (5 pixels seems sufficient) is needed to show the bars at the start and end of the chart.
+                if(barX > -5 && barX < xAxisMax + 5) {
                   yAxisMax = Math.max(yAxisMax, d.yMax);
                   return 'translate(' + barX + ',0)';
                 } else {

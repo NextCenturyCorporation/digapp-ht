@@ -25,18 +25,27 @@ var webpageTransform = (function(_, commonTransforms) {
         var extractedMentions = commonTransforms.getEmailAndPhoneFromMentions(mentions);
         newData.phones = extractedMentions.phones;
         newData.emails = extractedMentions.emails;
+        newData.communications = extractedMentions.phones.concat(extractedMentions.emails);
+        newData.showCommunications = (newData.communications.length > 1);
       }
 
       return newData;
     },
     webpageRevisions: function(data) {
-      var newData = {};
-
       if(data && data.aggregations) {
-        newData = commonTransforms.transformBuckets(data.aggregations.revisions.revisions.buckets, 'date', 'key_as_string');
+        var total = 0;
+        var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          total += bucket.doc_count;
+          return {
+            date: commonTransforms.getDate(bucket.key_as_string),
+            count: bucket.doc_count
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+        return (total < 2 ? [] : revisions);
       }
-
-      return newData;
+      return [];
     }
   };
 })(_, commonTransforms);
