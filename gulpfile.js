@@ -184,6 +184,10 @@ gulp.task('copy', function() {
     'app/behaviors/*'
   ]).pipe(gulp.dest(dist('behaviors')));
 
+  var scripts = gulp.src([
+    'app/scripts/google-analytics.js'
+  ]).pipe(gulp.dest(dist('scripts')));
+
   // Copy over only the bower_components we need
   // These are things which cannot be vulcanized
   var bower = gulp.src([
