@@ -50,21 +50,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ejs-aggregation="{{locationsAggregation}}">
     </elastic-client-aggregation-builder>
 
-    <elastic-client-aggregation-builder
-      name="dates"
-      type="date_histogram"
-      count="0"
-      field="validFrom"
-      nested-aggregations="[[buildArray(locationsAggregation)]]"
-      ejs-aggregation="{{datesAggregation}}">
-    </elastic-client-aggregation-builder>
-
     <elastic-client-query-builder
       type="term"
       field="[[field]]"
       values="[[value]]"
       ejs-query="{{offerQuery}}">
     </elastic-client-query-builder>
+
+    <!-- Use a template to ensure that the datesAggregation is built only once the interval is set. -->
+    <template is="dom-if" if="[[interval]]">
+      <elastic-client-aggregation-builder
+        name="dates"
+        type="date_histogram"
+        interval="[[interval]]"
+        count="0"
+        field="validFrom"
+        nested-aggregations="[[buildArray(locationsAggregation)]]"
+        ejs-aggregation="{{datesAggregation}}">
+      </elastic-client-aggregation-builder>
+    </template>
 
     <elastic-client-search
       client="[[client]]"
@@ -139,6 +143,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * The number of ads used to determine the interval of the date histogram aggregation.
+         */
+        count: {
+          type: Number
+        },
+
+        /**
+         * The interval of the date histogram aggregation.
+         */
+        interval: {
+          type: String,
+          notify: true,
+          computed: 'computeInterval(count)'
+        },
+
+        /**
          * The mentions aggregation for the location timeline query.
          */
         mentionsAggregation: {
@@ -203,6 +223,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true
         }
+      },
+
+      computeInterval: function(count) {
+        return count ? (count < 1000 ? 'day' : 'week') : undefined;
       }
     });
   })();
