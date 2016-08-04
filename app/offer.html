@@ -212,6 +212,35 @@
      data-out="{{offersWithSameUrl}}"
      transform-function="[[clientConfig.transforms.offer.revisions]]"
      ></json-transform>
+    
+    <!-- Get hourly phone+locations data for event drops viz-->
+    <json-transform
+     data-in="{{webpageDisplay}}"
+     data-out="{{phonesArray}}"
+     transform-function="[[clientConfig.transforms.dropsTimeline.extractPhonesFromWebpageDisplayData]]"
+     ></json-transform>
+
+    <bool-query-builder
+      query="{{hourlyLocationTimelineQuery}}"
+      query-template="{{config.queryTemplates.hourlyLocationTimeline.query}}"  
+      paths-to-values="{{config.queryTemplates.hourlyLocationTimeline.pathsToValues}}"
+      value="{{phonesArray}}"
+    ></bool-query-builder>
+
+    <elastic-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-type='["offer"]'
+      query='[[hourlyLocationTimelineQuery]]'
+      results="{{hourlyLocationTimelineRes}}"
+      last-error="{{error}}"
+    ></elastic-search>
+
+    <json-transform
+     data-in="{{hourlyLocationTimelineRes}}"
+     data-out="{{hourlyLocationTimelineData}}"
+     transform-function="[[clientConfig.transforms.dropsTimeline.timeline]]"
+     ></json-transform>   
 
     <!-- Display Content -->
     <div class="entity">
@@ -523,7 +552,15 @@
                     <section class="where flex-auto">
                       <leaflet-wrapper map-data="{{offerDisplay.geolocation}}"></leaflet-wrapper>
                     </section>
-                  </template>
+                  </template>                                    
+              </paper-material>
+
+              <paper-material> 
+                <!-- Event drops timeline -->                  
+                  <section class="who flex-auto">                    
+                    <div class="paper-font-title">Location Timeline</div>                                          
+                    <drops-timeline payload="{{hourlyLocationTimelineData}}"></drops-timeline>
+                  </section>                
               </paper-material>
 
               <!-- Revisions Timeline -->
