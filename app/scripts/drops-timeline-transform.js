@@ -16,27 +16,25 @@ var dropsTimelineTransform = (function(_) {
 			var timestamps = [];
 			var transformedData = [];
 
+      if(data && data.aggregations) {
+
 		    /* Aggregate cities */
-		    var cityBuckets = data.aggregations.phone.city.buckets;
 		    var cityAggs = {};
 
-		    for (var i in cityBuckets) {
-		      var bucket = cityBuckets[i];
-		      var city = bucket.key;
+		    data.aggregations.locations.locations.buckets.forEach(function(locationBucket) {
+		      var city = locationBucket.key;
 
 		      /* Assign city Aggregations */
 		      if (!(city in cityAggs))
 		        cityAggs[city] = [];
 
-		      for (var t in bucket.timeline.buckets) {
-		        var timelineBucket = bucket.timeline.buckets[t];
-
-		        if (timelineBucket.key) {
-		          cityAggs[city].push(new Date(timelineBucket.key));
-		          timestamps.push(timelineBucket.key);
+          locationBucket.dates.buckets.forEach(function(dateBucket) {
+		        if (dateBucket.key) {
+		          cityAggs[city].push(new Date(dateBucket.key));
+		          timestamps.push(dateBucket.key);
 		        }
-		      }                   
-		    }		    
+		      });
+        });
 
 		    /* Transform data */
 		    for (var city in cityAggs) {
@@ -47,6 +45,7 @@ var dropsTimelineTransform = (function(_) {
 		        data: dates 
 		      });
 		    }  
+      }
 		  
 		  return {
 		  	data: transformedData,

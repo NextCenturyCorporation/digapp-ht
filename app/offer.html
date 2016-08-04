@@ -214,33 +214,44 @@
      ></json-transform>
     
     <!-- Get hourly phone+locations data for event drops viz-->
-    <json-transform
-     data-in="{{webpageDisplay}}"
-     data-out="{{phonesArray}}"
-     transform-function="[[clientConfig.transforms.dropsTimeline.extractPhonesFromWebpageDisplayData]]"
-     ></json-transform>
 
-    <bool-query-builder
-      query="{{hourlyLocationTimelineQuery}}"
-      query-template="{{config.queryTemplates.hourlyLocationTimeline.query}}"  
-      paths-to-values="{{config.queryTemplates.hourlyLocationTimeline.pathsToValues}}"
-      value="{{phonesArray}}"
-    ></bool-query-builder>
+    <elastic-client-aggregation-builder
+      name="dates"
+      type="date_histogram"
+      interval="day"
+      count="0"
+      field="validFrom"
+      ejs-aggregation="{{datesAggregation}}">
+    </elastic-client-aggregation-builder>
 
-    <elastic-search
+    <elastic-client-aggregation-builder
+      name="locations"
+      type="terms"
+      count="0"
+      order="_term"
+      direction="asc"
+      field="availableAtOrFrom.address.key"
+      nested-aggregations="[[buildArray(datesAggregation)]]"
+      ejs-aggregation="{{locationsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["offer"]'
-      query='[[hourlyLocationTimelineQuery]]'
-      results="{{hourlyLocationTimelineRes}}"
-      last-error="{{error}}"
-    ></elastic-search>
+      elastic-types='["offer"]'
+      query="[[offerQuery]]"
+      aggregations="[[buildArray(locationsAggregation)]]"
+      filters="[]"
+      results="{{dropsQueryResults}}"
+      loading="{{dropsLoading}}"
+      last-error="{{dropsError}}">
+    </elastic-client-search>
 
     <json-transform
-     data-in="{{hourlyLocationTimelineRes}}"
-     data-out="{{hourlyLocationTimelineData}}"
-     transform-function="[[clientConfig.transforms.dropsTimeline.timeline]]"
-     ></json-transform>   
+      data-in="[[dropsQueryResults]]"
+      data-out="{{dropsResults}}"
+      transform-function="[[clientConfig.transforms.dropsTimeline.timeline]]">
+    </json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -559,7 +570,7 @@
                 <!-- Event drops timeline -->                  
                   <section class="who flex-auto">                    
                     <div class="paper-font-title">Location Timeline</div>                                          
-                    <drops-timeline payload="{{hourlyLocationTimelineData}}"></drops-timeline>
+                    <drops-timeline payload="{{dropsResults}}"></drops-timeline>
                   </section>                
               </paper-material>
 
@@ -639,6 +650,7 @@
     </div>
   </template>
 
+  <script src="behaviors/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
 
   <script>
@@ -647,6 +659,8 @@
     var app = document.querySelector('#app');
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+
+    app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
   })(document);
   </script>
 </body>
