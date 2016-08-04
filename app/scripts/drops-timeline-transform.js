@@ -51,9 +51,6 @@ var dropsTimelineTransform = (function(_) {
 		  	data: transformedData,
 		  	timestamps: timestamps
 		  }
-		},
-		extractPhonesFromWebpageDisplayData : function(data) {			
-			return _.map(data.phones, '_id');			
 		}
 	}	
 
