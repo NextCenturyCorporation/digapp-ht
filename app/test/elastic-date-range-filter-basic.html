@@ -1,0 +1,180 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>elastic-date-range-filter</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/elastic-date-range-filter/elastic-date-range-filter.html">
+
+</head>
+<body>
+
+<test-fixture id="elastic-date-range-filter-fixture">
+  <template>
+    <elastic-date-range-filter field="dateField"></elastic-date-range-filter>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture, ejs */
+  /* jshint -W030 */
+  suite('elastic-date-range-filter tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('elastic-date-range-filter-fixture');
+    });
+
+    test('has properties set correctly', function() {
+      assert.isUndefined(element.beginDate);
+      assert.isUndefined(element.endDate);
+      assert.equal(element.facetLabelFormat, 'MM/DD/YYYY');
+      assert.deepEqual(element.ejsFilter.toJSON(), ejs.MatchAllFilter().toJSON());
+      assert.equal(element.field, 'dateField');
+      assert.deepEqual(element.facetSelection, {});
+      assert.isUndefined(element.beginDateLabel);
+      assert.isUndefined(element.endDateLabel);
+    });
+
+    test('formatDateToESString returns a date string in the correct format', function() {
+      var date = new Date('August 2, 2016');
+      assert.equal(element.formatDateToESString(date), '2016-08-02T00:00:00');
+    });
+
+    test('formatDate returns a date string using the format passed in', function() {
+      var date = new Date('August 2, 2016');
+      assert.equal(element.formatDate(date, 'MM/DD/YYYY'), '08/02/2016');
+    });
+
+    test('_openBeginDateDialog opens beginDate date picker', function() {
+      element._openBeginDateDialog();
+
+      assert.isTrue(element.$.beginDateDialog.opened);
+      assert.isFalse(element.$.endDateDialog.opened);
+    });
+
+    test('_closeBeginDateDialog does not update beginDate if user hits cancel', function() {
+      var eventToPassIn = {
+        detail: {
+          confirmed: false
+        }
+      };
+
+      element._closeBeginDateDialog(eventToPassIn);
+
+      assert.isUndefined(element.beginDate);
+    });
+
+    test('_closeBeginDateDialog sets beginDate if date is confirmed; beginDateLabel, facetSelection and ejsFilter are updated', function() {
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeBeginDateDialog(eventToPassIn);
+
+      var expectedEjsFilter = ejs.RangeFilter('dateField').gte(element.formatDateToESString(element.beginDate));
+      var expectedDateLabel = element.computeLabel(element.beginDate);
+      var expectedFacetSelection = {
+        text: element.formatDate(element.beginDate, element.facetLabelFormat),
+        date: element.beginDate,
+        enabled: true,
+        category: 'Begin Date'
+      };
+
+      assert.isDefined(element.$.beginDatePicker.date);
+      assert.equal(element.beginDateLabel, expectedDateLabel);
+      assert.deepEqual(element.beginDate, element.$.beginDatePicker.date);
+      assert.equal(element.facetSelection['Begin Date'].text, expectedFacetSelection.text);
+      assert.equal(element.facetSelection['Begin Date'].category, expectedFacetSelection.category);
+      assert.isTrue(element.facetSelection['Begin Date'].enabled);
+      assert.deepEqual(element.ejsFilter.toJSON(), expectedEjsFilter.toJSON());
+    });
+
+    test('_openEndDateDialog opens endDate date picker', function() {
+      element._openEndDateDialog();
+
+      assert.isFalse(element.$.beginDateDialog.opened);
+      assert.isTrue(element.$.endDateDialog.opened);
+    });
+
+    test('_closeEndDateDialog does not update endDate if user hits cancel', function() {
+      var eventToPassIn = {
+        detail: {
+          confirmed: false
+        }
+      };
+
+      element._closeEndDateDialog(eventToPassIn);
+
+      assert.isUndefined(element.endDate);
+    });
+
+    test('_closeEndDateDialog sets endDate if date is confirmed; endDateLabel, facetSelection and ejsFilter are updated', function() {
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeEndDateDialog(eventToPassIn);
+
+      var expectedEjsFilter = ejs.RangeFilter('dateField').lte(element.formatDateToESString(element.endDate));
+      var expectedDateLabel = element.computeLabel(element.endDate);
+      var expectedFacetSelection = {
+        text: element.formatDate(element.endDate, element.facetLabelFormat),
+        date: element.endDate,
+        enabled: true,
+        category: 'End Date'
+      };
+
+      assert.isDefined(element.$.endDatePicker.date);
+      assert.equal(element.endDateLabel, expectedDateLabel);
+      assert.deepEqual(element.endDate, element.$.endDatePicker.date);
+      assert.equal(element.facetSelection['End Date'].text, expectedFacetSelection.text);
+      assert.equal(element.facetSelection['End Date'].category, expectedFacetSelection.category);
+      assert.isTrue(element.facetSelection['End Date'].enabled);
+      assert.deepEqual(element.ejsFilter.toJSON(), expectedEjsFilter.toJSON());
+    });
+
+    test('if facetSelection item is not enabled, it is not added to the ejsFilter', function() {
+      var expectedEjsFilter = ejs.RangeFilter('dateField').gte('2016-08-01T00:00:00');
+
+      element.facetSelection['Begin Date'] = {
+        text: '08/01/2016',
+        date: new Date('August 1, 2016'),
+        enabled: true,
+        category: 'Begin Date'
+      };
+      element.facetSelection['End Date'] = {
+        text: '08/02/2016',
+        key: new Date('August 2, 2016'),
+        enabled: false,
+        category: 'End Date'
+      };
+
+      element.notifyPath('facetSelection.*', 'some change');
+
+      assert.isUndefined(element.ejsFilter.toJSON().lte);
+      assert.deepEqual(element.ejsFilter.toJSON().gte, expectedEjsFilter.toJSON().gte);
+    });
+  });
+</script>
+
+</body>
+</html>
