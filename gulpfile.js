@@ -194,7 +194,7 @@ gulp.task('copy', function() {
     'app/bower_components/{webcomponentsjs,platinum-sw,sw-toolbox,promise-polyfill,leaflet,leaflet-map}/**/*'
   ]).pipe(gulp.dest(dist('bower_components')));
 
-  return merge(app, behaviors, bower)
+  return merge(app, behaviors, bower, scripts)
     .pipe($.size({
       title: 'copy'
     }));
