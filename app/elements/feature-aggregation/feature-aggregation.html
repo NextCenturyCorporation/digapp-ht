@@ -139,18 +139,18 @@ Custom property | Description | Default
       <div class$="feature-content [[doesOverflow(combinedData.length, limit)]] [[isSmall(small)]]">
         <template id="barList" is="dom-repeat" items="[[displayAggregations]]">
           <div class="row-wrapper layout horizontal">
-            <paper-checkbox name="[[getProperty(item, dataText)]]" checked="[[item.selected]]" on-change="toggleItem" class="bar-checkbox"></paper-checkbox>
+            <paper-checkbox name="[[getProperty(item, dataTextProperty)]]" checked="[[item.selected]]" on-change="toggleItem" class="bar-checkbox"></paper-checkbox>
             <div class="bar-wrapper layout horizontal center center-justified">
               <div class="bar" style$="width: [[item.width]]%;"></div>
               <div class="bar-title flex">
                 <template is="dom-if" if="[[showLink]]">
-                  <a href$="[[createLink(linkType, getProperty(item, dataText), linkField)]]">[[getProperty(item, dataText)]]</a>
+                  <a href$="[[createLink(linkType, getProperty(item, dataTextProperty), linkField)]]">[[getProperty(item, dataTextProperty)]]</a>
                 </template>
                 <template is="dom-if" if="[[!showLink]]">
-                  [[getProperty(item, dataText)]]
+                  [[getProperty(item, dataTextProperty)]]
                 </template>
               </div>
-              <div class="bar-count flex-none">[[getProperty(item, dataCount)]]</div>
+              <div class="bar-count flex-none">[[getProperty(item, dataCountProperty)]]</div>
             </div>
           </div>
         </template>
@@ -184,25 +184,25 @@ Custom property | Description | Default
         /**
          * Property in the data objects containing a unique ID (used to set the filter values).
          */
-        dataId: {
+        dataIdProperty: {
           type: String,
           value: 'id'
         },
 
         /**
-         * Property in the data objects containing the text to display.
+         * Property in the data objects containing the count to display.
          */
-        dataText: {
+        dataCountProperty: {
           type: String,
-          value: 'text'
+          value: 'count'
         },
 
         /**
-         * Property in the data objects containing the count to display.
+         * Property in the data objects containing the text to display.
          */
-        dataCount: {
+        dataTextProperty: {
           type: String,
-          value: 'count'
+          value: 'text'
         },
 
         /**
@@ -317,8 +317,8 @@ Custom property | Description | Default
         // Ensure that the count for each selected item is up-to-date based on the new input data.
         this.selectedItems.forEach(function(selectedItem) {
           var index = self.data.map(function(item) {
-            return self.getProperty(item, self.dataId);
-          }).indexOf(self.getProperty(selectedItem, self.dataId));
+            return self.getProperty(item, self.dataIdProperty);
+          }).indexOf(self.getProperty(selectedItem, self.dataIdProperty));
 
           // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
           var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.data[index]));
@@ -328,24 +328,24 @@ Custom property | Description | Default
 
         // Ensure that the selected item with the highest count is on top.
         combinedData.sort(function(a, b) {
-          return b[self.dataCount] - a[self.dataCount];
+          return b[self.dataCountProperty] - a[self.dataCountProperty];
         });
 
-        var topCount = Math.max((combinedData.length ? combinedData[0][this.dataCount] : 0), (this.data.length ? this.data[0][this.dataCount] : 0));
+        var topCount = Math.max((combinedData.length ? combinedData[0][this.dataCountProperty] : 0), (this.data.length ? this.data[0][this.dataCountProperty] : 0));
 
         // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
         combinedData.forEach(function(item) {
-          item.width = self.getWidth(item[self.dataCount], topCount);
+          item.width = self.getWidth(item[self.dataCountProperty], topCount);
         });
 
         this.data.forEach(function(item) {
-          var index = self.filterValues.indexOf(self.getProperty(item, self.dataId));
+          var index = self.filterValues.indexOf(self.getProperty(item, self.dataIdProperty));
           if(index < 0) {
             // Ensure that this component does not affect the input data by creating a copy.
             var clonedItem = _.cloneDeep(item);
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
-            clonedItem.width = self.getWidth(clonedItem[self.dataCount], topCount);
+            clonedItem.width = self.getWidth(clonedItem[self.dataCountProperty], topCount);
             combinedData.push(clonedItem);
           }
         });
@@ -359,7 +359,7 @@ Custom property | Description | Default
       computeFilterValues: function() {
         var self = this;
         return this.selectedItems.map(function(item) {
-          return self.getProperty(item, self.dataId);
+          return self.getProperty(item, self.dataIdProperty);
         });
       },
 
@@ -426,8 +426,8 @@ Custom property | Description | Default
         var filters = [];
         this.displayAggregations.forEach(function(item) {
           var index = self.selectedItems.map(function(selectedItem) {
-            return self.getProperty(selectedItem, self.dataId);
-          }).indexOf(self.getProperty(item, self.dataId));
+            return self.getProperty(selectedItem, self.dataIdProperty);
+          }).indexOf(self.getProperty(item, self.dataIdProperty));
 
           if(item.selected) {
             change = change || (index < 0);
