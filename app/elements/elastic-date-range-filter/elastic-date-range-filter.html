@@ -29,22 +29,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         padding-right: 5px;
       }
       paper-button.date-select {
-        background-color: var(--light-primary-color);
+        padding: 8px;
+        text-transform: none;
+        background-color: var(--paper-blue-grey-200);
         vertical-align: middle;
         @apply(--layout-flex);
         justify-content: flex-start;
       }
       .h-divider {
-        height: 20px;
+        height: 10px;
       }
     </style>
     <div class="vertical layout">
       <div class="horizontal layout">
-        <paper-button class="date-select" on-tap="_openBeginDateDialog" raised>
-          <iron-icon icon="icons:date-range"></iron-icon>From: {{beginDateLabel}}
+        <paper-button class="date-select" on-tap="_openBeginDateDialog">
+          <iron-icon icon="icons:date-range"></iron-icon>{{beginDateLabel}}
         </paper-button>
         <paper-dialog id="beginDateDialog" class="paper-date-picker-dialog" modal on-iron-overlay-closed="_closeBeginDateDialog">
-          <paper-date-picker id="beginDatePicker" force-narrow></paper-date-picker>
+          <paper-date-picker id="beginDatePicker" heading-format="MMMM Do" force-narrow></paper-date-picker>
           <div class="buttons">
             <paper-button dialog-dismiss>Cancel</paper-button>
             <paper-button dialog-confirm>OK</paper-button>
@@ -53,11 +55,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </div>
       <div class="h-divider"></div>
       <div class="horizontal layout">
-        <paper-button class="date-select" on-tap="_openEndDateDialog" raised>
-          <iron-icon icon="icons:date-range"></iron-icon>To: {{endDateLabel}}
+        <paper-button class="date-select" on-tap="_openEndDateDialog">
+          <iron-icon icon="icons:date-range"></iron-icon>{{endDateLabel}}
         </paper-button>
         <paper-dialog id="endDateDialog" class="paper-date-picker-dialog" modal on-iron-overlay-closed="_closeEndDateDialog">
-          <paper-date-picker id="endDatePicker" force-narrow></paper-date-picker>
+          <paper-date-picker id="endDatePicker" heading-format="MMMM Do" force-narrow></paper-date-picker>
           <div class="buttons">
             <paper-button dialog-dismiss>Cancel</paper-button>
             <paper-button dialog-confirm>OK</paper-button>
@@ -80,6 +82,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         beginDate: {
           type: Date,
+          value: null,
           notify: true,
           observer: '_updateBeginDateFacetSelection'
         },
@@ -88,6 +91,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         endDate: {
           type: Date,
+          value: null,
           notify: true,
           observer: '_updateEndDateFacetSelection'
         },
@@ -129,13 +133,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          * Label for current beginDate to use on date picker button
          */
         beginDateLabel: {
-          computed: 'computeLabel(beginDate)'
+          computed: 'computeLabel("From", "begin", beginDate)'
         },
         /**
          * Label for current endDate to use on date picker button
          */
         endDateLabel: {
-          computed: 'computeLabel(endDate)'
+          computed: 'computeLabel("To", "end", endDate)'
         }
       },
       observers: [
@@ -145,14 +149,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Creates a string representation of a date to display back to the
        * user in the following format: August 2, 2016
        *
+       * @param {String} prefixLabel (either "From" or "To")
+       * @param {String} dateIdentifier (either "begin" or "end")
        * @param {Date} date
        * @return {String} label to display, empty string if no date exists
        */
-      computeLabel: function(date) {
+      computeLabel: function(prefixLabel, dateIdentifier, date) {
         if(date) {
-          return this.formatDate(date, 'LL');
+          return prefixLabel + ': ' + this.formatDate(date, 'LL');
         } else {
-          return '';
+          return 'Click to set ' + dateIdentifier + ' date';
         }
       },
       /**
@@ -271,13 +277,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             if(me.facetSelection[key].enabled) {
               filter = filter.gte(me.formatDateToESString(me.beginDate));
             } else {
-              me.beginDate = undefined;
+              me.beginDate = null;
             }
           } else if(key === 'End Date') {
             if(me.facetSelection[key].enabled) {
               filter = filter.lte(me.formatDateToESString(me.endDate));
             } else {
-              me.endDate = undefined;
+              me.endDate = null;
             }
           }
         });
