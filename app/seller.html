@@ -43,6 +43,8 @@
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <!-- endbuild -->
 
+  <script src="scripts/google-analytics.js"></script>
+  
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -69,8 +71,7 @@
       auto
       url="/config"
       handle-as="json"
-      last-response="{{config}}"
-      on-response="showConfig">
+      last-response="{{config}}">
     </iron-ajax>
 
     <!--initialize new elastic client connection to server
@@ -80,115 +81,78 @@
       client="{{esclient}}">
     </elastic-client>
 
-    <!--look up and build an entity query for the entity specified in the
-      query string for:
-      field: the field in elasticsearch to use in the query
-      value: value of the field above -->
-    <query-builder
-      query="{{sellerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[params.value]]">
-    </query-builder>
+    <!-- Seller query -->
 
-    <!--make an search using {{sellerQuery}} and return results -->
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[params.value]]"
+      ejs-query="{{sellerQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[sellerQuery]]'
+      elastic-types='["seller"]'
+      query="[[sellerQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{seller}}"
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
-    <!--make generic models for content sections -->
     <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerDisplay.seller}}"
-     transform-function="[[clientConfig.transforms.seller.seller]]"
-     ></json-transform>
+      data-in="[[seller]]"
+      data-out="{{sellerDisplay.seller}}"
+      transform-function="[[clientConfig.transforms.seller.seller]]">
+    </json-transform>
 
-    <!--Transform for what section of seller-->
+    <!-- Offer query -->
+
+    <elastic-client-query-builder
+      type="term"
+      field="seller.uri"
+      values="[[sellerDisplay.seller._id]]"
+      ejs-query="{{sellerOffersQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query="[[sellerOffersQuery]]"
+      aggregations="[]"
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      sort-field="validFrom"
+      sort-order="desc"
+      results="{{sellerOffers}}"
+      loading="{{offersLoading}}"
+      last-error="{{offersError}}">
+    </elastic-client-search>
+
     <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerPhoneEmails}}"
-     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
-     ></json-transform>
+      data-in="[[sellerOffers]]"
+      data-out="{{sellerDisplay.sellerOffers}}"
+      transform-function="[[clientConfig.transforms.seller.sellerOffersData]]">
+    </json-transform>
 
     <!-- Location timeline for bar chart and itinerary -->
 
-    <query-builder
-      query="{{locationTimelineQuery}}"
-      query-template="{{config.queryTemplates.locationTimeline}}"
-      field="seller.uri" value="[[sellerDisplay.seller._id]]">
-    </query-builder>
-
-    <elastic-search
+    <location-timeline
+      field="seller.uri"
+      value="[[sellerDisplay.seller._id]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query="[[locationTimelineQuery]]"
-      results="{{locationTimelineResults}}"
-      elastic-type='["offer"]'
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      transforms="[[clientConfig.transforms]]"
+      count="[[sellerDisplay.sellerOffers.relatedOffers.count]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{sellerDisplay.locationTimeline}}"
       loading="{{loadingLocationTimeline}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[locationTimelineResults]]"
-     data-out="{{sellerDisplay.locationTimeline}}"
-     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
-     ></json-transform>
-
-    <!--
-      build the query for offer locations
-    -->
-     <query-builder
-      query="{{offerLocationQuery}}"
-      query-template="{{config.queryTemplates.offerLocation}}"
-      field="seller.uri" value="[[sellerDisplay.seller._id]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[offerLocationQuery]]'
-      results="{{offerLocationAggs}}"
-      elastic-type='["offer"]'
-      last-error="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[offerLocationAggs]]"
-     data-out="{{sellerDisplay.offerLocation}}"
-     transform-function="[[clientConfig.transforms.seller.offerLocationData]]"
-     ></json-transform>
-
-    <!--
-      Get all the offers for this phone
-     -->
-    <query-builder
-      query="{{sellerOffersQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
-      field="seller.uri" value="[[sellerDisplay.seller._id]]">
-    </query-builder>
-
-    <elastic-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      query='[[sellerOffersQuery]]'
-      results="{{sellerOffers}}"
-      elastic-type='["offer"]'
-      loading="{{offersLoading}}"
-      page-size="{{pageSize}}"
-      page="{{pageNum}}"
-      last-error="{{error}}">
-
-    </elastic-search>
-
-    <json-transform
-     data-in="[[sellerOffers]]"
-     data-out="{{sellerDisplay.sellerOffers}}"
-     transform-function="[[clientConfig.transforms.seller.sellerOffersData]]"
-     ></json-transform>
-
+      error="{{locationTimelineError}}">
+    </location-timeline>
 
     <!-- Display Content -->
     <div class="entity">
@@ -225,7 +189,7 @@
                     data-id="_id"
                     data-text="title"
                     data-type="_type"
-                    data="[[sellerPhoneEmails]]">
+                    data="[[sellerDisplay.seller.communications]]">
                   </records-grid>
                 </section>
               </paper-material>
@@ -239,9 +203,17 @@
                     <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
                     <div>[[barChartTitle]]</div>
                   </div>
+
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
+                    <div>[[locationTimelineErrorMessage]]</div>
+                  </template>
+
                   <zoomable-bar-chart
+                    data-list-property="locations"
                     data="[[sellerDisplay.locationTimeline.dates]]"
                     source="Ads"
+                    interval="[[locationTimelineInterval]]"
                     bar-chart-title="{{barChartTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
@@ -260,13 +232,13 @@
                   </div>
 
                   <people-features
-                    query-template="{{config.queryTemplates.peopleFeatures}}"
-                    filter-field="offers.seller.uri"
-                    filter-value="[[sellerDisplay.seller._id]]"
+                    query-field="seller.uri"
+                    query-values="[[sellerDisplay.seller._id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
-                    index-types='["adultservice"]'
-                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                    consumed-filters="[[buildArray(locationFilter)]]"
+                    produced-filters="{{peopleFilters}}"
+                    transforms="[[clientConfig.transforms]]">
                   </people-features>
                 </section>
               </paper-material>
@@ -280,16 +252,21 @@
                     <div>[[imageDisplayTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[imageError]]">
+                    <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
+                    <div>[[imageErrorMessage]]</div>
+                  </template>
+
                   <image-query-and-display
-                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
                     image-query-field="isImagePartOf.mentions"
-                    image-query-value="[[sellerDisplay.seller._id]]"
+                    image-query-values="[[sellerDisplay.seller._id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
                     image-transform="[[clientConfig.transforms.image.images]]"
                     image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
                     image-display-title="{{imageDisplayTitle}}"
+                    error="{{imageError}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -305,10 +282,16 @@
                     <div>[[itineraryTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
+                    <div>[[locationTimelineErrorMessage]]</div>
+                  </template>
+
                   <itinerary-list
                     data-items="locations"
                     data="[[sellerDisplay.locationTimeline.dates]]"
                     source="Ads"
+                    interval="[[locationTimelineInterval]]"
                     itinerary-title="{{itineraryTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </itinerary-list>
@@ -340,12 +323,34 @@
                     <leaflet-wrapper map-data="{{sellerDisplay.offerLocation.offerLocation}}">
                     </leaflet-wrapper>
                   </section>
-
-                  <!-- City summary -->
-                  <section class="where-details flex-none">
-                    <feature-aggregation feature-title="Offers per City" key="name" agg="[[sellerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
-                  </section>
                 </template>
+
+                <!-- City summary -->
+                <section class="where-details flex-none">
+                  <template is="dom-if" if="[[locationError]]">
+                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
+                    <div>[[locationErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="city"
+                    aggregation-field="availableAtOrFrom.address.key"
+                    filter-field="availableAtOrFrom.address.key"
+                    produced-filter="{{locationFilter}}"
+                    query="[[sellerOffersQuery]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{locationError}}"
+                    consumed-filters="[[buildArray(peopleFilters)]]"
+                    transform="[[clientConfig.transforms.common.offerLocationData]]"
+                    transform-results="{{sellerDisplay.offerLocation}}"
+                    transform-property="offerLocation"
+                    data-id="key"
+                    data-text="name"
+                    feature-title="Offers per City">
+                  </feature-query-and-display>
+                </section>
               </paper-material>
 
               <div class="h-divider"></div>
@@ -358,12 +363,16 @@
                     <div>{{recordsListTitle}}</div>
                   </div>
 
+                  <template is="dom-if" if="[[offersError]]">
+                    <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
+                    <div>[[offersErrorMessage]]</div>
+                  </template>
+
                   <records-list
                     client="[[esclient]]"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     annotation-relevant="[[config.annotationRelevant]]"
-                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                     query-results="[[sellerDisplay.sellerOffers.relatedOffers.data]]"
                     total-results="{{sellerDisplay.sellerOffers.relatedOffers.count}}"
                     page="{{pageNum}}"
@@ -385,32 +394,21 @@
     </div>
   </template>
 
-  <script>
+  <script src="behaviors/array-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
 
+  <script>
   (function(document) {
+    /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.showConfig = function(req, res) {
-      console.log('REQ: ', req);
-      console.log('RES: ', res);
-    };
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
 
-    app.getURLParams = function() {
-      var queryString = window.location.search.slice(1, window.location.search.length);
-      var params = queryString.split('&');
-      app.params = {};
-      for(var i = 0; i < params.length; i++) {
-        var paramPair = params[i].split('=');
-        app.params[paramPair[0]] =  paramPair[1];
-      }
-    };
+    app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.getURLParams();
     app.sellerDisplay = {};
-
   })(document);
   </script>
-
 </body>
 
 </html>

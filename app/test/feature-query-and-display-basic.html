@@ -17,6 +17,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
   <script src="../bower_components/web-component-tester/browser.js"></script>
   <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <script src="../bower_components/elastic.js/dist/elastic.js"></script>
   <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
 
   <!-- Step 1: import the element to test -->
@@ -32,139 +33,105 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, test, expect */
+  /* globals ejs, suite, setup, fixture, test, expect */
+  /* jshint -W030 */
   suite('feature-query-and-display tests', function() {
     var component;
 
     setup(function() {
       component = fixture('feature-query-and-display-fixture');
-      component.key = 'key';
-      component.title = 'title';
-      component.transformResults = {
-        features: [{
-          key: 'alice',
-          count: 8
-        }, {
-          key: 'bob',
-          count: 4
-        }, {
-          key: 'carol',
-          count: 2
-        }]
+    });
+
+    test('transformProperty is set to default correctly', function() {
+      expect(component.transformProperty).to.equal('');
+    });
+
+    test('buildArray does wrap defined values', function() {
+      expect(component.buildArray('value')).to.deep.equal(['value']);
+    });
+
+    test('buildArray does not wrap undefined values', function() {
+      expect(component.buildArray()).to.deep.equal([]);
+    });
+
+    test('getData returns correctly', function() {
+      var data = {
+        property: [1, 2, 3, 4, 5]
       };
+      expect(component.getData(data, '')).to.deep.equal(data);
+      expect(component.getData(data, 'property')).to.deep.equal(data.property);
     });
 
-    test('set properties', function() {
-      expect(component.key).to.equal('key');
-      expect(component.title).to.equal('title');
-      expect(component.transformResults).to.be.an('Object');
-      expect(component.transformResults).to.be.deep.equal({
-        features: [{
-          key: 'alice',
-          count: 8
-        }, {
-          key: 'bob',
-          count: 4
-        }, {
-          key: 'carol',
-          count: 2
-        }]
-      });
+    test('build aggregation', function() {
+      expect(component.aggregation).to.not.exist;
+      component.aggregationName = 'name';
+      expect(component.aggregation).to.not.exist;
+      component.aggregationField = 'field';
+      expect(component.aggregation).to.exist;
+      expect(component.aggregation.toJSON()).to.deep.equal(ejs.TermsAggregation('name').field('field').size(0).toJSON());
     });
 
-    test('build query', function() {
-      component.queryTemplate = {
-        query: {
-          filtered: {
-            filter: {
-              term: {
-                '{{filterField}}': '{{filterValue}}'
-              }
-            }
-          }
-        },
-        aggs: {
-          features: {
-            terms: {
-              field: '{{aggregationField}}',
-              size: 0
-            }
-          }
-        }
+    test('build filter with one value', function() {
+      expect(component.producedFilter).to.not.exist;
+      component.filterField = 'field';
+      expect(component.producedFilter).to.be.null;
+      component.filterValues = 'value';
+      expect(component.producedFilter).to.exist;
+      expect(component.producedFilter.toJSON()).to.deep.equal(ejs.TermsFilter('field', 'value').toJSON());
+    });
+
+    test('build filter with value array', function() {
+      expect(component.producedFilter).to.not.exist;
+      component.filterField = 'field';
+      expect(component.producedFilter).to.be.null;
+      component.filterValues = ['value1', 'value2'];
+      expect(component.producedFilter).to.exist;
+      expect(component.producedFilter.toJSON()).to.deep.equal(ejs.TermsFilter('field', ['value1', 'value2']).toJSON());
+    });
+
+    test('build query with one value', function() {
+      expect(component.query).to.not.exist;
+      component.queryField = 'field';
+      expect(component.query).to.not.exist;
+      component.queryValues = 'value';
+      expect(component.query).to.exist;
+      expect(component.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', 'value').toJSON());
+    });
+
+    test('build query with value array', function() {
+      expect(component.query).to.not.exist;
+      component.queryField = 'field';
+      expect(component.query).to.not.exist;
+      component.queryValues = ['value1', 'value2'];
+      expect(component.query).to.exist;
+      expect(component.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', ['value1', 'value2']).toJSON());
+    });
+
+    test('transforms query results', function() {
+      component.queryResults = [1, 2, 3, 4, 5];
+      component.transform = function(results) {
+        return results.map(function(result) {
+          return {
+            count: result * 10
+          };
+        });
       };
-      component.filterField = 'alpha';
-      component.filterValue = 'beta';
-      component.aggregationField = 'omega';
-
-      expect(component.query).to.deep.equal({
-        query: {
-          filtered: {
-            filter: {
-              term: {
-                alpha: 'beta'
-              }
-            }
-          }
-        },
-        aggs: {
-          features: {
-            terms: {
-              field: 'omega',
-              size: 0
-            }
-          }
-        }
-      });
+      expect(component.transformResults).to.be.an('Array');
+      expect(component.transformResults).to.deep.equal([{
+        count: 10
+      }, {
+        count: 20
+      }, {
+        count: 30
+      }, {
+        count: 40
+      }, {
+        count: 50
+      }]);
     });
 
-    test('build array query', function() {
-      component.queryTemplate = {
-        query: {
-          filtered: {
-            filter: {
-              terms: {
-                '{{filterField}}': ['{{filterValue}}']
-              }
-            }
-          }
-        },
-        aggs: {
-          features: {
-            terms: {
-              field: '{{aggregationField}}',
-              size: 0
-            }
-          }
-        }
-      };
-      component.filterField = 'alpha';
-      component.filterValue = ['beta', 'gamma', 'delta'];
-      component.aggregationField = 'omega';
-
-      expect(component.query).to.deep.equal({
-        query: {
-          filtered: {
-            filter: {
-              terms: {
-                alpha: ['beta', 'gamma', 'delta']
-              }
-            }
-          }
-        },
-        aggs: {
-          features: {
-            terms: {
-              field: 'omega',
-              size: 0
-            }
-          }
-        }
-      });
-    });
-
-    test('show feature-aggregation', function() {
-      // TODO Don't know why this line causes a jslint error...
-      expect(component.$$('feature-aggregation')).to.exist; // jshint ignore:line
+    test('shows feature-aggregation', function() {
+      expect(component.$$('feature-aggregation')).to.exist;
     });
   });
 </script>

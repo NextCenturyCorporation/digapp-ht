@@ -25,7 +25,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <test-fixture id="user-settings-fixture">
   <template>
-    <user-settings username="testUser"></user-settings>
+    <user-settings username="testUser" show-advanced-search></user-settings>
   </template>
 </test-fixture>
 
@@ -36,14 +36,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     var element;
 
     setup(function() {
+      // Must set session storage prior to defining the fixture.
+      // Must clear session storage in case it was affected by previous tests.
+      sessionStorage.removeItem('advancedSearch');
+      sessionStorage.removeItem('blurImages');
       element = fixture('user-settings-fixture');
     });
 
     test('properties are equal to expected values and settings dropdown is unopened', function() {
       assert.equal(element.username, 'testUser');
+      assert.isFalse(element.advancedSearch);
+      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box-outline-blank');
       assert.isTrue(element.blurImages);
       assert.equal(element.checkboxToShow(element.blurImages), 'check-box');
       assert.isFalse(element.$.settings.opened);
+    });
+
+    test('advancedSearchToggle() flips status of advancedSearch to true', function() {
+      element.advancedSearchToggle();
+      assert.isTrue(element.advancedSearch);
+      assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
+      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box');
     });
 
     test('blurToggle() flips status of blurImages to false', function() {
@@ -59,17 +72,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
   });
 
-  suite('user-settings tests if blurImages is preset in sessionStorage', function() {
+  suite('user-settings tests if settings are preset in sessionStorage', function() {
     var element;
 
     setup(function() {
-      element = fixture('user-settings-fixture');
+      // Must set session storage prior to defining the fixture.
+      sessionStorage.setItem('advancedSearch', 'true');
       sessionStorage.setItem('blurImages', 'false');
+      element = fixture('user-settings-fixture');
+    });
+
+    test('advancedSearch is set to true', function() {
+      assert.isTrue(element.advancedSearch);
+      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box');
     });
 
     test('blurImages is set to false', function() {
       assert.isFalse(element.blurImages);
       assert.equal(element.checkboxToShow(element.blurImages), 'check-box-outline-blank');
+    });
+
+    test('advancedSearchToggle() flips status of advancedSearch to false', function() {
+      element.advancedSearchToggle();
+      assert.isFalse(element.advancedSearch);
+      assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
+      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box-outline-blank');
     });
 
     test('blurToggle() flips status of blurImages to true', function() {

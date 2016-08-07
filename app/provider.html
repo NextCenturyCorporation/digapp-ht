@@ -43,6 +43,8 @@
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <!-- endbuild -->
 
+  <script src="scripts/google-analytics.js"></script>
+  
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -69,8 +71,7 @@
       auto
       url="/config"
       handle-as="json"
-      last-response="{{config}}"
-      on-response="showConfig">
+      last-response="{{config}}">
     </iron-ajax>
 
     <!--initialize new elastic client connection to server
@@ -80,105 +81,88 @@
       client="{{esclient}}">
     </elastic-client>
 
-    <!-- Get the provider details -->
-    <query-builder
-      query="{{providerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[params.value]]">
-    </query-builder>
+    <!-- Provider query -->
 
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[params.value]]"
+      ejs-query="{{providerQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[providerQuery]]'
-      elastic-type='["adultservice"]'
+      elastic-types='["adultservice"]'
+      query="[[providerQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{provider}}"
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[provider]]"
-     data-out="{{providerDisplay.provider}}"
-     transform-function="[[clientConfig.transforms.provider.provider]]"
-     ></json-transform>
+      data-in="[[provider]]"
+      data-out="{{providerDisplay.provider}}"
+      transform-function="[[clientConfig.transforms.provider.provider]]">
+    </json-transform>
 
-    <!--
-    Get all Offers for this provider
-    -->
-    <query-builder
-        query="{{providerOffersQuery}}"
-        query-template="{{config.queryTemplates.commonMatchQuery}}"
-        field="itemOffered.uri" value="[[params.value]]">
-    </query-builder>
+    <!-- Offer query -->
 
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="itemOffered.uri"
+      values="[[params.value]]"
+      ejs-query="{{providerOffersQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[providerOffersQuery]]'
+      elastic-types='["offer"]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query="[[providerOffersQuery]]"
+      aggregations="[]"
+      filters="[[buildArray(locationFilter)]]"
+      sort-field="validFrom"
+      sort-order="desc"
       results="{{providerOffers}}"
-      elastic-type='["offer"]'
-      last-error="{{error}}">
-    </elastic-search>
+      loading="{{offersLoading}}"
+      last-error="{{offersError}}">
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[providerOffers]]"
-     data-out="{{providerDisplay.offers}}"
-     transform-function="[[clientConfig.transforms.relatedEntities.offer]]"
-     ></json-transform>
+      data-in="[[providerOffers]]"
+      data-out="{{providerDisplay.offers}}"
+      transform-function="[[clientConfig.transforms.relatedEntities.offer]]">
+    </json-transform>
 
-     <!--
-        build the query for provider locations
-      -->
-       <query-builder
-        query="{{providerLocationQuery}}"
-        query-template="{{config.queryTemplates.offerLocation}}"
-        field="itemOffered.uri" value="[[params.value]]">
-      </query-builder>
+    <!-- Seller query -->
 
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        query='[[providerLocationQuery]]'
-        results="{{providerLocationAggs}}"
-        elastic-type='["offer"]'
-        last-error="{{error}}">
-      </elastic-search>
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[providerDisplay.provider.sellers]]"
+      ejs-query="{{sellerQuery}}">
+    </elastic-client-query-builder>
 
-      <json-transform
-       data-in="[[providerLocationAggs]]"
-       data-out="{{providerDisplay.offerLocation}}"
-       transform-function="[[clientConfig.transforms.phone.offerLocationData]]"
-       ></json-transform>
-
-    <!--
-    build the query to get seller
-    -->
-    <query-builder
-      query="{{sellerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[providerDisplay.provider.sellers]]">
-    </query-builder>
-
-    <elastic-search
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       elastic-type='["seller"]'
-      query='[[sellerQuery]]'
+      query="[[sellerQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{seller}}"
-      last-error="{{error}}">
-    </elastic-search>
+      last-error="{{sellerError}}">
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerPhoneEmails}}"
-     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
-     ></json-transform>
-
-    <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerObject}}"
-     transform-function="[[clientConfig.transforms.seller.seller]]"
-     ></json-transform>
+      data-in="[[seller]]"
+      data-out="{{sellerObject}}"
+      transform-function="[[clientConfig.transforms.seller.seller]]">
+    </json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -200,7 +184,6 @@
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
             annotation-relevant="[[config.annotationRelevant]]"
-            query-template="[[config.queryTemplates.annotationQuery]]"
             item="{{providerDisplay.provider}}"
             item-type="provider"
             current-user="[[config.username]]">
@@ -224,47 +207,60 @@
                     <div>[[imageDisplayTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[imageError]]">
+                    <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
+                    <div>[[imageErrorMessage]]</div>
+                  </template>
+
                   <image-query-and-display
-                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
                     image-query-field="isImagePartOf.mainEntity.itemOffered.uri"
-                    image-query-value="[[providerDisplay.provider._id]]"
+                    image-query-values="[[providerDisplay.provider._id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
                     image-transform="[[clientConfig.transforms.image.images]]"
                     image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
                     image-display-title="{{imageDisplayTitle}}"
+                    error="{{imageError}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
               </paper-material>
 
               <!-- Seller -->
-              <template is="dom-if" if="{{sellerPhoneEmails.length}}">
+              <template is="dom-if" if="{{sellerObject.communications.length}}">
                 <div class="h-divider"></div>
 
                 <paper-material>
                   <section class="who">
                     <div class="paper-font-title">Email/Phone Cluster</div>
 
+                    <template is="dom-if" if="[[sellerError]]">
+                      <elastic-error error="[[sellerError]]" message="{{sellerErrorMessage}}"></elastic-error>
+                      <div>[[sellerErrorMessage]]</div>
+                    </template>
+
+                    <!-- Hiding the link to the seller page until the data is better.
                     <div class="who">
                       <div class="paper-font-title">
-                        <single-record item="{{sellerObject}}"
+                        <single-record
+                          item="{{sellerObject}}"
                           client="[[esclient]]"
                           annotation-index="[[config.annotationIndex]]"
                           annotation-type="[[config.annotationType]]"
                           annotation-relevant="[[config.annotationRelevant]]"
-                          annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                           current-user="[[config.username]]"
                           blur="[[blurImages]]">
                         </single-record>
                       </div>
                     </div>
+                    -->
+
                     <records-grid
                       data-id="_id"
                       data-text="title"
                       data-type="_type"
-                      data="[[sellerPhoneEmails]]">
+                      data="[[sellerObject.communications]]">
                     </records-grid>
                   </section>
                 </paper-material>
@@ -309,12 +305,34 @@
                     <leaflet-wrapper map-data="{{providerDisplay.offerLocation.offerLocation}}">
                     </leaflet-wrapper>
                   </section>
-
-                  <!-- City summary -->
-                  <section class="where-details flex-none">
-                    <feature-aggregation feature-title="Offers per City" key="name" agg="[[providerDisplay.offerLocation.offerLocation]]"></feature-aggregation>
-                  </section>
                 </template>
+
+                <!-- City summary -->
+                <section class="where-details flex-none">
+                  <template is="dom-if" if="[[locationError]]">
+                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
+                    <div>[[locationErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="city"
+                    aggregation-field="availableAtOrFrom.address.key"
+                    filter-field="availableAtOrFrom.address.key"
+                    produced-filter="{{locationFilter}}"
+                    query="[[providerOffersQuery]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{locationError}}"
+                    consumed-filters="[]"
+                    transform="[[clientConfig.transforms.common.offerLocationData]]"
+                    transform-results="{{providerDisplay.offerLocation}}"
+                    transform-property="offerLocation"
+                    data-id="key"
+                    data-text="name"
+                    feature-title="Offers per City">
+                  </feature-query-and-display>
+                </section>
               </paper-material>
 
               <div class="h-divider"></div>
@@ -327,12 +345,16 @@
                     <div>{{recordsListTitle}}</div>
                   </div>
 
+                  <template is="dom-if" if="[[offersError]]">
+                    <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
+                    <div>[[offersErrorMessage]]</div>
+                  </template>
+
                   <records-list
                     client="[[esclient]]"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     annotation-relevant="[[config.annotationRelevant]]"
-                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
                     query-results="[[providerDisplay.offers.data]]"
                     total-results="{{providerDisplay.offers.count}}"
                     page="{{pageNum}}"
@@ -353,32 +375,21 @@
     </div>
   </template>
 
-  <script>
+  <script src="behaviors/array-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
 
+  <script>
   (function(document) {
+    /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.showConfig = function(req, res) {
-      console.log('REQ: ', req);
-      console.log('RES: ', res);
-    };
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
 
-    app.getURLParams = function() {
-      var queryString = window.location.search.slice(1, window.location.search.length);
-      var params = queryString.split('&');
-      app.params = {};
-      for(var i = 0; i < params.length; i++) {
-        var paramPair = params[i].split('=');
-        app.params[paramPair[0]] =  paramPair[1];
-      }
-    };
+    app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.getURLParams();
     app.providerDisplay = {};
-
   })(document);
   </script>
-
 </body>
 
 </html>

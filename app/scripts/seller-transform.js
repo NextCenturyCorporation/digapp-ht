@@ -12,10 +12,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
   function createLocationTimelineDetails(bucket) {
     var details = [];
 
-    if(bucket.publisher) {
+    if(bucket.publishers) {
       details.push({
         name: 'Website',
-        items: _.map(bucket.publisher.buckets, function(publisher) {
+        items: _.map(bucket.publishers.buckets, function(publisher) {
           return {
             text: publisher.key,
             type: 'webpage'
@@ -97,15 +97,15 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    */
   function createLocationTimeline(buckets) {
     var timeline = _.reduce(buckets, function(timeline, bucket) {
-      var dateBucket = {
-        date: commonTransforms.getDate(bucket.key)
-      };
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      if(bucket.doc_count) {
+        var dateBucket = {
+          date: commonTransforms.getDate(bucket.key)
+        };
 
-      if(bucket.locations.buckets.length) {
         var sum = 0;
         var subtitle = [];
 
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
           sum += locationBucket.doc_count;
           subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
@@ -124,11 +124,11 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             details: []
           });
         }
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
         dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
         timeline.push(dateBucket);
       }
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       return timeline;
     }, []);
@@ -170,41 +170,27 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
         newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
         newData.descriptors = [];
+        newData.communications = newData.telephone.concat(newData.emailAddress);
       }
 
       return newData;
     },
-    phoneEmails: function(data) {
-      var newData = [];
 
-      if(data && data.hits.hits.length > 0) {
-        var telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
-        var emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-
-        if(telephone && emailAddress) {
-          newData = telephone.concat(emailAddress);
-        } else if(telephone) {
-          newData = telephone;
-        } else if(emailAddress) {
-          newData = emailAddress;
-        }
-      }
-
-      return newData;
+    removeItemFromCommunications: function(communications, title) {
+      return (communications || []).filter(function(communication) {
+        return communication.title !== title;
+      });
     },
-    offerLocationData: function(data) {
-      return commonTransforms.offerLocationData(data);
-    },
+
     sellerOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
     },
+
     locationTimeline: function(data) {
       return {
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.location_timeline.dates.buckets) : undefined
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.dates.dates.buckets) : undefined
       };
     }
   };

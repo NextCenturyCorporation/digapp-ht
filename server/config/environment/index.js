@@ -3,7 +3,6 @@
 var path = require('path');
 var _ = require('lodash');
 var pjson = require('../../../package.json');
-var templates = require('../query-templates.js');
 var elasticTypes = require('../elastic-types.js');
 
 function requiredProcessEnv(name) {
@@ -45,10 +44,9 @@ var all = {
     elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
-    annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
-    queryTemplates: templates.QUERY_TEMPLATES || '{}',
-    memexImageSimilarity: process.env.MEMEX_IMAGE_SIMILARITY || ''
- 
+    memexImageSimilarity: process.env.MEMEX_IMAGE_SIMILARITY || '',
+    annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case'
+    
 };
 
 // Export the config object based on the NODE_ENV

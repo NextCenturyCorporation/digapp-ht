@@ -10,6 +10,29 @@
   <title>DIG</title>
   <!-- Place favicon.ico in the `app/` directory -->
 
+  <!-- Chrome for Android theme color -->
+  <meta name="theme-color" content="#2E3AA1">
+
+  <!-- Web Application Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Tile color for Win8 -->
+  <meta name="msapplication-TileColor" content="#3372DF">
+
+  <!-- Add to homescreen for Chrome on Android -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="application-name" content="PSK">
+  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
+
+  <!-- Add to homescreen for Safari on iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
+  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
+
+  <!-- Tile icon for Win8 (144x144) -->
+  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+
   <!-- build:css styles/main.css -->
   <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
   <link rel="stylesheet" href="bower_components/leaflet/dist/leaflet.css">
@@ -20,6 +43,8 @@
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <!-- endbuild -->
 
+  <script src="scripts/google-analytics.js"></script>
+  
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -29,14 +54,6 @@
   <style is="custom-style" include="icon-with-text-styles"></style>
   <style is="custom-style" include="list-item-styles"></style>
   <style is="custom-style" include="map-styles"></style>
-  <style>
-    .image-style {
-      --iron-image-width: auto;
-      --iron-image-height: auto;
-      padding: 0;
-      margin: 0;
-    }
-  </style>
 </head>
 
 <body unresolved class="fullbleed layout vertical">
@@ -53,8 +70,7 @@
       auto
       url="/config"
       handle-as="json"
-      last-response="{{config}}"
-      on-response="showConfig">
+      last-response="{{config}}">
     </iron-ajax>
 
     <!--initialize new elastic client connection to server
@@ -64,108 +80,78 @@
       client="{{esclient}}">
     </elastic-client>
 
-    <!--look up and build an entity query for the entity specified in the
-      query string for:
-      field: the field in elasticsearch to use in the query
-      value: value of the field above -->
+    <!-- Image query -->
 
-    <!-- imageDisplay.image query and transform -->
-    <query-builder
-      query="{{imageQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[params.value]]">
-    </query-builder>
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[params.value]]"
+      ejs-query="{{imageQuery}}">
+    </elastic-client-query-builder>
 
-    <elastic-search
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query='[[imageQuery]]'
+      elastic-types='["image"]'
+      query="[[imageQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{imageResults}}"
-      elastic-type='["image"]'
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[imageResults]]"
-     data-out="{{imageDisplay}}"
-     transform-function="[[clientConfig.transforms.image.image]]"
-     ></json-transform>
+      data-in="[[imageResults]]"
+      data-out="{{imageDisplay}}"
+      transform-function="[[clientConfig.transforms.image.image]]">
+    </json-transform>
 
-      <!--
-        build the query for offer locations
-      -->
-       <query-builder
-        query="{{offerLocationQuery}}"
-        query-template="{{config.queryTemplates.offerLocation}}"
-        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
-      </query-builder>
+    <!-- Offer query -->
 
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        query='[[offerLocationQuery]]'
-        results="{{offerLocationAggs}}"
-        elastic-type='["offer"]'
-        last-error="{{error}}">
-      </elastic-search>
+    <elastic-client-query-builder
+      type="term"
+      field="mainEntityOfPage.hasImagePart.uri"
+      values="[[imageDisplay.uri]]"
+      ejs-query="{{imageOffersQuery}}">
+    </elastic-client-query-builder>
 
-      <json-transform
-       data-in="[[offerLocationAggs]]"
-       data-out="{{imageDisplay.offerLocation}}"
-       transform-function="[[clientConfig.transforms.image.offerLocationData]]"
-       ></json-transform>
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query="[[imageOffersQuery]]"
+      aggregations="[]"
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      sort-field="validFrom"
+      sort-order="desc"
+      results="{{imageOffers}}"
+      loading="{{offersLoading}}"
+      last-error="{{offersError}}">
+    </elastic-client-search>
 
-       <!--
-        Get all the offers for this image
-       -->
-      <query-builder
-        query="{{imageOffersQuery}}"
-        query-template="{{config.queryTemplates.commonMatchQueryOfferSorted}}"
-        field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
-      </query-builder>
-
-      <elastic-search
-        client="[[esclient]]"
-        index="[[config.elasticIndex]]"
-        page="{{pageNum}}"
-        page-size="{{pageSize}}"
-        query='[[imageOffersQuery]]'
-        results="{{imageOffers}}"
-        elastic-type='["offer"]'
-        loading="{{offersLoading}}"
-        last-error="{{error}}">
-
-      </elastic-search>
-
-      <json-transform
-       data-in="[[imageOffers]]"
-       data-out="{{imageDisplay.imageOffers}}"
-       transform-function="[[clientConfig.transforms.image.imageOffersData]]"
-       ></json-transform>
+    <json-transform
+      data-in="[[imageOffers]]"
+      data-out="{{imageDisplay.imageOffers}}"
+      transform-function="[[clientConfig.transforms.image.imageOffersData]]">
+    </json-transform>
 
     <!-- Location timeline for bar chart and itinerary -->
 
-    <query-builder
-      query="{{locationTimelineQuery}}"
-      query-template="{{config.queryTemplates.locationTimeline}}"
-      field="mainEntityOfPage.hasImagePart.uri" value="[[imageDisplay.uri]]">
-    </query-builder>
-
-    <elastic-search
+    <location-timeline
+      field="mainEntityOfPage.hasImagePart.uri"
+      value="[[imageDisplay.uri]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      query="[[locationTimelineQuery]]"
-      results="{{locationTimelineResults}}"
-      elastic-type='["offer"]'
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      transforms="[[clientConfig.transforms]]"
+      count="[[imageDisplay.imageOffers.relatedOffers.count]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{imageDisplay.locationTimeline}}"
       loading="{{loadingLocationTimeline}}"
-      lastError="{{error}}">
-    </elastic-search>
-
-    <json-transform
-     data-in="[[locationTimelineResults]]"
-     data-out="{{imageDisplay.locationTimeline}}"
-     transform-function="[[clientConfig.transforms.seller.locationTimeline]]"
-     ></json-transform>
+      error="{{locationTimelineError}}">
+    </location-timeline>
 
     <!-- Main Content -->
     <div class="entity">
@@ -177,7 +163,7 @@
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
-            <iron-icon class="iron-icon-huge entity-image-font" icon="image:image"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-photo-font" icon="image:image"></iron-icon>
             <section>
               <div class="paper-font-display1">
                 Image
@@ -188,9 +174,8 @@
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
             annotation-relevant="[[config.annotationRelevant]]"
-            query-template="{{config.queryTemplates.annotationQuery}}"
-            item="{{imageDisplay.image}}"
-            item-type="telephone number"
+            item="{{imageDisplay}}"
+            item-type="image"
             current-user="[[config.username]]">
           </annotate-record>
           <user-settings username="[[config.username]]" blur-images="{{blurImages}}"></user-settings>
@@ -207,11 +192,9 @@
 
               <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
 
-
               <paper-material>
                 <section class="when">
-                  <iron-image id="mainImage" 
-src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></iron-image>
+                  <iron-image id="mainImage" src="{{imageDisplay.url}}" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
                 </section>
               </paper-material>
 
@@ -222,9 +205,17 @@ src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></i
                     <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
                     <div>[[barChartTitle]]</div>
                   </div>
+
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
+                    <div>[[locationTimelineErrorMessage]]</div>
+                  </template>
+
                   <zoomable-bar-chart
+                    data-list-property="locations"
                     data="[[imageDisplay.locationTimeline.dates]]"
                     source="Ads"
+                    interval="[[locationTimelineInterval]]"
                     bar-chart-title="{{barChartTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
@@ -243,72 +234,48 @@ src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></i
                   </div>
 
                   <people-features
-                    query-template="{{config.queryTemplates.peopleFeatures}}"
-                    filter-field="_id"
-                    filter-value="[[imageDisplay.adultService.array]]"
+                    query-field="itemOffered.uri"
+                    query-values="[[imageDisplay.adultService.array]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
-                    index-types='["adultservice"]'
-                    transform="[[clientConfig.transforms.common.peopleFeatures]]">
+                    consumed-filters="[[buildArray(locationFilter)]]"
+                    produced-filters="{{peopleFilters}}"
+                    transforms="[[clientConfig.transforms]]">
                   </people-features>
                 </section>
               </paper-material>
 
-              <div class="h-divider"></div>
-
-              <!-- Seller section -->
-              <template is="dom-if" if="{{showSeller}}">
-                <paper-material>
-                  <section class="who">
-                    <div class="paper-font-title">Email/Phone Cluster</div>
-
-                    <div class="who">
-                      <div class="paper-font-title">
-                        <single-record
-                          client="[[esclient]]"
-                          annotation-index="[[config.annotationIndex]]"
-                          annotation-type="[[config.annotationType]]"
-                          annotation-relevant="[[config.annotationRelevant]]"
-                          annotation-query-template="{{config.queryTemplates.annotationQuery}}"
-                          current-user="[[config.username]]"
-                          item="{{sellerObject}}"
-                          blur="[[blurImages]]">
-                        </single-record>
-                      </div>
-                    </div>
-                    <records-grid
-                      data-id="_id"
-                      data-text="title"
-                      data-type="_type"
-                      data="[[showSeller]]">
-                    </records-grid>
-                  </section>
-                </paper-material>
-              </template>
-
+              <!-- Hiding the similar image section until the data is better.
               <div class="h-divider"></div>
 
               <paper-material>
                 <section class="photos">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-photo-font" icon="image:photo"></iron-icon>
-                    <div>Similar Images</div>
+                    <div>[[imageDisplayTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[similarImageError]]">
+                    <elastic-error error="[[similarImageError]]" message="{{similarImageErrorMessage}}"></elastic-error>
+                    <div>[[similarImageErrorMessage]]</div>
+                  </template>
+
                   <image-query-and-display
-                    image-query-template="{{config.queryTemplates.commonTermsPathToValueQuery}}"
-                    image-query-path-to-value="query.terms['identifier']"
-                    image-query-value="[[imageDisplay.similarImages.array]]"
+                    image-query-field="identifier"
+                    image-query-values="[[imageDisplay.similarImages.array]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
                     image-transform="[[clientConfig.transforms.image.images]]"
                     image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
+                    type="Similar Image"
                     image-display-title="{{imageDisplayTitle}}"
+                    error="{{similarImageError}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
               </paper-material>
+              -->
 
               <!-- Itinerary section -->
               <div class="h-divider"></div>
@@ -319,10 +286,16 @@ src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></i
                     <div>[[itineraryTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
+                    <div>[[locationTimelineErrorMessage]]</div>
+                  </template>
+
                   <itinerary-list
                     data-items="locations"
                     data="[[imageDisplay.locationTimeline.dates]]"
                     source="Ads"
+                    interval="[[locationTimelineInterval]]"
                     itinerary-title="{{itineraryTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </itinerary-list>
@@ -352,12 +325,34 @@ src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></i
                     <leaflet-wrapper map-data="{{imageDisplay.offerLocation.offerLocation}}">
                     </leaflet-wrapper>
                   </section>
-
-                  <!-- City summary -->
-                  <section class="where-details flex-none">
-                    <feature-aggregation big feature-title="Offers per City" key="name" agg="[[imageDisplay.offerLocation.offerLocation]]"></feature-aggregation>
-                  </section>
                 </template>
+
+                <!-- City summary -->
+                <section class="where-details flex-none">
+                  <template is="dom-if" if="[[locationError]]">
+                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
+                    <div>[[locationErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="city"
+                    aggregation-field="availableAtOrFrom.address.key"
+                    filter-field="availableAtOrFrom.address.key"
+                    produced-filter="{{locationFilter}}"
+                    query="[[imageOffersQuery]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{locationError}}"
+                    consumed-filters="[[buildArray(peopleFilters)]]"
+                    transform="[[clientConfig.transforms.common.offerLocationData]]"
+                    transform-results="{{imageDisplay.offerLocation}}"
+                    transform-property="offerLocation"
+                    data-id="key"
+                    data-text="name"
+                    feature-title="Offers per City">
+                  </feature-query-and-display>
+                </section>
               </paper-material>
 
               <div class="h-divider"></div>
@@ -365,22 +360,28 @@ src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></i
               <!-- Offers for the image-->
               <paper-material>
                 <section>
-                  <div class="section-header">
-                    <div class="paper-font-title">
-                      [[imageDisplay.imageOffers.relatedOffers.count]] Offers
-                    </div>
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
+                    <div>{{recordsListTitle}}</div>
                   </div>
+
+                  <template is="dom-if" if="[[offersError]]">
+                    <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
+                    <div>[[offersErrorMessage]]</div>
+                  </template>
+
                   <records-list
                     client="[[esclient]]"
                     annotation-index="[[config.annotationIndex]]"
                     annotation-type="[[config.annotationType]]"
                     annotation-relevant="[[config.annotationRelevant]]"
-                    annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                    current-user="[[config.username]]"
                     query-results="[[imageDisplay.imageOffers.relatedOffers.data]]"
                     total-results="{{imageDisplay.imageOffers.relatedOffers.count}}"
                     page="{{pageNum}}"
                     loading="{{offersLoading}}"
+                    type="Ad"
+                    records-list-title="{{recordsListTitle}}"
+                    current-user="[[config.username]]"
                     blur="[[blurImages]]">
                   </records-list>
                 </section>
@@ -394,35 +395,26 @@ src="{{imageDisplay.url}}" class$="[[getBlurClass(blurImages)]] image-style"></i
       </paper-header-panel>
     </div>
   </template>
+
+  <script src="behaviors/array-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
+
   <script>
   (function(document) {
+    /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.showConfig = function(req, res) {
-      console.log('REQ: ', req);
-      console.log('RES: ', res);
-    };
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+
+    app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
     app.getBlurClass =  function(blur) {
       return (blur ? 'large-blur' : '');
     };
 
-    app.getURLParams = function() {
-      var queryString = window.location.search.slice(1, window.location.search.length);
-      var params = queryString.split('&');
-      app.params = {};
-      for(var i = 0; i < params.length; i++) {
-        var paramPair = params[i].split('=');
-        app.params[paramPair[0]] =  paramPair[1];
-      }
-    };
-
-    app.getURLParams();
     app.imageDisplay = {};
-
   })(document);
   </script>
-
 </body>
 
 </html>

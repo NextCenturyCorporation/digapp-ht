@@ -9,6 +9,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
+<link rel='import' href='../dateformat.html'>
+
 <script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
 
 <dom-module id='zoomable-bar-chart'>
@@ -18,6 +20,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style>
       :host {
         display: block;
+        --bar-chart-axis: var(--secondary-text-color);
+        --bar-chart-text: var(--main-text-color);
         --bar-chart-amber: var(--amber);
         --bar-chart-black: var(--dark-primary-color);
         --bar-chart-blue: var(--blue);
@@ -40,16 +44,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       #barChart {
         display: none;
+        height: 0;
+        width: 0;
+      }
+
+      #barChart[show] {
+        display: block;
       }
 
       .axis {
         font-size: 11px;
-        fill: var(--secondary-text-color);
+        fill: var(--bar-chart-axis);
       }
 
       .axis line, .axis path {
         fill: none;
-        stroke: var(--secondary-text-color);
+        stroke: var(--bar-chart-axis);
         shape-rendering: crispEdges;
       }
 
@@ -61,14 +71,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <div class="loading-container">
       <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
+        <paper-spinner active$="[[loading]]"></paper-spinner>
         <span class="button-height-text">Loading Bar Chart...</span>
       </template>
     </div>
 
-    <div class='layout horizontal'>
-      <div id='chartContainer' class='flex auto'>
-        <svg id='barChart'></svg>
+    <div class="layout horizontal">
+      <div id="chartContainer" class="flex auto">
+        <svg id="barChart" show$="[[!loading]]"></svg>
       </div>
     </div>
   </template>
@@ -77,11 +87,77 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     (function() {
       'use strict';
 
-      /* globals d3 */
+      /* globals _, d3, dateFormat */
       Polymer({
         is: 'zoomable-bar-chart',
 
         properties: {
+          /**
+           * The property containing the date of the objects in the data.
+           */
+          dataDateProperty: {
+            type: String,
+            value: 'date'
+          },
+
+          /**
+           * The property containing the list of the objects for a date in the data.
+           */
+          dataListProperty: {
+            type: String,
+            value: 'list'
+          },
+
+          /**
+           * The property containing the name of the objects in the list of the objects for a date in the data.
+           */
+          dataNameProperty: {
+            type: String,
+            value: 'name'
+          },
+
+          /**
+           * The property containing the count of the objects in the list of the objects for a date in the data.
+           */
+          dataCountProperty: {
+            type: String,
+            value: 'count'
+          },
+
+          /**
+           * The name to give to bars that do not have a name.
+           */
+          defaultBarName: {
+            type: String,
+            value: 'Other'
+          },
+
+          /**
+           * The height for this bar chart.
+           */
+          height: {
+            type: Number,
+            value: 400
+          },
+
+          /**
+           * The source of the data to use in the title for this bar chart.
+           */
+          source: {
+            type: String,
+            value: 'Data'
+          },
+
+          /**
+           * The time interval for the x-axis.
+           */
+          interval: {
+            type: String
+          },
+
+          /**
+           * The data to display in the bar chart.
+           */
           data: {
             type: Array,
             value: function() {
@@ -90,29 +166,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             notify: true
           },
 
+          /**
+           * The data that is displayed in the bar chart.  Computed from the data.
+           */
           barChartData: {
             type: Array,
             value: function() {
               return [];
-            },
-            notify: true
+            }
           },
 
+          /**
+           * The set of parts that are displayed in the bar chart.  Computed from the data.
+           */
           barChartLegend: {
             type: Array,
             value: function() {
               return [];
-            },
-            notify: true
-          },
-
-          /**
-           * The source of the data to use in the title for this bar chart.
-           */
-          source: {
-            type: String,
-            value: 'Data',
-            notify: true
+            }
           },
 
           /**
@@ -146,39 +217,63 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         },
 
+        createIntervalText: function() {
+          return this.interval && this.interval === 'week' ? 'Week of ' : '';
+        },
+
         /**
          * Returns the title for this bar chart based on the source and the barChartData.
          */
         computeTitle: function(source, count) {
+          var intervalText = this.createIntervalText();
           if(count > 1) {
-            return source + ' from ' + this.barChartData[count - 1].text + ' to ' + this.barChartData[0].text;
+            return source + ' from ' + intervalText + this.barChartData[count - 1].dateString + ' to ' + intervalText + this.barChartData[0].dateString;
           }
-          return count ? (source + ' at ' + this.barChartData[0].text) : ('No ' + source);
+          return count ? (source + ' at ' + intervalText + this.barChartData[0].dateString) : ('No ' + source);
         },
 
         processData: function(data) {
+          var self = this;
           var barChartData = [];
           var barChartLegend = {};
 
           if(data) {
-            data.forEach(function(item) {
+            data.forEach(function(dateItem) {
               var yMax = 0; // keeps track of where the 'previous' value 'ended'
               var bars = [];
-              item.locations.forEach(function(location) {
-                if(location.count) {
-                  bars.push({
-                    name: location.name || 'Other',
-                    yAxisStart: yMax,
-                    yAxisEnd: yMax + location.count
-                  });
-                  yMax += location.count;
-                  barChartLegend[location.name || 'Other'] = true;
-                }
-              });
+              if(dateItem[self.dataListProperty]) {
+                dateItem[self.dataListProperty].forEach(function(listItem) {
+                  if(listItem[self.dataCountProperty]) {
+                    var name = listItem[self.dataNameProperty] || self.defaultBarName;
+                    bars.push({
+                      date: dateItem[self.dataDateProperty],
+                      name: name,
+                      yAxisStart: yMax,
+                      yAxisEnd: yMax + listItem[self.dataCountProperty]
+                    });
+                    yMax += listItem[self.dataCountProperty];
+                    barChartLegend[name] = true;
+                  }
+                });
+                bars.forEach(function(bar) {
+                  bar.yMax = yMax;
+                });
+              } else if(dateItem[self.dataCountProperty]) {
+                yMax = dateItem[self.dataCountProperty];
+                var name = dateItem[self.dataNameProperty] || self.defaultBarName;
+                bars.push({
+                  date: dateItem[self.dataDateProperty],
+                  name: name,
+                  yAxisStart: 0,
+                  yAxisEnd: yMax,
+                  yMax: yMax
+                });
+                barChartLegend[name] = true;
+              }
               barChartData.push({
                 bars: bars,
-                date: new Date(item.date),
-                text: item.date,
+                dateObject: new Date(dateItem[self.dataDateProperty]),
+                dateString: dateItem[self.dataDateProperty],
                 yMax: yMax
               });
             });
@@ -193,21 +288,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var data = this.barChartData;
 
           var self = this;
-          this.width = 600;
-          this.height = 300;
 
           // Use the width of the bar chart container.
           var container = document.getElementById('chartContainer');
-          if(container) {
-            this.width = parseInt(container.offsetWidth, 10);
-          }
+          this.width = (container ? parseInt(container.offsetWidth, 10) : 600);
 
           // sizing information, including margins so there is space for labels, etc
-          var margin = {top: 10, right: 30, bottom: 80, left: 40};
-          var marginOverview = {top: 260, right: 10, bottom: 20, left: 40};
-          var chartWidth = this.width - margin.left - margin.right;
-          var chartHeight = this.height - margin.top - margin.bottom;
-          var heightOverview = this.height - marginOverview.top - marginOverview.bottom;
+          var marginLeft = 40;
+          var marginRight = 20;
+          var marginTopInfo = 20;
+          var marginTopMain = 40;
+          var marginBottomMain = 130;
+          var marginTopInstructions = this.height - 80;
+          var marginTopOverview = this.height - 60;
+          var marginBottomOverview = 20;
+
+          var chartWidth = this.width - marginLeft - marginRight;
+          var chartHeight = this.height - marginTopMain - marginBottomMain;
+          var overviewHeight = this.height - marginTopOverview - marginBottomOverview;
+
           // some colors to use for the bars
           var overviewColor = this.getComputedStyleValue('--bar-chart-black');
           var otherGroupColor = this.getComputedStyleValue('--bar-chart-grey');
@@ -231,74 +330,67 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           ]);
 
           // mathematical scales for the x and y axes
-          var x = d3.time.scale()
-                    .range([0, chartWidth]);
-
-          var y = d3.scale.linear()
-                    .range([chartHeight, 0]);
-          var xOverview = d3.time.scale()
-                            .range([0, chartWidth]);
-          var yOverview = d3.scale.linear()
-                            .range([heightOverview, 0]);
+          var x = d3.time.scale().range([0, chartWidth]);
+          var y = d3.scale.linear().range([chartHeight, 0]);
+          var xOverview = d3.time.scale().range([0, chartWidth]);
+          var yOverview = d3.scale.linear().range([overviewHeight, 0]);
 
           // rendering for the x and y axes
-          var xAxis = d3.svg.axis()
-                        .scale(x)
-                        .orient('bottom')
-                        .ticks(4);
+          var xAxis = d3.svg.axis().scale(x).orient('bottom').tickFormat(d3.time.format('%b %d'));
+          var yAxis = d3.svg.axis().scale(y).orient('left').tickFormat(d3.format('.0f'));
+          var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom').tickFormat(d3.time.format('%b %d'));
 
-          var yAxis = d3.svg.axis()
-                        .scale(y)
-                        .orient('left');
-          var xAxisOverview = d3.svg.axis()
-                                .scale(xOverview)
-                                .orient('bottom')
-                                .ticks(4);
+          var svg = d3.select(document.createElement('div')).append('svg');
 
-          var elemToAdd = document.createElement('div');
-
-          var svg = d3.select(elemToAdd).append('svg') // the overall space
-                      .attr('width', chartWidth + margin.left + margin.right)
-                      .attr('height', chartHeight + margin.top + margin.bottom);
+          var info = svg.append('text')
+            .attr('class', 'info')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopInfo + ')')
+            .style('fill', this.getComputedStyleValue('--bar-chart-text'))
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .text('');
 
           var main = svg.append('g')
-                        .attr('class', 'main')
-                        .attr('transform', 'translate(' + margin.left + ',' + margin.top + ')');
+            .attr('class', 'main')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopMain + ')');
+
+          svg.append('text')
+            .attr('class', 'instructions')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopInstructions + ')')
+            .style('fill', this.getComputedStyleValue('--bar-chart-text'))
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .text('Click and drag on the chart below to zoom.  Click elsewhere to reset the zoom.');
 
           var overview = svg.append('g')
-                            .attr('class', 'overview')
-                            .attr('transform', 'translate(' + marginOverview.left + ',' + marginOverview.top + ')');
+            .attr('class', 'overview')
+            .attr('transform', 'translate(' + marginLeft + ',' + marginTopOverview + ')');
 
-          var brush = d3.svg.brush()
-                        .x(xOverview);
-
-          function brushed() {
-            // update the main chart's x axis data range
-            x.domain(brush.empty() ? xOverview.domain() : brush.extent());
-            // redraw the bars on the main chart
-            main.selectAll('.bar.stack')
-              .attr('transform', function(d) {
-                if(x(d.date) > 0) {
-                  return 'translate(' + x(d.date) + ',0)';
-                } else {
-                  return 'translate(240,240)scale(0)';
-                }
-              });
-            // redraw the x axis of the main chart
-            main.select('.x.axis').call(xAxis);
-          }
-          // brush tool to let us zoom and pan using the overview chart
-          brush.on('brush', brushed);
           // data ranges for the x and y axes
-          x.domain(d3.extent(data, function(d) { return d.date; }));
-          y.domain([0, d3.max(data, function(d) { return d.yMax; })]);
+          x.domain(d3.extent(data, function(d) { return d.dateObject; }));
+          this.setXAxisTicks(xAxis, x.domain());
+          var xAxisMax = _.max(_.map(data, function(item) {
+            return x(item.dateObject);
+          }));
+          var yAxisMax = d3.max(data, function(d) { return d.yMax; });
+          y.domain([0, yAxisMax]);
+          yAxis.tickValues(this.getYAxisTickValues(yAxisMax));
           xOverview.domain(x.domain());
           yOverview.domain(y.domain());
+
+          var createExtentText = function() {
+            var xDomain = x.domain();
+            var intervalText = self.createIntervalText();
+            // TODO Combine with use of dateFormat in commonTransforms.getDate().
+            return intervalText + dateFormat(xDomain[0], 'mmmm dd, yyyy', true) + ' to ' + intervalText + dateFormat(xDomain[1], 'mmmm dd, yyyy', true);
+          };
+
+          info.text(createExtentText());
 
           // data range for the bar colors
           // (essentially maps attribute names to color values)
           color.domain(this.barChartLegend.filter(function(key) {
-            return key !== 'Other';
+            return key !== self.defaultBarName;
           }));
 
           // draw the axes now that they are fully set up
@@ -311,19 +403,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .call(yAxis);
           overview.append('g')
             .attr('class', 'x axis')
-            .attr('transform', 'translate(0,' + heightOverview + ')')
+            .attr('transform', 'translate(0,' + overviewHeight + ')')
             .call(xAxisOverview);
 
-          var tooltip = svg.append('g')
-            .attr('class', 'tooltip')
-            .style('display', 'none');
+          var grid = main.append('g').attr('class', 'grid');
 
-          tooltip.append('text')
-            .attr('x', 15)
-            .attr('dy', '1.2em')
-            .style('text-anchor', 'middle')
-            .attr('font-size', '12px')
-            .attr('font-weight', 'bold');
+          var createGridLines = function(yAxisMax) {
+            grid.selectAll('line.gridline').remove();
+            grid.selectAll('line.gridline')
+              .data(self.getYAxisTickValues(yAxisMax))
+              .enter()
+              .append('line')
+              .attr('class', 'gridline')
+              .attr('x1', 0)
+              .attr('x2', xAxisMax)
+              .attr('y1', function(d) { return y(d); })
+              .attr('y2', function(d) { return y(d); })
+              .style('fill', 'none')
+              .style('shape-rendering', 'crispEdges')
+              .style('stroke', self.getComputedStyleValue('--bar-chart-axis'))
+              .style('stroke-width', '1px');
+          };
+
+          createGridLines(yAxisMax);
 
           // draw the bars
           main.append('g')
@@ -333,29 +435,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .data(data)
             .enter().append('g')
               .attr('class', 'bar stack')
-              .attr('transform', function(d) { return 'translate(' + x(d.date) + ',0)'; })
+              .attr('transform', function(d) { return 'translate(' + x(d.dateObject) + ',0)'; })
             // a bar for each value in the stack, positioned in the correct y positions
             .selectAll('rect')
             .data(function(d) { return d.bars; })
             .enter().append('rect')
               .attr('class', 'bar')
-              .attr('width', 6)
+              .attr('width', 8)
               .attr('y', function(d) { return y(d.yAxisEnd); })
               .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
               .style('fill', function(d) {
-                if(d.name === 'Other' || d.name === 'other') {
+                if(d.name === self.defaultBarName || !color(d.name)) {
                   return otherGroupColor;
                 }
                 return color(d.name);
               })
-              .on('mouseover', function() { tooltip.style('display', null); })
-              .on('mouseout', function() { tooltip.style('display', 'none'); })
+              .style('cursor', 'pointer')
+              .on('mouseout', function() {
+                info.text(createExtentText());
+              })
               .on('mousemove', function(d) {
-                var rectPos = this.getBoundingClientRect();
-                var xPosition = rectPos.left - 60;
-                var yPosition = d3.mouse(this)[1] - 10;
-                tooltip.attr('transform', 'translate(' + xPosition + ',' + yPosition + ')');
-                tooltip.select('text').text(d.name + ' (' + (d.yAxisEnd - d.yAxisStart) + ')');
+                info.text(self.createIntervalText() + d.date + ':  ' + (d.name ? (d.name + ' ') : '') + '(' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.yMax + ')');
               });
 
           overview.append('g')
@@ -364,11 +464,52 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             .data(data)
             .enter().append('rect')
               .attr('class', 'bar')
-              .attr('x', function(d) { return xOverview(d.date) - 3; })
-              .attr('width', 6)
+              .attr('x', function(d) { return xOverview(d.dateObject) - 3; })
+              .attr('width', 8)
               .attr('y', function(d) { return yOverview(d.yMax); })
-              .attr('height', function(d) { return heightOverview - yOverview(d.yMax); })
+              .attr('height', function(d) { return overviewHeight - yOverview(d.yMax); })
               .style('fill', overviewColor);
+
+          var brush = d3.svg.brush().x(xOverview);
+
+          var onBrushed = function() {
+            // update the main chart's x axis data range
+            x.domain(brush.empty() ? xOverview.domain() : brush.extent());
+            self.setXAxisTicks(xAxis, x.domain());
+
+            info.text(createExtentText());
+
+            // redraw the bars on the main chart
+            var yAxisMax = 0;
+            main.selectAll('.bar.stack')
+              .attr('transform', function(d) {
+                var barX = x(d.dateObject);
+                // A buffer (5 pixels seems sufficient) is needed to show the bars at the start and end of the chart.
+                if(barX > -5 && barX < xAxisMax + 5) {
+                  yAxisMax = Math.max(yAxisMax, d.yMax);
+                  return 'translate(' + barX + ',0)';
+                } else {
+                  return 'translate(0,0),scale(0)';
+                }
+              });
+
+            y.domain([0, yAxisMax]);
+            yAxis.tickValues(self.getYAxisTickValues(yAxisMax));
+
+            // redraw the x axis of the main chart
+            main.select('.x.axis').call(xAxis);
+            main.select('.y.axis').call(yAxis);
+
+            main.selectAll('.bar.stack rect')
+              .attr('y', function(d) { return y(d.yAxisEnd); })
+              .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); });
+
+            grid.selectAll('line.gridline').remove();
+            createGridLines(yAxisMax);
+          };
+
+          // brush tool to let us zoom and pan using the overview chart
+          brush.on('brush', onBrushed);
 
           // add the brush target area on the overview chart
           overview.append('g')
@@ -380,12 +521,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // need to manually set the height because the brush has
             // no y scale, i.e. we should see the extent being marked
             // over the full height of the overview chart
-            .attr('height', heightOverview + 7);  // +7 is magic number for styling
+            .attr('height', overviewHeight + 7);  // +7 is magic number for styling
 
           // Add chart to DOM
-          this.$.barChart.style.height = this.height;
-          this.$.barChart.style.width = this.width;
-          this.$.barChart.style.display = 'block';
+          //this.$.barChart.style.height = this.height;
+          //this.$.barChart.style.width = this.width;
+          Polymer.dom(this.$.barChart).setAttribute('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
 
           var children = Polymer.dom(this.$.barChart).children;
           // delete previous nodes if they exist
@@ -398,6 +539,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           d3.select(window).on('resize', function() {
             self.resize();
           });
+        },
+
+        setXAxisTicks: function(xAxis, xDomain) {
+          var minInterval = this.interval && this.interval === 'week' ? d3.time.week : d3.time.day;
+          var xDiff = (((((xDomain[1] - xDomain[0]) / 1000) / 60) / 60) / 24);
+          var xInterval = (xDiff > 730 ? d3.time.year : (xDiff > 90 ? d3.time.month : (xDiff > 15 ? d3.time.week : minInterval)));
+          xAxis.ticks(xInterval, 1);
+        },
+
+        getYAxisTickValues: function(yAxisMax) {
+          if(yAxisMax < 10) {
+            return _.range(yAxisMax + 1);
+          }
+          // Return at most 10 tick values based on the number of digits in the maximum.
+          var string = yAxisMax.toString();
+          var digits = string.length;
+          var step = Math.pow(10, digits - 1);
+          if(string.indexOf('1') === 0) {
+            step = 2 * Math.pow(10, digits - 2);
+          }
+          if(string.indexOf('2') === 0 || string.indexOf('3') === 0 || string.indexOf('4') === 0) {
+            step = 5 * Math.pow(10, digits - 2);
+          }
+          // Set the end to the max plus one so the max is added to the range if evenly divisible.
+          return _.range(0, yAxisMax + 1, step);
         },
 
         resize: function() {

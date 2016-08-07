@@ -1,0 +1,86 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<!--
+Transform a single JSON object to a new JSON object by applying an
+adapter function to the original JSON. 
+
+This is used specifically for phone/email facets, since it is a special case 
+where we are getting all the aggregations for those facets upfront, 
+and not only need the ability to run transforms on the buckets, but to recreate
+the facet list based on the number the user wants to see at a time.
+
+Example:
+
+    <facets-transform
+      data-in="[[data]]"
+      data-out="{{newData}}"
+      limit="{{limit}}"
+      transform-function="[[transform]]">
+    </facets-transform>
+-->
+
+<script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'facets-transform',
+
+      properties: {
+        /**
+         * JSON data for facet display
+         */
+        dataIn: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * the transformed data
+         */
+        dataOut: {
+          type: Object,
+          notify: true,
+          readOnly: true
+        },
+
+        /**
+         * The number of facets to show
+         */
+        limit: {
+          type: Number,
+          notify: true,
+          value: 10
+        },
+
+        /**
+         *
+         * function that has the following signature:
+         * function (jsondata) { return transformed-jsondata; }
+         *
+         * @type {{functionName : function(data, limit)}}
+         */
+        transformFunction: {
+          type: Object
+        }
+      },
+
+      observers: [
+        '_applyTransform(dataIn, limit, transformFunction)'
+      ],
+
+      _applyTransform: function(jsondata, limit) {
+        this._setDataOut(this.transformFunction(jsondata, limit));
+      }
+    });
+  })();
+</script>

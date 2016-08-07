@@ -9,14 +9,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/json-transform/json-transform.html">
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-<link rel="import" href="../dig-behaviors/result-list-behavior.html">
+<link rel="import" href="../behaviors.html">
 <link rel="import" href="../image-viewer/image-viewer.html">
-<link rel="import" href="../query-builder/query-builder.html">
 
 <dom-module id="image-query-and-display">
   <template>
@@ -27,34 +27,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       iron-scroll-threshold {
         margin-top: 10px;
         /* The height of 5 rows of images. */
-        max-height: 650px;
+        max-height: 850px;
       }
     </style>
 
-    <query-builder
-      query="{{imageQuery}}"
-      query-template="[[imageQueryTemplate]]"
-      path-to-value="[[imageQueryPathToValue]]"
+    <elastic-client-query-builder
+      type="terms"
       field="[[imageQueryField]]"
-      value="[[imageQueryValue]]">
-    </query-builder>
+      values="[[imageQueryValues]]"
+      ejs-query="{{imageQuery}}">
+    </elastic-client-query-builder>
 
-    <elastic-search
+    <elastic-client-search
       client="[[client]]"
       index="[[index]]"
-      elastic-type="[[indexTypes]]"
+      elastic-types="[[indexTypes]]"
       query="[[imageQuery]]"
+      aggregations="[]"
+      filters="[]"
       page="{{page}}"
       loading="{{loading}}"
       results="{{imageQueryResults}}"
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
+
+    <!-- Get the array of images -->
 
     <json-transform
       data-in="[[imageQueryResults]]"
       data-out="{{imageResults}}"
       transform-function="[[imageTransform]]">
     </json-transform>
+
+    <!-- Get the total number of images -->
 
     <json-transform
       data-in="[[imageQueryResults]]"
@@ -90,20 +95,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       behaviors: [DigBehaviors.ResultListBehavior],
 
       properties: {
-        imageQueryTemplate: {
-          type: Object
-        },
-
-        imageQueryPathToValue: {
-          type: String
-        },
-
         imageQueryField: {
           type: String
         },
 
-        imageQueryValue: {
-          type: String
+        imageQueryValues: {
+          type: Array
         },
 
         imageQuery: {
@@ -139,10 +136,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
+        type: {
+          type: String,
+          value: 'Image'
+        },
+
         imageDisplayTitle: {
           type: String,
           value: 'No Images',
-          computed: 'computeTitle(displayResults.length, totalResults)',
+          computed: 'computeTitle(type, displayResults.length, totalResults)',
           notify: true
         },
 
@@ -161,13 +163,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ],
 
       /**
-       * Returns the title for this image viewer based on the displayResults and the totalResults.
+       * Returns the title for this image viewer based on the type, displayResults, and totalResults.
        */
-      computeTitle: function(count, total) {
+      computeTitle: function(type, count, total) {
         if(total) {
-          return ((count && count < total) ? (count + ' of ') : '') + total + ' Image' + (total === 1 ? '' : 's');
+          return ((count && count < total) ? (count + ' of ') : '') + total + ' ' + type + (total === 1 ? '' : 's');
         }
-        return 'No Images';
+        return 'No ' + type + 's';
       },
 
       updateQueryResults: function() {

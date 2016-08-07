@@ -16,6 +16,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/elastic.js/dist/elastic.js"></script>
 
   <!-- Step 1: import the element to test -->
   <link rel="import" href="../elements/annotate-record/annotate-record.html">
@@ -26,22 +27,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <test-fixture id="annotate-record-fixture">
   <template>
     <annotate-record annotation-index="dig-annotations" annotation-type="annotation"
-      query-template='{"query": {"query": {"bool" : {"must" : [{"term" : { "uri" : "" }},
-        {"term" : { "user" : "mockUser" }}]}}}, "pathsToValues": ["query.bool.must[0].term.uri"]}'
       item='{"_id": "http://offer/ABC123", "_type": "offer"}' current-user="mockUser">
     </annotate-record>
   </template>
 </test-fixture>
 
 <script>
-  /* globals suite, test, assert, setup, fixture */
+  /* globals ejs, suite, test, assert, expect, setup, fixture, flush */
   /* jshint -W030 */
 
   suite('annotate-record tests', function() {
     var element;
 
-    setup(function() {
+    setup(function(done) {
       element = fixture('annotate-record-fixture');
+      flush(function() {
+        done();
+      });
     });
 
     test('annotationIndex defined correctly', function() {
@@ -50,11 +52,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('annotationType defined correctly', function() {
       assert.equal(element.annotationType, 'annotation');
-    });
-
-    test('queryTemplate defined correctly', function() {
-      assert.isObject(element.queryTemplate.query.query);
-      assert.isArray(element.queryTemplate.pathsToValues);
     });
 
     test('item defined correctly', function() {
@@ -75,11 +72,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('annotationTypeAsArray is expected value', function() {
       assert.deepEqual(element.annotationTypeAsArray, ['annotation']);
-    });
-
-    test('getAnnotationId returns correct value for both cases', function() {
-      assert.equal(element.getAnnotationId({_id: 'defined'}), 'defined');
-      assert.equal(element.getAnnotationId(undefined), undefined);
     });
 
     test('getAnnotationClass given no answer returns an empty string', function() {
@@ -127,10 +119,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.getFlagIcon(element.noAnswer), 'fa:flag-o');
     });
 
-    test('getValuesForQuery returns item._id and currentUser in an array', function() {
-      assert.deepEqual(element.getValuesForQuery(element.item, element.currentUser), ['http://offer/ABC123', 'mockUser']);
-    });
-
     test('isSelected given equal values returns selected', function() {
       assert.equal(element.isSelected(element.veryRelevant, element.veryRelevant), 'selected');
       assert.equal(element.isSelected(element.somewhatRelevant, element.somewhatRelevant), 'selected');
@@ -147,39 +135,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.isSelected(element.notRelevant, element.noAnswer), '');
     });
 
-    test('openDropdownMenu shows the dropdown menu', function() {
-      assert.equal(element.$.dropdownMenu.getAttribute('aria-hidden'), 'true');
+    test('openDropdownMenu does show the dropdown menu', function() {
+      assert.equal(element.$$('#dropdownMenu').getAttribute('aria-hidden'), 'true');
       element.openDropdownMenu();
-      assert.isNull(element.$.dropdownMenu.getAttribute('aria-hidden'));
+      assert.isNull(element.$$('#dropdownMenu').getAttribute('aria-hidden'));
     });
 
-    test('buildAnnotationQuery replaces appropriate values in queryTemplate', function() {
-      var queryToUse = element.buildAnnotationQuery(element.item, element.queryTemplate, element.currentUser);
-
-      assert.equal(queryToUse.query.bool.must[0].term.uri, element.item._id);
-      assert.equal(queryToUse.query.bool.must[1].term.user, element.currentUser);
+    test('uriQuery was built correctly', function() {
+      expect(element.uriQuery).to.exist;
+      expect(element.uriQuery.toJSON()).to.deep.equal(ejs.TermQuery('uri', 'http://offer/ABC123').toJSON());
     });
 
-    test('buildAnnotationQuery returns undefined if an argument is undefined or if item is empty', function() {
-      var undefinedItem = element.buildAnnotationQuery(undefined, element.queryTemplate, element.currentUser);
-      var emptyItem = element.buildAnnotationQuery({}, element.queryTemplate);
-
-      assert.isUndefined(undefinedItem);
-      assert.isUndefined(emptyItem);
+    test('userQuery was built correctly', function() {
+      expect(element.userQuery).to.exist;
+      expect(element.userQuery.toJSON()).to.deep.equal(ejs.TermQuery('user', 'mockUser').toJSON());
     });
 
-    test('buildAnnotationQuery returns undefined if queryTemplate undefined', function() {
-      var undefinedTemplate = element.buildAnnotationQuery(element.item, undefined, element.currentUser);
-      var undefinedUser = element.buildAnnotationQuery(element.item, element.queryTemplate, undefined);
-
-      assert.isUndefined(undefinedTemplate);
-      assert.isUndefined(undefinedUser);
+    test('annotationQuery was built correctly', function() {
+      expect(element.annotationQuery).to.exist;
+      expect(element.annotationQuery.toJSON()).to.deep.equal(ejs.BoolQuery().must(ejs.TermQuery('uri', 'http://offer/ABC123')).must(ejs.TermQuery('user', 'mockUser')).toJSON());
     });
 
     test('transformOrigResult if originalSearchResult not defined', function() {
       element.transformOrigResult();
 
-      assert.isNull(element.annotationResult);
+      assert.deepEqual(element.annotationResult, {});
       assert.equal(element.label, element.noAnswer);
       assert.isTrue(element.disableButtons);
     });
@@ -188,12 +168,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.originalSearchResult = {hits: {hits: []}};
       element.transformOrigResult();
 
-      assert.isNull(element.annotationResult);
+      assert.deepEqual(element.annotationResult, {});
       assert.equal(element.label, element.noAnswer);
       assert.isFalse(element.disableButtons);
     });
 
-    test('saveAnnotation sets create body if annotationResult does not exist', function() {
+    test('saveAnnotation does set annotation body if the annotationResult does not exist', function() {
       element.saveAnnotation();
 
       assert.isObject(element.annotationCreateBody);
@@ -207,7 +187,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(!!element.annotationCreateBody.timestamp);
     });
 
-    test('saveAnnotation sets create body with correct label and justification', function() {
+    test('saveAnnotation does set annotation body with correct label and justification', function() {
       element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.saveAnnotation();
@@ -223,101 +203,78 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(!!element.annotationCreateBody.timestamp);
     });
 
+    test('saveAnnotation does set annotation body if label and justification do not match the annotationResult', function() {
+      element.label = element.veryRelevant;
+      element.justification = 'my justification';
+      element.annotationResult = {label: element.noAnswer, justification: ''};
+      element.saveAnnotation();
+
+      assert.isObject(element.annotationCreateBody);
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
+      assert.equal(element.annotationCreateBody.user, 'mockUser');
+      assert.equal(element.annotationCreateBody.label, element.veryRelevant);
+      assert.equal(element.annotationCreateBody.justification, 'my justification');
+      assert.isTrue(!!element.annotationCreateBody.timestamp);
+    });
+
+    test('saveAnnotation does not set annotation body if label and justification match the annotationResult', function() {
+      element.label = element.veryRelevant;
+      element.justification = 'my justification';
+      element.annotationResult = {label: element.veryRelevant, justification: 'my justification'};
+      element.saveAnnotation();
+      assert.isUndefined(element.annotationCreateBody);
+    });
+
     test('transformOrigResult if result found', function() {
       element.originalSearchResult = {hits: {hits: [{_id: 1, _source: {label: element.veryRelevant, justification: 'my justification'}}]}};
 
       element.transformOrigResult();
 
-      assert.deepEqual(element.annotationResult, {_id: 1, _source: {label: element.veryRelevant, justification: 'my justification'}});
+      assert.deepEqual(element.annotationResult, {label: element.veryRelevant, justification: 'my justification'});
       assert.equal(element.label, element.veryRelevant);
       assert.equal(element.justification, 'my justification');
       assert.isFalse(element.disableButtons);
     });
 
-    test('saveAnnotation sets update body if annotationResult exists', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
-      element.saveAnnotation();
-
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.noAnswer);
-      assert.equal(element.annotationUpdateBody.doc.justification, '');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
-    });
-
-    test('saveAnnotation sets update body with correct label and justification', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
-      element.label = element.veryRelevant;
-      element.justification = 'my justification';
-      element.saveAnnotation();
-
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.veryRelevant);
-      assert.equal(element.annotationUpdateBody.doc.justification, 'my justification');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
-    });
-
-    test('saveAnnotationAndCloseDropdownMenu sets the annotation body and hides the dropdown menu', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
-      element.label = element.veryRelevant;
-      element.justification = 'my justification';
-      element.saveAnnotationAndCloseDropdownMenu();
-
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.veryRelevant);
-      assert.equal(element.annotationUpdateBody.doc.justification, 'my justification');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
-      assert.equal(element.$.dropdownMenu.getAttribute('aria-hidden'), 'true');
-    });
-
-    test('selectNoAnswer sets the label and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.veryRelevant, justification: ''}};
+    test('selectNoAnswer does set the label', function() {
       element.selectNoAnswer();
-
       assert.equal(element.label, element.noAnswer);
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.noAnswer);
-      assert.equal(element.annotationUpdateBody.doc.justification, '');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('selectNotRelevant sets the label and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+    test('selectNotRelevant does set the label', function() {
       element.selectNotRelevant();
-
       assert.equal(element.label, element.notRelevant);
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.notRelevant);
-      assert.equal(element.annotationUpdateBody.doc.justification, '');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('selectSomewhatRelevant sets the label and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+    test('selectSomewhatRelevant does set the label', function() {
       element.selectSomewhatRelevant();
-
       assert.equal(element.label, element.somewhatRelevant);
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.somewhatRelevant);
-      assert.equal(element.annotationUpdateBody.doc.justification, '');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
     });
 
-    test('selectVeryRelevant sets the label and annotation body', function() {
-      element.annotationResult = {_id: 1, _source: {label: element.noAnswer, justification: ''}};
+    test('selectVeryRelevant does set the label', function() {
       element.selectVeryRelevant();
-
       assert.equal(element.label, element.veryRelevant);
-      assert.isObject(element.annotationUpdateBody);
-      assert.isObject(element.annotationUpdateBody.doc);
-      assert.equal(element.annotationUpdateBody.doc.label, element.veryRelevant);
-      assert.equal(element.annotationUpdateBody.doc.justification, '');
-      assert.isTrue(!!element.annotationUpdateBody.doc.timestamp);
+    });
+
+    test('closing the dropdown menu does set the annotation body', function(done) {
+      element.$$('#dropdownMenu').fire('iron-overlay-opened');
+      element.closeListener = function() {
+        assert.isObject(element.annotationCreateBody);
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
+        assert.equal(element.annotationCreateBody.user, 'mockUser');
+        assert.equal(element.annotationCreateBody.label, element.noAnswer);
+        assert.equal(element.annotationCreateBody.justification, '');
+        assert.isTrue(!!element.annotationCreateBody.timestamp);
+        done();
+      };
+      element.listen(element.$$('#dropdownMenu'), 'iron-overlay-closed', 'closeListener');
+      element.$$('#dropdownMenu').fire('iron-overlay-closed');
     });
   });
 </script>

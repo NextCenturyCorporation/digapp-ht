@@ -43,6 +43,8 @@
   <script src="bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <!-- endbuild -->
 
+  <script src="scripts/google-analytics.js"></script>
+  
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -69,8 +71,7 @@
       auto
       url="/config"
       handle-as="json"
-      last-response="{{config}}"
-      on-response="showConfig">
+      last-response="{{config}}">
     </iron-ajax>
 
     <!--initialize new elastic client connection to server
@@ -80,123 +81,131 @@
       client="{{esclient}}">
     </elastic-client>
 
-    <!--look up and build an entity query for the entity specified in the
-      query string for:
-      field: the field in elasticsearch to use in the query
-      value: value of the field above -->
-    <query-builder
-      query="{{offerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[params.value]]">
-    </query-builder>
+    <!-- Offer query -->
 
-    <!--make an search using {{singleEntityQuery}} and return results -->
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[params.value]]"
+      ejs-query="{{offerQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["offer"]'
-      query='[[offerQuery]]'
+      elastic-types='["offer"]'
+      query="[[offerQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{offer}}"
       last-error="{{error}}">
-    </elastic-search>
+    </elastic-client-search>
 
-    <!--make generic models for content sections -->
     <json-transform
-     data-in="[[offer]]"
-     data-out="{{offerDisplay}}"
-     transform-function="[[clientConfig.transforms.offer.offer]]"
-     ></json-transform>
+      data-in="[[offer]]"
+      data-out="{{offerDisplay}}"
+      transform-function="[[clientConfig.transforms.offer.offer]]">
+    </json-transform>
 
-    <!-- Get the seller Object -->
-     <query-builder
-      query="{{sellerQuery}}"
-      query-template="{{config.queryTemplates.commonMatchQuery}}"
-      field="[[params.field]]" value="[[offerDisplay.sellerId]]">
-    </query-builder>
+    <!-- Seller query -->
 
-    <elastic-search
+    <elastic-client-query-builder
+      type="term"
+      field="[[params.field]]"
+      values="[[offerDisplay.sellerId]]"
+      ejs-query="{{sellerQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["seller"]'
-      query='[[sellerQuery]]'
+      elastic-types='["seller"]'
+      query="[[sellerQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{seller}}"
-      last-error="{{error}}">
-    </elastic-search>
+      last-error="{{sellerError}}">
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerPhoneEmails}}"
-     transform-function="[[clientConfig.transforms.seller.phoneEmails]]"
-     ></json-transform>
+      data-in="[[seller]]"
+      data-out="{{sellerObject}}"
+      transform-function="[[clientConfig.transforms.seller.seller]]">
+    </json-transform>
 
-    <json-transform
-     data-in="[[seller]]"
-     data-out="{{sellerObject}}"
-     transform-function="[[clientConfig.transforms.seller.seller]]"
-     ></json-transform>
+    <!-- Webpage revisions query -->
 
+    <elastic-client-aggregation-builder
+      name="revisions"
+      type="date_histogram"
+      count="0"
+      field="dateCreated"
+      interval="week"
+      ejs-aggregation="{{webpageRevisionsAggregation}}">
+    </elastic-client-aggregation-builder>
 
-     <!-- Get revisions of the webpage for  Revision Graph -->
-     <query-builder
-      query="{{pageRevisionsQuery}}"
-      query-template="{{config.queryTemplates.webpageRevisions}}"
-      field="url.raw" value="[[offerDisplay.webpageUrl]]">
-    </query-builder>
+    <elastic-client-query-builder
+      type="term"
+      field="url.raw"
+      values="[[offerDisplay.webpageUrl]]"
+      ejs-query="{{webpageRevisionsQuery}}">
+    </elastic-client-query-builder>
 
-    <elastic-search
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["webpage"]'
-      query='[[pageRevisionsQuery]]'
-      results="{{pageRevisions}}"
-      last-error="{{error}}">
-    </elastic-search>
+      elastic-types='["webpage"]'
+      query="[[webpageRevisionsQuery]]"
+      aggregations="[[webpageRevisionsAggregation]]"
+      filters="[]"
+      results="{{webpageRevisionsResults}}"
+      loading="{{webpageRevisionsLoading}}"
+      last-error="{{webpageRevisionsError}}">
+    </elastic-client-search>
 
     <json-transform
-     data-in="[[pageRevisions]]"
-     data-out="{{webpagePageRevisions}}"
-     transform-function="[[clientConfig.transforms.webpage.pageRevisions]]"
-     ></json-transform>
+      data-in="[[webpageRevisionsResults]]"
+      data-out="{{webpageRevisions}}"
+      transform-function="[[clientConfig.transforms.webpage.webpageRevisions]]">
+    </json-transform>
 
-     <json-transform
-     data-in="[[pageRevisions]]"
-     data-out="{{webpageDisplay}}"
-     transform-function="[[clientConfig.transforms.webpage.webpage]]"
-     ></json-transform>
+    <json-transform
+      data-in="[[webpageRevisionsResults]]"
+      data-out="{{webpageDisplay}}"
+      transform-function="[[clientConfig.transforms.webpage.webpage]]">
+    </json-transform>
 
-     <json-combine
-      data-in1="[[sellerPhoneEmails]]"
-      data-in2="[[webpageDisplay]]"
-      data-out="{{showSeller}}"
-      combine-function="[[clientConfig.transforms.offer.computeShowSeller]]"
-    ></json-combine>
+    <!-- Offer revisions query -->
 
+    <elastic-client-filter-builder
+      not
+      type="term"
+      field="uri"
+      values="[[params.value]]"
+      ejs-filter="{{offerRevisionsFilter}}">
+    </elastic-client-filter-builder>
 
-    <json-combine
-      data-in1="[[offerDisplay.webpageUrl]]"
-      data-in2="[[params.value]]"
-      data-out="{{mainEntityOfPageQueryValues}}"
-      combine-function="[[clientConfig.transforms.common.makeJSONArray]]">
-    </json-combine>
+    <elastic-client-query-builder
+      filtered
+      type="term"
+      field="mainEntityOfPage.url.raw"
+      values="[[offerDisplay.webpageUrl]]"
+      ejs-filter="[[offerRevisionsFilter]]"
+      ejs-query="{{offerRevisionsQuery}}">
+    </elastic-client-query-builder>
 
-    <!-- Get all offers with same webpage url -->
-    <bool-query-builder
-      query="{{offerRevisionsQuery}}"
-      query-template="{{config.queryTemplates.offerRevisions.query}}"
-      paths-to-values="{{config.queryTemplates.offerRevisions.pathsToValues}}"
-      values="[[mainEntityOfPageQueryValues]]">
-    </bool-query-builder>
-
-    <elastic-search
+    <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["offer"]'
-      query='[[offerRevisionsQuery]]'
+      elastic-types='["offer"]'
+      query="[[offerRevisionsQuery]]"
+      aggregations="[]"
+      filters="[]"
       results="{{offersWithSameUrlES}}"
       page="{{pageNum}}"
       loading="{{offersWithSameUrlLoading}}"
-      last-error="{{error}}">
-    </elastic-search>
+      last-error="{{offersWithSameUrlError}}">
+    </elastic-client-search>
 
     <json-transform
      data-in="[[offersWithSameUrlES]]"
@@ -228,7 +237,6 @@
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
             annotation-relevant="[[config.annotationRelevant]]"
-            query-template="{{config.queryTemplates.annotationQuery}}"
             item="{{offerDisplay}}"
             item-type="ad"
             current-user="[[config.username]]">
@@ -339,10 +347,14 @@
                     <div>[[imageDisplayTitle]]</div>
                   </div>
 
+                  <template is="dom-if" if="[[imageError]]">
+                    <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
+                    <div>[[imageErrorMessage]]</div>
+                  </template>
+
                   <image-query-and-display
-                    image-query-template="{{config.queryTemplates.commonTermQuery}}"
                     image-query-field="isImagePartOf.mainEntity.uri"
-                    image-query-value="[[offerDisplay._id]]"
+                    image-query-values="[[offerDisplay._id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
@@ -350,6 +362,7 @@
                     image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
                     image-results="{{imageResults}}"
                     image-display-title="{{imageDisplayTitle}}"
+                    error="{{imageError}}"
                     blur="[[blurImages]]">
                   </image-query-and-display>
                 </section>
@@ -368,7 +381,6 @@
                       annotation-index="[[config.annotationIndex]]"
                       annotation-type="[[config.annotationType]]"
                       annotation-relevant="[[config.annotationRelevant]]"
-                      annotation-query-template="{{config.queryTemplates.annotationQuery}}"
                       image-urls="[[imageResults.array]]"
                       item="{{offerDisplay.person}}"
                       current-user="[[config.username]]"
@@ -456,29 +468,36 @@
               </template>
 
               <!-- Seller section -->
-              <template is="dom-if" if="{{showSeller}}">
+              <template is="dom-if" if="[[webpageDisplay.showCommunications]]">
                 <div class="h-divider"></div>
                 <paper-material>
                   <section class="who">
                     <div class="paper-font-title">Email/Phone Cluster</div>
 
+                    <template is="dom-if" if="[[sellerError]]">
+                      <elastic-error error="[[sellerError]]" message="{{sellerErrorMessage}}"></elastic-error>
+                      <div>[[sellerErrorMessage]]</div>
+                    </template>
+
+                    <!-- Hiding the link to the seller page until the data is better.
                     <div class="who">
                       <single-record
                         client="[[esclient]]"
                         annotation-index="[[config.annotationIndex]]"
                         annotation-type="[[config.annotationType]]"
                         annotation-relevant="[[config.annotationRelevant]]"
-                        annotation-query-template="[[config.queryTemplates.annotationQuery]]"
-                        item="{{sellerObject}}"
+                        item="[[sellerObject]]"
                         current-user="[[config.username]]"
                         blur="[[blurImages]]">
                       </single-record>
                     </div>
+                    -->
+
                     <records-grid
                       data-id="_id"
                       data-text="title"
                       data-type="_type"
-                      data="[[sellerPhoneEmails]]">
+                      data="[[sellerObject.communications]]">
                     </records-grid>
                   </section>
                 </paper-material>
@@ -508,27 +527,42 @@
               </paper-material>
 
               <!-- Revisions Timeline -->
-              <template is="dom-if" if="[[hasMultipleElements(webpagePageRevisions)]]">
-                <div class="h-divider"></div>
+              <div class="h-divider"></div>
 
-                <paper-material>
-                    <section class="when">
-                      <div class="paper-font-title layout horizontal start center">
-                        <iron-icon class="iron-icon-big entity-date-font" icon="icons:timeline"></iron-icon>
-                        <div>
-                          Revisions to this page between {{minXValue}} and {{maxXValue}}
-                        </div>
-                      </div>
-                      <bar-chart y-axis-label="" data='[[webpagePageRevisions]]'
-                        chart-filter='{"begin": null, "end": null}' data-key="date" data-value="count"
-                        min-x="{{minXValue}}" max-x="{{maxXValue}}">
-                      </bar-chart>
-                    </section>
-                </paper-material>
-              </template>
+              <paper-material>
+                <section class="when">
+                  <template is="dom-if" if="[[!webpageRevisions.length]]">
+                    <div class="paper-font-title layout horizontal start center">
+                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                      <div>No Revisions</div>
+                    </div>
+                  </template>
+
+                  <template is="dom-if" if="[[webpageRevisions.length]]">
+                    <div class="paper-font-title layout horizontal start center">
+                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                      <div>[[revisionsTitle]]</div>
+                    </div>
+                  </template>
+
+                  <template is="dom-if" if="[[webpageRevisionsError]]">
+                    <elastic-error error="[[webpageRevisionsError]]" message="{{webpageRevisionsErrorMessage}}"></elastic-error>
+                    <div>[[webpageRevisionsErrorMessage]]</div>
+                  </template>
+
+                  <zoomable-bar-chart
+                    data="[[webpageRevisions]]"
+                    default-bar-name="Revisions"
+                    height="300"
+                    source="Revisions"
+                    bar-chart-title="{{revisionsTitle}}"
+                    loading="{{webpageRevisionsLoading}}">
+                  </zoomable-bar-chart>
+                </section>
+              </paper-material>
 
               <!-- All Revisions - Offers -->
-              <template is="dom-if" if="{{offersWithSameUrl.length}}">
+              <template is="dom-if" if="{{offersWithSameUrl.data.length}}">
                 <div class="h-divider"></div>
 
                 <paper-material>
@@ -538,14 +572,18 @@
                       <div>{{recordsListTitle}}</div>
                     </div>
 
+                    <template is="dom-if" if="[[offersWithSameUrlError]]">
+                      <elastic-error error="[[offersWithSameUrlError]]" message="{{offersWithSameUrlErrorMessage}}"></elastic-error>
+                      <div>[[offersWithSameUrlErrorMessage]]</div>
+                    </template>
+
                     <records-list
                       client="[[esclient]]"
                       annotation-index="[[config.annotationIndex]]"
                       annotation-type="[[config.annotationType]]"
                       annotation-relevant="[[config.annotationRelevant]]"
-                      annotation-query-template="{{config.queryTemplates.annotationQuery}}"
-                      query-results="[[offersWithSameUrl]]"
-                      total-results="[[offersWithSameUrl.length]]"
+                      query-results="[[offersWithSameUrl.data]]"
+                      total-results="[[offersWithSameUrl.count]]"
                       page="{{pageNum}}"
                       loading="[[offersWithSameUrlLoading]]"
                       type="Revision"
@@ -564,39 +602,16 @@
     </div>
   </template>
 
-  <script>
+  <script src="behaviors/browser-behavior.js"></script>
 
+  <script>
   (function(document) {
+    /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.showConfig = function(req, res) {
-      console.log('REQ: ', req);
-      console.log('RES: ', res);
-    };
-
-    app.getURLParams = function() {
-      var queryString = window.location.search.slice(1, window.location.search.length);
-      var params = queryString.split('&');
-      app.params = {};
-      for(var i = 0; i < params.length; i++) {
-        var paramPair = params[i].split('=');
-        app.params[paramPair[0]] =  paramPair[1];
-      }
-    };
-
-    app.getBoolQueryValues = function(phone, email, sellerId, personId, webpageId) {
-      return [phone, email, sellerId, personId, webpageId];
-    };
-
-    app.hasMultipleElements = function(array) {
-      return array.length > 1;
-    };
-
-    app.getURLParams();
-
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
   })(document);
   </script>
-
 </body>
 
 </html>

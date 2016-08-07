@@ -25,20 +25,27 @@ var webpageTransform = (function(_, commonTransforms) {
         var extractedMentions = commonTransforms.getEmailAndPhoneFromMentions(mentions);
         newData.phones = extractedMentions.phones;
         newData.emails = extractedMentions.emails;
+        newData.communications = extractedMentions.phones.concat(extractedMentions.emails);
+        newData.showCommunications = (newData.communications.length > 1);
       }
 
       return newData;
     },
-    pageRevisions: function(data) {
-      var newData = {};
-
+    webpageRevisions: function(data) {
       if(data && data.aggregations) {
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        newData = commonTransforms.transformBuckets(data.aggregations.page_revisions.buckets, 'date', 'key_as_string');
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        var total = 0;
+        var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          total += bucket.doc_count;
+          return {
+            date: commonTransforms.getDate(bucket.key_as_string),
+            count: bucket.doc_count
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+        return (total < 2 ? [] : revisions);
       }
-
-      return newData;
+      return [];
     }
   };
 })(_, commonTransforms);

@@ -10,8 +10,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
-<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
-<link rel="import" href="../../bower_components/elastic-update/elastic-update.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/iron-dropdown/iron-dropdown.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
@@ -20,6 +20,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../behaviors.html">
 
 <dom-module id="annotate-record">
   <template>
@@ -89,14 +90,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <!-- Search for an existing annotation record -->
     <!-- Don't perform search until annotationTypeAsArray is ready -->
     <template is="dom-if" if="{{annotationTypeAsArray}}">
-      <elastic-search
+      <elastic-client-query-builder
+        type="term"
+        field="uri"
+        values="[[item._id]]"
+        ejs-query="{{uriQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-query-builder
+        type="term"
+        field="user"
+        values="[[currentUser]]"
+        ejs-query="{{userQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-query-builder
+        type="bool"
+        ejs-bool-queries="[[buildArrayIfAllExist(uriQuery, userQuery)]]"
+        ejs-query="{{annotationQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-search
         client="[[client]]"
-        elastic-type="{{annotationTypeAsArray}}"
         index="[[annotationIndex]]"
-        query="{{buildAnnotationQuery(item, queryTemplate, currentUser)}}"
+        elastic-types="[[annotationTypeAsArray]]"
+        query="[[annotationQuery]]"
+        sort-field="timestamp"
+        sort-order="desc"
+        aggregations="[]"
+        filters="[]"
         results="{{originalSearchResult}}"
         last-error="{{error}}">
-      </elastic-search>
+      </elastic-client-search>
     </template>
 
     <div class="layout horizontal">
@@ -107,7 +132,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         on-tap="openDropdownMenu">
       </paper-icon-button>
 
-      <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top">
+      <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top" on-iron-overlay-closed="saveAnnotation">
         <paper-material class="dropdown-content" on-tap="stopPropagation">
           <div class="layout horizontal">
             <div class="dropdown-title flex">[[getAnnotationTitle(itemType, annotationRelevant)]]</div>
@@ -135,22 +160,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           <div class="layout horizontal">
             <paper-input class="flex" label="Justification" title="Justification" value="{{justification}}" always-float-label></paper-input>
-            <paper-button class="dropdown-button" title="Save Annotation" on-tap="saveAnnotationAndCloseDropdownMenu">Save</paper-button>
+            <paper-button class="dropdown-button" title="Save Annotation" on-tap="closeDropdownMenu">Save</paper-button>
           </div>
         </paper-material>
       </iron-dropdown>
     </div>
 
-    <!-- Create or update annotation -->
-    <elastic-update
-      client="[[client]]"
-      index="[[annotationIndex]]"
-      elastic-type="[[annotationType]]"
-      id="{{getAnnotationId(annotationResult)}}"
-      body='{{annotationUpdateBody}}'
-      results="{{annotationResult}}"
-      last-error="{{error}}">
-    </elastic-update>
     <elastic-create
       client="[[client]]"
       index="[[annotationIndex]]"
@@ -164,9 +179,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function() {
     'use strict';
 
-    /* globals _ */
+    /* globals DigBehaviors */
     Polymer({
       is: 'annotate-record',
+
+      behaviors: [DigBehaviors.ArrayBehavior],
 
       properties: {
         /**
@@ -228,12 +245,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: ''
         },
         /**
-         * query template to use to create annotation query
-         */
-        queryTemplate: {
-          type: Object
-        },
-        /**
          * the record to add an associated annotation for,
          * based on current user and uri of the record
          */
@@ -287,17 +298,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           readOnly: true
         },
-        /**
-         * Info to update annotation and pass into the elastic-update
-         * component
-         */
-        annotationUpdateBody: {
-          type: Object,
-          readOnly: true
-        },
         disableButtons: {
           type: Boolean,
           value: true
+        },
+        uriQuery: {
+          type: Object
+        },
+        userQuery: {
+          type: Object
+        },
+        annotationQuery: {
+          type: Object
         },
         annotationTypeAsArray: {
           type: Array,
@@ -316,13 +328,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       closeDropdownMenu: function() {
+        // The close event will trigger the save of the annotation.
         this.$.dropdownMenu.close();
       },
       computeTypeArray: function(annotationType) {
         return [annotationType];
-      },
-      getAnnotationId: function(annotationResult) {
-        return (annotationResult ? annotationResult._id : undefined);
       },
       getAnnotationClass: function(label) {
         switch(label) {
@@ -352,9 +362,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       getFlagIcon: function(label) {
         return (label === this.noAnswer ? 'fa:flag-o' : 'fa:flag');
       },
-      getValuesForQuery: function(item, currentUser) {
-        return [item._id, currentUser];
-      },
       isSelected: function(label, value) {
         return (label === value ? 'selected' : '');
       },
@@ -362,15 +369,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.dropdownMenu.open();
       },
       saveAnnotation: function() {
-        if(this.annotationResult && this.annotationResult._id) {
-          this._setAnnotationUpdateBody({
-            doc: {
-              label: this.label,
-              justification: this.justification,
-              timestamp: new Date()
-            }
-          });
-        } else {
+        if(!this.annotationResult || this.label !== this.annotationResult.label || this.justification !== this.annotationResult.justification) {
+          this.annotationResult = this.annotationResult || {};
+          this.annotationResult.label = this.label;
+          this.annotationResult.justification = this.justification;
           this._setAnnotationCreateBody({
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             cdr_id: this.getCdrId(this.item),
@@ -383,73 +385,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         }
       },
-      saveAnnotationAndCloseDropdownMenu: function() {
-        this.closeDropdownMenu();
-        this.saveAnnotation();
-      },
       selectVeryRelevant: function() {
         this.label = this.veryRelevant;
-        this.saveAnnotation();
       },
       selectSomewhatRelevant: function() {
         this.label = this.somewhatRelevant;
-        this.saveAnnotation();
       },
       selectNotRelevant: function() {
         this.label = this.notRelevant;
-        this.saveAnnotation();
       },
       selectNoAnswer: function() {
         this.label = this.noAnswer;
-        this.saveAnnotation();
       },
       stopPropagation: function(event) {
         event.stopPropagation();
       },
-      buildAnnotationQuery: function(item, queryTemplate, currentUser) {
-        // ignore empty items, and don't rerun query if
-        // query for this item has already been run
-
-        if(!_.isEmpty(item) && queryTemplate && currentUser) {
-          var self = this;
-
-          // clear body for create/update components to ensure a
-          // create or update isn't triggered yet
-          this.annotationResult = undefined;
-          this._setAnnotationCreateBody(undefined);
-          this._setAnnotationUpdateBody(undefined);
-
-          var values = self.getValuesForQuery(item, currentUser);
-          var paths = queryTemplate.pathsToValues;
-
-          _.each(paths, function(path, count) {
-            var value = values[count];
-
-            if(value) {
-              _.set(queryTemplate.query, path, value);
-            }
-          });
-
-          return {query: queryTemplate.query.query};
-        }
-      },
       transformOrigResult: function() {
-        if(this.originalSearchResult) {
-          this.disableButtons = false;
-
-          if(this.originalSearchResult.hits.hits.length > 0) {
-            this.annotationResult = this.originalSearchResult.hits.hits[0];
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            this.label = this.annotationResult._source.label;
-            this.justification = this.annotationResult._source.justification;
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          } else {
-            this.label = this.noAnswer;
-            this.justification = '';
-          }
-
+        this.disableButtons = !this.originalSearchResult;
+        if(this.originalSearchResult && this.originalSearchResult.hits.hits.length > 0) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          this.annotationResult = this.originalSearchResult.hits.hits[0]._source;
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          this.label = this.annotationResult.label;
+          this.justification = this.annotationResult.justification;
         } else {
-          this.disableButtons = true;
+          this.annotationResult = {};
           this.label = this.noAnswer;
           this.justification = '';
         }

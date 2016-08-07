@@ -9,17 +9,16 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-  function getImageUrl(record) {
-    return _.get(record, 'url');
-  }
-
   return {
     // expected data is from an elasticsearch
     images: function(data) {
       var images = [];
       if(data) {
         data.hits.hits.forEach(function(hit) {
-          images.push(getImageUrl(hit._source));
+          images.push({
+            id: _.get(hit._source, 'uri'),
+            source: _.get(hit._source, 'url')
+          });
         });
       }
       return images;
@@ -33,6 +32,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           total: newData.isImagePartOf.length,
           array: []
         };
+
         newData.isImagePartOf = _.isArray(newData.isImagePartOf) ? newData.isImagePartOf : [newData.isImagePartOf];
         newData.isImagePartOf.forEach(function(service) {
           if(service.mainEntity) {
@@ -42,14 +42,15 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
         newData.adultService = adultService;
 
-        if(newData.similarImageId.similarImageId) {
-          var similarImages = {
+        if(newData.similarImageId && newData.similarImageId.similarImageId) {
+          newData.similarImageId.similarImageId = _.isArray(newData.similarImageId.similarImageId) ? newData.similarImageId.similarImageId : [newData.similarImageId.similarImageId];
+          newData.similarImages = {
             total: newData.similarImageId.similarImageId.length,
             array: newData.similarImageId.similarImageId
           };
-          newData.similarImages = similarImages;
         }
       }
+      newData._id = newData.uri;
       return newData;
     },
     offerLocationData: function(data) {

@@ -2,12 +2,12 @@
  * transform elastic search offer query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
+/* globals _, commonTransforms, relatedEntityTransform */
 /* exported offerTransform */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope, as well as commonTransforms */
-var offerTransform = (function(_, commonTransforms) {
+var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
   function getGeolocation(record) {
     /** build geolocation array object:
@@ -87,7 +87,7 @@ var offerTransform = (function(_, commonTransforms) {
     var prices = _.get(record, 'priceSpecification');
     if(prices) {
       var sep = '';
-      prices.forEach(function(elem) {
+      (_.isArray(prices) ? prices : [prices]).forEach(function(elem) {
         var price = elem.name;
         if(price !== '-per-min') {
           result = result + sep + price;
@@ -132,25 +132,7 @@ var offerTransform = (function(_, commonTransforms) {
     },
 
     revisions: function(data) {
-      var newData = [];
-
-      if(data && data.hits.hits.length > 0) {
-        data.hits.hits.forEach(function(elem) {
-          var offer = parseOffer(elem._source);
-          offer._id = elem._id;
-          offer._type = 'offer';
-          newData.push(offer);
-        });
-      }
-
-      return newData;
-    },
-
-    computeShowSeller: function(sellerPhoneEmails, webpageData) {
-      var webpagePhonesLen = (webpageData.phones) ? webpageData.phones.length : 0;
-      var webpageEmailsLen = (webpageData.emails) ? webpageData.emails.length : 0;
-
-      return sellerPhoneEmails.length !== (webpageEmailsLen + webpagePhonesLen);
+      return relatedEntityTransform.offer(data);
     }
   };
-})(_, commonTransforms);
+})(_, commonTransforms, relatedEntityTransform);

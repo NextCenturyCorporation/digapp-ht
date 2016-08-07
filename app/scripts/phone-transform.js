@@ -37,25 +37,11 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
       return newData;
     },
-    offerLocationData: function(data) {
-      return commonTransforms.offerLocationData(data);
-    },
+
     phoneOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
-    },
-    computeShowSeller: function(seller, phone) {
-      var sellerOut = [];
-      _.each(seller, function(record) {
-        if(record.title !== phone) {
-          sellerOut.push(record);
-        }
-      });
-      if(sellerOut.length > 0) {
-        return sellerOut;
-      }
-      return undefined;
     }
   };
 })(_, relatedEntityTransform, commonTransforms);

@@ -15,6 +15,7 @@ var commonTransforms = (function(_, dateFormat) {
       var geoData = key.key.split(':');
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var geo = {
+        key: key.key,
         city: geoData[0],
         state: geoData[1],
         country: geoData[2],
@@ -71,7 +72,7 @@ var commonTransforms = (function(_, dateFormat) {
     peopleFeatures: function(data) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       return {
-        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.buckets, 'key') : []
+        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.people_features.buckets, 'key') : []
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     },
@@ -148,7 +149,7 @@ var commonTransforms = (function(_, dateFormat) {
       var arrayToReturn = [];
       var initialArray = _.get(record, pathToArray, []);
 
-      initialArray.forEach(function(element) {
+      (_.isArray(initialArray) ? initialArray : [initialArray]).forEach(function(element) {
         arrayToReturn.push(_.get(element, pathToString));
       });
 
@@ -158,27 +159,17 @@ var commonTransforms = (function(_, dateFormat) {
     getClickableObjectArr: function(records, type) {
       var result = [];
       if(records) {
-        if(records.constructor === Array) {
-          records.forEach(function(record) {
-            if(record.name) {
-              var obj = {
-                _id: record.uri,
-                _type: type,
-                title: type === 'email' ? decodeURIComponent(record.name) : record.name,
-                descriptors: []
-              };
-              result.push(obj);
-            }
-          });
-        } else {
-          var obj = {
-            _id: records.uri,
-            _type: type,
-            title: type === 'email' ? decodeURIComponent(records.name) : records.name,
-            descriptors: []
-          };
-          result.push(obj);
-        }
+        (_.isArray(records) ? records : [records]).forEach(function(record) {
+          if(record.name) {
+            var obj = {
+              _id: record.uri,
+              _type: type,
+              title: type === 'email' ? decodeURIComponent(record.name) : record.name,
+              descriptors: []
+            };
+            result.push(obj);
+          }
+        });
       }
 
       return result;
@@ -192,14 +183,9 @@ var commonTransforms = (function(_, dateFormat) {
     },
 
     offerLocationData: function(data) {
-      var newData = {};
-
-      if(data && data.hits.hits.length > 0) {
-        var aggs = data.aggregations;
-        newData.offerLocation = getGeoFromKeys(aggs.phone.city.buckets);
-      }
-
-      return newData;
+      return {
+        offerLocation: (data && data.hits.hits.length) ? getGeoFromKeys(data.aggregations.city.city.buckets) : []
+      };
     },
 
     getSellerId: function(record) {
@@ -224,7 +210,7 @@ var commonTransforms = (function(_, dateFormat) {
       newData.emails = [];
 
       if(mentions) {
-        mentions.forEach(function(elem) {
+        (_.isArray(mentions) ? mentions : [mentions]).forEach(function(elem) {
           var type = 'none';
           if(elem.indexOf('phone') !== -1) {
             type = 'phone';
@@ -261,10 +247,6 @@ var commonTransforms = (function(_, dateFormat) {
         });
       }
       return newData;
-    },
-
-    makeJSONArray: function(val1, val2) {
-      return [val1, val2];
     }
   };
 })(_, dateFormat);

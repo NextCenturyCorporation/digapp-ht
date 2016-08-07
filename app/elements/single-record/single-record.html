@@ -9,7 +9,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/elastic-search/elastic-search.html">
 <link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
@@ -19,9 +18,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../behaviors.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
-<link rel="import" href="../dig-behaviors/create-link-behavior.html">
-<link rel="import" href="../dig-behaviors/data-type-behavior.html">
 
 <dom-module id="single-record">
   <template>
@@ -68,8 +66,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
           </template>
 
-          <template is="dom-if" if="[[imageSrc]]">
-            <iron-image class$="list-item-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSrc]]"></iron-image>
+          <template is="dom-if" if="[[imageSource]]">
+            <iron-image class$="list-item-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
           </template>
 
           <paper-item-body two-line>
@@ -101,7 +99,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               annotation-index="[[annotationIndex]]"
               annotation-type="[[annotationType]]"
               annotation-relevant="[[annotationRelevant]]"
-              query-template="{{annotationQueryTemplate}}"
               item="{{item}}"
               item-type="[[getItemTypeText(item, '_type', 'true')]]"
               current-user="[[currentUser]]">
@@ -118,25 +115,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <template is="dom-if" if="[[showDetails]]">
         <iron-collapse id="recordDetail">
           <paper-material class="list-item-collapse-body list-item-body">
-            <template is="dom-repeat" items="[[getDetailKeysArray(item.details)]]" as="key">
+            <template is="dom-repeat" items="[[item.details]]" as="detail">
               <paper-item>
                 <paper-item-body>
                   <span>
-                    <strong class="capitalize">[[replaceCamelCaseText(key)]]:</strong>
-                    <template is="dom-repeat" items="[[getDetailArrayForKey(item.details, key)]]" as="value">
-                      <span>[[value]]</span>
+                    <strong class="capitalize">[[replaceCamelCaseText(detail.label)]]:</strong>
+                    <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
+                      <template is="dom-if" if="[[detail.url]]">
+                        <a target="_blank" href$="[[value]]">[[value]]</a>
+                      </template>
+                      <template is="dom-if" if="[[!detail.url]]">
+                        <span>[[value]]</span>
+                      </template>
                     </template>
                   </span>
                 </paper-item-body>
               </paper-item>
             </template>
 
-            <template is="dom-if" if="[[item.imageUrls]]">
-              <image-viewer images="[[item.imageUrls]]" blur="[[blur]]"></image-viewer>
+            <template is="dom-if" if="[[item.images]]">
+              <image-viewer images="[[item.images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-viewer>
             </template>
 
-            <template is="dom-if" if="[[imageUrls]]">
-              <image-viewer images="[[imageUrls]]" blur="[[blur]]"></image-viewer>
+            <template is="dom-if" if="[[images]]">
+              <image-viewer images="[[images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-viewer>
             </template>
 
             <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createIdLink(item, '_type', '_id')]]">
@@ -197,16 +199,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * query template to find existing annotations
+         * The source for the iron-image in the record header.
          */
-        annotationQueryTemplate: {
-          type: Object
-        },
-
-        /**
-         * The src for the iron-image in the record header.
-         */
-        imageSrc: {
+        imageSource: {
           type: String,
           value: '',
           notify: true
@@ -215,7 +210,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * The image URLs for the item used instead of an image query.
          */
-        imageUrls: {
+        images: {
           type: Array,
           notify: true
         },
@@ -238,12 +233,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Whether links should be opened in new tabs.
+         * Whether to open a link in a new tab.
          */
         newTab: {
-          type: Object,
-          value: false,
-          notify: true
+          type: Boolean,
+          value: false
         },
 
         /**
@@ -270,8 +264,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       observers: [
-          'updateImageSrcFromItemUrls(item.imageUrls.splices)',
-          'updateImageSrcFromPropertyUrls(imageUrls.splices)',
+          'updateImageSrcFromItemImages(item.images.splices)',
+          'updateImageSrcFromPropertyImages(images.splices)',
           'updateShowDetails(item.details)'
       ],
 
@@ -279,20 +273,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return (blur ? 'small-blur' : '');
       },
 
-      getDetailArrayForKey: function(details, key) {
-        if(details && details[key]) {
-          return (_.isArray(details[key]) ? details[key] : [details[key]]);
-        }
-        return [];
-      },
-
-      getDetailKeysArray: function(details) {
-        if(details) {
-          return (details._sortedKeys ? details._sortedKeys : _.keys(details)).filter(function(key) {
-            return details[key];
-          });
-        }
-        return [];
+      getDetailValueArray: function(detail) {
+        return (detail && detail.value) ? (_.isArray(detail.value) ? detail.value : [detail.value]) : [];
       },
 
       getHeaderClass: function(opened) {
@@ -327,37 +309,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Sets the src for the iron-image in the record header with the first url in the item if available.
+       * Sets the source for the iron-image in the record header with the first image in the item if available.
        */
-      updateImageSrcFromItemUrls: function() {
-        this.updateImageSrcFromUrls(this.item.imageUrls);
+      updateImageSrcFromItemImages: function() {
+        this.updateImageSrcFromImages(this.item.images);
       },
 
       /**
-       * Sets the src for the iron-image in the record header with the first url in the given list if available.
+       * Sets the source for the iron-image in the record header with the first image in the given list if available.
        */
-      updateImageSrcFromUrls: function(urls) {
-        if(urls && urls.length) {
-          this.set('imageSrc', urls[0]);
+      updateImageSrcFromImages: function(images) {
+        if(images && images.length) {
+          this.set('imageSource', images[0].source);
           this.set('showDetails', true);
-        } else if(urls) {
-          // Set the src to a truthy value so the gray iron-image is displayed.
-          this.set('imageSrc', 'blank');
+        } else if(images) {
+          // Set the source to a truthy value so the gray iron-image is displayed.
+          this.set('imageSource', 'blank');
         }
       },
 
       /**
-       * Sets the src for the iron-image in the record header with the first url in the property if available.
+       * Sets the source for the iron-image in the record header with the first image in the property if available.
        */
-      updateImageSrcFromPropertyUrls: function() {
-        this.updateImageSrcFromUrls(this.imageUrls);
+      updateImageSrcFromPropertyImages: function() {
+        this.updateImageSrcFromImages(this.images);
       },
 
       /**
        * Sets whether to show details based on the existence of the given details object.
        */
       updateShowDetails: function(details) {
-        this.set('showDetails', !!details);
+        this.set('showDetails', (!!details && !!details.length));
       }
     });
   })();

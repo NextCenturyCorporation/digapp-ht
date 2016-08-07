@@ -13,6 +13,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../behaviors.html">
 
 <dom-module id="full-size-image-view">
   <template>
@@ -20,23 +21,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
-      paper-dialog.gallery {
+
+      .gallery {
         --paper-dialog-background-color: transparent;
         box-shadow: none;
         display: inline-block;
-        height: 100%;
         margin: 0;
+        overflow: auto;
+        height: 100%;
+        width: 100%;
       }
 
-      .gallery-header {
-        @apply(--layout-horizontal);
-        @apply(--layout-end-justified);
+      .layout-override {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+
+      .exit-button {
         position: absolute;
+        top: 0;
         right: 0;
       }
 
-      .layout {
-        height: 100%;
+      .prev-button {
+        position: absolute;
+        top: 50px;
+        bottom: 50px;
+        left: 0;
+      }
+
+      .next-button {
+        position: absolute;
+        top: 50px;
+        bottom: 50px;
+        right: 0;
+      }
+
+      paper-button {
         margin: 0;
         padding: 0;
       }
@@ -50,44 +72,71 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       iron-icon {
-        --iron-icon-height: 32px;
-        --iron-icon-width: 32px;
+        --iron-icon-height: 48px;
+        --iron-icon-width: 48px;
         --iron-icon-fill-color: #ffffff;
       }
 
       iron-image {
-        --iron-image-height: 100%;
+        --iron-image-height: auto;
         --iron-image-width: auto;
-        height: 100%;
         padding: 0;
         margin: 0;
+      }
+
+      .open-image {
+        text-decoration: none;
+      }
+
+      .open-image paper-button {
+        color: white;
+        font-size: 16px;
+        font-weight: bold;
+        margin: 0;
+        padding: 20px;
+        width: 100%;
       }
     </style>
 
     <paper-dialog id="imageModal" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation" class="gallery">
-      <paper-button class="gallery-header gallery-toggle" on-click="closeDialog">
-        <iron-icon icon="clear"></iron-icon>
-      </paper-button>
-      <div class="layout horizontal center-justified self-center">
-         <paper-button class="gallery-toggle self-center" disabled="{{!hasPrevious(currentIndex)}}" on-click="clickPrevious">
-          <iron-icon icon="image:navigate-before"></iron-icon>
-        </paper-button>
-        <iron-image src="{{currentImage}}" class$="center-justified self-center [[getBlurClass(blur)]]"></iron-image>
-        <paper-button class="gallery-toggle self-center" disabled="{{!hasNext(currentIndex)}}" on-click="clickNext">
-          <iron-icon icon="image:navigate-next"></iron-icon>
-        </paper-button>
+      <div class="layout horizontal center layout-override">
+        <div class="layout vertical flex">
+          <iron-image src="[[getProperty(currentImage, imageSource, '')]]" class$="layout horizontal center-justified [[getBlurClass(blur)]]"></iron-image>
+
+          <a class="open-image" target="[[getTarget(newTab)]]" href$="[[createIdLinkWithType('image', currentImage, imageId)]]">
+            <paper-button>Open Image</paper-button>
+          </a>
+        </div>
       </div>
+
+      <paper-button class="exit-button" on-click="closeDialog">
+        <iron-icon icon="clear" class="iron-icon-huge"></iron-icon>
+      </paper-button>
+
+        <paper-button class="prev-button" disabled="{{!hasPrevious(currentIndex)}}" on-click="clickPrevious">
+          <iron-icon icon="image:navigate-before" class="iron-icon-huge"></iron-icon>
+        </paper-button>
+
+        <paper-button class="next-button" disabled="{{!hasNext(currentIndex)}}" on-click="clickNext">
+          <iron-icon icon="image:navigate-next" class="iron-icon-huge"></iron-icon>
+        </paper-button>
     </paper-dialog>
   </template>
 
   <script>
   (function() {
+    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'full-size-image-view',
 
+      behaviors: [DigBehaviors.CreateLinkBehavior],
+
       properties: {
+        /**
+         * The array of image objects.
+         */
         images: {
           type: Array,
           value: function() {
@@ -96,16 +145,49 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
-        currentImage: {
+        /**
+         * The property of the image objects for their unique ID.
+         */
+        imageId: {
           type: String,
+          value: 'id'
+        },
+
+        /**
+         * The property of the image objects for their source URL.
+         */
+        imageSource: {
+          type: String,
+          value: 'source'
+        },
+
+        /**
+         * The image currently displayed.
+         */
+        currentImage: {
+          type: Object,
           notify: true
         },
 
+        /**
+         * The index in the array of images of the image currently displayed.
+         */
         currentIndex: {
           type: Number,
           notify: true
         },
 
+        /**
+         * Whether to open a link in a new tab.
+         */
+        newTab: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether to blur the images.
+         */
         blur: {
           type: Boolean,
           value: true,
@@ -113,12 +195,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      attached: function() {
+        this.$.imageModal.open();
+      },
+
       getBlurClass: function(blur) {
         return (blur ? 'large-blur' : '');
       },
 
-      attached: function() {
-        this.$.imageModal.open();
+      getProperty: function(item, property, defaultValue) {
+        return item[property] || defaultValue;
+      },
+
+      getTarget: function(newTab) {
+        return (newTab ? '_blank' : '_self');
       },
 
       hasPrevious: function(index) {
