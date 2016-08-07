@@ -30,12 +30,14 @@
           handle-as="json"
           last-response="{{ajaxResponse}}"></iron-ajax> -->
 
-      <iron-ajax auto
-      id="ajaxImage"
+      <iron-ajax
+      id="xhr"
       url="https://isi.memexproxy.com/ColumbiaUimgSearch.php"
       params='{"url":"https://s3.amazonaws.com/roxyimages/5df359ba5aa9409fad27de9a895b90dab8291d94.jpg"}'
       handle-as="json"
-      on-response="{{ajaxResponse}}"></iron-ajax>
+      method="GET"
+      with-credentials="true"
+      last-response="{{ajaxResponse}}"></iron-ajax>
 
 <!--     <template is="dom-repeat" items="[[ajaxResponse.images.similar_images.cached_image_urls]]">
         <div class="horizontal-section">
@@ -62,26 +64,48 @@
       is: 'image-similar-search',
 
       properties: {
+        headers: {
+          type: Object,
+          value: function() {
+            return {};
+          }
+        },
+        user: String,
+        password: String
 
       },
-      makeheaders: function(user, pass){
- 
+
+
+      makeHeaders: function(user, password){
+        return "Basic " + btoa(user + ":" + password);
       },
+
+      observers: ['_setBasicAuth(user, password)'],
+
+      _setBasicAuth(user, password){
+          // might be needed
+          this.headers['X-Requested-With'] = "XMLHttpRequest";
+          this.headers['content-type']='application/json';
+          // this sets your Auth header
+          this.headers['Authorization'] = this.makeHeaders(user, password);
+      },
+      // observers: ['_setBasicAuth(user, password)'],
 
       getData: function(){
-        // We have to bind the template with the model
-        // console.log(this);
-        var obj = {};
-        obj["X-Requested-With"] = "XMLHttpRequest";
-        obj.authorization = "Basic " + btoa('1dig2' + ":" + 'BotscRHQqalKQIjPAFqK7UI2QNoe88');
-        var ajaxRequest = this.$.ajaxImage;
-
-        ajaxRequest.headers = obj;
-        ajaxRequest.method = 'GET';
-        //Authorization = "Basic " + btoa('1dig2' + ":" + 'BotscRHQqalKQIjPAFqK7UI2QNoe88');
-        console.log(ajaxRequest.headers);
-        // make the iron-ajax call
-        ajaxRequest.generateRequest();
+        // this.$.xhr.headers['X-Requested-With'] = "XMLHttpRequest";
+        // this.$.xhr.headers['Content-type'] = "text/plain";
+        // this.$.xhr.headers['Access-Control-Allow-Origin'] = "*";
+        this.$.xhr.headers['Authorization'] = this.makeHeaders(this.user, this.password);
+        this.$.xhr.generateRequest();
+        // var auth = "Basic " + btoa('1dig2' + ":" + 'BotscRHQqalKQIjPAFqK7UI2QNoe88');
+        // var ajaxRequest = this.$.ajaxImage;
+        // console.log("jbjkbjkbjkbkjbkj");
+        // ajaxRequest.headers = '{"X-Requested-With": "XMLHttpRequest" , "authorization": "' + (auth) + '"}'
+        // ajaxRequest.method = 'GET';
+        // //Authorization = "Basic " + btoa('1dig2' + ":" + 'BotscRHQqalKQIjPAFqK7UI2QNoe88');
+        // console.log(ajaxRequest.headers);
+        // // make the iron-ajax call
+        // ajaxRequest.generateRequest();
       }
     });
   })();
