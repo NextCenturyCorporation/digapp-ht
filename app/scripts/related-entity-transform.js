@@ -14,6 +14,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return (_.isArray(images) ? images : [images]).map(function(image) {
       return {
         id: image.uri,
+        link: '/image.html?value=' + image.uri + '&field=_id',
         source: image.url
       };
     });
