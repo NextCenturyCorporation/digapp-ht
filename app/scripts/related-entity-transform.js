@@ -23,9 +23,10 @@ var relatedEntityTransform = (function(_, commonTransforms) {
   function getOfferSummary(record) {
     /**  build offer summary record:
         {
-            "_id": "http://someuri",
-            "_type": "offer",
-            "title": "*Hello World -- google.com", // title of offer
+            "id": "http://someuri",
+            "type": "offer",
+            "text": "*Hello World -- google.com", // title of offer
+            "link": "/offer.html?value=http://someuri&field=_id",
             "descriptors": [{type: 'date', text: 'July 1, 2016'}], // array of date, phone, email
             "details": [{
                 "label": "description",
@@ -58,8 +59,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       if(communications.phones && communications.phones.length) {
         communications.phones.forEach(function(phone) {
           datePhoneEmail.push({
-            id: phone._id,
-            text: phone.title,
+            id: phone.id,
+            link: phone.link,
+            text: phone.text,
             type: 'phone'
           });
         });
@@ -67,8 +69,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       if(communications.emails && communications.emails.length) {
         communications.emails.forEach(function(email) {
           datePhoneEmail.push({
-            id: email._id,
-            text: decodeURIComponent(email.title),
+            id: email.id,
+            link: email.link,
+            text: decodeURIComponent(email.text),
             type: 'email'
           });
         });
@@ -76,9 +79,10 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     }
 
     var offerObj = {
-      _id: record._id,
-      _type: record._type,
-      title: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
+      id: record._id,
+      type: record._type,
+      text: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
+      link: '/offer.html?value=' + record._id + '&field=_id',
       descriptors: datePhoneEmail,
       images: getImages(record, 'mainEntityOfPage.hasImagePart'),
       details: []
@@ -113,16 +117,18 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     /**
         build phone summary object:
         {
-            "_id": "http://someuri",
-            "_type": "phone",
-            "title": "1234567890", // phone number
+            "id": "http://someuri",
+            "type": "phone",
+            "text": "1234567890", // phone number
+            "link": "/phone.html?value=http://someuri&field=_id",
             "descriptors": []
         }
     */
     var phoneObj = {
-      _id: record._id,
-      _type: record._type,
-      title: _.get(record, '_source.name', 'Phone N/A'),
+      id: record._id,
+      type: record._type,
+      text: _.get(record, '_source.name', 'Phone N/A'),
+      link: '/phone.html?value=' + record._id + '&field=_id',
       descriptors: []
     };
     return phoneObj;
@@ -132,16 +138,18 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     /**
         build email summary object:
         {
-            "_id": "http://someuri",
-            "_type": "email",
-            "title": "abc@xyz.com", // email address
+            "id": "http://someuri",
+            "type": "email",
+            "text": "abc@xyz.com", // email address
+            "link": "/email.html?value=http://someuri&field=_id",
             "descriptors": []
         }
     */
     var emailObj = {
-      _id: record._id,
-      _type: record._type,
-      title: decodeURIComponent(_.get(record, '_source.name', 'Email N/A')),
+      id: record._id,
+      type: record._type,
+      text: decodeURIComponent(_.get(record, '_source.name', 'Email N/A')),
+      link: '/email.html?value=' + record._id + '&field=_id',
       descriptors: []
     };
     return emailObj;
@@ -151,26 +159,28 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     /**
         build seller summary object:
         {
-            "_id": "http://someuri",
-            "_type": "seller",
-            "title": "1234567890", // phone number associated with seller
+            "id": "http://someuri",
+            "type": "seller",
+            "text": "1234567890", // phone number associated with seller
+            "link": "/seller.html?value=http://someuri&field=_id",
             "descriptors": []
         }
     */
 
     var sellerObj = {
-      _id: record._id,
-      _type: record._type,
+      id: record._id,
+      type: record._type,
+      link: '/seller.html?value=' + record._id + '&field=_id',
       descriptors: []
     };
 
     var phoneField = _.get(record, '_source.telephone');
     if(_.isArray(phoneField)) {
       if(phoneField.length > 0) {
-        sellerObj.title = _.get(record, '_source.telephone[0].name', 'Phone N/A');
+        sellerObj.text = _.get(record, '_source.telephone[0].name', 'Phone N/A');
       }
     } else {
-      sellerObj.title = _.get(record, '_source.telephone.name', 'Phone N/A');
+      sellerObj.text = _.get(record, '_source.telephone.name', 'Phone N/A');
     }
 
     return sellerObj;
@@ -200,17 +210,18 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     //We do not want to show webpage page, but instead direct
     //to offer. The below handles that.
     if(webpageObj.offer) {
-      webpageObj._type = 'offer';
-      webpageObj._id = webpageObj.offer;
+      webpageObj.type = 'offer';
+      webpageObj.id = webpageObj.offer;
     }
   }
 
   function getWebpageSummary(record) {
     /*  build webpage summary object:
         {
-            "_id": "http://someuri",
-            "_type": "webpage",
-            "title": "*Hello World -- google.com", // title of webpage
+            "id": "http://someuri",
+            "type": "webpage",
+            "text": "*Hello World -- google.com", // title of webpage
+            "link": "/offer.html?value=http://someuri&field=_id",
             "descriptors": [{type: 'webpage', text: 'something'}], // array of publisher, date, phone, email
             "details": [{
                 "label": "url",
@@ -226,9 +237,10 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         }
     */
     var webpageObj = {
-      _id: record._id,
-      _type: record._type,
-      title: _.get(record, '_source.name[0]', 'Title N/A'),
+      id: record._id,
+      type: record._type,
+      text: _.get(record, '_source.name[0]', 'Title N/A'),
+      link: '/offer.html?value=' + _.get(record, '_source.mainEntity.uri') + '&field=_id',
       descriptors: [{
         type: 'webpage',
         text: _.get(record, '_source.publisher.name', 'Publisher N/A')
@@ -276,13 +288,14 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         webpageObj.details.push({
           label: 'telephone numbers',
           value: communications.phones.map(function(phone) {
-            return phone.title;
+            return phone.text;
           }).join(', ')
         });
         communications.phones.forEach(function(phone) {
           webpageObj.descriptors.push({
-            id: phone._id,
-            text: phone.title,
+            id: phone.id,
+            link: phone.link,
+            text: phone.text,
             type: 'phone'
           });
         });
@@ -291,13 +304,14 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         webpageObj.details.push({
           label: 'email addresses',
           value: communications.emails.map(function(email) {
-            return email.title;
+            return email.text;
           }).join(', ')
         });
         communications.emails.forEach(function(email) {
           webpageObj.descriptors.push({
-            id: email._id,
-            text: decodeURIComponent(email.title),
+            id: email.id,
+            link: email.link,
+            text: decodeURIComponent(email.text),
             type: 'email'
           });
         });
@@ -313,9 +327,10 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     /*
         build service/provider summary object:
         {
-            "_id": "http://someuri",
-            "_type": "provider",
-            "title": "Emily", // person name
+            "id": "http://someuri",
+            "type": "provider",
+            "text": "Emily", // person name
+            "link": "/provider.html?value=http://someuri&field=_id",
             "descriptors": [{type: 'age', text: 'Age: 20'}], // array of age
             "details": [{
                 "label": "height",
@@ -330,9 +345,10 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         }
     */
     var serviceObj = {
-      _id: record._id,
-      _type: 'provider', // hardcode 'provider' value for now
-      title: _.get(record, '_source.name', 'Name N/A'),
+      id: record._id,
+      type: 'provider', // hardcode 'provider' value for now
+      text: _.get(record, '_source.name', 'Name N/A'),
+      link: '/provider.html?value=' + record._id + '&field=_id',
       descriptors: [{
         type: 'age',
         text: 'Age: ' + _.get(record, '_source.age', 'N/A')

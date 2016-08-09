@@ -53,7 +53,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           };
         }
       }
-      newData._id = newData.uri;
+      newData.id = newData.uri;
       return newData;
     },
 

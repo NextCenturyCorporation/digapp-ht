@@ -162,10 +162,10 @@ var commonTransforms = (function(_, dateFormat) {
         (_.isArray(records) ? records : [records]).forEach(function(record) {
           if(record.name) {
             var obj = {
-              _id: record.uri,
-              _type: type,
-              title: type === 'email' ? decodeURIComponent(record.name) : record.name,
-              descriptors: []
+              id: record.uri,
+              type: type,
+              text: type === 'email' ? decodeURIComponent(record.name) : record.name,
+              link: '/' + type + '.html?value=' + record.uri + '&field=_id'
             };
             result.push(obj);
           }
@@ -232,10 +232,10 @@ var commonTransforms = (function(_, dateFormat) {
               }
             }
             var newObj = {
-              _id: elem,
-              _type: type,
-              title: type === 'email' ? decodeURIComponent(text) : text,
-              descriptors: []
+              id: elem,
+              type: type,
+              text: type === 'email' ? decodeURIComponent(text) : text,
+              link: '/' + type + '.html?value=' + elem + '&field=_id'
             };
             if(type === 'phone') {
               newData.phones.push(newObj);

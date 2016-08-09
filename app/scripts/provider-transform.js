@@ -11,25 +11,22 @@ var providerTransform = (function(_) {
 
   function getProvider(record) {
     var person = {};
-    person._id = _.get(record, 'uri');
-    person._type = 'provider';
+    person.id = _.get(record, 'uri');
+    person.type = 'provider';
     person.name = _.get(record, 'name', 'Name N/A');
     person.ethnicities = _.get(record, 'ethnicity');
     person.height = _.get(record, 'height');
     person.weight = _.get(record, 'weight');
     person.ages = _.get(record, 'age');
 
-    var title = (person.name !== 'Name N/A') ? person.name : '';
-    var sep = (title === '') ? '' : ', ';
+    var text = (person.name !== 'Name N/A') ? person.name : '';
     if(person.ages) {
-      title += sep + (_.isArray(person.ages) ? person.ages[0] : person.ages);
-      sep = ', ';
+      text += (text ? ', ' : '') + (_.isArray(person.ages) ? person.ages[0] : person.ages);
     }
     if(person.ethnicities) {
-      title += sep + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
-      sep = ', ';
+      text += (text ? ', ' : '') + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
     }
-    person.title = title;
+    person.text = text;
     person.sellers = [];
     var offers = _.get(record, 'offers');
     if(offers) {

@@ -33,9 +33,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           name: 'Telephone Number',
           items: _.map(emailAndPhoneLists.phones, function(phone) {
             return {
-              text: phone.title,
+              link: '/phone.html?value=' + phone.id + '&field=_id',
+              text: phone.text,
               type: 'phone',
-              id: phone._id
+              id: phone.id
             };
           })
         });
@@ -45,9 +46,10 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           name: 'Email Address',
           items: _.map(emailAndPhoneLists.emails, function(email) {
             return {
-              text: email.title,
+              link: '/email.html?value=' + email.id + '&field=_id',
+              text: email.text,
               type: 'email',
-              id: email._id
+              id: email.id
             };
           })
         });
@@ -70,20 +72,23 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *         details: [{
    *             name: "Email Address",
    *             items: [{
+   *                 id: "http://email/abc@xyz.com",
+   *                 link: "/email.html?value=http://email/abc@xyz.com&field=_id",
    *                 text: "abc@xyz.com",
-   *                 type: "email",
-   *                 id: "http://email/abc@xyz.com"
+   *                 type: "email"
    *             }]
    *         }, {
    *             name: "Telephone Number",
    *             items: [{
+   *                 id: "http://phone/1234567890",
+   *                 link: "/phone.html?value=http://phone/1234567890&field=_id",
    *                 text: "1234567890",
-   *                 type: "phone",
-   *                 id: "http://phone/1234567890"
+   *                 type: "phone"
    *             }, {
+   *                 id: "http://phone/0987654321",
+   *                 link: "/phone.html?value=http://phone/0987654321&field=_id",
    *                 text: "0987654321",
-   *                 type: "phone",
-   *                 id: "http://phone/0987654321"
+   *                 type: "phone"
    *             }]
    *         }, {
    *             name: "Website",
@@ -141,21 +146,21 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     return timeline;
   }
 
-  function getSellerTitle(phones, emails) {
-    var title = '';
+  function getSellerText(phones, emails) {
+    var text = '';
     var otherPhonesAndEmails = 0;
     if(phones.length > 0) {
-      title = phones[0].title;
+      text = phones[0].text;
       otherPhonesAndEmails += phones.length - 1;
     }
     if(emails.length > 0) {
-      title += (title ? ', ' : '') + emails[0].title;
+      text += (text ? ', ' : '') + emails[0].text;
       otherPhonesAndEmails += emails.length - 1;
     }
     if(otherPhonesAndEmails) {
-      title += ' (' + otherPhonesAndEmails + ' more)';
+      text += ' (' + otherPhonesAndEmails + ' more)';
     }
-    return title || 'Info N/A';
+    return text || 'Info N/A';
   }
 
   return {
@@ -164,21 +169,21 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       var newData = {};
 
       if(data && data.hits.hits.length > 0) {
-        newData._id = _.get(data.hits.hits[0], '_id');
-        newData._type = _.get(data.hits.hits[0], '_type');
+        newData.id = _.get(data.hits.hits[0], '_id');
+        newData.type = _.get(data.hits.hits[0], '_type');
+        newData.link = '/seller.html?value=' + newData.id + '&field=_id';
         newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
         newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-        newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
-        newData.descriptors = [];
+        newData.text = getSellerText(newData.telephone, newData.emailAddress);
         newData.communications = newData.telephone.concat(newData.emailAddress);
       }
 
       return newData;
     },
 
-    removeItemFromCommunications: function(communications, title) {
+    removeItemFromCommunications: function(communications, text) {
       return (communications || []).filter(function(communication) {
-        return communication.title !== title;
+        return communication.text !== text;
       });
     },
 

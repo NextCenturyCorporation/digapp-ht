@@ -14,10 +14,10 @@ var webpageTransform = (function(_, commonTransforms) {
       var newData = {};
 
       if(data && data.hits.hits.length > 0) {
-        newData._id = _.get(data.hits.hits[0], '_id');
+        newData.id = _.get(data.hits.hits[0], '_id');
         newData.date = _.get(data.hits.hits[0]._source, 'dateCreated');
         newData.address = commonTransforms.getAddress(data.hits.hits[0]._source.mainEntity);
-        newData.title = _.get(data.hits.hits[0]._source, 'name');
+        newData.text = _.get(data.hits.hits[0]._source, 'name');
         newData.publisher = _.get(data.hits.hits[0]._source, 'publisher.name');
         newData.body = _.get(data.hits.hits[0]._source, 'description');
         newData.url = _.get(data.hits.hits[0]._source, 'url');

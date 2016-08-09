@@ -12,14 +12,14 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
   function getTelephone(record) {
     /** build telephone object:
     'telephone': {
-        '_id': 'http://someuri/1234567890'
+        'id': 'http://someuri/1234567890'
         'number': '1234567890',
         'type': 'cell',
         'origin': 'Washington DC'
     }
     */
     var telephone = {};
-    telephone._id = _.get(record, 'uri');
+    telephone.id = _.get(record, 'uri');
     telephone.number = _.get(record, 'name');
     telephone.sellerId = commonTransforms.getSellerId(record);
     //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
