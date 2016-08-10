@@ -2,17 +2,19 @@
  * transform elastic search webpage query to display format.  See data-model.json
  */
 
-/* globals _ */
+/* globals _, commonTransforms */
 /* exported providerTransform */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope */
-var providerTransform = (function(_) {
+var providerTransform = (function(_, commonTransforms) {
 
   function getProvider(record) {
     var person = {};
     person.id = _.get(record, 'uri');
     person.type = 'provider';
+    person.icon = commonTransforms.getIronIcon('provider');
+    person.styleClass = commonTransforms.getStyleClass('provider');
     person.name = _.get(record, 'name', 'Name N/A');
     person.ethnicities = _.get(record, 'ethnicity');
     person.height = _.get(record, 'height');
@@ -52,4 +54,4 @@ var providerTransform = (function(_) {
       return newData;
     }
   };
-})(_);
+})(_, commonTransforms);

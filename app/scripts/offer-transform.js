@@ -55,7 +55,9 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     var person = {};
     person.id = _.get(record, 'itemOffered.uri');
     person.type = 'provider';
-    person.link = '/provider.html?value=' + person.id + '&field=_id';
+    person.icon = commonTransforms.getIronIcon('provider');
+    person.link = commonTransforms.getLink(person.id, 'provider');
+    person.styleClass = commonTransforms.getStyleClass('provider');
 
     person.names = _.get(record, 'itemOffered.name') || [];
     person.names = (_.isArray(person.names) ? person.names : [person.names]);
@@ -104,6 +106,8 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     var newData = {};
 
     newData.id = _.get(record, 'uri');
+    newData.icon = commonTransforms.getIronIcon('offer');
+    newData.styleClass = commonTransforms.getStyleClass('offer');
     newData.date = _.get(record, 'validFrom');
     newData.address = commonTransforms.getAddress(record);
     newData.geolocation = getGeolocation(record);

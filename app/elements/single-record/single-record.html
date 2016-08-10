@@ -18,14 +18,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
-<link rel="import" href="../behaviors.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../content-label/content-label.html">
 <link rel="import" href="../image-viewer/image-viewer.html">
 
 <dom-module id="single-record">
   <template>
-    <style include="icon-styles"></style>
     <style include="list-item-styles"></style>
 
     <style>
@@ -68,7 +66,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="record">
       <paper-material class$="list-item-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
         <paper-icon-item>
-          <iron-icon class$="list-item-icon [[getItemTypeStyleClass(item, 'type')]]" icon$="[[getItemTypeIronIcon(item, 'type')]]" item-icon></iron-icon>
+          <iron-icon class$="list-item-icon [[item.styleClass]]" icon$="[[item.icon]]" item-icon></iron-icon>
 
           <template is="dom-if" if="[[showDetails]]">
             <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
@@ -86,7 +84,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <div secondary>
                 <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
                   <content-label
-                    icon="[[getTypeIronIcon(descriptor.type)]]"
+                    icon="[[descriptor.icon]]"
+                    icon-style-class="[[descriptor.styleClass]]"
                     link="[[descriptor.link]]"
                     text="[[descriptor.text]]">
                   </content-label>
@@ -102,14 +101,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               annotation-type="[[annotationType]]"
               annotation-relevant="[[annotationRelevant]]"
               item="{{item}}"
-              item-type="[[getItemTypeText(item, 'type', 'true')]]"
+              item-type="[[getTypeText(item, 'true')]]"
               current-user="[[currentUser]]">
             </annotate-record>
           </template>
 
           <!-- secondary actions -->
           <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[item.link]]">
-            <paper-button class="list-item-button">open {{getItemTypeText(item, 'type')}}</paper-button>
+            <paper-button class="list-item-button">open [[getTypeText(item)]]</paper-button>
           </a>
         </paper-icon-item>
       </paper-material>
@@ -144,7 +143,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </template>
 
             <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[item.link]]">
-              <paper-button class="list-item-button" raised>open {{getItemTypeText(item, 'type')}}</paper-button>
+              <paper-button class="list-item-button" raised>open [[getTypeText(item)]]</paper-button>
             </a>
           </paper-material>
         </iron-collapse>
@@ -154,13 +153,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
-    /* globals _, DigBehaviors */
+    /* globals _ */
     'use strict';
 
     Polymer({
       is: 'single-record',
-
-      behaviors: [DigBehaviors.DataTypeBehavior],
 
       properties: {
         /**
@@ -285,6 +282,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
+      },
+
+      /**
+       * Returns the text for the given item (and returns long text if specified).
+       */
+      getTypeText: function(item, longText) {
+        if(item.type === 'offer') {
+          return 'ad';
+        }
+        if(item.type === 'seller') {
+          return 'email/phone cluster';
+        }
+        if(longText && item.type === 'email') {
+          return 'email address';
+        }
+        if(longText && item.type === 'phone') {
+          return 'telephone number';
+        }
+        return item.type;
       },
 
       replaceCamelCaseText: function(key) {

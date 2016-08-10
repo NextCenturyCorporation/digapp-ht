@@ -17,6 +17,8 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         name: 'Website',
         items: _.map(bucket.publishers.buckets, function(publisher) {
           return {
+            icon: commonTransforms.getIronIcon('webpage'),
+            styleClass: commonTransforms.getStyleClass('webpage'),
             text: publisher.key,
             type: 'webpage'
           };
@@ -33,7 +35,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           name: 'Telephone Number',
           items: _.map(emailAndPhoneLists.phones, function(phone) {
             return {
-              link: '/phone.html?value=' + phone.id + '&field=_id',
+              icon: commonTransforms.getIronIcon('phone'),
+              link: commonTransforms.getLink(phone.id, 'phone'),
+              styleClass: commonTransforms.getStyleClass('phone'),
               text: phone.text,
               type: 'phone',
               id: phone.id
@@ -46,7 +50,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           name: 'Email Address',
           items: _.map(emailAndPhoneLists.emails, function(email) {
             return {
-              link: '/email.html?value=' + email.id + '&field=_id',
+              icon: commonTransforms.getIronIcon('email'),
+              link: commonTransforms.getLink(email.id, 'email'),
+              styleClass: commonTransforms.getStyleClass('email'),
               text: email.text,
               type: 'email',
               id: email.id
@@ -105,7 +111,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       if(bucket.doc_count) {
         var dateBucket = {
-          date: commonTransforms.getDate(bucket.key)
+          date: commonTransforms.getDate(bucket.key),
+          icon: commonTransforms.getIronIcon('date'),
+          styleClass: commonTransforms.getStyleClass('date')
         };
 
         var sum = 0;
@@ -116,6 +124,8 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
           return {
             name: locationBucket.key.split(':').slice(0, 3).join(', '),
+            icon: commonTransforms.getIronIcon('location'),
+            styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
             count: locationBucket.doc_count,
             details: createLocationTimelineDetails(locationBucket)
@@ -124,6 +134,8 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
         if(sum < bucket.doc_count) {
           dateBucket.locations.push({
+            icon: commonTransforms.getIronIcon('location'),
+            styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
             count: bucket.doc_count - sum,
             details: []
@@ -171,7 +183,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       if(data && data.hits.hits.length > 0) {
         newData.id = _.get(data.hits.hits[0], '_id');
         newData.type = _.get(data.hits.hits[0], '_type');
-        newData.link = '/seller.html?value=' + newData.id + '&field=_id';
+        newData.icon = commonTransforms.getIronIcon('seller');
+        newData.styleClass = commonTransforms.getStyleClass('seller');
+        newData.link = commonTransforms.getLink(newData.id, 'seller');
         newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
         newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
         newData.text = getSellerText(newData.telephone, newData.emailAddress);

@@ -15,6 +15,8 @@ var webpageTransform = (function(_, commonTransforms) {
 
       if(data && data.hits.hits.length > 0) {
         newData.id = _.get(data.hits.hits[0], '_id');
+        newData.icon = commonTransforms.getIronIcon('webpage');
+        newData.styleClass = commonTransforms.getStyleClass('webpage');
         newData.date = _.get(data.hits.hits[0]._source, 'dateCreated');
         newData.address = commonTransforms.getAddress(data.hits.hits[0]._source.mainEntity);
         newData.text = _.get(data.hits.hits[0]._source, 'name');
@@ -39,6 +41,8 @@ var webpageTransform = (function(_, commonTransforms) {
           total += bucket.doc_count;
           return {
             date: commonTransforms.getDate(bucket.key_as_string),
+            icon: commonTransforms.getIronIcon('date'),
+            styleClass: commonTransforms.getStyleClass('date'),
             count: bucket.doc_count
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */

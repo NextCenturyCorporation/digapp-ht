@@ -22,8 +22,8 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
     telephone.id = _.get(record, 'uri');
     telephone.number = _.get(record, 'name');
     telephone.sellerId = commonTransforms.getSellerId(record);
-    //telephone.email = _.get(record, 'owner[0].email[0].name[0]');
-
+    telephone.icon = commonTransforms.getIronIcon('phone');
+    telephone.styleClass = commonTransforms.getStyleClass('phone');
     return telephone;
   }
 

@@ -18,8 +18,10 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           var id = _.get(hit._source, 'uri');
           images.push({
             id: id,
-            link: '/image.html?value=' + id + '&field=_id',
-            source: _.get(hit._source, 'url')
+            icon: commonTransforms.getIronIcon('image'),
+            link: commonTransforms.getLink(id, 'image'),
+            source: _.get(hit._source, 'url'),
+            styleClass: commonTransforms.getStyleClass('image')
           });
         });
       }

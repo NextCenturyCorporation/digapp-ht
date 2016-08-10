@@ -14,8 +14,10 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return (_.isArray(images) ? images : [images]).map(function(image) {
       return {
         id: image.uri,
-        link: '/image.html?value=' + image.uri + '&field=_id',
-        source: image.url
+        icon: commonTransforms.getIronIcon('image'),
+        link: commonTransforms.getLink(image.uri, 'image'),
+        source: image.url,
+        styleClass: commonTransforms.getStyleClass('image')
       };
     });
   }
@@ -48,6 +50,8 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     var datePhoneEmail = [];
     if(validFromDate) {
       datePhoneEmail.push({
+        icon: commonTransforms.getIronIcon('date'),
+        styleClass: commonTransforms.getStyleClass('date'),
         text: validFromDate,
         type: 'date'
       });
@@ -60,7 +64,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         communications.phones.forEach(function(phone) {
           datePhoneEmail.push({
             id: phone.id,
+            icon: commonTransforms.getIronIcon('phone'),
             link: phone.link,
+            styleClass: commonTransforms.getStyleClass('phone'),
             text: phone.text,
             type: 'phone'
           });
@@ -70,7 +76,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         communications.emails.forEach(function(email) {
           datePhoneEmail.push({
             id: email.id,
+            icon: commonTransforms.getIronIcon('email'),
             link: email.link,
+            styleClass: commonTransforms.getStyleClass('email'),
             text: decodeURIComponent(email.text),
             type: 'email'
           });
@@ -82,7 +90,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       id: record._id,
       type: record._type,
       text: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
-      link: '/offer.html?value=' + record._id + '&field=_id',
+      icon: commonTransforms.getIronIcon('offer'),
+      link: commonTransforms.getLink(record._id, 'offer'),
+      styleClass: commonTransforms.getStyleClass('offer'),
       descriptors: datePhoneEmail,
       images: getImages(record, 'mainEntityOfPage.hasImagePart'),
       details: []
@@ -128,7 +138,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       id: record._id,
       type: record._type,
       text: _.get(record, '_source.name', 'Phone N/A'),
-      link: '/phone.html?value=' + record._id + '&field=_id',
+      icon: commonTransforms.getIronIcon('phone'),
+      link: commonTransforms.getLink(record._id, 'phone'),
+      styleClass: commonTransforms.getStyleClass('phone'),
       descriptors: []
     };
     return phoneObj;
@@ -149,7 +161,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       id: record._id,
       type: record._type,
       text: decodeURIComponent(_.get(record, '_source.name', 'Email N/A')),
-      link: '/email.html?value=' + record._id + '&field=_id',
+      icon: commonTransforms.getIronIcon('email'),
+      link: commonTransforms.getLink(record._id, 'email'),
+      styleClass: commonTransforms.getStyleClass('email'),
       descriptors: []
     };
     return emailObj;
@@ -170,7 +184,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     var sellerObj = {
       id: record._id,
       type: record._type,
-      link: '/seller.html?value=' + record._id + '&field=_id',
+      icon: commonTransforms.getIronIcon('seller'),
+      link: commonTransforms.getLink(record._id, 'seller'),
+      styleClass: commonTransforms.getStyleClass('seller'),
       descriptors: []
     };
 
@@ -240,8 +256,12 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       id: record._id,
       type: record._type,
       text: _.get(record, '_source.name[0]', 'Title N/A'),
-      link: '/offer.html?value=' + _.get(record, '_source.mainEntity.uri') + '&field=_id',
+      icon: commonTransforms.getIronIcon('offer'),
+      link: commonTransforms.getLink(record._id, 'offer'),
+      styleClass: commonTransforms.getStyleClass('offer'),
       descriptors: [{
+        icon: commonTransforms.getIronIcon('webpage'),
+        styleClass: commonTransforms.getStyleClass('webpage'),
         type: 'webpage',
         text: _.get(record, '_source.publisher.name', 'Publisher N/A')
       }],
@@ -276,6 +296,8 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     var xDate = _.get(record, '_source.dateCreated');
     if(xDate) {
       webpageObj.descriptors.push({
+        icon: commonTransforms.getIronIcon('date'),
+        styleClass: commonTransforms.getStyleClass('date'),
         type: 'date',
         text: commonTransforms.getDate(xDate)
       });
@@ -294,7 +316,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         communications.phones.forEach(function(phone) {
           webpageObj.descriptors.push({
             id: phone.id,
+            icon: commonTransforms.getIronIcon('phone'),
             link: phone.link,
+            styleClass: commonTransforms.getStyleClass('phone'),
             text: phone.text,
             type: 'phone'
           });
@@ -310,7 +334,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         communications.emails.forEach(function(email) {
           webpageObj.descriptors.push({
             id: email.id,
+            icon: commonTransforms.getIronIcon('email'),
             link: email.link,
+            styleClass: commonTransforms.getStyleClass('email'),
             text: decodeURIComponent(email.text),
             type: 'email'
           });
@@ -348,7 +374,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       id: record._id,
       type: 'provider', // hardcode 'provider' value for now
       text: _.get(record, '_source.name', 'Name N/A'),
-      link: '/provider.html?value=' + record._id + '&field=_id',
+      icon: commonTransforms.getIronIcon('provider'),
+      link: commonTransforms.getLink(record._id, 'provider'),
+      styleClass: commonTransforms.getStyleClass('provider'),
       descriptors: [{
         type: 'age',
         text: 'Age: ' + _.get(record, '_source.age', 'N/A')
