@@ -10,50 +10,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/image-gallery-popup/image-gallery-popup.html">
-<link rel="import" href="../../bower_components/iron-image/iron-image.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../image-item/image-item.html">
 
 <dom-module id="image-viewer">
   <template>
-    <style include="list-item-styles"></style>
+    <style include="iron-flex iron-flex-alignment"></style>
 
     <style>
       :host {
         display: block;
       }
-
-      .list-item-head {
-        padding: 10px;
-      }
-
-      .image-container {
-        margin: 0;
-        padding: 0;
-      }
-
-      .image-container iron-image {
-        --iron-image-width: 100%;
-        --iron-image-height: 100%;
-        width: 100px;
-        height: 100px;
-      }
-
-      .list-item-button {
-        margin: 10px 0 5px;
-      }
     </style>
 
     <div class="layout horizontal flex wrap" on-tap="stopClickPropagation">
-      <template is="dom-repeat" items="{{images}}">
-        <div class="layout vertical center list-item-head">
-          <paper-button class="image-container" data-dialog="[[getProperty(item, imageSourceProperty)]]" on-click="createPopupElement">
-            <iron-image class$="[[getBlurClass(blur)]]" src="[[getProperty(item, imageSourceProperty, '')]]" sizing="contain"></iron-image>
-          </paper-button>
-
-          <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[getProperty(item, imageLinkProperty, '#')]]">
-            <paper-button class="list-item-button">Open Image</paper-button>
-          </a>
-        </div>
+      <template is="dom-repeat" items="[[images]]">
+        <image-item
+          image-index="[[index]]"
+          link="[[getProperty(item, imageLinkProperty)]]"
+          link-text="open image"
+          link-target="[[getTarget(newTab)]]"
+          style-class="[[getBlurClass(blur)]]"
+          source="[[getProperty(item, imageSourceProperty)]]"
+          image-click-listener="[[createImageClickListener()]]">
+        </image-item>
       </template>
     </div>
   </template>
@@ -126,26 +106,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         event.stopImmediatePropagation();
       },
 
-      createPopupElement: function(event) {
-        /* Appending image-gallery-popup element with paper-dialog to body when
-           opened -- workaround for unexpected behavior with overlays, which should
-           be placed directly in the body tag whenever possible:
-           https://github.com/PolymerElements/polymer-starter-kit/issues/154
-           https://github.com/PolymerElements/paper-dialog/issues/79#issuecomment-201681529
-        */
-        var body = Polymer.dom(document).querySelector('body');
-        var firstChildOfBody = Polymer.dom(body).firstChild;
-        var imageGalleryPopupElement = document.createElement('image-gallery-popup');
+      createImageClickListener: function() {
+        var self = this;
 
-        imageGalleryPopupElement.images = this.images;
-        imageGalleryPopupElement.imageLinkProperty = this.imageLinkProperty;
-        imageGalleryPopupElement.imageSourceProperty = this.imageSourceProperty;
-        imageGalleryPopupElement.currentIndex = event.model.index;
-        imageGalleryPopupElement.linkText = 'open image';
-        imageGalleryPopupElement.newTab = this.newTab;
-        imageGalleryPopupElement.blur = this.blur;
+        var createPopupElement = function(index) {
+          /* Appending image-gallery-popup element with paper-dialog to body when
+             opened -- workaround for unexpected behavior with overlays, which should
+             be placed directly in the body tag whenever possible:
+             https://github.com/PolymerElements/polymer-starter-kit/issues/154
+             https://github.com/PolymerElements/paper-dialog/issues/79#issuecomment-201681529
+          */
+          var body = Polymer.dom(document).querySelector('body');
+          var firstChildOfBody = Polymer.dom(body).firstChild;
+          var imageGalleryPopupElement = document.createElement('image-gallery-popup');
 
-        body.insertBefore(imageGalleryPopupElement, firstChildOfBody);
+          imageGalleryPopupElement.images = self.images;
+          imageGalleryPopupElement.imageLinkProperty = self.imageLinkProperty;
+          imageGalleryPopupElement.imageSourceProperty = self.imageSourceProperty;
+          imageGalleryPopupElement.currentIndex = index;
+          imageGalleryPopupElement.linkText = 'open image';
+          imageGalleryPopupElement.linkTarget = self.getTarget(self.newTab);
+          imageGalleryPopupElement.styleClass = (self.blur ? 'large-blur' : '');
+
+          body.insertBefore(imageGalleryPopupElement, firstChildOfBody);
+        };
+
+        return {
+          onImageClick: createPopupElement
+        };
       }
     });
   })();

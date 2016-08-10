@@ -32,12 +32,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, test, expect, setup, fixture */
+  /* globals suite, test, expect, setup, fixture, flush */
   /* jshint -W030 */
   suite('image-viewer tests', function() {
     var imageViewer;
 
-    setup(function() {
+    setup(function(done) {
       imageViewer = fixture('image-viewer-fixture');
       imageViewer.images = [{
         id: 'id1',
@@ -48,6 +48,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         link: 'link2',
         source: 'source2'
       }];
+      flush(function() {
+        done();
+      });
     });
 
     test('images is an array', function() {
@@ -63,12 +66,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }]);
     });
 
-    test('imageLinkProperty and imageSourceProperty are set', function() {
+    test('blur, imageLinkProperty, imageSourceProperty, and newTab are set to defaults', function() {
+      expect(imageViewer.blur).to.equal(true);
       expect(imageViewer.imageLinkProperty).to.equal('link');
       expect(imageViewer.imageSourceProperty).to.equal('source');
+      expect(imageViewer.newTab).to.equal(false);
     });
 
-    test('getBlurClass() returns correct value', function() {
+    test('getBlurClass returns the correct value', function() {
       expect(imageViewer.getBlurClass(true)).to.equal('small-blur');
       expect(imageViewer.getBlurClass(false)).to.equal('');
     });
@@ -78,16 +83,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(imageViewer.getProperty(imageViewer.images[0], imageViewer.imageSourceProperty)).to.be.equal('source1');
     });
 
-    test('blur is set to true on default', function() {
-      expect(imageViewer.blur).to.equal(true);
+    test('getTarget returns the correct value', function() {
+      expect(imageViewer.getTarget(true)).to.be.equal('_blank');
+      expect(imageViewer.getTarget(false)).to.be.equal('_self');
     });
 
-    test('createPopupElement creates image-gallery-popup element with correct values', function() {
-      imageViewer.createPopupElement({
-        model: {
-          index: 1
-        }
-      });
+    test('createImageClickListener returns an object with correct properties', function() {
+      var output = imageViewer.createImageClickListener();
+      expect(output).to.exist;
+      expect(output).to.be.an('Object');
+      expect(output.onImageClick).to.exist;
+      expect(output.onImageClick).to.be.a('Function');
+    });
+
+    test('onImageClick creates an image-gallery-popup element with correct values', function() {
+      var output = imageViewer.createImageClickListener();
+      output.onImageClick(1);
 
       var imageGalleryPopupElement = document.querySelector('image-gallery-popup');
       expect(imageGalleryPopupElement).to.exist;
@@ -100,6 +111,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
+    test('does have image-item elements', function() {
+      expect(imageViewer.$$('image-item')).to.exist;
+    });
   });
 </script>
 
