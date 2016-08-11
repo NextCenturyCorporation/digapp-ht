@@ -13,7 +13,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../item-list/item-list.html">
@@ -21,11 +20,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id="itinerary-list">
   <template>
-    <style include="list-item-styles"></style>
-
     <style>
       :host {
         display: block;
+      }
+
+      paper-icon-item {
+        /* Ignore the default focused behavior. */
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+
+      paper-icon-item {
+        /* Use the default width of an icon. */
+        --paper-item-icon-width: 24px;
+        /* Margin between the icon and the next element. */
+        --paper-item-icon: {
+          margin-right: 15px;
+        }
       }
 
       item-list {
@@ -33,8 +46,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         --item-list-max-height: 3000px;
       }
 
-      item-list ::content .list-item-body paper-item,
-      item-list ::content .list-item-body records-grid {
+      item-list ::content .head paper-item-body {
+        --paper-item-body-two-line-min-height: 60px;
+      }
+
+      item-list ::content .body paper-icon-item {
+        --paper-item-min-height: 25px;
+      }
+
+      item-list ::content .body > div,
+      item-list ::content .body > records-grid {
         margin: 0 40px;
       }
     </style>
@@ -46,59 +67,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       total-items="[[data.length]]">
 
       <template is="dom-repeat" items="[[data]]" as="dateItem">
-        <div class="itinerary">
-          <paper-material class$="list-item-head [[getHeaderClass(dateItem.opened)]]" clickable on-tap="toggleItinerary">
-            <paper-icon-item>
-              <iron-icon class$="list-item-icon [[getProperty(dateItem, dataStyleClassProperty)]]" icon="[[getProperty(dateItem, dataIconProperty)]]" item-icon></iron-icon>
-              <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
-              <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
+        <paper-material class$="head [[getHeaderClass(dateItem.opened)]]" clickable on-tap="toggleItinerary">
+          <paper-icon-item>
+            <iron-icon class$="head-icon [[getProperty(dateItem, dataStyleClassProperty)]]" icon="[[getProperty(dateItem, dataIconProperty)]]" item-icon></iron-icon>
+            <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
+            <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
 
-              <paper-item-body two-line>
-                <div>
-                  <strong>[[getInterval(interval)]]</strong>
-                  <strong title="[[getProperty(dateItem, dataDateProperty)]]">[[getProperty(dateItem, dataDateProperty)]]</strong>
-                </div>
-                <div secondary><strong title="[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]">[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]</strong></div>
-              </paper-item-body>
-            </paper-icon-item>
-          </paper-material>
+            <paper-item-body two-line>
+              <div title$="[[getDate(interval, dateItem, dataDateProperty)]]"><strong>[[getDate(interval, dateItem, dataDateProperty)]]</strong></div>
 
-          <iron-collapse id$="[[getId(dateItem, dataDateProperty)]]">
-            <div class="list-item-collapse-body">
-              <template is="dom-repeat" items="[[getProperty(dateItem, dataItemsProperty)]]" as="materialItem">
-                <paper-material class="list-item-body">
-                  <paper-icon-item>
-                    <iron-icon class$="list-item-icon [[getProperty(materialItem, dataItemStyleClassProperty)]]" icon="[[getProperty(materialItem, dataItemIconProperty)]]" item-icon></iron-icon>
-                    <paper-item-body>
-                      <div><strong>[[getProperty(materialItem, dataItemNameProperty, 'Unknown')]]</strong></div>
-                    </paper-item-body>
-                  </paper-icon-item>
+              <div secondary title$="[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]">
+                <strong>[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]</strong>
+              </div>
+            </paper-item-body>
+          </paper-icon-item>
+        </paper-material>
 
-                  <paper-item>
-                    <paper-item-body>
-                      <div>
-                        <strong>Count:</strong>
-                        <span secondary>[[getProperty(materialItem, dataItemCountProperty, 'Unknown')]]</span>
-                      </div>
-                    </paper-item-body>
-                  </paper-item>
+        <iron-collapse id$="[[getId(dateItem, dataDateProperty)]]">
+          <div>
+            <template is="dom-repeat" items="[[getProperty(dateItem, dataItemsProperty)]]" as="materialItem">
+              <paper-material class="body">
+                <paper-icon-item>
+                  <iron-icon class$="[[getProperty(materialItem, dataItemStyleClassProperty)]]" icon="[[getProperty(materialItem, dataItemIconProperty)]]" item-icon></iron-icon>
+                  <strong class="text">[[getProperty(materialItem, dataItemNameProperty, 'Unknown')]]</strong>
+                </paper-icon-item>
 
-                  <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetailsProperty)]]" as="detailItem">
-                    <paper-item>
-                      <paper-item-body>
-                        <div><strong class="capitalize">[[getProperty(detailItem, dataDetailNameProperty)]]:</strong></div>
-                      </paper-item-body>
-                    </paper-item>
+                <div><strong class="text">[[getCount(materialItem, dataItemCountProperty)]]</strong></div>
 
-                    <records-grid
-                      data="[[getProperty(detailItem, dataDetailItemsProperty)]]">
-                    </records-grid>
-                  </template>
-                </paper-material>
-              </template>
-            </div>
-          </iron-collapse>
-        </div>
+                <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetailsProperty)]]" as="detailItem">
+                  <div><strong class="text">[[getDetailName(detailItem, dataDetailNameProperty)]]</strong></div>
+
+                  <records-grid
+                    data="[[getProperty(detailItem, dataDetailItemsProperty)]]">
+                  </records-grid>
+                </template>
+              </paper-material>
+            </template>
+          </div>
+        </iron-collapse>
       </template>
     </item-list>
   </template>
@@ -257,16 +263,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return (source ? source + ' ' : '') + 'Timeline (' + (count ? count : 'No') + ' Date' + (count === 1 ? '' : 's') + ')';
       },
 
+      getCount: function(item, dataItemCountProperty) {
+        return 'Count: ' + this.getProperty(item, dataItemCountProperty, 'Unknown');
+      },
+
+      getDate: function(interval, item, dataDateProperty) {
+        return (interval && interval === 'week' ? 'Week of' : '') + this.getProperty(item, dataDateProperty);
+      },
+
+      getDetailName: function(detail, dataDetailNameProperty) {
+        return this.getProperty(detail, dataDetailNameProperty) + ':';
+      },
+
       getHeaderClass: function(opened) {
         return (opened ? 'opened' : 'closed');
       },
 
       getId: function(item, dataDateProperty) {
         return 'itinerary_' + new Date(item[dataDateProperty]).getTime();
-      },
-
-      getInterval: function(interval) {
-        return interval && interval === 'week' ? 'Week of' : '';
       },
 
       getProperty: function(item, property, defaultValue) {

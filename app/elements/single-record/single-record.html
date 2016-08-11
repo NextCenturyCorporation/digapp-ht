@@ -15,7 +15,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
@@ -24,11 +23,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <dom-module id="single-record">
   <template>
-    <style include="list-item-styles"></style>
-
     <style>
       :host {
         display: block;
+      }
+
+      paper-icon-item {
+        /* Ignore the default focused behavior. */
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+
+      paper-icon-item {
+        /* Use the default width of an icon. */
+        --paper-item-icon-width: 24px;
       }
 
       .entity-offer-font {
@@ -36,16 +45,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: none;
       }
 
-      annotate-record {
-        /* Margin between annotation icon and text (left) / 'open' button (right). */
-        margin: 0 15px;
+      .head paper-item-body {
+        --paper-item-body-two-line-min-height: 60px;
       }
 
-      .list-item-body {
-        padding: 20px;
+      .head annotate-record {
+        /* Margin between the text and the annotation icon. */
+        margin-left: 15px;
       }
 
-      .list-item-body .list-item-button {
+      .head .list-item-link {
+        /* Margin between the annotation icon and the 'open' button. */
+        margin-left: 15px;
+      }
+
+      .body .list-item-button {
+        /* Needed to make the button look nice. */
         margin: 10px 0;
       }
 
@@ -63,75 +78,71 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
-    <div class="record">
-      <paper-material class$="list-item-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
-        <paper-icon-item>
-          <iron-icon class$="list-item-icon [[item.styleClass]]" icon$="[[item.icon]]" item-icon></iron-icon>
+    <paper-material class$="head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
+      <paper-icon-item>
+        <iron-icon class$="head-icon [[item.styleClass]]" icon$="[[item.icon]]" item-icon></iron-icon>
 
-          <template is="dom-if" if="[[showDetails]]">
-            <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
-            <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
+        <template is="dom-if" if="[[showDetails]]">
+          <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
+          <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
+        </template>
+
+        <template is="dom-if" if="[[imageSource]]">
+          <iron-image class$="[[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
+        </template>
+
+        <paper-item-body two-line>
+          <div title$="[[item.text]]"><strong>[[item.text]]</strong></div>
+
+          <template is="dom-if" if="[[item.descriptors.length]]">
+            <div secondary>
+              <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
+                <content-label
+                  icon="[[descriptor.icon]]"
+                  icon-style-class="[[descriptor.styleClass]]"
+                  link="[[descriptor.link]]"
+                  text="[[descriptor.text]]">
+                </content-label>
+              </template>
+            </div>
           </template>
+        </paper-item-body>
 
-          <template is="dom-if" if="[[imageSource]]">
-            <iron-image class$="list-item-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
-          </template>
+        <!-- annotation controls -->
+        <template is="dom-if" if="[[showAnnotation(item)]]">
+          <annotate-record client="[[client]]"
+            annotation-index="[[annotationIndex]]"
+            annotation-type="[[annotationType]]"
+            annotation-relevant="[[annotationRelevant]]"
+            item="{{item}}"
+            item-type="[[getTypeText(item, 'true')]]"
+            current-user="[[currentUser]]">
+          </annotate-record>
+        </template>
 
-          <paper-item-body two-line>
-            <div title$="[[item.text]]"><strong>[[item.text]]</strong></div>
+        <!-- secondary actions -->
+        <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[item.link]]">
+          <paper-button class="list-item-button">open [[getTypeText(item)]]</paper-button>
+        </a>
+      </paper-icon-item>
+    </paper-material>
 
-            <template is="dom-if" if="[[item.descriptors.length]]">
-              <div secondary>
-                <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
-                  <content-label
-                    icon="[[descriptor.icon]]"
-                    icon-style-class="[[descriptor.styleClass]]"
-                    link="[[descriptor.link]]"
-                    text="[[descriptor.text]]">
-                  </content-label>
+    <template is="dom-if" if="[[showDetails]]">
+      <iron-collapse id="recordDetail">
+        <div>
+          <paper-material class="body">
+            <template is="dom-repeat" items="[[item.details]]" as="detail">
+              <div class="text">
+                <strong>[[cleanCamelCase(detail.label)]]</strong>
+                <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
+                  <template is="dom-if" if="[[detail.url]]">
+                    <a target="_blank" href$="[[value]]">[[value]]</a>
+                  </template>
+                  <template is="dom-if" if="[[!detail.url]]">
+                    <span>[[value]]</span>
+                  </template>
                 </template>
               </div>
-            </template>
-          </paper-item-body>
-
-          <!-- annotation controls -->
-          <template is="dom-if" if="[[showAnnotation(item)]]">
-            <annotate-record client="[[client]]"
-              annotation-index="[[annotationIndex]]"
-              annotation-type="[[annotationType]]"
-              annotation-relevant="[[annotationRelevant]]"
-              item="{{item}}"
-              item-type="[[getTypeText(item, 'true')]]"
-              current-user="[[currentUser]]">
-            </annotate-record>
-          </template>
-
-          <!-- secondary actions -->
-          <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[item.link]]">
-            <paper-button class="list-item-button">open [[getTypeText(item)]]</paper-button>
-          </a>
-        </paper-icon-item>
-      </paper-material>
-
-      <template is="dom-if" if="[[showDetails]]">
-        <iron-collapse id="recordDetail">
-          <paper-material class="list-item-collapse-body list-item-body">
-            <template is="dom-repeat" items="[[item.details]]" as="detail">
-              <paper-item>
-                <paper-item-body>
-                  <span>
-                    <strong class="capitalize">[[replaceCamelCaseText(detail.label)]]:</strong>
-                    <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
-                      <template is="dom-if" if="[[detail.url]]">
-                        <a target="_blank" href$="[[value]]">[[value]]</a>
-                      </template>
-                      <template is="dom-if" if="[[!detail.url]]">
-                        <span>[[value]]</span>
-                      </template>
-                    </template>
-                  </span>
-                </paper-item-body>
-              </paper-item>
             </template>
 
             <template is="dom-if" if="[[item.images]]">
@@ -146,9 +157,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <paper-button class="list-item-button" raised>open [[getTypeText(item)]]</paper-button>
             </a>
           </paper-material>
-        </iron-collapse>
-      </template>
-    </div>
+        </div>
+      </iron-collapse>
+    </template>
   </template>
 
   <script>
@@ -303,8 +314,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return item.type;
       },
 
-      replaceCamelCaseText: function(key) {
-        return key.replace(/([A-Z])/g, ' $1');
+      cleanCamelCase: function(key) {
+        return key.replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
+          return word.charAt(0).toUpperCase() + word.substr(1);
+        }) + ':';
       },
 
       showAnnotation: function(item) {
