@@ -9,33 +9,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-<link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
+<link rel="import" href="../item-list/item-list.html">
 <link rel="import" href="../single-record/single-record.html">
 
-<!-- height will be determined by what's set on parent element -->
 <dom-module id="records-list">
   <template>
-    <style include="web-component-styles"></style>
-
     <style>
       :host {
         display: block;
         height: 100%;
       }
 
-      iron-scroll-threshold {
-        height: 100%;
+      item-list {
         /* Max Height = Height of 50 Single Records */
-        max-height: 3000px;
+        --item-list-max-height: 3000px;
       }
     </style>
 
-    <iron-scroll-threshold class="scroll-threshold">
-      <template is="dom-repeat" items="{{displayResults}}" initial-count="25">
+    <item-list
+      loading="[[loading]]"
+      load-type="[[computeLoadType(type)]]"
+      items="[[queryResults]]"
+      total-items="[[totalResults]]"
+      page="{{page}}"
+      shown-items="{{shownResults}}">
+
+      <template is="dom-repeat" items="{{shownResults}}" initial-count="25">
         <single-record item="{{item}}"
           client="[[client]]"
           annotation-index="[[annotationIndex]]"
@@ -46,28 +46,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           blur="[[blur]]">
         </single-record>
       </template>
-    </iron-scroll-threshold>
-
-    <div class="loading-container">
-      <template is="dom-if" if="[[showMore]]">
-        <paper-button raised on-tap="goToNextPage">Show More Results</paper-button>
-      </template>
-      <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <span class="button-height-text">Loading Results...</span>
-      </template>
-    </div>
+    </item-list>
   </template>
 
   <script>
   (function() {
-    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'records-list',
-
-      behaviors: [DigBehaviors.ResultListBehavior],
 
       properties: {
         /**
@@ -76,6 +63,46 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         client: {
           type: Object
+        },
+
+        /**
+         * The results from a query to show in this list that are reset for each new page.
+         */
+        queryResults: {
+          type: Array
+        },
+
+        /**
+         * The total number of results for all pages.
+         */
+        totalResults: {
+          type: Number
+        },
+
+        /**
+         * The results shown in this list that are taken from the query results.
+         */
+        shownResults: {
+          type: Array,
+          notify: true
+        },
+
+        /**
+         * The current page.
+         */
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
+        },
+
+        /**
+         * Whether a query is running.
+         */
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
         },
 
         /**
@@ -120,7 +147,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         recordsListTitle: {
           type: String,
           value: 'No Records',
-          computed: 'computeTitle(type, displayResults.length, totalResults)',
+          computed: 'computeTitle(type, shownResults.length, totalResults)',
           notify: true
         },
 
@@ -141,29 +168,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      observers: [
-        // TODO:  This triggers on adding each element to the array but we really only need it to trigger once.
-        'onDataAdded(displayResults.splices, page)'
-      ],
+      computeLoadType: function(type) {
+        return type + 's';
+      },
 
       /**
-       * Returns the title for this list based on the type, displayResults, and totalResults.
+       * Returns the title for this list based on the type, shownResults, and totalResults.
        */
       computeTitle: function(type, count, total) {
         if(total) {
           return ((count && count < total) ? (count + ' of ') : '') + total + ' ' + type + (total === 1 ? '' : 's');
         }
         return 'No ' + type + 's';
-      },
-
-      /**
-       * Handles any needed behavior when data is added to the list.
-       */
-      onDataAdded: function() {
-        // Scroll to the top of the list if the data in the list was replaced with different data.
-        if(this.page === 1) {
-          this.$$('.scroll-threshold').scroll(0, 0);
-        }
       }
     });
   })();

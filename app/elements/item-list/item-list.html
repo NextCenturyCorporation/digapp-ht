@@ -1,0 +1,289 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+
+<dom-module id="item-list">
+  <template>
+    <style include="web-component-styles"></style>
+
+    <style>
+      :host {
+        display: block;
+        height: 100%;
+      }
+
+      iron-scroll-threshold {
+        height: 100%;
+        max-height: var(--item-list-max-height);
+      }
+
+      ::content .list-item-head {
+        padding: 0 10px;
+      }
+
+      ::content .list-item-head[clickable] {
+        cursor: pointer;
+      }
+
+      ::content .list-item-head.closed {
+        box-shadow: none;
+      }
+
+      ::content .list-item-head.opened,
+      ::content .list-item-head:hover {
+        background-color: rgba(0,0,0,0.1);
+      }
+
+      ::content .list-item-head paper-item-body {
+        --paper-item-body-two-line-min-height: 60px;
+      }
+
+      ::content paper-item,
+      ::content paper-icon-item {
+        /* Ignore the default padding. */
+        padding: 0;
+        /* Ignore the default focused behavior. */
+        --paper-item-focused-before: {
+          background: initial;
+        }
+      }
+
+      ::content paper-icon-item {
+        /* Use the default width of an icon. */
+        --paper-item-icon-width: 24px;
+        /* Margin between the icon and the next element. */
+        --paper-item-icon: {
+          margin-right: 15px;
+        }
+      }
+
+      ::content .closed-icon,
+      ::content .opened-icon,
+      ::content .list-item-head[clickable]:hover .list-item-icon {
+        display: none;
+      }
+
+      ::content .list-item-head.closed:hover .closed-icon,
+      ::content .list-item-head.opened:hover .opened-icon {
+        display: block;
+      }
+
+      ::content .list-item-image {
+        background: #ffffff;
+        /* Margin between image and text. */
+        margin-right: 15px;
+        height: 40px;
+        width: 40px;
+      }
+
+      ::content .list-item-head.opened .list-item-image,
+      ::content .list-item-head:hover .list-item-image {
+        background-color: inherit;
+      }
+
+      ::content .list-item-link {
+        color: var(--primary-text-color);;
+        font-size: 14px;
+        text-decoration: none;
+      }
+
+      ::content .list-item-button {
+        @apply(--shadow-elevation-4dp);
+        font-size: 14px;
+        line-height: 25px;
+        margin: 0;
+        padding: 5px 10px;
+      }
+
+      ::content .list-item-button:hover {
+        @apply(--shadow-elevation-8dp);
+      }
+
+      ::content .list-item-head .list-item-link {
+        visibility: hidden;
+      }
+
+      ::content .list-item-head:hover .list-item-link {
+        visibility: visible;
+      }
+
+      /* Needed to fix layout issues in newer versions of chrome and firefox. */
+      ::content paper-item-body,
+      ::content paper-item-body > * {
+        white-space: normal;
+      }
+
+      /* Needed to fix layout issues in newer versions of chrome and firefox. */
+      ::content .list-item-head paper-item-body div {
+        display: -webkit-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        /* Set the number of lines to show. */
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        /* Set the line-height and height just to make the text look pretty. */
+        line-height: 25px;
+        height: 25px;
+      }
+
+      ::content .list-item-collapse-body {
+        /* Margin between the body of the item and the head of the next item. */
+        margin-bottom: 10px;
+      }
+
+      ::content .list-item-body {
+        padding: 10px;
+      }
+
+      ::content .list-item-body paper-item,
+      ::content .list-item-body paper-icon-item {
+        --paper-item-min-height: 25px;
+        font-size: 14px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      ::content .capitalize {
+        text-transform: capitalize;
+      }
+    </style>
+
+    <template is="dom-if" if="[[shownItems.length]]">
+      <iron-scroll-threshold class="scroll-threshold">
+        <content></content>
+      </iron-scroll-threshold>
+    </template>
+
+    <div class="loading-container">
+      <template is="dom-if" if="[[showMore]]">
+        <paper-button raised on-tap="goToNextPage">Show More [[loadType]]</paper-button>
+      </template>
+      <template is="dom-if" if="[[loading]]">
+        <paper-spinner active="[[loading]]"></paper-spinner>
+        <span class="button-height-text">Loading [[loadType]]...</span>
+      </template>
+    </div>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'item-list',
+
+      properties: {
+        /**
+         * The items to show in this list that are reset for each new page.
+         */
+        items: {
+          type: Array
+        },
+
+        /**
+         * The total number of items for all pages.
+         */
+        totalItems: {
+          type: Number
+        },
+
+        /**
+         * The items shown in this list that are taken from the input items.
+         */
+        shownItems: {
+          type: Array,
+          notify: true
+        },
+
+        /**
+         * The current page.
+         */
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
+        },
+
+        /**
+         * Whether a query is running.
+         */
+        loading: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The type of items shown in the Loading and Show More text.
+         */
+        loadType: {
+          type: String,
+          value: 'Data'
+        },
+
+        /**
+         * Whether additional items can be shown.
+         */
+        showMore: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      observers: [
+        'updateScroll(shownItems, page)',
+        'updateShownItems(items, loading)',
+        'updateShowMore(shownItems.length, totalItems, loading)'
+      ],
+
+      /**
+       * Increases the page number if more items can be shown.
+       */
+      goToNextPage: function() {
+        if(this.showMore) {
+          this.set('page', this.page + 1);
+        }
+      },
+
+      updateScroll: function() {
+        if(this.page === 1 && this.$$('.scroll-threshold')) {
+          this.$$('.scroll-threshold').scroll(0, 0);
+        }
+      },
+
+      /**
+       * Updates the shown items to include the given input items.
+       */
+      updateShownItems: function(items, loading) {
+        if(!loading) {
+          if(this.page === 1) {
+            this.set('shownItems', []);
+          }
+
+          var self = this;
+          items.forEach(function(item) {
+            self.push('shownItems', item);
+          });
+        }
+      },
+
+      /**
+       * Updates whether more items can be shown.
+       */
+      updateShowMore: function(totalShownItems, totalItems, loading) {
+        this.set('showMore', (!loading && totalItems > 0 && totalItems > totalShownItems));
+      }
+    });
+  })();
+  </script>
+</dom-module>

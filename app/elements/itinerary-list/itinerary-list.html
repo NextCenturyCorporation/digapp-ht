@@ -16,89 +16,91 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../item-list/item-list.html">
 <link rel="import" href="../records-grid/records-grid.html">
 
 <dom-module id="itinerary-list">
   <template>
     <style include="list-item-styles"></style>
-    <style include="web-component-styles"></style>
 
     <style>
       :host {
         display: block;
-        /* Max Height = Height of 50 Items */
-        max-height: 3000px;
-        overflow: auto;
       }
 
-      .list-item-body paper-item,
-      .list-item-body records-grid {
+      item-list {
+        /* Max Height = Height of 50 Items */
+        --item-list-max-height: 3000px;
+      }
+
+      item-list ::content .list-item-body paper-item,
+      item-list ::content .list-item-body records-grid {
         margin: 0 40px;
       }
     </style>
 
-    <div class="loading-container">
-      <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <span class="button-height-text">Loading Timeline...</span>
-      </template>
-    </div>
+    <item-list
+      loading="[[loading]]"
+      load-type="Timeline"
+      items="[[data]]"
+      total-items="[[data.length]]">
 
-    <template is="dom-repeat" items="[[data]]" as="dateItem">
-      <div class="itinerary">
-        <paper-material class$="list-item-head [[getHeaderClass(dateItem.opened)]]" clickable on-tap="toggleItinerary">
-          <paper-icon-item>
-            <iron-icon class$="list-item-icon [[getProperty(dateItem, dataStyleClassProperty)]]" icon="[[getProperty(dateItem, dataIconProperty)]]" item-icon></iron-icon>
-            <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
-            <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
+      <template is="dom-repeat" items="[[data]]" as="dateItem">
+        <div class="itinerary">
+          <paper-material class$="list-item-head [[getHeaderClass(dateItem.opened)]]" clickable on-tap="toggleItinerary">
+            <paper-icon-item>
+              <iron-icon class$="list-item-icon [[getProperty(dateItem, dataStyleClassProperty)]]" icon="[[getProperty(dateItem, dataIconProperty)]]" item-icon></iron-icon>
+              <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
+              <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
 
-            <paper-item-body two-line>
-              <div>
-                <strong>[[getInterval(interval)]]</strong>
-                <strong title="[[getProperty(dateItem, dataDateProperty)]]">[[getProperty(dateItem, dataDateProperty)]]</strong>
-              </div>
-              <div secondary><strong title="[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]">[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]</strong></div>
-            </paper-item-body>
-          </paper-icon-item>
-        </paper-material>
+              <paper-item-body two-line>
+                <div>
+                  <strong>[[getInterval(interval)]]</strong>
+                  <strong title="[[getProperty(dateItem, dataDateProperty)]]">[[getProperty(dateItem, dataDateProperty)]]</strong>
+                </div>
+                <div secondary><strong title="[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]">[[getProperty(dateItem, dataSubtitleProperty, 'Unknown Locations')]]</strong></div>
+              </paper-item-body>
+            </paper-icon-item>
+          </paper-material>
 
-        <iron-collapse id$="[[getId(dateItem, dataDateProperty)]]">
-          <div class="list-item-collapse-body">
-            <template is="dom-repeat" items="[[getProperty(dateItem, dataItemsProperty)]]" as="materialItem">
-              <paper-material class="list-item-body">
-                <paper-icon-item>
-                  <iron-icon class$="list-item-icon [[getProperty(materialItem, dataItemStyleClassProperty)]]" icon="[[getProperty(materialItem, dataItemIconProperty)]]" item-icon></iron-icon>
-                  <paper-item-body>
-                    <div><strong>[[getProperty(materialItem, dataItemNameProperty, 'Unknown')]]</strong></div>
-                  </paper-item-body>
-                </paper-icon-item>
+          <iron-collapse id$="[[getId(dateItem, dataDateProperty)]]">
+            <div class="list-item-collapse-body">
+              <template is="dom-repeat" items="[[getProperty(dateItem, dataItemsProperty)]]" as="materialItem">
+                <paper-material class="list-item-body">
+                  <paper-icon-item>
+                    <iron-icon class$="list-item-icon [[getProperty(materialItem, dataItemStyleClassProperty)]]" icon="[[getProperty(materialItem, dataItemIconProperty)]]" item-icon></iron-icon>
+                    <paper-item-body>
+                      <div><strong>[[getProperty(materialItem, dataItemNameProperty, 'Unknown')]]</strong></div>
+                    </paper-item-body>
+                  </paper-icon-item>
 
-                <paper-item>
-                  <paper-item-body>
-                    <div>
-                      <strong>Count:</strong>
-                      <span secondary>[[getProperty(materialItem, dataItemCountProperty, 'Unknown')]]</span>
-                    </div>
-                  </paper-item-body>
-                </paper-item>
-
-                <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetailsProperty)]]" as="detailItem">
                   <paper-item>
                     <paper-item-body>
-                      <div><strong class="capitalize">[[getProperty(detailItem, dataDetailNameProperty)]]:</strong></div>
+                      <div>
+                        <strong>Count:</strong>
+                        <span secondary>[[getProperty(materialItem, dataItemCountProperty, 'Unknown')]]</span>
+                      </div>
                     </paper-item-body>
                   </paper-item>
 
-                  <records-grid
-                    data="[[getProperty(detailItem, dataDetailItemsProperty)]]">
-                  </records-grid>
-                </template>
-              </paper-material>
-            </template>
-          </div>
-        </iron-collapse>
-      </div>
-    </template>
+                  <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetailsProperty)]]" as="detailItem">
+                    <paper-item>
+                      <paper-item-body>
+                        <div><strong class="capitalize">[[getProperty(detailItem, dataDetailNameProperty)]]:</strong></div>
+                      </paper-item-body>
+                    </paper-item>
+
+                    <records-grid
+                      data="[[getProperty(detailItem, dataDetailItemsProperty)]]">
+                    </records-grid>
+                  </template>
+                </paper-material>
+              </template>
+            </div>
+          </iron-collapse>
+        </div>
+      </template>
+    </item-list>
   </template>
 
   <script>
