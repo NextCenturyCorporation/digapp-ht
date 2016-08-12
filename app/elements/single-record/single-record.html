@@ -10,17 +10,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
-<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
-<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../button-link/button-link.html">
 <link rel="import" href="../content-label/content-label.html">
 <link rel="import" href="../image-viewer/image-viewer.html">
+<link rel="import" href="../modal-icon/modal-icon.html">
 
 <dom-module id="single-record">
   <template>
@@ -29,25 +25,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
 
-      paper-icon-item {
-        /* Ignore the default focused behavior. */
-        --paper-item-focused-before: {
-          background: initial;
-        }
-      }
-
-      paper-icon-item {
-        /* Use the default width of an icon. */
-        --paper-item-icon-width: 24px;
-      }
-
-      .entity-offer-font {
-        /* Hide the offer icons because users have said they are confusing */
-        display: none;
-      }
-
-      .head paper-item-body {
-        --paper-item-body-two-line-min-height: 60px;
+      modal-icon ::content .entity-offer-font {
+        /* Hide the offer icons because users didn't like them. */
+        visibility: hidden;
       }
 
       .head annotate-record {
@@ -62,7 +42,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .body button-link ::content paper-button {
         /* Needed to make the button look nice. */
-        margin: 10px 0;
+        margin-top: 10px;
       }
 
       content-label {
@@ -79,55 +59,54 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
-    <paper-material class$="head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
-      <paper-icon-item>
-        <iron-icon class$="head-icon [[item.styleClass]]" icon$="[[item.icon]]" item-icon></iron-icon>
+    <paper-material class$="layout horizontal flex head [[getHeaderClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
+      <modal-icon class="layout vertical center-justified"
+        icon="[[item.icon]]"
+        icon-style-class="[[item.styleClass]]"
+        openable="[[showDetails]]"
+        open="[[open]]"
+        hovering="[[hovering]]">
+      </modal-icon>
 
-        <template is="dom-if" if="[[showDetails]]">
-          <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
-          <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
+      <template is="dom-if" if="[[imageSource]]">
+        <iron-image class$="layout vertical center-justified [[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
+      </template>
+
+      <div class="layout vertical flex center-justified vertical-text">
+        <div class="text" title$="[[item.text]]"><strong>[[item.text]]</strong></div>
+
+        <template is="dom-if" if="[[item.descriptors.length]]">
+          <div class="text" secondary>
+            <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
+              <content-label
+                icon="[[descriptor.icon]]"
+                icon-style-class="[[descriptor.styleClass]]"
+                link="[[descriptor.link]]"
+                text="[[descriptor.text]]">
+              </content-label>
+            </template>
+          </div>
         </template>
+      </div>
 
-        <template is="dom-if" if="[[imageSource]]">
-          <iron-image class$="[[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
-        </template>
+      <template is="dom-if" if="[[showAnnotation(item)]]">
+        <annotate-record class="layout vertical center-justified"
+          client="[[client]]"
+          annotation-index="[[annotationIndex]]"
+          annotation-type="[[annotationType]]"
+          annotation-relevant="[[annotationRelevant]]"
+          item="{{item}}"
+          item-type="[[getTypeText(item, 'true')]]"
+          current-user="[[currentUser]]">
+        </annotate-record>
+      </template>
 
-        <paper-item-body two-line>
-          <div title$="[[item.text]]"><strong>[[item.text]]</strong></div>
-
-          <template is="dom-if" if="[[item.descriptors.length]]">
-            <div secondary>
-              <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
-                <content-label
-                  icon="[[descriptor.icon]]"
-                  icon-style-class="[[descriptor.styleClass]]"
-                  link="[[descriptor.link]]"
-                  text="[[descriptor.text]]">
-                </content-label>
-              </template>
-            </div>
-          </template>
-        </paper-item-body>
-
-        <!-- annotation controls -->
-        <template is="dom-if" if="[[showAnnotation(item)]]">
-          <annotate-record client="[[client]]"
-            annotation-index="[[annotationIndex]]"
-            annotation-type="[[annotationType]]"
-            annotation-relevant="[[annotationRelevant]]"
-            item="{{item}}"
-            item-type="[[getTypeText(item, 'true')]]"
-            current-user="[[currentUser]]">
-          </annotate-record>
-        </template>
-
-        <button-link
-          link="[[item.link]]"
-          link-target="[[getTarget(newTab)]]"
-          link-text="open [[getTypeText(item)]]"
-          show-link="[[showLinks]]">
-        </button-link>
-      </paper-icon-item>
+      <button-link class="layout vertical center-justified"
+        link="[[item.link]]"
+        link-target="[[getTarget(newTab)]]"
+        link-text="open [[getTypeText(item)]]"
+        show-link="[[showLinks]]">
+      </button-link>
     </paper-material>
 
     <template is="dom-if" if="[[showDetails]]">
@@ -244,8 +223,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           * User currently logged in.
           */
         currentUser: {
-          type: String,
-          notify: true
+          type: String
         },
 
         /**
@@ -259,10 +237,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * Whether the details are opened.
          */
-        opened: {
+        open: {
           type: Boolean,
-          value: false,
-          notify: true
+          value: false
         },
 
         /**
@@ -270,8 +247,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         showDetails: {
           type: Boolean,
-          value: false,
-          notify: true
+          value: false
         },
 
         /**
@@ -279,8 +255,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         showLinks: {
           type: Boolean,
-          value: false,
-          notify: true
+          value: false
+        },
+
+        /**
+         * Whether the user is hovering over the record.
+         */
+        hovering: {
+          type: Boolean,
+          value: false
         },
 
         error: {
@@ -302,8 +285,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return (detail && detail.value) ? (_.isArray(detail.value) ? detail.value : [detail.value]) : [];
       },
 
-      getHeaderClass: function(opened) {
-        return (opened ? 'opened' : 'closed');
+      getHeaderClass: function(open) {
+        return (open ? 'opened' : 'closed');
       },
 
       getTarget: function(newTab) {
@@ -340,11 +323,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       startHover: function() {
+        this.hovering = true;
         this.showLinks = true;
       },
 
       endHover: function() {
-        this.showLinks = this.opened;
+        this.hovering = false;
+        this.showLinks = this.open;
       },
 
       /**
@@ -353,10 +338,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       toggleRecord: function(event) {
         // Do not open a record with no details.
         if(this.showDetails) {
-          // Do not open the record if the user clicked on a button or link inside the record.
+          // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
           if(event.target.localName !== 'paper-button' && event.target.localName !== 'paper-icon-button' && !event.target.classList.contains('paper-icon-button') &&
               event.target.localName !== 'a' && (!event.target.parentElement || event.target.parentElement.localName !== 'a')) {
-            this.set('opened', !this.opened);
+            this.set('open', !this.open);
             this.$$('#recordDetail').toggle();
           }
         }

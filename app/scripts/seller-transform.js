@@ -9,13 +9,13 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-  function createLocationTimelineDetails(bucket) {
-    var details = [];
+  function createLocationTimelineNotes(bucket) {
+    var notes = [];
 
     if(bucket.publishers) {
-      details.push({
+      notes.push({
         name: 'Website',
-        items: _.map(bucket.publishers.buckets, function(publisher) {
+        data: _.map(bucket.publishers.buckets, function(publisher) {
           return {
             icon: commonTransforms.getIronIcon('webpage'),
             styleClass: commonTransforms.getStyleClass('webpage'),
@@ -31,9 +31,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return mention.key;
       }));
       if(emailAndPhoneLists.phones.length) {
-        details.push({
+        notes.push({
           name: 'Telephone Number',
-          items: _.map(emailAndPhoneLists.phones, function(phone) {
+          data: _.map(emailAndPhoneLists.phones, function(phone) {
             return {
               icon: commonTransforms.getIronIcon('phone'),
               link: commonTransforms.getLink(phone.id, 'phone'),
@@ -46,9 +46,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         });
       }
       if(emailAndPhoneLists.emails.length) {
-        details.push({
+        notes.push({
           name: 'Email Address',
-          items: _.map(emailAndPhoneLists.emails, function(email) {
+          data: _.map(emailAndPhoneLists.emails, function(email) {
             return {
               icon: commonTransforms.getIronIcon('email'),
               link: commonTransforms.getLink(email.id, 'email'),
@@ -62,12 +62,12 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       }
     }
 
-    return details;
+    return notes;
   }
 
   /**
    * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
-   * and details for each location.
+   * and notes for each location.
    * [{
    *     date: 1455657767,
    *     subtitle: "Mountain View, CA",
@@ -75,9 +75,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *         name: "Mountain View, CA, USA",
    *         type: "location",
    *         count: 12,
-   *         details: [{
+   *         notes: [{
    *             name: "Email Address",
-   *             items: [{
+   *             data: [{
    *                 id: "http://email/abc@xyz.com",
    *                 link: "/email.html?value=http://email/abc@xyz.com&field=_id",
    *                 text: "abc@xyz.com",
@@ -85,7 +85,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *             }]
    *         }, {
    *             name: "Telephone Number",
-   *             items: [{
+   *             data: [{
    *                 id: "http://phone/1234567890",
    *                 link: "/phone.html?value=http://phone/1234567890&field=_id",
    *                 text: "1234567890",
@@ -98,7 +98,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *             }]
    *         }, {
    *             name: "Website",
-   *             items: [{
+   *             data: [{
    *                 text: "google.com",
    *                 type: "webpage"
    *             }]
@@ -128,7 +128,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
             count: locationBucket.doc_count,
-            details: createLocationTimelineDetails(locationBucket)
+            notes: createLocationTimelineNotes(locationBucket)
           };
         });
 
@@ -138,7 +138,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
             styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
             count: bucket.doc_count - sum,
-            details: []
+            notes: []
           });
         }
 

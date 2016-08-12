@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
 @license
-Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
 The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -32,406 +32,70 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, flush, test, expect */
+  /* globals suite, test, expect, setup, fixture, flush */
   /* jshint -W030 */
-  suite('itinerary-list tests', function() {
+  suite('<itinerary-list> default tests', function() {
+    var component;
     var data;
-    var itineraryList;
 
     setup(function(done) {
       data = [{
         date: 'July 1, 2016',
         subtitle: 'Subtitle',
-        items: [{
+        parts: [{
           name: 'Washington, DC',
           count: 2,
-          details: []
+          notes: []
         }]
       }];
 
-      itineraryList = fixture('itinerary-list-fixture');
-      itineraryList.data = data;
+      component = fixture('itinerary-list-fixture');
+      component.data = data;
 
       flush(function() {
         done();
       });
     });
 
-    test('date is correct', function() {
-      expect(new Date('July 1, 2016')).to.be.a('date');
-      expect(new Date('July 1, 2016').getTime()).to.equal(1467345600000);
+    test('data is set to input array', function() {
+      expect(component.data).to.be.deep.equal(data);
     });
 
-    test('data equals input array', function() {
-      expect(itineraryList.data).to.be.deep.equal(data);
+    test('data properties are set to default values', function() {
+      expect(component.dateProperty).to.be.deep.equal('date');
+      expect(component.iconProperty).to.be.deep.equal('icon');
+      expect(component.styleClassProperty).to.be.deep.equal('styleClass');
+      expect(component.partsProperty).to.be.deep.equal('parts');
+      expect(component.partNameProperty).to.be.deep.equal('name');
+      expect(component.partIconProperty).to.be.deep.equal('icon');
+      expect(component.partStyleClassProperty).to.be.deep.equal('styleClass');
+      expect(component.partCountProperty).to.be.deep.equal('count');
+      expect(component.notesProperty).to.be.deep.equal('notes');
+      expect(component.noteNameProperty).to.be.deep.equal('name');
+      expect(component.noteDataProperty).to.be.deep.equal('data');
+      expect(component.subtitleProperty).to.be.deep.equal('subtitle');
+    });
+
+    test('loading and source are set to default values', function() {
+      expect(component.loading).to.be.false;
+      expect(component.source).to.equal('');
+    });
+
+    test('interval is not set', function() {
+      expect(component.interval).to.not.exist;
     });
 
     test('itineraryTitle is a string', function() {
-      expect(itineraryList.itineraryTitle).to.be.a('String');
-    });
-
-    test('does show an item-list element', function() {
-      expect(itineraryList.$$('item-list')).to.exist;
-    });
-
-    test('does show a paper-material element', function() {
-      expect(itineraryList.$$('paper-material')).to.exist;
-    });
-
-    test('does show an iron-collapse element', function() {
-      expect(itineraryList.$$('iron-collapse')).to.exist;
-    });
-
-    test('does not show a records-grid element', function() {
-      expect(itineraryList.$$('records-grid')).to.not.exist;
-    });
-
-    test('is collapsed', function() {
-      var head = itineraryList.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-
-      var ironCollapse = itineraryList.$$('#itinerary_1467345600000');
-      expect(ironCollapse).to.exist;
-      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
-    });
-
-    test('getProperty works', function() {
-      expect(itineraryList.getProperty({key: 'value'}, 'key')).to.equal('value');
-    });
-
-    test('getProperty with a default value works', function() {
-      expect(itineraryList.getProperty({}, 'key', 'value')).to.equal('value');
-    });
-
-    test('getCount works', function() {
-      expect(itineraryList.getCount({count: 1}, 'count')).is.a('String');
-    });
-
-    test('getDate works', function() {
-      expect(itineraryList.getDate('day', {date: 'Date'}, 'date')).is.a('String');
-      expect(itineraryList.getDate('week', {date: 'Date'}, 'date')).is.a('String');
-    });
-
-    test('getDetailName works', function() {
-      expect(itineraryList.getDetailName({name: 'Name'}, 'name')).is.a('String');
-    });
-
-    test('getHeaderClass works', function() {
-      expect(itineraryList.getHeaderClass(true)).to.equal('opened');
-      expect(itineraryList.getHeaderClass(false)).to.equal('closed');
-    });
-
-    test('getId returns a string with the date in the given item', function() {
-      expect(itineraryList.getId({key: 'Fri Oct 09 2015 00:00:00 GMT'}, 'key')).to.equal('itinerary_1444348800000');
+      expect(component.itineraryTitle).to.be.a('String');
     });
 
     test('computeTitle works', function() {
-      expect(itineraryList.computeTitle('', 0)).is.a('String');
-      expect(itineraryList.computeTitle('', 1)).is.a('String');
-      expect(itineraryList.computeTitle('Data', 0)).is.a('String');
-      expect(itineraryList.computeTitle('Data', 1)).is.a('String');
-    });
-
-    test('toggleItinerary() opens the itinerary head', function(done) {
-      var mockEvent = {
-        model: {
-          dateItem: {
-            date: 'July 1, 2016',
-            opened: false
-          },
-          set: function() {
-            itineraryList.set('data.0.opened', true);
-            flush(function() {
-              expect(itineraryList.data[0].opened).to.be.true;
-              var head = itineraryList.$$('.head');
-              expect(head).to.exist;
-              expect(head.classList.contains('closed')).to.be.false;
-              expect(head.classList.contains('opened')).to.be.true;
-              done();
-            });
-          }
-        }
-      };
-
-      itineraryList.toggleItinerary(mockEvent);
-    });
-
-    test('toggleItinerary() opens the itinerary body', function(done) {
-      var ironCollapse = itineraryList.$$('#itinerary_1467345600000');
-
-      var mockEvent = {
-        model: {
-          dateItem: {
-            date: 'July 1, 2016',
-            opened: false
-          },
-          set: function() {
-            itineraryList.set('data.0.opened', true);
-          }
-        }
-      };
-
-      itineraryList.transitionEndListener = function() {
-        expect(ironCollapse).to.exist;
-        expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.false;
-        expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.true;
-        done();
-      };
-      itineraryList.listen(ironCollapse, 'transitionend', 'transitionEndListener');
-      itineraryList.toggleItinerary(mockEvent);
-    });
-
-    test('toggleItinerary() closes the itinerary head', function(done) {
-      itineraryList.data[0].opened = true;
-
-      var mockEvent = {
-        model: {
-          dateItem: {
-            date: 'July 1, 2016',
-            opened: true
-          },
-          set: function() {
-            itineraryList.set('data.0.opened', false);
-            flush(function() {
-              expect(itineraryList.data[0].opened).to.be.false;
-              var head = itineraryList.$$('.head');
-              expect(head).to.exist;
-              expect(head.classList.contains('closed')).to.be.true;
-              expect(head.classList.contains('opened')).to.be.false;
-              done();
-            });
-          }
-        }
-      };
-
-      itineraryList.toggleItinerary(mockEvent);
-    });
-
-    test('toggleItinerary() closes the itinerary body', function(done) {
-      itineraryList.data[0].opened = true;
-      var ironCollapse = itineraryList.$$('#itinerary_1467345600000');
-
-      var mockEvent = {
-        model: {
-          dateItem: {
-            date: 'July 1, 2016',
-            opened: true
-          },
-          set: function() {
-            itineraryList.set('data.0.opened', false);
-          }
-        }
-      };
-
-      itineraryList.transitionEndListener = function(event) {
-        if(event.target.opened) {
-          itineraryList.toggleItinerary(mockEvent);
-        } else {
-          expect(ironCollapse).to.exist;
-          expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-          expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
-          done();
-        }
-      };
-      itineraryList.listen(ironCollapse, 'transitionend', 'transitionEndListener');
-      ironCollapse.show();
-    });
-  });
-
-  suite('itinerary-list with details tests', function() {
-    var data;
-    var itineraryList;
-
-    setup(function(done) {
-      data = [{
-        date: 'July 1, 2016',
-        subtitle: 'Subtitle',
-        items: [{
-          name: 'Washington, DC',
-          count: 2,
-          details: [{
-            name: 'Telephone',
-            items: [{
-              id: 1,
-              text: '1234567890',
-              type: 'phone'
-            }]
-          }]
-        }]
-      }];
-
-      itineraryList = fixture('itinerary-list-fixture');
-      itineraryList.data = data;
-
-      flush(function() {
-        done();
-      });
-    });
-
-    test('data equals input array', function() {
-      expect(itineraryList.data).to.be.deep.equal(data);
-    });
-
-    test('does show a records-grid element', function() {
-      expect(itineraryList.$$('records-grid')).to.exist;
-    });
-  });
-
-  suite('itinerary-list with properties tests', function() {
-    var data;
-    var itineraryList;
-
-    setup(function(done) {
-      data = [{
-        testDate: 1446422400000,
-        testIcon: 'dateIcon',
-        testStyleClass: 'dateStyleClass',
-        testSubtitle: 'Subtitle',
-        testItems: [{
-          testName: 'Washington, DC',
-          testItemIcon: 'locationIcon',
-          testItemStyleClass: 'locationStyleClass',
-          testCount: 2,
-          testDetails: [{
-            testName: 'Telephone',
-            testItems: [{
-              id: 1,
-              text: '1234567890',
-              type: 'phone'
-            }]
-          }]
-        }]
-      }];
-
-      itineraryList = fixture('itinerary-list-fixture');
-      itineraryList.dataDateProperty = 'testDate';
-      itineraryList.dataIconProperty = 'testIcon';
-      itineraryList.dataStyleClassProperty = 'testStyleClass';
-      itineraryList.dataItemsProperty = 'testItems';
-      itineraryList.dataItemNameProperty = 'testName';
-      itineraryList.dataItemIconProperty = 'testItemIcon';
-      itineraryList.dataItemStyleClassProperty = 'testItemStyleClass';
-      itineraryList.dataItemCountProperty = 'testCount';
-      itineraryList.dataItemDetailsProperty = 'testDetails';
-      itineraryList.dataDetailNameProperty = 'testName';
-      itineraryList.dataDetailItemsProperty = 'testItems';
-      itineraryList.dataSubtitleProperty = 'testSubtitle';
-      itineraryList.data = data;
-
-      flush(function() {
-        done();
-      });
-    });
-
-    test('data equals input array', function() {
-      expect(itineraryList.data).to.be.deep.equal(data);
-    });
-
-    test('data properties equal input values', function() {
-      expect(itineraryList.dataDateProperty).to.be.deep.equal('testDate');
-      expect(itineraryList.dataIconProperty).to.be.deep.equal('testIcon');
-      expect(itineraryList.dataStyleClassProperty).to.be.deep.equal('testStyleClass');
-      expect(itineraryList.dataItemsProperty).to.be.deep.equal('testItems');
-      expect(itineraryList.dataItemNameProperty).to.be.deep.equal('testName');
-      expect(itineraryList.dataItemIconProperty).to.be.deep.equal('testItemIcon');
-      expect(itineraryList.dataItemStyleClassProperty).to.be.deep.equal('testItemStyleClass');
-      expect(itineraryList.dataItemCountProperty).to.be.deep.equal('testCount');
-      expect(itineraryList.dataItemDetailsProperty).to.be.deep.equal('testDetails');
-      expect(itineraryList.dataDetailNameProperty).to.be.deep.equal('testName');
-      expect(itineraryList.dataDetailItemsProperty).to.be.deep.equal('testItems');
-      expect(itineraryList.dataSubtitleProperty).to.be.deep.equal('testSubtitle');
-    });
-
-    test('does show an item-list element', function() {
-      expect(itineraryList.$$('item-list')).to.exist;
-    });
-
-    test('does show an iron-collapse element', function() {
-      expect(itineraryList.$$('iron-collapse')).to.exist;
-    });
-
-    test('does show a records-grid element', function() {
-      expect(itineraryList.$$('records-grid')).to.exist;
-    });
-
-    test('getProperty works with data properties', function() {
-      expect(itineraryList.getProperty(itineraryList.data[0], itineraryList.dataDateProperty)).to.equal(1446422400000);
-      expect(itineraryList.getProperty(itineraryList.data[0], itineraryList.dataIconProperty)).to.equal('dateIcon');
-      expect(itineraryList.getProperty(itineraryList.data[0], itineraryList.dataStyleClassProperty)).to.equal('dateStyleClass');
-      expect(itineraryList.getProperty(itineraryList.data[0], itineraryList.dataSubtitleProperty)).to.equal('Subtitle');
-      expect(itineraryList.getProperty(itineraryList.data[0], itineraryList.dataItemsProperty)).to.deep.equal([{
-        testName: 'Washington, DC',
-        testItemIcon: 'locationIcon',
-        testItemStyleClass: 'locationStyleClass',
-        testCount: 2,
-        testDetails: [{
-          testName: 'Telephone',
-          testItems: [{
-            id: 1,
-            text: '1234567890',
-            type: 'phone'
-          }]
-        }]
-      }]);
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0], itineraryList.dataItemNameProperty)).to.equal('Washington, DC');
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0], itineraryList.dataItemIconProperty)).to.equal('locationIcon');
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0], itineraryList.dataItemStyleClassProperty)).to.equal('locationStyleClass');
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0], itineraryList.dataItemCountProperty)).to.equal(2);
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0], itineraryList.dataItemDetailsProperty)).to.deep.equal([{
-        testName: 'Telephone',
-        testItems: [{
-          id: 1,
-          text: '1234567890',
-          type: 'phone'
-        }]
-      }]);
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0].testDetails[0], itineraryList.dataDetailNameProperty)).to.equal('Telephone');
-      expect(itineraryList.getProperty(itineraryList.data[0].testItems[0].testDetails[0], itineraryList.dataDetailItemsProperty)).to.deep.equal([{
-        id: 1,
-        text: '1234567890',
-        type: 'phone'
-      }]);
-    });
-  });
-
-  suite('itinerary-list with no data tests', function() {
-    var data;
-    var itineraryList;
-
-    setup(function(done) {
-      data = [];
-      itineraryList = fixture('itinerary-list-fixture');
-      itineraryList.data = data;
-      flush(function() {
-        done();
-      });
-    });
-
-    test('data equals input array', function() {
-      expect(itineraryList.data).to.be.deep.equal(data);
-    });
-
-    test('itineraryTitle is a string', function() {
-      expect(itineraryList.itineraryTitle).to.be.a('String');
-    });
-
-    test('does show an item-list element', function() {
-      expect(itineraryList.$$('item-list')).to.exist;
-    });
-
-    test('does not show a paper-material element', function() {
-      expect(itineraryList.$$('paper-material')).to.not.exist;
-    });
-
-    test('does not show an iron-collapse element', function() {
-      expect(itineraryList.$$('iron-collapse')).to.not.exist;
-    });
-
-    test('does not show a records-grid element', function() {
-      expect(itineraryList.$$('records-grid')).to.not.exist;
+      expect(component.computeTitle('', 0)).to.be.a('String');
+      expect(component.computeTitle('', 1)).to.be.a('String');
+      expect(component.computeTitle('', 2)).to.be.a('String');
+      expect(component.computeTitle('source', 0)).to.be.a('String');
+      expect(component.computeTitle('source', 1)).to.be.a('String');
+      expect(component.computeTitle('source', 2)).to.be.a('String');
     });
   });
 </script>

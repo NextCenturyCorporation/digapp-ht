@@ -1,0 +1,361 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>single-itinerary</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/single-itinerary/single-itinerary.html">
+
+</head>
+<body>
+
+<test-fixture id="single-itinerary-fixture">
+  <template>
+    <single-itinerary></single-itinerary>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, setup, fixture, flush, test, expect */
+  /* jshint -W030 */
+  suite('single-itinerary tests', function() {
+    var component;
+
+    setup(function(done) {
+      component = fixture('single-itinerary-fixture');
+      component.item = {
+        date: 'July 1, 2016',
+        subtitle: 'Subtitle',
+        parts: [{
+          name: 'Washington, DC',
+          count: 2,
+          notes: []
+        }]
+      };
+
+      flush(function() {
+        done();
+      });
+    });
+
+    test('item equals input value', function() {
+      expect(component.item).to.be.deep.equal({
+        date: 'July 1, 2016',
+        subtitle: 'Subtitle',
+        parts: [{
+          name: 'Washington, DC',
+          count: 2,
+          notes: []
+        }]
+      });
+    });
+
+    test('properties equal default values', function() {
+      expect(component.dateProperty).to.be.deep.equal('date');
+      expect(component.iconProperty).to.be.deep.equal('icon');
+      expect(component.styleClassProperty).to.be.deep.equal('styleClass');
+      expect(component.partsProperty).to.be.deep.equal('parts');
+      expect(component.partNameProperty).to.be.deep.equal('name');
+      expect(component.partIconProperty).to.be.deep.equal('icon');
+      expect(component.partStyleClassProperty).to.be.deep.equal('styleClass');
+      expect(component.partCountProperty).to.be.deep.equal('count');
+      expect(component.notesProperty).to.be.deep.equal('notes');
+      expect(component.noteNameProperty).to.be.deep.equal('name');
+      expect(component.noteDataProperty).to.be.deep.equal('data');
+      expect(component.subtitleProperty).to.be.deep.equal('subtitle');
+    });
+
+    test('does show a paper-material element', function() {
+      expect(component.$$('paper-material')).to.exist;
+    });
+
+    test('does show an iron-collapse element', function() {
+      expect(component.$$('iron-collapse')).to.exist;
+    });
+
+    test('does not show a records-grid element', function() {
+      expect(component.$$('records-grid')).to.not.exist;
+    });
+
+    test('is collapsed', function() {
+      var head = component.$$('.head');
+      expect(head).to.exist;
+      expect(head.classList.contains('closed')).to.be.true;
+      expect(head.classList.contains('opened')).to.be.false;
+
+      var ironCollapse = component.$$('#itineraryNotes');
+      expect(ironCollapse).to.exist;
+      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
+    });
+
+    test('getProperty works', function() {
+      expect(component.getProperty({key: 'value'}, 'key')).to.equal('value');
+    });
+
+    test('getProperty with a default value works', function() {
+      expect(component.getProperty({}, 'key', 'value')).to.equal('value');
+    });
+
+    test('getCount works', function() {
+      expect(component.getCount({count: 1}, 'count')).is.a('String');
+    });
+
+    test('getDate works', function() {
+      expect(component.getDate('day', {date: 'Date'}, 'date')).is.a('String');
+      expect(component.getDate('week', {date: 'Date'}, 'date')).is.a('String');
+    });
+
+    test('getHeaderClass works', function() {
+      expect(component.getHeaderClass(true)).to.equal('opened');
+      expect(component.getHeaderClass(false)).to.equal('closed');
+    });
+
+    test('getPropertyWithColon works', function() {
+      expect(component.getPropertyWithColon({name: 'Name'}, 'name')).is.a('String');
+    });
+
+    test('toggleItinerary() opens the itinerary', function(done) {
+      var ironCollapse = component.$$('#itineraryNotes');
+      component.transitionEndListener = function() {
+        var head = component.$$('.head');
+        expect(head).to.exist;
+        expect(head.classList.contains('opened')).to.be.true;
+        expect(head.classList.contains('closed')).to.be.false;
+        expect(ironCollapse).to.exist;
+        expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.true;
+        expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.false;
+        done();
+      };
+      component.listen(ironCollapse, 'transitionend', 'transitionEndListener');
+      component.toggleItinerary();
+      expect(component.open).to.be.true;
+    });
+
+    test('toggleItinerary() closes the itinerary', function(done) {
+      component.open = true;
+      var ironCollapse = component.$$('#itineraryNotes');
+      component.transitionEndListener = function(event) {
+        if(event.target.opened) {
+          expect(component.open).to.be.true;
+          component.toggleItinerary();
+          expect(component.open).to.be.false;
+        } else {
+          var head = component.$$('.head');
+          expect(head).to.exist;
+          expect(head.classList.contains('closed')).to.be.true;
+          expect(head.classList.contains('opened')).to.be.false;
+          expect(ironCollapse).to.exist;
+          expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
+          expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
+          done();
+        }
+      };
+      component.listen(ironCollapse, 'transitionend', 'transitionEndListener');
+      ironCollapse.show();
+    });
+  });
+
+  suite('single-itinerary tests with records-grid', function() {
+    var component;
+
+    setup(function(done) {
+      component = fixture('single-itinerary-fixture');
+      component.item = {
+        date: 'July 1, 2016',
+        subtitle: 'Subtitle',
+        parts: [{
+          name: 'Washington, DC',
+          count: 2,
+          notes: [{
+            name: 'Telephone',
+            data: [{
+              id: 1,
+              text: '1234567890',
+              type: 'phone'
+            }]
+          }]
+        }]
+      };
+
+      flush(function() {
+        done();
+      });
+    });
+
+    test('item equals input value', function() {
+      expect(component.item).to.be.deep.equal({
+        date: 'July 1, 2016',
+        subtitle: 'Subtitle',
+        parts: [{
+          name: 'Washington, DC',
+          count: 2,
+          notes: [{
+            name: 'Telephone',
+            data: [{
+              id: 1,
+              text: '1234567890',
+              type: 'phone'
+            }]
+          }]
+        }]
+      });
+    });
+
+    test('does show a records-grid element', function() {
+      expect(component.$$('records-grid')).to.exist;
+    });
+  });
+
+  suite('single-itinerary tests with properties', function() {
+    var component;
+
+    setup(function(done) {
+      component = fixture('single-itinerary-fixture');
+      component.dateProperty = 'testDate';
+      component.iconProperty = 'testIcon';
+      component.styleClassProperty = 'testStyleClass';
+      component.partsProperty = 'testParts';
+      component.partNameProperty = 'testName';
+      component.partIconProperty = 'testIcon';
+      component.partStyleClassProperty = 'testStyleClass';
+      component.partCountProperty = 'testCount';
+      component.notesProperty = 'testNotes';
+      component.noteNameProperty = 'testName';
+      component.noteDataProperty = 'testData';
+      component.subtitleProperty = 'testSubtitle';
+      component.item = {
+        testDate: 1446422400000,
+        testIcon: 'dateIcon',
+        testStyleClass: 'dateStyleClass',
+        testSubtitle: 'Subtitle',
+        testParts: [{
+          testName: 'Washington, DC',
+          testIcon: 'locationIcon',
+          testStyleClass: 'locationStyleClass',
+          testCount: 2,
+          testNotes: [{
+            testName: 'Telephone',
+            testData: [{
+              id: 1,
+              text: '1234567890',
+              type: 'phone'
+            }]
+          }]
+        }]
+      };
+
+      flush(function() {
+        done();
+      });
+    });
+
+    test('item equals input value', function() {
+      expect(component.item).to.be.deep.equal({
+        testDate: 1446422400000,
+        testIcon: 'dateIcon',
+        testStyleClass: 'dateStyleClass',
+        testSubtitle: 'Subtitle',
+        testParts: [{
+          testName: 'Washington, DC',
+          testIcon: 'locationIcon',
+          testStyleClass: 'locationStyleClass',
+          testCount: 2,
+          testNotes: [{
+            testName: 'Telephone',
+            testData: [{
+              id: 1,
+              text: '1234567890',
+              type: 'phone'
+            }]
+          }]
+        }]
+      });
+    });
+
+    test('properties equal input values', function() {
+      expect(component.dateProperty).to.be.deep.equal('testDate');
+      expect(component.iconProperty).to.be.deep.equal('testIcon');
+      expect(component.styleClassProperty).to.be.deep.equal('testStyleClass');
+      expect(component.partsProperty).to.be.deep.equal('testParts');
+      expect(component.partNameProperty).to.be.deep.equal('testName');
+      expect(component.partIconProperty).to.be.deep.equal('testIcon');
+      expect(component.partStyleClassProperty).to.be.deep.equal('testStyleClass');
+      expect(component.partCountProperty).to.be.deep.equal('testCount');
+      expect(component.notesProperty).to.be.deep.equal('testNotes');
+      expect(component.noteNameProperty).to.be.deep.equal('testName');
+      expect(component.noteDataProperty).to.be.deep.equal('testData');
+      expect(component.subtitleProperty).to.be.deep.equal('testSubtitle');
+    });
+
+    test('does show a paper-material element', function() {
+      expect(component.$$('paper-material')).to.exist;
+    });
+
+    test('does show an iron-collapse element', function() {
+      expect(component.$$('iron-collapse')).to.exist;
+    });
+
+    test('does show a records-grid element', function() {
+      expect(component.$$('records-grid')).to.exist;
+    });
+
+    test('getProperty works with set properties', function() {
+      expect(component.getProperty(component.item, component.dateProperty)).to.equal(1446422400000);
+      expect(component.getProperty(component.item, component.iconProperty)).to.equal('dateIcon');
+      expect(component.getProperty(component.item, component.styleClassProperty)).to.equal('dateStyleClass');
+      expect(component.getProperty(component.item, component.subtitleProperty)).to.equal('Subtitle');
+      expect(component.getProperty(component.item, component.partsProperty)).to.deep.equal([{
+        testName: 'Washington, DC',
+        testIcon: 'locationIcon',
+        testStyleClass: 'locationStyleClass',
+        testCount: 2,
+        testNotes: [{
+          testName: 'Telephone',
+          testData: [{
+            id: 1,
+            text: '1234567890',
+            type: 'phone'
+          }]
+        }]
+      }]);
+      expect(component.getProperty(component.item.testParts[0], component.partNameProperty)).to.equal('Washington, DC');
+      expect(component.getProperty(component.item.testParts[0], component.partIconProperty)).to.equal('locationIcon');
+      expect(component.getProperty(component.item.testParts[0], component.partStyleClassProperty)).to.equal('locationStyleClass');
+      expect(component.getProperty(component.item.testParts[0], component.partCountProperty)).to.equal(2);
+      expect(component.getProperty(component.item.testParts[0], component.notesProperty)).to.deep.equal([{
+        testName: 'Telephone',
+        testData: [{
+          id: 1,
+          text: '1234567890',
+          type: 'phone'
+        }]
+      }]);
+      expect(component.getProperty(component.item.testParts[0].testNotes[0], component.noteNameProperty)).to.equal('Telephone');
+      expect(component.getProperty(component.item.testParts[0].testNotes[0], component.noteDataProperty)).to.deep.equal([{
+        id: 1,
+        text: '1234567890',
+        type: 'phone'
+      }]);
+    });
+  });
+</script>
+
+</body>
+</html>
