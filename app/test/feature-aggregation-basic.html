@@ -32,14 +32,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, expect, test */
+  /* globals suite, setup, fixture, expect, test, flush */
   /* jshint -W030 */
   'use strict';
 
   suite('feature-aggregation basic tests', function() {
     var component;
 
-    setup(function() {
+    setup(function(done) {
       component = fixture('feature-aggregation-fixture');
       component.data = [{
         id: 1,
@@ -50,6 +50,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         text: 'b',
         count: 3
       }];
+      flush(function() {
+        done();
+      });
     });
 
     test('data is set correctly', function() {
@@ -86,6 +89,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.filterValues).to.deep.equal([]);
       expect(component.selectedItems).to.be.an('array');
       expect(component.selectedItems).to.deep.equal([]);
+    });
+
+    test('does show a row-wrapper element', function() {
+      expect(component.$$('.row-wrapper')).to.exist;
     });
 
     test('combinedData is set correctly', function() {
@@ -278,7 +285,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   suite('feature-aggregation with properties tests', function() {
     var component;
 
-    setup(function() {
+    setup(function(done) {
       component = fixture('feature-aggregation-fixture');
       component.dataIdProperty = 'uuid';
       component.dataCountProperty = 'number';
@@ -307,6 +314,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         name: 'e',
         number: 1
       }];
+      flush(function() {
+        done();
+      });
     });
 
     test('dataIdProperty, dataCountProperty, dataTextProperty, limit, small, featureTitle, and data are set correctly', function() {
@@ -353,6 +363,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.filterValues).to.deep.equal([]);
       expect(component.selectedItems).to.be.an('array');
       expect(component.selectedItems).to.deep.equal([]);
+    });
+
+    test('does show a row-wrapper element', function() {
+      expect(component.$$('.row-wrapper')).to.exist;
     });
 
     test('combinedData is set correctly', function() {
@@ -412,8 +426,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.showMore).to.be.true;
     });
 
-    test('showMoreAggregations changes displayAggregations and showMore', function() {
-      component.showMoreAggregations();
+    test('createShowMoreListener() does return an object', function() {
+      var listener = component.createShowMoreListener();
+      expect(listener).to.exist;
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.exist;
+      expect(listener.onClick).to.be.a('Function');
+    });
+
+    test('createShowMoreListener().onClick() does change displayAggregations and showMore', function() {
+      component.createShowMoreListener().onClick();
       expect(component.displayAggregations).to.be.an('array');
       expect(component.displayAggregations).to.deep.equal(component.combinedData);
       expect(component.showMore).to.be.a('boolean');

@@ -10,10 +10,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
-<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
 <link rel="import" href="../lodash.html">
+<link rel="import" href="../button-action/button-action.html">
+<link rel="import" href="../loading-spinner/loading-spinner.html">
 
 <!--
 ### Styling
@@ -27,7 +27,7 @@ Custom property | Description | Default
 
 <dom-module id="feature-aggregation">
   <template>
-    <style include="web-component-styles"></style>
+    <style include="iron-flex iron-flex-alignment"></style>
 
     <style>
       :host {
@@ -67,7 +67,7 @@ Custom property | Description | Default
 
       .small {
         /* Max Height = Height of 10 Items + Height of Show More Button */
-        max-height: 290px;
+        max-height: 270px;
       }
 
       .row-wrapper {
@@ -122,6 +122,10 @@ Custom property | Description | Default
       a:hover {
         color: var(--secondary-text-color);
       }
+
+      .show-more {
+        text-align: center;
+      }
     </style>
 
     <div class="feature-wrapper">
@@ -151,17 +155,15 @@ Custom property | Description | Default
         </template>
       </div>
 
-      <div class$="loading-container [[isSmall(small)]]">
-        <template is="dom-if" if="[[showMore]]">
-          <paper-button raised on-tap="showMoreAggregations">Show More</paper-button>
-        </template>
-        <template is="dom-if" if="[[!small]]">
-          <template is="dom-if" if="[[loading]]">
-            <paper-spinner active="[[loading]]"></paper-spinner>
-            <span class="button-height-text">Loading...</span>
-          </template>
-        </template>
-      </div>
+      <template is="dom-if" if="[[!small]]">
+        <loading-spinner show="[[loading]]"></loading-spinner>
+      </template>
+
+      <template is="dom-if" if="[[showMore]]">
+        <div class="show-more">
+          <button-action text="Show More" click-listener="[[createShowMoreListener()]]"></button-action>
+        </div>
+      </template>
     </div>
   </template>
 
@@ -341,6 +343,19 @@ Custom property | Description | Default
         });
       },
 
+      createShowMoreListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            for(var i = self.limit; i < self.combinedData.length; ++i) {
+              self.push('displayAggregations', self.combinedData[i]);
+            }
+            self.set('showMore', false);
+            self.$.barList.render();
+          }
+        };
+      },
+
       /**
        * Returns whether this component has data that may overflow its list (requiring a scrollbar).
        */
@@ -380,17 +395,6 @@ Custom property | Description | Default
        */
       isSmall: function(small) {
         return small ? 'small' : '';
-      },
-
-      /**
-       * Adds all of the aggregation results to the list of display aggregations.
-       */
-      showMoreAggregations: function() {
-        for(var i = this.limit; i < this.combinedData.length; ++i) {
-          this.push('displayAggregations', this.combinedData[i]);
-        }
-        this.set('showMore', false);
-        this.$.barList.render();
       },
 
       /**

@@ -10,13 +10,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
+<link rel="import" href="../button-action/button-action.html">
+<link rel="import" href="../loading-spinner/loading-spinner.html">
 
 <dom-module id="item-list">
   <template>
-    <style include="web-component-styles"></style>
-
     <style>
       :host {
         display: block;
@@ -101,6 +99,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /* Needed to fix flexbox layout issues in newer browsers. */
         white-space: normal;
       }
+
+      .show-more {
+        margin-top: 10px;
+        text-align: center;
+      }
     </style>
 
     <template is="dom-if" if="[[shownItems.length]]">
@@ -109,15 +112,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </iron-scroll-threshold>
     </template>
 
-    <div class="loading-container">
-      <template is="dom-if" if="[[showMore]]">
-        <paper-button raised on-tap="goToNextPage">Show More [[loadType]]</paper-button>
-      </template>
-      <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <span class="button-height-text">Loading [[loadType]]...</span>
-      </template>
-    </div>
+    <template is="dom-if" if="[[showMore]]">
+      <div class="show-more">
+        <button-action text="[[createShowMoreButtonText(loadType)]]" click-listener="[[createGoToNextPageListener()]]"></button-action>
+      </div>
+    </template>
+
+    <loading-spinner show="[[loading]]" type="[[loadType]]"></loading-spinner>
   </template>
 
   <script>
@@ -164,7 +165,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         loading: {
           type: Boolean,
-          value: false
+          value: false,
+          notify: true
         },
 
         /**
@@ -190,13 +192,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         'updateShowMore(shownItems.length, totalItems, loading)'
       ],
 
-      /**
-       * Increases the page number if more items can be shown.
-       */
-      goToNextPage: function() {
-        if(this.showMore) {
-          this.set('page', this.page + 1);
-        }
+      createGoToNextPageListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(self.showMore) {
+              self.set('page', self.page + 1);
+            }
+          }
+        };
+      },
+
+      createShowMoreButtonText: function(loadType) {
+        return 'Show More ' + loadType;
       },
 
       updateScroll: function() {
