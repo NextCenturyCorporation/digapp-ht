@@ -6,7 +6,7 @@
 <dom-module id="drops-timeline">
   <style>
     :host {
-      display: block;  
+      display: block;
     }
 
     #timeline-container {
@@ -37,7 +37,7 @@
 
     text {
         stroke: none;
-        fill: #37474F;        
+        fill: #37474F;
         color: #37474F;
     }
     .graph-body .line {
@@ -51,7 +51,7 @@
       top: 0;
       margin: 0;
     }
-    
+
     paper-button{
       background-color: var(--text-primary-color);
       color: var(--primary-text-color);
@@ -64,81 +64,83 @@
 
   </style>
   <template>
-    <div class="layout horizontal">                
+    <div class="layout horizontal">
         <div class="flex auto" id="timeline-container">
-          <div id="timeline"></div>   
-        </div>        
+          <div id="timeline"></div>
+        </div>
       </div>
-    </div>    
+    </div>
   </template>
   <script>
-  (function() {
-    'use strict';
-    /* globals d3 */
-    
-    Polymer({
-      is: 'drops-timeline',
+    (function() {
+      'use strict';
+      /* globals d3 */
+      /* globals _ */
 
-      properties: {
-        payload: {
-          type: Array,
-          value: function() {
-            return {};
-          },
-          notify: true
+      Polymer({
+        is: 'drops-timeline',
+
+        properties: {
+          payload: {
+            type: Array,
+            value: function() {
+              return {};
+            },
+            notify: true
+          }
+        },
+        observers: [
+          'setupChart(payload)'
+        ],
+        getEndTime: function() {
+          if(this.payload.timestamps.length) {
+            return Math.max.apply(null, this.payload.timestamps) + (60 * 60 * 24 * 30 * 1000);
+          }
+          //else
+          return Date.now();
+        },
+        getStartTime: function() {
+          if(this.payload.timestamps.length) {
+            return Math.min.apply(null, this.payload.timestamps) - (60 * 60 * 24 * 30 * 1000);
+          }
+          //else
+          return Date.now();
+        },
+        setupChart: function() {
+
+          if(_.isEmpty(this.payload)) {
+            return;
+          }
+
+          var color = d3.scale.category20();
+          var endTime = this.getEndTime();
+          var startTime = this.getStartTime();
+
+          // Set width based on width of container element.
+          var container = document.getElementById('timeline-container');
+          var width = (container ? parseInt(container.offsetWidth, 10) : 600);
+
+          var chart = d3.chart.eventDrops();
+          chart.eventLineColor(function(datum, index) {
+            return color(index);
+          });
+          chart.start(new Date(startTime));
+          chart.end(new Date(endTime));
+          chart.width(width);
+          chart.metaballs(true);
+
+          var node = this.$.timeline;
+
+          d3.select(node)
+            .datum(this.payload.data)
+            .call(chart);
+
+          var _t = this;
+          d3.select(window).on('resize', function() {
+            _t.setupChart();
+          });
         }
-      },
-      observers: [
-        'setupChart(payload)'
-      ],      
-      getEndTime : function() {
-        if (this.payload.timestamps.length)           
-          return  Math.max.apply(null, this.payload.timestamps)+(60*60*24*30*1000);             
-        //else
-        return Date.now(); 
-      },
-      getStartTime : function() {
-        if (this.payload.timestamps.length)
-          return Math.min.apply(null, this.payload.timestamps)-(60*60*24*30*1000);
-        //else
-        return Date.now(); 
-      },
-      setupChart : function() {
-
-        if (_.isEmpty(this.payload)) {
-          return;
-        }
-
-        var color = d3.scale.category20();
-        var endTime = this.getEndTime();   
-        var startTime = this.getStartTime();              
-
-        // Set width based on width of container element.
-        var container = document.getElementById('timeline-container');
-        var width = (container ? parseInt(container.offsetWidth, 10) : 600);
-        
-        var chart = d3.chart.eventDrops()
-            .eventLineColor(function (datum, index) {
-                  return color(index);
-              })
-            .start(new Date(startTime))
-            .end(new Date(endTime))
-            .width(width)
-            .metaballs(true);
-            
-
-        var node = this.$.timeline;
-
-        d3.select(node)
-        .datum(this.payload.data)           
-        .call(chart);        
-
-        var _t = this;
-        d3.select(window).on('resize', function() {
-          _t.setupChart();  
-        });
-      }
-    });
-  })();
+      });
+    })();
   </script>
 </dom-module>
