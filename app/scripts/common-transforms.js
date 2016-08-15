@@ -49,13 +49,11 @@ var commonTransforms = (function(_, dateFormat) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var geo = {
         key: key.key,
-        city: geoData[0],
-        state: geoData[1],
-        country: geoData[2],
+        count: key.doc_count,
         longitude: geoData[3],
         latitude: geoData[4],
-        count: key.doc_count,
-        name: geoData[0] + ', ' + geoData[1]
+        name: geoData[0] + ', ' + geoData[1],
+        longName: geoData[0] + ', ' + geoData[1] + ', ' + geoData[2] + ' (' + key.doc_count + ')'
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       geos.push(geo);

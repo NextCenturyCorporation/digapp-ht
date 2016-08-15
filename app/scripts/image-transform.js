@@ -59,10 +59,6 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return newData;
     },
 
-    offerLocationData: function(data) {
-      return commonTransforms.offerLocationData(data);
-    },
-
     imageOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
