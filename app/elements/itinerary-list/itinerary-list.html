@@ -9,189 +9,148 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
-<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
-<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
-<link rel="import" href="../behaviors.html">
-<link rel="import" href="../records-grid/records-grid.html">
+<link rel="import" href="../../bower_components/paginated-list/paginated-list.html">
+<link rel="import" href="../single-itinerary/single-itinerary.html">
 
 <dom-module id="itinerary-list">
   <template>
-    <style include="icon-styles"></style>
-    <style include="list-item-styles"></style>
-    <style include="web-component-styles"></style>
-
     <style>
       :host {
         display: block;
-        /* Max Height = Height of 50 Items */
-        max-height: 3000px;
-        overflow: auto;
       }
 
-      .list-item-body paper-item,
-      .list-item-body records-grid {
-        margin: 0 40px;
+      paginated-list {
+        /* Max Height = Height of 50 Items */
+        --paginated-list-max-height: 3000px;
       }
     </style>
 
-    <div class="loading-container">
-      <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <span class="button-height-text">Loading Timeline...</span>
+    <paginated-list
+      loading="[[loading]]"
+      load-type="Timeline"
+      items="[[data]]"
+      total-items="[[data.length]]">
+
+      <template is="dom-repeat" items="[[data]]">
+        <single-itinerary
+          date-property="[[dateProperty]]"
+          icon-property="[[iconProperty]]"
+          style-class-property="[[styleClassProperty]]"
+          parts-property="[[partsProperty]]"
+          part-name-property="[[partNameProperty]]"
+          part-icon-property="[[partIconProperty]]"
+          part-style-class-property="[[partStyleClassProperty]]"
+          part-count-property="[[partCountProperty]]"
+          notes-property="[[notesProperty]]"
+          note-name-property="[[noteNameProperty]]"
+          note-data-property="[[noteDataProperty]]"
+          subtitle-property="[[subtitleProperty]]"
+          item="[[item]]"
+          interval="[[interval]]">
+        </single-itinerary>
       </template>
-    </div>
-
-    <template is="dom-repeat" items="[[data]]" as="dateItem">
-      <div class="itinerary">
-        <paper-material class$="list-item-head [[getHeaderClass(dateItem.opened)]]" clickable on-tap="toggleItinerary">
-          <paper-icon-item>
-            <iron-icon class$="list-item-icon [[getTypeStyleClass('date')]]" icon="[[getTypeIronIcon('date')]]" item-icon></iron-icon>
-            <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
-            <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
-
-            <paper-item-body two-line>
-              <div>
-                <strong>[[getInterval(interval)]]</strong>
-                <strong title="[[getProperty(dateItem, dataDate)]]">[[getProperty(dateItem, dataDate)]]</strong>
-              </div>
-              <div secondary><strong title="[[getProperty(dateItem, dataSubtitle, 'Unknown Locations')]]">[[getProperty(dateItem, dataSubtitle, 'Unknown Locations')]]</strong></div>
-            </paper-item-body>
-          </paper-icon-item>
-        </paper-material>
-
-        <iron-collapse id$="[[getId(dateItem, dataDate)]]">
-          <div class="list-item-collapse-body">
-            <template is="dom-repeat" items="[[getProperty(dateItem, dataItems)]]" as="materialItem">
-              <paper-material class="list-item-body">
-                <paper-icon-item>
-                  <iron-icon class$="list-item-icon [[getItemTypeStyleClass(materialItem, dataItemType)]]" icon="[[getItemTypeIronIcon(materialItem, dataItemType)]]" item-icon></iron-icon>
-                  <paper-item-body>
-                    <div><strong>[[getProperty(materialItem, dataItemName, 'Unknown')]]</strong></div>
-                  </paper-item-body>
-                </paper-icon-item>
-
-                <paper-item>
-                  <paper-item-body>
-                    <div>
-                      <strong>Count:</strong>
-                      <span secondary>[[getProperty(materialItem, dataItemCount, 'Unknown')]]</span>
-                    </div>
-                  </paper-item-body>
-                </paper-item>
-
-                <template is="dom-repeat" items="[[getProperty(materialItem, dataItemDetails)]]" as="detailItem">
-                  <paper-item>
-                    <paper-item-body>
-                      <div><strong class="capitalize">[[getProperty(detailItem, dataDetailName)]]:</strong></div>
-                    </paper-item-body>
-                  </paper-item>
-
-                  <records-grid
-                    data-id="id"
-                    data-text="text"
-                    data-type="type"
-                    data="[[getProperty(detailItem, dataDetailItems)]]">
-                  </records-grid>
-                </template>
-              </paper-material>
-            </template>
-          </div>
-        </iron-collapse>
-      </div>
-    </template>
+    </paginated-list>
   </template>
 
   <script>
-    /* globals DigBehaviors */
     Polymer({
       is: 'itinerary-list',
 
-      behaviors: [DigBehaviors.DataTypeBehavior],
-
       properties: {
         /**
-         * The property for the date for each object in the data.
+         * The property for the date in the data.
          */
-        dataDate: {
+        dateProperty: {
           type: String,
-          value: 'date',
-          notify: true
+          value: 'date'
         },
 
         /**
-         * The property for the items for each object in the data.
+         * The property for the icon in the data.
          */
-        dataItems: {
+        iconProperty: {
           type: String,
-          value: 'items',
-          notify: true
+          value: 'icon'
         },
 
         /**
-         * The property for the name for each item in the items for each object in the data.
+         * The property for the style class of the icon in the data.
          */
-        dataItemName: {
+        styleClassProperty: {
           type: String,
-          value: 'name',
-          notify: true
+          value: 'styleClass'
         },
 
         /**
-         * The property for the type for each item in the items for each object in the data.
+         * The property for the items in the data.
          */
-        dataItemType: {
+        partsProperty: {
           type: String,
-          value: 'type',
-          notify: true
+          value: 'parts'
         },
 
         /**
-         * The property for the count for each item in the items for each object in the data.
+         * The property for the name of each part in the data.
          */
-        dataItemCount: {
+        partNameProperty: {
           type: String,
-          value: 'count',
-          notify: true
+          value: 'name'
         },
 
         /**
-         * The property for the details for each item in the items for each object in the data.
+         * The property for the icon of each part in the data.
          */
-        dataItemDetails: {
+        partIconProperty: {
           type: String,
-          value: 'details',
-          notify: true
+          value: 'icon'
         },
 
         /**
-         * The property for the name for each detail in the details for each item in the items for each object in the data.
+         * The property for the style class of the icon of each part in the data.
          */
-        dataDetailName: {
+        partStyleClassProperty: {
           type: String,
-          value: 'name',
-          notify: true
+          value: 'styleClass'
         },
 
         /**
-         * The property for the items for each detail in the details for each item in the items for each object in the data.
+         * The property for the count of each part in the data.
          */
-        dataDetailItems: {
+        partCountProperty: {
           type: String,
-          value: 'items',
-          notify: true
+          value: 'count'
         },
 
         /**
-         * The property for the subtitle for each object in the data.
+         * The property for the notes of each part in the data.
          */
-        dataSubtitle: {
+        notesProperty: {
           type: String,
-          value: 'subtitle',
-          notify: true
+          value: 'notes'
+        },
+
+        /**
+         * The property for the name of each note in the notes of each part in the data.
+         */
+        noteNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
+         * The property for the data of each note in the notes of each part in the data.
+         */
+        noteDataProperty: {
+          type: String,
+          value: 'data'
+        },
+
+        /**
+         * The property for the subtitle in the data.
+         */
+        subtitleProperty: {
+          type: String,
+          value: 'subtitle'
         },
 
         /**
@@ -206,19 +165,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The source of the data to use in the title for this itinerary.
-         */
-        source: {
-          type: String,
-          value: '',
-          notify: true
-        },
-
-        /**
          * The time interval for the data.
          */
         interval: {
           type: String
+        },
+
+        /**
+         * The source of the data to use in the title for this itinerary.
+         */
+        source: {
+          type: String,
+          value: ''
         },
 
         /**
@@ -246,27 +204,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       computeTitle: function(source, count) {
         return (source ? source + ' ' : '') + 'Timeline (' + (count ? count : 'No') + ' Date' + (count === 1 ? '' : 's') + ')';
-      },
-
-      getHeaderClass: function(opened) {
-        return (opened ? 'opened' : 'closed');
-      },
-
-      getId: function(item, dataDate) {
-        return 'itinerary_' + new Date(item[dataDate]).getTime();
-      },
-
-      getInterval: function(interval) {
-        return interval && interval === 'week' ? 'Week of' : '';
-      },
-
-      getProperty: function(item, property, defaultValue) {
-        return item[property] || defaultValue;
-      },
-
-      toggleItinerary: function(event) {
-        event.model.set('dateItem.opened', !event.model.dateItem.opened);
-        this.$$('#' + this.getId(event.model.dateItem, this.dataDate)).toggle();
       }
     });
   </script>

@@ -41,9 +41,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     setup(function(done) {
       singleRecord = fixture('single-record-fixture');
       singleRecord.item = {
-        _id: '1',
-        _type: 'offer',
-        title: 'myTitle',
+        id: '1',
+        type: 'offer',
+        text: 'myTitle',
         details: [{
           label: 'address',
           value: ['LA', 'SF']
@@ -63,8 +63,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    test('has a paper-icon-item element', function() {
-      expect(singleRecord.$$('paper-icon-item')).to.exist;
+    test('has a paper-material element', function() {
+      expect(singleRecord.$$('paper-material')).to.exist;
     });
 
     test('has an iron-collapse element', function() {
@@ -115,9 +115,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecord.blur).to.equal(true);
     });
 
-    test('replaceCamelCaseText() adds spaces to camel cased strings', function() {
-      expect(singleRecord.replaceCamelCaseText('test')).to.be.equal('test');
-      expect(singleRecord.replaceCamelCaseText('camelCase')).to.be.equal('camel Case');
+    test('cleanCamelCase() returns correct strings', function() {
+      expect(singleRecord.cleanCamelCase('test')).to.be.equal('Test:');
+      expect(singleRecord.cleanCamelCase('camelCase')).to.be.equal('Camel Case:');
     });
 
     test('getTarget() returns "_self" when newTab is false', function() {
@@ -125,8 +125,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('details start collapsed', function() {
-      expect(singleRecord.opened).to.be.false;
-      var head = singleRecord.$$('.list-item-head');
+      expect(singleRecord.open).to.be.false;
+      var head = singleRecord.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
       expect(head.classList.contains('opened')).to.be.false;
@@ -150,7 +150,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       var ironCollapse = singleRecord.$$('#recordDetail');
       singleRecord.transitionEndListener = function() {
-        var head = singleRecord.$$('.list-item-head');
+        var head = singleRecord.$$('.head');
         expect(head).to.exist;
         expect(head.classList.contains('opened')).to.be.true;
         expect(head.classList.contains('closed')).to.be.false;
@@ -161,11 +161,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
       singleRecord.listen(ironCollapse, 'transitionend', 'transitionEndListener');
       singleRecord.toggleRecord(mockEvent);
-      expect(singleRecord.opened).to.be.true;
+      expect(singleRecord.open).to.be.true;
     });
 
     test('toggleRecord() closes the details', function(done) {
-      singleRecord.opened = true;
+      singleRecord.open = true;
 
       var mockEvent = {
         target: {
@@ -182,9 +182,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       singleRecord.transitionEndListener = function(event) {
         if(event.target.opened) {
           singleRecord.toggleRecord(mockEvent);
-          expect(singleRecord.opened).to.be.false;
+          expect(singleRecord.open).to.be.false;
         } else {
-          var head = singleRecord.$$('.list-item-head');
+          var head = singleRecord.$$('.head');
           expect(head).to.exist;
           expect(head.classList.contains('closed')).to.be.true;
           expect(head.classList.contains('opened')).to.be.false;
@@ -211,8 +211,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       singleRecord.toggleRecord(mockEvent);
-      expect(singleRecord.opened).to.be.false;
-      var head = singleRecord.$$('.list-item-head');
+      expect(singleRecord.open).to.be.false;
+      var head = singleRecord.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
       expect(head.classList.contains('opened')).to.be.false;
@@ -235,8 +235,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       singleRecord.toggleRecord(mockEvent);
-      expect(singleRecord.opened).to.be.false;
-      var head = singleRecord.$$('.list-item-head');
+      expect(singleRecord.open).to.be.false;
+      var head = singleRecord.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
       expect(head.classList.contains('opened')).to.be.false;
@@ -253,6 +253,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('has no iron-image element', function() {
       expect(singleRecord.$$('iron-image')).to.not.exist;
     });
+
+    test('getTypeText returns a string', function() {
+      expect(singleRecord.getTypeText({type: 'date'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'email'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'image'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'location'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'money'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'phone'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'provider'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'offer'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'seller'})).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'webpage'})).to.be.a('String');
+    });
+
+    test('getTypeText with longText as true returns a different string for email and phone types', function() {
+      expect(singleRecord.getTypeText({type: 'email'}, true)).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'phone'}, true)).to.be.a('String');
+      expect(singleRecord.getTypeText({type: 'email'}, true)).to.not.equal(singleRecord.getTypeText({type: 'email'}));
+      expect(singleRecord.getTypeText({type: 'phone'}, true)).to.not.equal(singleRecord.getTypeText({type: 'phone'}));
+    });
   });
 
   suite('<single-record> with no details', function() {
@@ -260,7 +280,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecord = fixture('single-record-fixture');
-      singleRecord.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle'};
+      singleRecord.item = {'id': '1', 'type': 'offer', 'text': 'myTitle'};
       flush(function() {
         done();
       });
@@ -287,8 +307,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       singleRecord.toggleRecord(mockEvent);
-      expect(singleRecord.opened).to.be.false;
-      var head = singleRecord.$$('.list-item-head');
+      expect(singleRecord.open).to.be.false;
+      var head = singleRecord.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
       expect(head.classList.contains('opened')).to.be.false;
@@ -322,7 +342,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecord = fixture('single-record-fixture');
-      singleRecord.item = {'_id': '1', '_type': 'offer', 'title': 'myTitle'};
+      singleRecord.item = {'id': '1', 'type': 'offer', 'text': 'myTitle'};
       singleRecord.newTab = true;
       flush(function() {
         done();
@@ -339,7 +359,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       singleRecord = fixture('single-record-fixture');
-      singleRecord.item = {'_id': '1', '_type': 'offer'};
+      singleRecord.item = {'id': '1', 'type': 'offer'};
       singleRecord.images = [{
         id: 'id1',
         source: 'url1'
@@ -378,8 +398,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(singleRecord.$$('iron-collapse')).to.exist;
     });
 
-    test('has an image-viewer element for the images', function() {
-      expect(singleRecord.$$('image-viewer')).to.exist;
+    test('has an image-gallery element for the images', function() {
+      expect(singleRecord.$$('image-gallery')).to.exist;
     });
   });
 </script>

@@ -32,14 +32,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, expect, test */
+  /* globals suite, setup, fixture, expect, test, flush */
   /* jshint -W030 */
   'use strict';
 
   suite('feature-aggregation basic tests', function() {
     var component;
 
-    setup(function() {
+    setup(function(done) {
       component = fixture('feature-aggregation-fixture');
       component.data = [{
         id: 1,
@@ -50,6 +50,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         text: 'b',
         count: 3
       }];
+      flush(function() {
+        done();
+      });
     });
 
     test('data is set correctly', function() {
@@ -66,22 +69,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('properties are set to defaults correctly', function() {
-      expect(component.dataId).to.be.a('string');
-      expect(component.dataId).to.equal('id');
-      expect(component.dataText).to.be.a('string');
-      expect(component.dataText).to.equal('text');
-      expect(component.dataCount).to.be.a('string');
-      expect(component.dataCount).to.equal('count');
+      expect(component.dataIdProperty).to.be.a('string');
+      expect(component.dataIdProperty).to.equal('id');
+      expect(component.dataCountProperty).to.be.a('string');
+      expect(component.dataCountProperty).to.equal('count');
+      expect(component.dataTextProperty).to.be.a('string');
+      expect(component.dataTextProperty).to.equal('text');
       expect(component.limit).to.be.a('number');
       expect(component.limit).to.equal(10);
       expect(component.loading).to.be.a('boolean');
       expect(component.loading).to.be.false;
       expect(component.showMore).to.be.a('boolean');
       expect(component.showMore).to.be.false;
-      expect(component.showLink).to.be.a('boolean');
-      expect(component.showLink).to.be.false;
-      expect(component.linkType).to.equal(undefined);
-      expect(component.linkField).to.equal(undefined);
       expect(component.small).to.be.a('boolean');
       expect(component.small).to.be.false;
       expect(component.featureTitle).to.be.a('string');
@@ -90,6 +89,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.filterValues).to.deep.equal([]);
       expect(component.selectedItems).to.be.an('array');
       expect(component.selectedItems).to.deep.equal([]);
+    });
+
+    test('does show a row-wrapper element', function() {
+      expect(component.$$('.row-wrapper')).to.exist;
     });
 
     test('combinedData is set correctly', function() {
@@ -196,9 +199,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         text: 'a',
         count: 4
       };
-      expect(component.getProperty(item, component.dataId)).to.equal(1);
-      expect(component.getProperty(item, component.dataText)).to.equal('a');
-      expect(component.getProperty(item, component.dataCount)).to.equal(4);
+      expect(component.getProperty(item, component.dataIdProperty)).to.equal(1);
+      expect(component.getProperty(item, component.dataCountProperty)).to.equal(4);
+      expect(component.getProperty(item, component.dataTextProperty)).to.equal('a');
     });
 
     test('getWidth returns correct widths', function() {
@@ -282,11 +285,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   suite('feature-aggregation with properties tests', function() {
     var component;
 
-    setup(function() {
+    setup(function(done) {
       component = fixture('feature-aggregation-fixture');
-      component.dataId = 'uuid';
-      component.dataText = 'name';
-      component.dataCount = 'number';
+      component.dataIdProperty = 'uuid';
+      component.dataCountProperty = 'number';
+      component.dataTextProperty = 'name';
       component.limit = 2;
       component.small = true;
       component.featureTitle = 'Test';
@@ -311,15 +314,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         name: 'e',
         number: 1
       }];
+      flush(function() {
+        done();
+      });
     });
 
-    test('dataId, dataText, dataCount, limit, small, featureTitle, and data are set correctly', function() {
-      expect(component.dataId).to.be.a('string');
-      expect(component.dataId).to.equal('uuid');
-      expect(component.dataText).to.be.a('string');
-      expect(component.dataText).to.equal('name');
-      expect(component.dataCount).to.be.a('string');
-      expect(component.dataCount).to.equal('number');
+    test('dataIdProperty, dataCountProperty, dataTextProperty, limit, small, featureTitle, and data are set correctly', function() {
+      expect(component.dataIdProperty).to.be.a('string');
+      expect(component.dataIdProperty).to.equal('uuid');
+      expect(component.dataCountProperty).to.be.a('string');
+      expect(component.dataCountProperty).to.equal('number');
+      expect(component.dataTextProperty).to.be.a('string');
+      expect(component.dataTextProperty).to.equal('name');
       expect(component.limit).to.be.a('number');
       expect(component.limit).to.equal(2);
       expect(component.small).to.be.a('boolean');
@@ -353,14 +359,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('properties are set to defaults correctly', function() {
       expect(component.loading).to.be.a('boolean');
       expect(component.loading).to.be.false;
-      expect(component.showLink).to.be.a('boolean');
-      expect(component.showLink).to.be.false;
-      expect(component.linkType).to.equal(undefined);
-      expect(component.linkField).to.equal(undefined);
       expect(component.filterValues).to.be.an('array');
       expect(component.filterValues).to.deep.equal([]);
       expect(component.selectedItems).to.be.an('array');
       expect(component.selectedItems).to.deep.equal([]);
+    });
+
+    test('does show a row-wrapper element', function() {
+      expect(component.$$('.row-wrapper')).to.exist;
     });
 
     test('combinedData is set correctly', function() {
@@ -420,8 +426,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.showMore).to.be.true;
     });
 
-    test('showMoreAggregations changes displayAggregations and showMore', function() {
-      component.showMoreAggregations();
+    test('createShowMoreListener() does return an object', function() {
+      var listener = component.createShowMoreListener();
+      expect(listener).to.exist;
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.exist;
+      expect(listener.onClick).to.be.a('Function');
+    });
+
+    test('createShowMoreListener().onClick() does change displayAggregations and showMore', function() {
+      component.createShowMoreListener().onClick();
       expect(component.displayAggregations).to.be.an('array');
       expect(component.displayAggregations).to.deep.equal(component.combinedData);
       expect(component.showMore).to.be.a('boolean');
@@ -459,39 +473,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       expect(calculatedWidth).to.be.equal(0);
       expect(result).to.equal(0);
-    });
-  });
-
-  suite('feature-aggregation test -- if showLink enabled and linkType/linkField present', function() {
-    var component;
-
-    setup(function() {
-      component = fixture('feature-aggregation-fixture');
-      component.data = [{
-        age: 24,
-        count: 4
-      }, {
-        age: 18,
-        count: 3
-      }];
-      component.showLink = true;
-      component.linkType = 'provider';
-      component.linkField = 'age';
-    });
-
-    test('showLink is set correctly', function() {
-      expect(component.showLink).to.be.a('boolean');
-      expect(component.showLink).to.be.equal(true);
-    });
-
-    test('linkType is set correctly', function() {
-      expect(component.linkType).to.be.a('string');
-      expect(component.linkType).to.be.equal('provider');
-    });
-
-    test('linkField is set correctly', function() {
-      expect(component.linkField).to.be.a('string');
-      expect(component.linkField).to.be.equal('age');
     });
   });
 </script>

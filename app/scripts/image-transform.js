@@ -15,14 +15,19 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       var images = [];
       if(data) {
         data.hits.hits.forEach(function(hit) {
+          var id = _.get(hit._source, 'uri');
           images.push({
-            id: _.get(hit._source, 'uri'),
-            source: _.get(hit._source, 'url')
+            id: id,
+            icon: commonTransforms.getIronIcon('image'),
+            link: commonTransforms.getLink(id, 'image'),
+            source: _.get(hit._source, 'url'),
+            styleClass: commonTransforms.getStyleClass('image')
           });
         });
       }
       return images;
     },
+
     image: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
@@ -50,12 +55,14 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
           };
         }
       }
-      newData._id = newData.uri;
+      newData.id = newData.uri;
       return newData;
     },
+
     offerLocationData: function(data) {
       return commonTransforms.offerLocationData(data);
     },
+
     imageOffersData: function(data) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);

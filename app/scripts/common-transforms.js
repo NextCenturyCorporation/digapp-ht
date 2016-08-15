@@ -9,6 +9,39 @@
 /* note lodash should be defined in parent scope */
 var commonTransforms = (function(_, dateFormat) {
 
+  /**
+   * Returns the iron icon for the given type.
+   */
+  function getIronIcon(type) {
+    switch(type) {
+      case 'date': return 'icons:date-range';
+      case 'email': return 'communication:email';
+      case 'image': return 'image:photo';
+      case 'location': return 'communication:location-on';
+      case 'money': return 'editor:attach-money';
+      case 'offer': return 'maps:local-offer';
+      case 'phone': return 'communication:phone';
+      case 'provider': return 'icons:account-circle';
+      case 'seller': return 'group-work';
+      case 'webpage': return 'av:web';
+    }
+    return 'icons:polymer';
+  }
+
+  /**
+   * Returns the link for the given ID and type.
+   */
+  function getLink(id, type) {
+    return '/' + type + '.html?value=' + id + '&field=_id';
+  }
+
+  /**
+   * Returns the style class for the given type.
+   */
+  function getStyleClass(type) {
+    return 'entity-' + type + '-font';
+  }
+
   function getGeoFromKeys(record) {
     var geos = [];
     _.each(record, function(key) {
@@ -162,10 +195,12 @@ var commonTransforms = (function(_, dateFormat) {
         (_.isArray(records) ? records : [records]).forEach(function(record) {
           if(record.name) {
             var obj = {
-              _id: record.uri,
-              _type: type,
-              title: type === 'email' ? decodeURIComponent(record.name) : record.name,
-              descriptors: []
+              id: record.uri,
+              type: type,
+              text: type === 'email' ? decodeURIComponent(record.name) : record.name,
+              icon: getIronIcon(type),
+              link: getLink(record.uri, type),
+              styleClass: getStyleClass(type)
             };
             result.push(obj);
           }
@@ -180,6 +215,27 @@ var commonTransforms = (function(_, dateFormat) {
      */
     getDate: function(date) {
       return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
+    },
+
+    /**
+     * Returns the iron icon for the given type.
+     */
+    getIronIcon: function(type) {
+      return getIronIcon(type);
+    },
+
+    /**
+     * Returns the link for the given ID and type.
+     */
+    getLink: function(id, type) {
+      return getLink(id, type);
+    },
+
+    /**
+     * Returns the style class for the given type.
+     */
+    getStyleClass: function(type) {
+      return getStyleClass(type);
     },
 
     offerLocationData: function(data) {
@@ -232,10 +288,12 @@ var commonTransforms = (function(_, dateFormat) {
               }
             }
             var newObj = {
-              _id: elem,
-              _type: type,
-              title: type === 'email' ? decodeURIComponent(text) : text,
-              descriptors: []
+              id: elem,
+              type: type,
+              text: type === 'email' ? decodeURIComponent(text) : text,
+              icon: getIronIcon(type),
+              link: getLink(elem, type),
+              styleClass: getStyleClass(type)
             };
             if(type === 'phone') {
               newData.phones.push(newObj);
