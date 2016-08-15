@@ -10,20 +10,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/horizontal-bar/horizontal-bar.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
 <link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
-<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
 <link rel="import" href="../lodash.html">
-
-<!--
-### Styling
-The following custom properties and mixins are available for styling:
-Custom property | Description | Default
-----------------|-------------|----------
-`--feature-agg-bar-color`     | Bar background color                   | `--light-primary-color`
-`--feature-agg-title-color`   | Title text foreground color            | `--primary-text-color`
-`--feature-agg-bar-height`    | Bar height                             | `22px`
--->
 
 <dom-module id="feature-aggregation">
   <template>
@@ -70,49 +60,6 @@ Custom property | Description | Default
         max-height: 270px;
       }
 
-      .row-wrapper {
-        margin-top: 4px;
-      }
-
-      .bar-checkbox {
-        --paper-checkbox-label-spacing: 4px;
-        --paper-checkbox-size: 16px;
-        position: relative;
-        top: 2px;
-      }
-
-      .bar-wrapper {
-        position: relative;
-        height: var(--feature-agg-bar-height, 20px);
-        width: 100%;
-      }
-
-      .bar {
-        background-color: var(--feature-agg-bar-color, --light-primary-color);
-        border-radius: 2px;
-        position: absolute;
-        left: 0;
-        top: 0px;
-        bottom: 0px;
-      }
-
-      .bar-title {
-        color: var(--feature-agg-title-color, --primary-text-color);
-        padding: 0 5px;
-        position: relative;
-        text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .bar-count {
-        color: var(--feature-agg-count-color, --secondary-text-color);
-        font-weight: bold;
-        padding: 0 5px;
-        position: relative;
-        text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
-      }
-
       a:link,
       a:visited {
         color: var(--feature-agg-title-color, --primary-text-color);
@@ -142,16 +89,13 @@ Custom property | Description | Default
 
       <div class$="feature-content [[doesOverflow(combinedData.length, limit)]] [[isSmall(small)]]">
         <template id="barList" is="dom-repeat" items="[[displayAggregations]]">
-          <div class="row-wrapper layout horizontal">
-            <paper-checkbox name="[[getProperty(item, dataTextProperty)]]" checked="[[item.selected]]" on-change="toggleItem" class="bar-checkbox"></paper-checkbox>
-            <div class="bar-wrapper layout horizontal center center-justified">
-              <div class="bar" style$="width: [[item.width]]%;"></div>
-              <div class="bar-title flex">
-                [[getProperty(item, dataTextProperty)]]
-              </div>
-              <div class="bar-count flex-none">[[getProperty(item, dataCountProperty)]]</div>
-            </div>
-          </div>
+          <horizontal-bar
+            name="[[getProperty(item, dataTextProperty)]]"
+            count="[[getProperty(item, dataCountProperty)]]"
+            width="[[item.width]]"
+            selected="{{item.selected}}"
+            toggle-listener="[[createToggleListener(item)]]">
+          </horizontal-bar>
         </template>
       </div>
 
@@ -343,6 +287,9 @@ Custom property | Description | Default
         });
       },
 
+      /**
+       * Returns a listener that shows the full list of items on clicking the Show More button.
+       */
       createShowMoreListener: function() {
         var self = this;
         return {
@@ -352,6 +299,37 @@ Custom property | Description | Default
             }
             self.set('showMore', false);
             self.$.barList.render();
+          }
+        };
+      },
+
+      /**
+       * Returns a listener that recreates the list of selected items on toggling a horizontal-bar checkbox.
+       */
+      createToggleListener: function() {
+        var self = this;
+
+        return {
+          onToggle: function() {
+            var change = false;
+            var filters = [];
+            self.displayAggregations.forEach(function(item) {
+              var index = self.selectedItems.map(function(selectedItem) {
+                return self.getProperty(selectedItem, self.dataIdProperty);
+              }).indexOf(self.getProperty(item, self.dataIdProperty));
+
+              if(item.selected) {
+                change = change || (index < 0);
+                filters.push(item);
+              } else if(index >= 0) {
+                change = true;
+                self.splice('selectedItems', index, 1);
+              }
+            });
+
+            if(change) {
+              self.set('selectedItems', filters);
+            }
           }
         };
       },
@@ -395,34 +373,6 @@ Custom property | Description | Default
        */
       isSmall: function(small) {
         return small ? 'small' : '';
-      },
-
-      /**
-       * Toggles the selected status of the item in the given event and recreates the list of selected items if needed.
-       */
-      toggleItem: function(event) {
-        event.model.item.selected = !event.model.item.selected;
-
-        var self = this;
-        var change = false;
-        var filters = [];
-        this.displayAggregations.forEach(function(item) {
-          var index = self.selectedItems.map(function(selectedItem) {
-            return self.getProperty(selectedItem, self.dataIdProperty);
-          }).indexOf(self.getProperty(item, self.dataIdProperty));
-
-          if(item.selected) {
-            change = change || (index < 0);
-            filters.push(item);
-          } else if(index >= 0) {
-            change = true;
-            self.splice('selectedItems', index, 1);
-          }
-        });
-
-        if(change) {
-          this.set('selectedItems', filters);
-        }
       },
 
       /**

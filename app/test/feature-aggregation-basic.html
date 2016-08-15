@@ -91,8 +91,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.selectedItems).to.deep.equal([]);
     });
 
-    test('does show a row-wrapper element', function() {
-      expect(component.$$('.row-wrapper')).to.exist;
+    test('does show a horizontal-bar element', function() {
+      var bar = component.$$('horizontal-bar');
+      expect(bar).to.exist;
+      expect(bar.name).to.equal('a');
+      expect(bar.count).to.equal(4);
+      expect(bar.width).to.equal(100);
     });
 
     test('combinedData is set correctly', function() {
@@ -234,13 +238,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.displayAggregations[1]).to.deep.equal(unselectedItem);
     });
 
-    test('toggleItem selects the item', function() {
+    test('createToggleListener() does return an object', function() {
+      var listener = component.createToggleListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onToggle).to.be.a('Function');
+    });
+
+    test('createToggleListener().onToggle() does nothing if no item was selected', function() {
+      component.createToggleListener().onToggle();
+      expect(component.selectedItems.length).to.equal(0);
+      expect(component.combinedData[0].selected).to.be.false;
+      expect(component.displayAggregations[0].selected).to.be.false;
+      expect(component.filterValues).to.deep.equal([]);
+    });
+
+    test('createToggleListener().onToggle() adds a selected item to selectedItems', function() {
       var itemToSelect = component.displayAggregations[1];
-      component.toggleItem({
-        model: {
-          item: itemToSelect
-        }
-      });
+      itemToSelect.selected = true;
+      component.createToggleListener().onToggle();
 
       expect(component.selectedItems.length).to.equal(1);
       expect(component.selectedItems[0].id).to.equal(itemToSelect.id);
@@ -258,17 +273,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.filterValues).to.deep.equal([2]);
     });
 
-    test('toggleItem deselects the item', function() {
+    test('createToggleListener().onToggle() removes a deselected item from selectedItems', function() {
       var itemToDeselect = component.displayAggregations[1];
       itemToDeselect.selected = true;
       component.selectedItems = [itemToDeselect];
       // Get the cloned item.
       itemToDeselect = component.displayAggregations[0];
-      component.toggleItem({
-        model: {
-          item: itemToDeselect
-        }
-      });
+      itemToDeselect.selected = false;
+      component.createToggleListener().onToggle();
 
       expect(component.selectedItems.length).to.equal(0);
       expect(component.combinedData[1].id).to.equal(itemToDeselect.id);
@@ -365,8 +377,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component.selectedItems).to.deep.equal([]);
     });
 
-    test('does show a row-wrapper element', function() {
-      expect(component.$$('.row-wrapper')).to.exist;
+    test('does show a horizontal-bar element', function() {
+      var bar = component.$$('horizontal-bar');
+      expect(bar).to.exist;
+      expect(bar.name).to.equal('a');
+      expect(bar.count).to.equal(4);
+      expect(bar.width).to.equal(100);
     });
 
     test('combinedData is set correctly', function() {
@@ -428,9 +444,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('createShowMoreListener() does return an object', function() {
       var listener = component.createShowMoreListener();
-      expect(listener).to.exist;
       expect(listener).to.be.an('Object');
-      expect(listener.onClick).to.exist;
       expect(listener.onClick).to.be.a('Function');
     });
 
