@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
 @license
-Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
 This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
 The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
 The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
@@ -13,24 +13,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <head>
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
   <title>user-settings</title>
-
   <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
   <script src="../bower_components/web-component-tester/browser.js"></script>
-
-  <!-- Step 1: import the element to test -->
   <link rel="import" href="../elements/user-settings/user-settings.html">
-
 </head>
-<body>
 
+<body>
 <test-fixture id="user-settings-fixture">
   <template>
-    <user-settings username="testUser" show-advanced-search></user-settings>
+    <user-settings username="testUser" show-search></user-settings>
   </template>
 </test-fixture>
 
 <script>
-  /* globals suite, test, assert, setup, fixture */
+  /* globals suite, test, assert, setup, fixture, flush */
   /* jshint -W030 */
   suite('user-settings tests', function() {
     var element;
@@ -43,32 +39,274 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element = fixture('user-settings-fixture');
     });
 
-    test('properties are equal to expected values and settings dropdown is unopened', function() {
+    test('properties are the correct values', function() {
       assert.equal(element.username, 'testUser');
+      assert.isTrue(element.showSearch);
       assert.isFalse(element.advancedSearch);
-      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box-outline-blank');
       assert.isTrue(element.blurImages);
-      assert.equal(element.checkboxToShow(element.blurImages), 'check-box');
-      assert.isFalse(element.$.settings.opened);
+      assert(!element.searchText);
+      assert.equal(element._emailAddress, '');
+      assert.isTrue(element._noEmailAddress);
+      assert.deepEqual(element._searches, []);
     });
 
-    test('advancedSearchToggle() flips status of advancedSearch to true', function() {
-      element.advancedSearchToggle();
+    test('does have settings button element', function() {
+      var settingsButton = element.$$('#settingsButton');
+      assert(settingsButton);
+      assert.equal(settingsButton.icon, 'settings');
+      assert.isString(settingsButton.title);
+    });
+
+    test('does have closed settings dialog element', function() {
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isFalse(settingsDialog.opened);
+    });
+
+    test('does not have search element', function() {
+      var search = element.$$('.search');
+      assert(!search);
+    });
+
+    test('does have search element if _searches is set', function(done) {
+      element._searches = [{
+        text: 'myText'
+      }];
+      flush(function() {
+        var search = element.$$('.search');
+        assert(search);
+        done();
+      });
+    });
+
+    test('_createSaveEmailAddressListener returns an object with a function', function() {
+      var listener = element._createSaveEmailAddressListener();
+      assert.isObject(listener);
+      assert.isFunction(listener.onClick);
+    });
+
+    test('_createSaveEmailAddressListener.onClick saves the email address', function() {
+      element.emailAddress = 'my@email.com';
+      element._createSaveEmailAddressListener().onClick();
+      // TODO
+    });
+
+    test('_createSendSearchListener returns an object with a function', function() {
+      var listener = element._createSendSearchListener();
+      assert.isObject(listener);
+      assert.isFunction(listener.onClick);
+    });
+
+    test('_createSendSearchListener.onClick sends the saved search', function() {
+      element._searches = [{
+        text: 'myText'
+      }];
+      element._createSendSearchListener(0).onClick();
+      // TODO
+    });
+
+    test('_deleteSearch deletes the saved search', function() {
+      element._searches = [{
+        text: 'myText'
+      }];
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element._searches[0]
+        }
+      };
+      element._deleteSearch(mockEvent);
+      // TODO
+    });
+
+    test('_getCheckboxIconToShow returns the correct values', function() {
+      assert.equal(element._getCheckboxIconToShow(false), 'check-box-outline-blank');
+      assert.equal(element._getCheckboxIconToShow(true), 'check-box');
+    });
+
+    test('_getModalIconTitle returns strings', function() {
+      assert.isString(element._getModalIconTitle(false));
+      assert.isString(element._getModalIconTitle(true));
+    });
+
+    test('_isFalse returns the correct values', function() {
+      assert.isTrue(element._isFalse(false));
+      assert.isFalse(element._isFalse(true));
+    });
+
+    test('_openSettingsDialog opens the settings dialog', function() {
+      element._openSettingsDialog();
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isTrue(settingsDialog.opened);
+    });
+
+    test('_populateUserSettings sets advancedSearch', function() {
+      element._populateUserSettings({
+        advancedSearch: true
+      });
       assert.isTrue(element.advancedSearch);
       assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
-      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box');
+      element._populateUserSettings({
+        advancedSearch: false
+      });
+      assert.isFalse(element.advancedSearch);
+      assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
+      // Cleanup.
+      sessionStorage.removeItem('advancedSearch');
     });
 
-    test('blurToggle() flips status of blurImages to false', function() {
-      element.blurToggle();
+    test('_populateUserSettings sets blurImages', function() {
+      element._populateUserSettings({
+        blurImages: false
+      });
       assert.isFalse(element.blurImages);
       assert.equal(sessionStorage.getItem('blurImages'), 'false');
-      assert.equal(element.checkboxToShow(element.blurImages), 'check-box-outline-blank');
+      element._populateUserSettings({
+        blurImages: true
+      });
+      assert.isTrue(element.blurImages);
+      assert.equal(sessionStorage.getItem('blurImages'), 'true');
+      // Cleanup.
+      sessionStorage.removeItem('blurImages');
     });
 
-    test('open() opens user settings dropdown', function() {
-      element.open();
-      assert.isTrue(element.$.settings.opened);
+    test('_populateUserSettings sets _emailAddress', function() {
+      element._populateUserSettings({
+        emailAddress: 'my@email.com'
+      });
+      assert.equal(element._emailAddress, 'my@email.com');
+      assert.isFalse(element._noEmailAddress);
+    });
+
+    test('_populateUserSettings sets _searches', function(done) {
+      element._populateUserSettings({
+        searches: [{
+          text: 'one'
+        }, {
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]
+      });
+
+      // Flush so that interval is updated.
+      flush(function() {
+        assert.deepEqual(element._searches, [{
+          date: 'Unknown',
+          facets: [],
+          interval: 'off',
+          open: false,
+          sendTo: '',
+          text: 'one',
+          user: 'Unknown'
+        }, {
+          date: 'Jan 1 2016',
+          facets: ['Key: Value'],
+          interval: 'hour',
+          open: false,
+          sendTo: '',
+          text: 'two',
+          user: 'user'
+        }]);
+        done();
+      });
+    });
+
+    test('_runSearch sets the search text from the saved search and closes the settings dialog', function() {
+      element._searches = [{
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element._searches[0]
+        }
+      };
+
+      element._runSearch(mockEvent);
+      assert.equal(element.searchText, 'myText');
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isFalse(settingsDialog.opened);
+    });
+
+    test('_toggleAdvancedSearch toggles advancedSearch', function() {
+      element._toggleAdvancedSearch();
+      assert.isTrue(element.advancedSearch);
+      assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
+      element._toggleAdvancedSearch();
+      assert.isFalse(element.advancedSearch);
+      assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
+      // Cleanup.
+      sessionStorage.removeItem('advancedSearch');
+    });
+
+    test('_toggleBlur toggles blurImages', function() {
+      element._toggleBlur();
+      assert.isFalse(element.blurImages);
+      assert.equal(sessionStorage.getItem('blurImages'), 'false');
+      element._toggleBlur();
+      assert.isTrue(element.blurImages);
+      assert.equal(sessionStorage.getItem('blurImages'), 'true');
+      // Cleanup.
+      sessionStorage.removeItem('blurImages');
+    });
+
+    test('_toggleSearchSettings opens the saved search', function() {
+      element._searches = [{
+        open: false,
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element._searches[0]
+        }
+      };
+
+      element._toggleSearchSettings(mockEvent);
+      assert.isTrue(element._searches[0].open);
+    });
+
+    test('_toggleSearchSettings closes the saved search', function() {
+      element._searches = [{
+        open: true,
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element._searches[0]
+        }
+      };
+
+      element._toggleSearchSettings(mockEvent);
+      assert.isFalse(element._searches[0].open);
+    });
+
+    test('_updateNotification updates the notification for the saved search', function() {
+      element._searches = [{
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element._searches[0]
+        }
+      };
+
+      element._updateNotification(mockEvent);
+      // TODO
     });
   });
 
@@ -84,29 +322,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('advancedSearch is set to true', function() {
       assert.isTrue(element.advancedSearch);
-      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box');
     });
 
     test('blurImages is set to false', function() {
       assert.isFalse(element.blurImages);
-      assert.equal(element.checkboxToShow(element.blurImages), 'check-box-outline-blank');
     });
 
-    test('advancedSearchToggle() flips status of advancedSearch to false', function() {
-      element.advancedSearchToggle();
+    test('_toggleAdvancedSearch toggles advancedSearch', function() {
+      element._toggleAdvancedSearch();
       assert.isFalse(element.advancedSearch);
       assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
-      assert.equal(element.checkboxToShow(element.advancedSearch), 'check-box-outline-blank');
+      element._toggleAdvancedSearch();
+      assert.isTrue(element.advancedSearch);
+      assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
+      // Cleanup.
+      sessionStorage.removeItem('advancedSearch');
     });
 
-    test('blurToggle() flips status of blurImages to true', function() {
-      element.blurToggle();
+    test('_toggleBlur flips status of blurImages to true', function() {
+      element._toggleBlur();
       assert.isTrue(element.blurImages);
       assert.equal(sessionStorage.getItem('blurImages'), 'true');
-      assert.equal(element.checkboxToShow(element.blurImages), 'check-box');
+      element._toggleBlur();
+      assert.isFalse(element.blurImages);
+      assert.equal(sessionStorage.getItem('blurImages'), 'false');
+      // Cleanup.
+      sessionStorage.removeItem('blurImages');
     });
   });
 </script>
-
 </body>
 </html>

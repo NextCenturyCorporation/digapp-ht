@@ -9,11 +9,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/breadbox-item/breadbox-item.html">
+<link rel="import" href="../../bower_components/button-action/button-action.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../lodash.html">
 
 <script src="../../scripts/google-analytics.js"></script>
 
@@ -24,46 +31,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
 
-      paper-icon-button {
-        @apply(--paper-icon-button);
-      }
-
-      paper-material {
+      paper-dialog {
         background-color: white;
-        border-radius: 2px;
-        margin: 0;
-        padding: 10px;
+        border-radius: 5px;
+        height: 100%;
+        margin: 50px;
+        overflow: auto;
         white-space: nowrap;
-        width: 600px;
+        width: 100%;
       }
 
-      paper-material > div {
+      .settings {
+        min-height: 700px;
+        min-width: 900px;
+      }
+
+      .settings > div {
         margin: 10px;
       }
 
-      paper-button {
-        margin: 0;
-        padding: 0;
-      }
-
-      .head {
+      .bold {
+        color: var(--primary-text-color);
+        font-size: 20px;
         font-weight: bold;
       }
 
       .name {
         color: var(--secondary-text-color);
         font-size: 14px;
-        height: 20px;
         line-height: 20px;
-        padding-right: 10px;
+        min-height: 20px;
         text-transform: uppercase;
       }
 
       .text {
         color: var(--primary-text-color);
         font-size: 18px;
-        height: 24px;
         line-height: 24px;
+        min-height: 24px;
+      }
+
+      .right-space {
+        margin-right: 10px;
+      }
+
+      .tall {
+        line-height: 40px;
+        min-height: 40px;
       }
 
       .divider {
@@ -77,79 +91,229 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .checkbox {
         height: 20px;
         width: 20px;
-        padding-right: 10px;
+        /* Align the checkbox with the text. */
+        top: 1px;
+      }
+
+      .search {
+        margin: 5px 5px 0;
+      }
+
+      .search-text {
+        /* Align the left of the text with the left of the facets. */
+        margin-left: 5px;
+        /* Align the height of the text with the height of the paper-icon-button elements. */
+        margin-top: 8px;
+        margin-bottom: 3px;
+        white-space: normal;
+      }
+
+      .facets {
+        /* Align the left of the facets with the left of the search-text. */
+        margin: 2px;
+      }
+
+      .search-settings {
+        /* Align the left of the search-settings with the left of the search-text and the facets. */
+        margin-left: 125px;
+      }
+
+      button-action {
+        /* Align the height of the button with the height of the paper-input-container elements. */
+        margin: 5px 10px;
+      }
+
+      modal-icon {
+        align-items: inherit;
       }
     </style>
 
-    <paper-icon-button icon="settings" title="Open User Settings" on-tap="open"></paper-icon-button>
+    <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
 
-    <paper-dialog id="settings" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <paper-material elevation="1">
+    <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="settings">
         <div class="layout horizontal">
-          <span class="head text flex">User Settings</span>
-          <paper-button dialog-confirm title="Close User Settings">
-            <iron-icon icon="clear"></iron-icon>
-          </paper-button>
+          <span class="bold tall flex">User Settings</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close User Settings"></paper-icon-button>
         </div>
 
         <div class="divider"></div>
 
         <div class="layout horizontal">
           <div class="start-justified flex">
-            <span class="name">Logged in as:</span>
+            <span class="name right-space">Logged in as:</span>
             <span class="text">[[username]]</span>
           </div>
           <div class="end-justified">
-            <span class="name">DIG Version:</span>
+            <span class="name right-space">DIG Version:</span>
             <span class="text">DIG_VERSION</span>
           </div>
         </div>
 
+        <div class="layout horizontal">
+          <span class="name tall right-space">Email Address for Notifications:</span>
+          <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
+          <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
+        </div>
+
         <div class="divider"></div>
 
-        <template is="dom-if" if="[[showAdvancedSearch]]">
-          <div class="layout horizontal pointer" title="Toggle Advanced Search" on-tap="advancedSearchToggle">
-            <iron-icon class="checkbox" icon$="{{checkboxToShow(advancedSearch)}}"></iron-icon>
+        <template is="dom-if" if="[[showSearch]]">
+          <div class="layout horizontal pointer" title="Toggle Advanced Search" on-tap="_toggleAdvancedSearch">
+            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(advancedSearch)]]"></iron-icon>
             <span class="text">Advanced Search</span>
           </div>
         </template>
 
-        <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="blurToggle">
-          <iron-icon class="checkbox" icon$="{{checkboxToShow(blurImages)}}"></iron-icon>
+        <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
+          <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
           <span class="text">Blur Images</span>
         </div>
-      </paper-material>
+
+        <div class="divider"></div>
+
+        <div class="layout vertical">
+          <div class="name">Saved Searches</div>
+          <template is="dom-repeat" items="[[_searches]]" as="search">
+            <div class="layout vertical search">
+              <div class="layout horizontal">
+                <modal-icon openable open="[[search.open]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
+                <div class="layout vertical flex">
+                  <div class="text search-text">[[search.text]]</div>
+                  <template is="dom-if" if="[[search.facets.length]]">
+                    <div class="layout horizontal wrap facets">
+                      <template is="dom-repeat" items="[[search.facets]]">
+                        <breadbox-item text="[[item]]"></breadbox-item>
+                      </template>
+                    </div>
+                  </template>
+                </div>
+              </div>
+              <iron-collapse opened="[[search.open]]">
+                <div class="layout horizontal search-settings">
+                  <div class="layout vertical right-space">
+                    <div class="name tall right-space">Created By</div>
+                    <div class="name tall right-space">Created At</div>
+                  </div>
+                  <div class="layout vertical right-space">
+                    <div class="text tall right-space">[[search.user]]</div>
+                    <div class="text tall right-space">[[search.date]]</div>
+                  </div>
+                  <div class="layout vertical right-space">
+                    <div class="name tall right-space">Send Saved Search to User</div>
+                    <div class="name tall right-space">Automatically Run Query</div>
+                  </div>
+                  <div class="layout vertical right-space">
+                    <paper-input label="Enter Username" value="{{search.sendTo}}" no-label-float></paper-input>
+                    <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
+                      <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.interval}}">
+                        <!-- TODO Update values to match user settings data schema. -->
+                        <paper-item value="off">Off</paper-item>
+                        <paper-item value="hour">Every Hour</paper-item>
+                        <paper-item value="2_hours">Every Two Hours</paper-item>
+                        <paper-item value="6_hours">Every 6 Hours</paper-item>
+                        <paper-item value="12_hours">Every 12 Hours</paper-item>
+                        <paper-item value="day">Every Day</paper-item>
+                        <paper-item value="2_days">Every Two Days</paper-item>
+                        <paper-item value="week">Every Week</paper-item>
+                      </paper-listbox>
+                    </paper-dropdown-menu>
+                  </div>
+                  <div class="layout vertical">
+                    <button-action title="Send this Search to User" text="Send" disabled="[[!search.sendTo]]" click-listener="[[_createSendSearchListener(index)]]"></button-action>
+                    <template is="dom-if" if="[[_noEmailAddress]]">
+                      <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
+                    </template>
+                  </div>
+                </div>
+              </iron-collapse>
+            </div>
+          </template>
+        </div>
+      </div>
     </paper-dialog>
   </template>
 
   <script>
   (function() {
+    /* globals _ */
     'use strict';
 
     Polymer({
       is: 'user-settings',
 
       properties: {
+        /**
+         * The name of this user.
+         */
         username: {
           type: String,
           notify: true,
-          observer: 'usernameObserver'
+          observer: '_usernameObserver'
         },
-        showAdvancedSearch: {
+
+        /**
+         * Whether to show search options.
+         */
+        showSearch: {
           type: Boolean,
           value: false
         },
+
+        /**
+         * Whether advanced search is enabled.
+         */
         advancedSearch: {
           type: Boolean,
           value: false,
           notify: true
         },
+
+        /**
+         * Whether image blurring is enabled.
+         */
         blurImages: {
           type: Boolean,
           value: true,
           notify: true
+        },
+
+        /**
+         * The text on which to search.
+         */
+        searchText: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The email address of this user.
+         */
+        _emailAddress: {
+          type: String
+        },
+
+        /**
+         * Whether this user has entered an email address.
+         */
+        _noEmailAddress: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * The saved searches for this user.
+         */
+        _searches: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         }
       },
+
       ready: function() {
         if(sessionStorage.getItem('advancedSearch')) {
           this.advancedSearch = sessionStorage.getItem('advancedSearch') === 'true' ? true : false;
@@ -158,21 +322,159 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.blurImages = sessionStorage.getItem('blurImages') === 'true' ? true : false;
         }
       },
-      advancedSearchToggle: function() {
+
+      /**
+       * Creates and returns a listener to save the user's email address.
+       */
+      _createSaveEmailAddressListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(self._emailAddress) {
+              console.log('Save ' + self._emailAddress);
+              self.set('_noEmailAddress', false);
+              // TODO Save the email address in the user's data.
+            }
+          }
+        };
+      },
+
+      /**
+       * Creates and returns a listener to send the given saved search to another user.
+       */
+      _createSendSearchListener: function(index) {
+        var self = this;
+        return {
+          onClick: function() {
+            console.log('Send ' + self._searches[index].text + ' to ' + self._searches[index].sendTo);
+            self.set('_searches.' + index + '.sendTo', '');
+            // TODO Save the search in the other user's data.
+          }
+        };
+      },
+
+      /**
+       * Deletes the given saved search.
+       */
+      _deleteSearch: function(event) {
+        console.log('Delete ' + event.model.search + ' index ' + event.model.index);
+        // TODO Remove the search from the user's data.
+      },
+
+      /**
+       * Returns the checkbox icon for the given setting.
+       */
+      _getCheckboxIconToShow: function(setting) {
+        return setting ? 'check-box' : 'check-box-outline-blank';
+      },
+
+      /**
+       * Returns the title of the modal-icon for the given open setting.
+       */
+      _getModalIconTitle: function(open) {
+        return (open ? 'Close' : 'Open') + ' Search Settings';
+      },
+
+      /**
+       * Returns whether the given value is false.
+       */
+      _isFalse: function(value) {
+        return !value;
+      },
+
+      /**
+       * Opens the settings dialog.
+       */
+      _openSettingsDialog: function() {
+        this.$$('#settingsDialog').open();
+      },
+
+      /**
+       * Populates the properties in this user-settings component using the given settings object.
+       */
+      _populateUserSettings: function(settings) {
+        var self = this;
+
+        if(settings.advancedSearch !== undefined) {
+          this.set('advancedSearch', settings.advancedSearch);
+          sessionStorage.setItem('advancedSearch', settings.advancedSearch);
+        }
+
+        if(settings.blurImages !== undefined) {
+          this.set('blurImages', settings.blurImages);
+          sessionStorage.setItem('blurImages', settings.blurImages);
+        }
+
+        if(settings.emailAddress) {
+          this.set('_emailAddress', settings.emailAddress);
+          this.set('_noEmailAddress', false);
+        }
+
+        if(settings.searches) {
+          var searches = _.reduce(settings.searches, function(searches, search) {
+            if(search.text) {
+              searches.push({
+                date: search.date || 'Unknown',
+                facets: (search.facets || []).map(function(facet) {
+                  return facet.key + ': ' + facet.value;
+                }),
+                interval: search.interval || 'off',
+                open: false,
+                sendTo: '',
+                text: search.text,
+                user: search.user || 'Unknown'
+              });
+            }
+            return searches;
+          }, []);
+          self.set('_searches', searches);
+        }
+      },
+
+      /**
+       * Runs the given saved search.
+       */
+      _runSearch: function(event) {
+        this.$$('#settingsDialog').close();
+        this.set('searchText', event.model.search.text);
+        // TODO Set the facets with the search text simultaneously.
+      },
+
+      /**
+       * Toggles the user's advanced search setting.
+       */
+      _toggleAdvancedSearch: function() {
         this.advancedSearch = !this.advancedSearch;
         sessionStorage.setItem('advancedSearch', this.advancedSearch);
       },
-      blurToggle: function() {
+
+      /**
+       * Toggles the user's blur setting.
+       */
+      _toggleBlur: function() {
         this.blurImages = !this.blurImages;
         sessionStorage.setItem('blurImages', this.blurImages);
       },
-      open: function() {
-        this.$.settings.open();
+
+      /**
+       * Toggles the open setting of the given saved search.
+       */
+      _toggleSearchSettings: function(event) {
+        this.set('_searches.' + event.model.index + '.open', !event.model.search.open);
       },
-      checkboxToShow: function(setting) {
-        return setting ? 'check-box' : 'check-box-outline-blank';
+
+      /**
+       * Updates the notification setting of the given saved search.
+       */
+      _updateNotification: function(event) {
+        console.log('Notify ' + event.model.search.text + ' index ' + event.model.index + ' interval ' + event.model.search.interval);
+        // TODO Update the notification interval for the search in the user's data.
       },
-      usernameObserver: function() {
+
+      /**
+       * Observes and logs changes to the username.
+       */
+      _usernameObserver: function() {
         /* jshint ignore:start */
         ga('set', 'dimension1', window.btoa(this.username));
         ga('set', 'userId', window.btoa(this.username));
