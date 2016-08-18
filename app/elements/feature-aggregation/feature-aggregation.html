@@ -66,17 +66,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </style>
 
     <div class="chart-wrapper">
-      <div class="chart-title">[[featureTitle]]</div>
+      <div class="chart-title">[[chartTitle]]</div>
 
-      <template is="dom-if" if="[[doesShowNoAggregationsText(combinedData.length, loading)]]">
+      <template is="dom-if" if="[[showNoDataText(combinedItems.length, loading)]]">
         <div class="chart-label">None</div>
       </template>
 
-      <div class$="chart-items [[doesOverflow(combinedData.length, limit)]] [[isSmall(small)]]">
-        <template id="barList" is="dom-repeat" items="[[displayAggregations]]">
+      <div class$="chart-items [[doesOverflow(combinedItems.length, limit)]] [[isSmall(small)]]">
+        <template id="barList" is="dom-repeat" items="[[shownItems]]">
           <horizontal-bar
-            name="[[getProperty(item, dataTextProperty)]]"
-            count="[[getProperty(item, dataCountProperty)]]"
+            name="[[getProperty(item, textProperty)]]"
+            count="[[getProperty(item, countProperty)]]"
             width="[[item.width]]"
             selected="{{item.selected}}"
             toggle-listener="[[createToggleListener(item)]]">
@@ -104,39 +104,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       properties: {
         /**
-         * Property in the data objects containing a unique ID (used to set the filter values).
+         * Property in each item for its unique ID (used to set the filter values).
          */
-        dataIdProperty: {
+        idProperty: {
           type: String,
           value: 'id'
         },
 
         /**
-         * Property in the data objects containing the count to display.
+         * Property in each item for its count to show.
          */
-        dataCountProperty: {
+        countProperty: {
           type: String,
           value: 'count'
         },
 
         /**
-         * Property in the data objects containing the text to display.
+         * Property in each item for its text to show.
          */
-        dataTextProperty: {
+        textProperty: {
           type: String,
           value: 'text'
         },
 
         /**
-         * The input data for this component.
+         * The input items for this component.
          */
-        data: {
-          type: Array,
-          notify: true
+        items: {
+          type: Array
         },
 
         /**
-         * The limit on the initial amount of display data for this component (or 0 to display all data).
+         * The limit on the initial number of items to show in this component (or 0 to show all items).
          */
         limit: {
           type: Number,
@@ -144,20 +143,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Whether the data for this component is loading.
+         * Whether the items for this component are loading.
          */
         loading: {
           type: Boolean,
           value: false,
           notify: true
-        },
-
-        /**
-         * Whether this component has more data to show.
-         */
-        showMore: {
-          type: Boolean,
-          value: false
         },
 
         /**
@@ -171,9 +162,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * The title for this component.
          */
-        featureTitle: {
+        chartTitle: {
           type: String,
-          value: 'Features'
+          value: 'Data'
+        },
+
+        /**
+         * The values on which to filter.
+         */
+        filterValues: {
+          type: Array,
+          notify: true,
+          computed: 'computeFilterValues(selectedItems)'
         },
 
         /**
@@ -187,77 +187,87 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The values on which to filter.
+         * The combined list of selected items and input items for this component.
          */
-        filterValues: {
+        combinedItems: {
           type: Array,
           notify: true,
-          computed: 'computeFilterValues(selectedItems)'
+          computed: 'computeCombinedItems(items, selectedItems)',
+          observer: 'updateShownItems'
         },
 
         /**
-         * The combined list of selected items and data for this component.
+         * The shown items for this component.
          */
-        combinedData: {
-          type: Array,
-          notify: true,
-          computed: 'computeCombinedData(data, selectedItems)',
-          observer: 'updateDisplayAggregations'
-        },
-
-        /**
-         * The display data for this component.
-         */
-        displayAggregations: {
+        shownItems: {
           type: Array,
           notify: true
+        },
+
+        /**
+         * Whether this component has more items to show.
+         */
+        showMore: {
+          type: Boolean,
+          value: false
         }
       },
 
       /**
-       * Returns the combined list of selected items and data for this component.  Sets the 'selected' and 'width' properties for the items.
+       * Returns the width of the bar for the given item in CSS syntax.
        */
-      computeCombinedData: function() {
-        var self = this;
-        var combinedData = [];
+      computeWidth: function(count, maxCount) {
+        // This returns bar widths relative to the highest count item, assuming it's first.
+        // Could also sum up all counts and do widths relative to the total.
+        // Will return a minimum of 1 as the width if the count is greater than 0.
+        var widthCalc = Math.round((count / maxCount) * 100);
+        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
+      },
 
-        // Ensure that the count for each selected item is up-to-date based on the new input data.
+      /**
+       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'width' properties for the items.
+       */
+      computeCombinedItems: function() {
+        var self = this;
+        var combinedItems = [];
+
+        // Ensure that the count for each selected item is up-to-date based on the new input items.
         this.selectedItems.forEach(function(selectedItem) {
-          var index = self.data.map(function(item) {
-            return self.getProperty(item, self.dataIdProperty);
-          }).indexOf(self.getProperty(selectedItem, self.dataIdProperty));
+          var index = self.items.map(function(item) {
+            return self.getProperty(item, self.idProperty);
+          }).indexOf(self.getProperty(selectedItem, self.idProperty));
 
           // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
-          var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.data[index]));
+          var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.items[index]));
           clonedItem.selected = true;
-          combinedData.push(clonedItem);
+          combinedItems.push(clonedItem);
         });
 
         // Ensure that the selected item with the highest count is on top.
-        combinedData.sort(function(a, b) {
-          return b[self.dataCountProperty] - a[self.dataCountProperty];
+        combinedItems.sort(function(a, b) {
+          return b[self.countProperty] - a[self.countProperty];
         });
 
-        var topCount = Math.max((combinedData.length ? combinedData[0][this.dataCountProperty] : 0), (this.data.length ? this.data[0][this.dataCountProperty] : 0));
+        var maxCount = Math.max((combinedItems.length ? combinedItems[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
 
         // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
-        combinedData.forEach(function(item) {
-          item.width = self.getWidth(item[self.dataCountProperty], topCount);
+        combinedItems.forEach(function(item) {
+          item.width = self.computeWidth(item[self.countProperty], maxCount);
         });
 
-        this.data.forEach(function(item) {
-          var index = self.filterValues.indexOf(self.getProperty(item, self.dataIdProperty));
+        this.items.forEach(function(item) {
+          var index = self.filterValues.indexOf(self.getProperty(item, self.idProperty));
           if(index < 0) {
-            // Ensure that this component does not affect the input data by creating a copy.
+            // Ensure that this component does not affect the input items by creating a copy.
             var clonedItem = _.cloneDeep(item);
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
-            clonedItem.width = self.getWidth(clonedItem[self.dataCountProperty], topCount);
-            combinedData.push(clonedItem);
+            clonedItem.width = self.computeWidth(clonedItem[self.countProperty], maxCount);
+            combinedItems.push(clonedItem);
           }
         });
 
-        return combinedData;
+        return combinedItems;
       },
 
       /**
@@ -266,7 +276,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       computeFilterValues: function() {
         var self = this;
         return this.selectedItems.map(function(item) {
-          return self.getProperty(item, self.dataIdProperty);
+          return self.getProperty(item, self.idProperty);
         });
       },
 
@@ -277,8 +287,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var self = this;
         return {
           onClick: function() {
-            for(var i = self.limit; i < self.combinedData.length; ++i) {
-              self.push('displayAggregations', self.combinedData[i]);
+            for(var i = self.limit; i < self.combinedItems.length; ++i) {
+              self.push('shownItems', self.combinedItems[i]);
             }
             self.set('showMore', false);
             self.$.barList.render();
@@ -296,10 +306,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           onToggle: function() {
             var change = false;
             var filters = [];
-            self.displayAggregations.forEach(function(item) {
+            self.shownItems.forEach(function(item) {
               var index = self.selectedItems.map(function(selectedItem) {
-                return self.getProperty(selectedItem, self.dataIdProperty);
-              }).indexOf(self.getProperty(item, self.dataIdProperty));
+                return self.getProperty(selectedItem, self.idProperty);
+              }).indexOf(self.getProperty(item, self.idProperty));
 
               if(item.selected) {
                 change = change || (index < 0);
@@ -318,19 +328,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Returns whether this component has data that may overflow its list (requiring a scrollbar).
+       * Returns whether this component has items that may overflow its list (requiring a scrollbar).
        */
       doesOverflow: function(length, limit) {
         // Overflow causes a scrollbar to be displayed when the bottom checkbox in the list is checked because of the
-        // ripple effect so only add overflow if needed because there are more than the limit of aggregations.
+        // ripple effect so only add overflow if needed because there are more than the limit of items.
         return length > limit ? 'overflow' : '';
-      },
-
-      /**
-       * Returns whether this component should show its 'no aggregations' text.
-       */
-      doesShowNoAggregationsText: function(length, loading) {
-        return !length && !loading;
       },
 
       /**
@@ -341,17 +344,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Returns the width of the bar for the given item in CSS syntax.
-       */
-      getWidth: function(count, topCount) {
-        // This returns bar widths relative to the highest count item, assuming it's first.
-        // Could also sum up all counts and do widths relative to the total.
-        // Will return a minimum of 1 as the width if the count is greater than 0.
-        var widthCalc = Math.round((count / topCount) * 100);
-        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
-      },
-
-      /**
        * Returns whether this component is marked as small.
        */
       isSmall: function(small) {
@@ -359,15 +351,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Updates the list of display aggregations using the selected items, the aggregation results, and the limit.
+       * Returns whether this component should show its 'no data' text.
        */
-      updateDisplayAggregations: function() {
-        this.set('displayAggregations', []);
-        var limit = (this.limit > 0 ? Math.min(this.combinedData.length, this.limit) : this.combinedData.length);
+      showNoDataText: function(length, loading) {
+        return !length && !loading;
+      },
+
+      /**
+       * Updates the list of display items using the combined list of selected items and input items and the limit.
+       */
+      updateShownItems: function() {
+        this.set('shownItems', []);
+        var limit = (this.limit > 0 ? Math.min(this.combinedItems.length, this.limit) : this.combinedItems.length);
         for(var i = 0; i < limit; ++i) {
-          this.push('displayAggregations', this.combinedData[i]);
+          this.push('shownItems', this.combinedItems[i]);
         }
-        this.set('showMore', (this.combinedData.length > this.limit));
+        this.set('showMore', (this.combinedItems.length > this.limit));
       }
     });
   })();
