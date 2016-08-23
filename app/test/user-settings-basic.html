@@ -21,7 +21,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <body>
 <test-fixture id="user-settings-fixture">
   <template>
-    <user-settings username="testUser" show-search></user-settings>
+    <user-settings username="testUser" user-index="dig-users"
+      user-type="user" show-search>
+    </user-settings>
   </template>
 </test-fixture>
 
@@ -32,22 +34,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     var element;
 
     setup(function() {
-      // Must set session storage prior to defining the fixture.
-      // Must clear session storage in case it was affected by previous tests.
-      sessionStorage.removeItem('advancedSearch');
-      sessionStorage.removeItem('blurImages');
       element = fixture('user-settings-fixture');
     });
 
     test('properties are the correct values', function() {
       assert.equal(element.username, 'testUser');
+      assert.equal(element.userIndex, 'dig-users');
+      assert.equal(element.userType, 'user');
       assert.isTrue(element.showSearch);
       assert.isFalse(element.advancedSearch);
       assert.isTrue(element.blurImages);
       assert(!element.searchText);
-      assert.equal(element._emailAddress, '');
+      assert.isUndefined(element._emailAddress);
       assert.isTrue(element._noEmailAddress);
       assert.deepEqual(element._searches, []);
+      assert.isUndefined(element._userQuery);
+      assert.isUndefined(element._userSearchResult);
+      assert.deepEqual(element._userTypeAsArray, ['user']);
+      assert.isUndefined(element._userRecordExists);
+      assert.isUndefined(element._userCreateBody);
+      assert.isUndefined(element._userId);
+      assert.isUndefined(element._createdUser);
+      assert.isUndefined(element._updatedUser);
     });
 
     test('does have settings button element', function() {
@@ -63,18 +71,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(settingsDialog.opened);
     });
 
-    test('does not have search element', function() {
+    test('does not have search element if _userRecordExists is undefined', function() {
       var search = element.$$('.search');
       assert(!search);
     });
 
-    test('does have search element if _searches is set', function(done) {
+    test('does not have search element if _userRecordExists is false', function(done) {
+      element._userRecordExists = false;
+      flush(function() {
+        var search = element.$$('.search');
+        assert(!search);
+        element._userRecordExists = undefined;
+        done();
+      });
+    });
+
+    test('does have search element if _searches is set and _userRecordExists is true', function(done) {
       element._searches = [{
         text: 'myText'
       }];
+      element._userRecordExists = true;
       flush(function() {
         var search = element.$$('.search');
         assert(search);
+        element._userRecordExists = undefined;
         done();
       });
     });
@@ -86,9 +106,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('_createSaveEmailAddressListener.onClick saves the email address', function() {
-      element.emailAddress = 'my@email.com';
+      element._emailAddress = 'my@email.com';
       element._createSaveEmailAddressListener().onClick();
-      // TODO
+      assert.isFalse(element._noEmailAddress);
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        emailAddress: 'my@email.com'
+      }});
     });
 
     test('_createSendSearchListener returns an object with a function', function() {
@@ -146,14 +169,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         advancedSearch: true
       });
       assert.isTrue(element.advancedSearch);
-      assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
       element._populateUserSettings({
         advancedSearch: false
       });
       assert.isFalse(element.advancedSearch);
-      assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
-      // Cleanup.
-      sessionStorage.removeItem('advancedSearch');
     });
 
     test('_populateUserSettings sets blurImages', function() {
@@ -161,14 +180,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         blurImages: false
       });
       assert.isFalse(element.blurImages);
-      assert.equal(sessionStorage.getItem('blurImages'), 'false');
       element._populateUserSettings({
         blurImages: true
       });
       assert.isTrue(element.blurImages);
-      assert.equal(sessionStorage.getItem('blurImages'), 'true');
-      // Cleanup.
-      sessionStorage.removeItem('blurImages');
     });
 
     test('_populateUserSettings sets _emailAddress', function() {
@@ -240,23 +255,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('_toggleAdvancedSearch toggles advancedSearch', function() {
       element._toggleAdvancedSearch();
       assert.isTrue(element.advancedSearch);
-      assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
       element._toggleAdvancedSearch();
       assert.isFalse(element.advancedSearch);
-      assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
-      // Cleanup.
-      sessionStorage.removeItem('advancedSearch');
     });
 
     test('_toggleBlur toggles blurImages', function() {
       element._toggleBlur();
       assert.isFalse(element.blurImages);
-      assert.equal(sessionStorage.getItem('blurImages'), 'false');
       element._toggleBlur();
       assert.isTrue(element.blurImages);
-      assert.equal(sessionStorage.getItem('blurImages'), 'true');
-      // Cleanup.
-      sessionStorage.removeItem('blurImages');
     });
 
     test('_toggleSearchSettings opens the saved search', function() {
@@ -308,47 +315,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element._updateNotification(mockEvent);
       // TODO
     });
-  });
 
-  suite('user-settings tests if settings are preset in sessionStorage', function() {
-    var element;
+    test('_getUserId only returns id if there is a valid userRecord', function() {
+      element._getUserId({});
 
-    setup(function() {
-      // Must set session storage prior to defining the fixture.
-      sessionStorage.setItem('advancedSearch', 'true');
-      sessionStorage.setItem('blurImages', 'false');
-      element = fixture('user-settings-fixture');
+      assert.isUndefined(element._userId);
+      assert.isUndefined(element._userRecordExists);
+
+      element._getUserId({_id: 1});
+
+      assert.equal(element._userId, 1);
+      assert.isTrue(element._userRecordExists);
     });
 
-    test('advancedSearch is set to true', function() {
-      assert.isTrue(element.advancedSearch);
+    test('_transformUserSearchResult if no results found', function() {
+      element._userSearchResult = {
+        hits: {
+          hits: []
+        }
+      };
+
+      element._transformUserSearchResult();
+
+      assert.isFalse(element._userRecordExists);
     });
 
-    test('blurImages is set to false', function() {
-      assert.isFalse(element.blurImages);
-    });
+    test('_transformUserSearchResult if user result found', function() {
+      element._userSearchResult = {
+        hits: {
+          hits: [{
+            _id: 2,
+            _source: {
+              username: 'mockUser',
+              blurImages: true,
+              advancedSearch: true,
+              emailAddress: 'test@test.com'
+            }
+          }]
+        }
+      };
 
-    test('_toggleAdvancedSearch toggles advancedSearch', function() {
-      element._toggleAdvancedSearch();
-      assert.isFalse(element.advancedSearch);
-      assert.equal(sessionStorage.getItem('advancedSearch'), 'false');
-      element._toggleAdvancedSearch();
-      assert.isTrue(element.advancedSearch);
-      assert.equal(sessionStorage.getItem('advancedSearch'), 'true');
-      // Cleanup.
-      sessionStorage.removeItem('advancedSearch');
-    });
-
-    test('_toggleBlur flips status of blurImages to true', function() {
-      element._toggleBlur();
+      element._transformUserSearchResult();
+      assert.isTrue(element._userRecordExists);
       assert.isTrue(element.blurImages);
-      assert.equal(sessionStorage.getItem('blurImages'), 'true');
-      element._toggleBlur();
-      assert.isFalse(element.blurImages);
-      assert.equal(sessionStorage.getItem('blurImages'), 'false');
-      // Cleanup.
-      sessionStorage.removeItem('blurImages');
+      assert.isTrue(element.advancedSearch);
+      assert.equal(element._emailAddress, 'test@test.com');
     });
+
   });
 </script>
 </body>

@@ -128,6 +128,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
+    <template is="dom-if" if="{{_userTypeAsArray}}">
+      <elastic-client-query-builder
+        type="term"
+        field="username"
+        values="[[username]]"
+        ejs-query="{{_userQuery}}">
+      </elastic-client-query-builder>
+
+      <elastic-client-search
+        client="[[client]]"
+        index="[[userIndex]]"
+        elastic-types="[[_userTypeAsArray]]"
+        query="[[_userQuery]]"
+        sort-field="dateCreated"
+        sort-order="desc"
+        aggregations="[]"
+        filters="[]"
+        results="{{_userSearchResult}}"
+        last-error="{{error}}">
+      </elastic-client-search>
+    </template>
+
     <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
 
     <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -139,99 +161,121 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         <div class="divider"></div>
 
-        <div class="layout horizontal">
-          <div class="start-justified flex">
-            <span class="name right-space">Logged in as:</span>
-            <span class="text">[[username]]</span>
+        <template is="dom-if" if="{{_userRecordExists}}" restamp="true">
+          <div class="layout horizontal">
+            <div class="start-justified flex">
+              <span class="name right-space">Logged in as:</span>
+              <span class="text">[[username]]</span>
+            </div>
+            <div class="end-justified">
+              <span class="name right-space">DIG Version:</span>
+              <span class="text">DIG_VERSION</span>
+            </div>
           </div>
-          <div class="end-justified">
-            <span class="name right-space">DIG Version:</span>
-            <span class="text">DIG_VERSION</span>
+
+          <div class="layout horizontal">
+            <span class="name tall right-space">Email Address for Notifications:</span>
+            <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
+            <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
           </div>
-        </div>
 
-        <div class="layout horizontal">
-          <span class="name tall right-space">Email Address for Notifications:</span>
-          <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
-          <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
-        </div>
+          <div class="divider"></div>
 
-        <div class="divider"></div>
+          <template is="dom-if" if="[[showSearch]]">
+            <div class="layout horizontal pointer" title="Toggle Advanced Search" on-tap="_toggleAdvancedSearch">
+              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(advancedSearch)]]"></iron-icon>
+              <span class="text">Advanced Search</span>
+            </div>
+          </template>
 
-        <template is="dom-if" if="[[showSearch]]">
-          <div class="layout horizontal pointer" title="Toggle Advanced Search" on-tap="_toggleAdvancedSearch">
-            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(advancedSearch)]]"></iron-icon>
-            <span class="text">Advanced Search</span>
+          <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
+            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
+            <span class="text">Blur Images</span>
           </div>
-        </template>
 
-        <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
-          <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
-          <span class="text">Blur Images</span>
-        </div>
+          <div class="divider"></div>
 
-        <div class="divider"></div>
-
-        <div class="layout vertical">
-          <div class="name">Saved Searches</div>
-          <template is="dom-repeat" items="[[_searches]]" as="search">
-            <div class="layout vertical search">
-              <div class="layout horizontal">
-                <modal-icon openable open="[[search.open]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
-                <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
-                <div class="layout vertical flex">
-                  <div class="text search-text">[[search.text]]</div>
-                  <template is="dom-if" if="[[search.facets.length]]">
-                    <div class="layout horizontal wrap facets">
-                      <template is="dom-repeat" items="[[search.facets]]">
-                        <breadbox-item text="[[item]]"></breadbox-item>
-                      </template>
-                    </div>
-                  </template>
-                </div>
-              </div>
-              <iron-collapse opened="[[search.open]]">
-                <div class="layout horizontal search-settings">
-                  <div class="layout vertical right-space">
-                    <div class="name tall right-space">Created By</div>
-                    <div class="name tall right-space">Created At</div>
-                  </div>
-                  <div class="layout vertical right-space">
-                    <div class="text tall right-space">[[search.user]]</div>
-                    <div class="text tall right-space">[[search.date]]</div>
-                  </div>
-                  <div class="layout vertical right-space">
-                    <div class="name tall right-space">Send Saved Search to User</div>
-                    <div class="name tall right-space">Automatically Run Query</div>
-                  </div>
-                  <div class="layout vertical right-space">
-                    <paper-input label="Enter Username" value="{{search.sendTo}}" no-label-float></paper-input>
-                    <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
-                      <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.interval}}">
-                        <!-- TODO Update values to match user settings data schema. -->
-                        <paper-item value="off">Off</paper-item>
-                        <paper-item value="hour">Every Hour</paper-item>
-                        <paper-item value="2_hours">Every Two Hours</paper-item>
-                        <paper-item value="6_hours">Every 6 Hours</paper-item>
-                        <paper-item value="12_hours">Every 12 Hours</paper-item>
-                        <paper-item value="day">Every Day</paper-item>
-                        <paper-item value="2_days">Every Two Days</paper-item>
-                        <paper-item value="week">Every Week</paper-item>
-                      </paper-listbox>
-                    </paper-dropdown-menu>
-                  </div>
-                  <div class="layout vertical">
-                    <button-action title="Send this Search to User" text="Send" disabled="[[!search.sendTo]]" click-listener="[[_createSendSearchListener(index)]]"></button-action>
-                    <template is="dom-if" if="[[_noEmailAddress]]">
-                      <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
+          <div class="layout vertical">
+            <div class="name">Saved Searches</div>
+            <template is="dom-repeat" items="[[_searches]]" as="search">
+              <div class="layout vertical search">
+                <div class="layout horizontal">
+                  <modal-icon openable open="[[search.open]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
+                  <div class="layout vertical flex">
+                    <div class="text search-text">[[search.text]]</div>
+                    <template is="dom-if" if="[[search.facets.length]]">
+                      <div class="layout horizontal wrap facets">
+                        <template is="dom-repeat" items="[[search.facets]]">
+                          <breadbox-item text="[[item]]"></breadbox-item>
+                        </template>
+                      </div>
                     </template>
                   </div>
                 </div>
-              </iron-collapse>
-            </div>
-          </template>
-        </div>
+                <iron-collapse opened="[[search.open]]">
+                  <div class="layout horizontal search-settings">
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Created By</div>
+                      <div class="name tall right-space">Created At</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="text tall right-space">[[search.user]]</div>
+                      <div class="text tall right-space">[[search.date]]</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Send Saved Search to User</div>
+                      <div class="name tall right-space">Automatically Run Query</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <paper-input label="Enter Username" value="{{search.sendTo}}" no-label-float></paper-input>
+                      <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
+                        <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.interval}}">
+                          <!-- TODO Update values to match user settings data schema. -->
+                          <paper-item value="off">Off</paper-item>
+                          <paper-item value="hour">Every Hour</paper-item>
+                          <paper-item value="2_hours">Every Two Hours</paper-item>
+                          <paper-item value="6_hours">Every 6 Hours</paper-item>
+                          <paper-item value="12_hours">Every 12 Hours</paper-item>
+                          <paper-item value="day">Every Day</paper-item>
+                          <paper-item value="2_days">Every Two Days</paper-item>
+                          <paper-item value="week">Every Week</paper-item>
+                        </paper-listbox>
+                      </paper-dropdown-menu>
+                    </div>
+                    <div class="layout vertical">
+                      <button-action title="Send this Search to User" text="Send" disabled="[[!search.sendTo]]" click-listener="[[_createSendSearchListener(index)]]"></button-action>
+                      <template is="dom-if" if="[[_noEmailAddress]]">
+                        <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
+                      </template>
+                    </div>
+                  </div>
+                </iron-collapse>
+              </div>
+            </template>
+          </div>
+        </template>
+        <template is="dom-if" if="{{!_userRecordExists}}" restamp="true">
+          Creating user record...
+        </template>
+        <elastic-create
+          client="[[client]]"
+          index="[[userIndex]]"
+          elastic-type="[[userType]]"
+          body='{{_userCreateBody}}'
+          results="{{_createdUser}}"
+          last-error="{{createError}}">
+        </elastic-create>
+        <elastic-update
+          client="[[client]]"
+          index="[[userIndex]]"
+          elastic-type="[[userType]]"
+          id="{{_userId}}"
+          body='{{_userUpdateBody}}'
+          results="{{_updatedUser}}"
+          last-error="{{createError}}">
+        </elastic-update>
       </div>
     </paper-dialog>
   </template>
@@ -252,6 +296,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String,
           notify: true,
           observer: '_usernameObserver'
+        },
+
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The index where users are stored
+         */
+        userIndex: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The user type
+         */
+        userType: {
+          type: String,
+          notify: true
         },
 
         /**
@@ -311,17 +379,76 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: function() {
             return [];
           }
+        },
+        /**
+         * The query to use to find if user record exists already or needs to be created.
+         */
+        _userQuery: {
+          type: Object
+        },
+        /**
+         * Search result from elastic-client-search query if user record already exists.
+         */
+        _userSearchResult: {
+          type: Object,
+          observer: '_transformUserSearchResult'
+        },
+        /**
+         * userType variable converted to an array for elastic-client-search
+         */
+        _userTypeAsArray: {
+          type: Array,
+          computed: '_computeTypeArray(userType)'
+        },
+        /**
+         * Boolean variable to track if/when user record is created in elasticsearch.
+         */
+        _userRecordExists: {
+          type: Boolean,
+          value: undefined,
+          notify: true
+        },
+        /**
+         * Document info to pass into the elastic-create component
+         */
+        _userCreateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * Document info to pass into the elastic-update component
+         */
+        _userUpdateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * _id from existing user record (used to make updates)
+         */
+        _userId: {
+          type: Object
+        },
+        /**
+         * Result from elastic-create.
+         */
+        _createdUser: {
+          type: Object,
+          notify: true,
+          observer: '_getUserId'
+        },
+        /**
+         * Result from elastic-update.
+         */
+        _updatedUser: {
+          type: Object,
+          notify: true
         }
       },
+      observers: [
+        '_createUserRecord(_userRecordExists, username, advancedSearch, blurImages)'
+      ],
 
-      ready: function() {
-        if(sessionStorage.getItem('advancedSearch')) {
-          this.advancedSearch = sessionStorage.getItem('advancedSearch') === 'true' ? true : false;
-        }
-        if(sessionStorage.getItem('blurImages')) {
-          this.blurImages = sessionStorage.getItem('blurImages') === 'true' ? true : false;
-        }
-      },
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
        * Creates and returns a listener to save the user's email address.
@@ -333,11 +460,62 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             if(self._emailAddress) {
               console.log('Save ' + self._emailAddress);
               self.set('_noEmailAddress', false);
-              // TODO Save the email address in the user's data.
+
+              self._set_userUpdateBody({
+                doc: {
+                  emailAddress: self._emailAddress
+                }
+              });
             }
           }
         };
       },
+
+      /**
+       * Toggles the user's advanced search setting.
+       */
+      _toggleAdvancedSearch: function() {
+        var self = this;
+        this.advancedSearch = !this.advancedSearch;
+
+        self._set_userUpdateBody({
+          doc: {
+            advancedSearch: self.advancedSearch
+          }
+        });
+      },
+
+      /**
+       * Toggles the user's blur setting.
+       */
+      _toggleBlur: function() {
+        var self = this;
+        this.blurImages = !this.blurImages;
+
+        self._set_userUpdateBody({
+          doc: {
+            blurImages: self.blurImages
+          }
+        });
+      },
+
+      /**
+       * If user record does not exist, create it.
+       */
+      _createUserRecord: function() {
+        var self = this;
+
+        if(this._userRecordExists === false) {
+          this._set_userCreateBody({
+            username: self.username,
+            advancedSearch: self.advancedSearch,
+            blurImages: self.blurImages,
+            dateCreated: new Date()
+          });
+        }
+      },
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
        * Creates and returns a listener to send the given saved search to another user.
@@ -397,12 +575,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         if(settings.advancedSearch !== undefined) {
           this.set('advancedSearch', settings.advancedSearch);
-          sessionStorage.setItem('advancedSearch', settings.advancedSearch);
         }
 
         if(settings.blurImages !== undefined) {
           this.set('blurImages', settings.blurImages);
-          sessionStorage.setItem('blurImages', settings.blurImages);
         }
 
         if(settings.emailAddress) {
@@ -441,22 +617,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Toggles the user's advanced search setting.
-       */
-      _toggleAdvancedSearch: function() {
-        this.advancedSearch = !this.advancedSearch;
-        sessionStorage.setItem('advancedSearch', this.advancedSearch);
-      },
-
-      /**
-       * Toggles the user's blur setting.
-       */
-      _toggleBlur: function() {
-        this.blurImages = !this.blurImages;
-        sessionStorage.setItem('blurImages', this.blurImages);
-      },
-
-      /**
        * Toggles the open setting of the given saved search.
        */
       _toggleSearchSettings: function(event) {
@@ -480,6 +640,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         ga('set', 'userId', window.btoa(this.username));
         ga('send', 'pageview');
         /* jshint ignore:end */
+      },
+      /**
+       * Create type array for elastic-client-search.
+       */
+      _computeTypeArray: function(userType) {
+        return [userType];
+      },
+      /**
+       * Get _id from user record.
+       */
+      _getUserId: function(userRecord) {
+        if(userRecord && userRecord._id) {
+          this._userRecordExists = true;
+          this._userId = userRecord._id;
+        }
+      },
+      /**
+       * Populate properties based on search results.
+       */
+      _transformUserSearchResult: function() {
+        if(this._userSearchResult) {
+          if(this._userSearchResult.hits.hits.length > 0) {
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            this._getUserId(this._userSearchResult.hits.hits[0]);
+            this._populateUserSettings(this._userSearchResult.hits.hits[0]._source);
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            this._userRecordExists = false;
+          }
+        }
       }
     });
   })();
