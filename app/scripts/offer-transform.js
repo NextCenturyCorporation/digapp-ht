@@ -38,8 +38,9 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
   function getPerson(record) {
     /** build person object:
     "person": {
-        "_id": "id",
-        "_type": "provider",
+        "id": "id",
+        "type": "provider",
+        "link": "/provider.html?value=<id>&field=_id",
         "names": ["Emily"],
         "ages": [20],
         "ethnicities": ["white"],
@@ -47,13 +48,16 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         "eyeColors": ["blue"],
         "heights": [64],
         "weights": [115],
-        "title": "Emily, 20, white",
+        "text": "Emily, 20, white",
         "show": true
     }
     */
     var person = {};
-    person._id = _.get(record, 'itemOffered.uri');
-    person._type = 'provider';
+    person.id = _.get(record, 'itemOffered.uri');
+    person.type = 'provider';
+    person.icon = commonTransforms.getIronIcon('provider');
+    person.link = commonTransforms.getLink(person.id, 'provider');
+    person.styleClass = commonTransforms.getStyleClass('provider');
 
     person.names = _.get(record, 'itemOffered.name') || [];
     person.names = (_.isArray(person.names) ? person.names : [person.names]);
@@ -70,15 +74,15 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     person.weights = _.get(record, 'itemOffered.weight') || [];
     person.weights = (_.isArray(person.weights) ? person.weights : [person.weights]);
 
-    var title = (person.names.length) ? [person.names[0]] : [];
+    var text = (person.names.length) ? [person.names[0]] : [];
     if(person.ages && person.ages.length) {
-      title.push(person.ages[0]);
+      text.push(person.ages[0]);
     }
     if(person.ethnicities && person.ethnicities.length) {
-      title.push(person.ethnicities[0]);
+      text.push(person.ethnicities[0]);
     }
-    person.title = title.join(', ');
-    person.show = (title.length > 0) ? true : false;
+    person.text = text.join(', ');
+    person.show = (text.length > 0) ? true : false;
     return person;
   }
 
@@ -101,13 +105,15 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
   function parseOffer(record) {
     var newData = {};
 
-    newData._id = _.get(record, 'uri');
+    newData.id = _.get(record, 'uri');
+    newData.icon = commonTransforms.getIronIcon('offer');
+    newData.styleClass = commonTransforms.getStyleClass('offer');
     newData.date = _.get(record, 'validFrom');
     newData.address = commonTransforms.getAddress(record);
     newData.geolocation = getGeolocation(record);
     newData.person = getPerson(record);
     newData.price = getPrice(record);
-    newData.title = _.get(record, 'title', 'Title N/A');
+    newData.text = _.get(record, 'title', 'Title N/A');
     newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
     newData.body = _.get(record, 'mainEntityOfPage.description');
     newData.emails = commonTransforms.getClickableObjectArr(_.get(record, 'seller.email'), 'email');

@@ -9,49 +9,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/iron-flex-layout/classes/iron-flex-layout.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-checkbox/paper-checkbox.html">
-<link rel="import" href="../behaviors.html">
-
-<!--
-### Styling
-The following custom properties and mixins are available for styling:
-Custom property | Description | Default
-----------------|-------------|----------
-`--feature-agg-bar-color`     | Bar background color                   | `--light-primary-color`
-`--feature-agg-title-color`   | Title text foreground color            | `--primary-text-color`
-`--feature-agg-bar-height`    | Bar height                             | `22px`
--->
+<link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/horizontal-bar/horizontal-bar.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="feature-aggregation">
   <template>
-    <style include="web-component-styles"></style>
+    <style include="iron-flex iron-flex-alignment"></style>
 
     <style>
       :host {
         display: block;
       }
 
-      .feature-wrapper {
+      .chart-wrapper {
         margin: 10px;
         min-width: 100px;
       }
 
-      .feature-title {
+      .chart-title {
         color: var(--secondary-text-color);
         font-size: 14px;
         line-height: 20px;
         text-transform: uppercase;
       }
 
-      .feature-label {
+      .chart-label {
         color: var(--primary-text-color);
         font-size: 14px;
         line-height: 20px;
       }
 
-      .feature-content {
+      .chart-items {
         font-size: 12px;
         line-height: 20px;
         /* Max Height = Height of 20 Items */
@@ -66,106 +57,40 @@ Custom property | Description | Default
 
       .small {
         /* Max Height = Height of 10 Items + Height of Show More Button */
-        max-height: 290px;
+        max-height: 270px;
       }
 
-      .row-wrapper {
-        margin-top: 4px;
-      }
-
-      .bar-checkbox {
-        --paper-checkbox-label-spacing: 4px;
-        --paper-checkbox-size: 16px;
-        position: relative;
-        top: 2px;
-      }
-
-      .bar-wrapper {
-        position: relative;
-        height: var(--feature-agg-bar-height, 20px);
-        width: 100%;
-      }
-
-      .bar {
-        background-color: var(--feature-agg-bar-color, --light-primary-color);
-        border-radius: 2px;
-        position: absolute;
-        left: 0;
-        top: 0px;
-        bottom: 0px;
-      }
-
-      .bar-title {
-        color: var(--feature-agg-title-color, --primary-text-color);
-        padding: 0 5px;
-        position: relative;
-        text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .bar-count {
-        color: var(--feature-agg-count-color, --secondary-text-color);
-        font-weight: bold;
-        padding: 0 5px;
-        position: relative;
-        text-shadow: 1px 1px 0 rgba(255,255,255,0.5);
-      }
-
-      a:link,
-      a:visited {
-        color: var(--feature-agg-title-color, --primary-text-color);
-        /* color: var(--dark-link-text-color); */
-      }
-
-      a:hover {
-        color: var(--secondary-text-color);
+      .show-more {
+        text-align: center;
       }
     </style>
 
-    <div class="feature-wrapper">
-      <div class="feature-title">[[featureTitle]]</div>
-      <template is="dom-if" if="[[doesShowNoAggregationsText(combinedData.length, loading)]]">
-        <div class="feature-label">None</div>
+    <div class="chart-wrapper">
+      <div class="chart-title">[[chartTitle]]</div>
+
+      <template is="dom-if" if="[[showNoDataText(combinedItems.length, loading)]]">
+        <div class="chart-label">None</div>
       </template>
 
-      <template is="dom-if" if="[[small]]">
-        <template is="dom-if" if="[[loading]]">
-          <div class="feature-label">Loading...</div>
-        </template>
-      </template>
-
-      <div class$="feature-content [[doesOverflow(combinedData.length, limit)]] [[isSmall(small)]]">
-        <template id="barList" is="dom-repeat" items="[[displayAggregations]]">
-          <div class="row-wrapper layout horizontal">
-            <paper-checkbox name="[[getProperty(item, dataText)]]" checked="[[item.selected]]" on-change="toggleItem" class="bar-checkbox"></paper-checkbox>
-            <div class="bar-wrapper layout horizontal center center-justified">
-              <div class="bar" style$="width: [[item.width]]%;"></div>
-              <div class="bar-title flex">
-                <template is="dom-if" if="[[showLink]]">
-                  <a href$="[[createLink(linkType, getProperty(item, dataText), linkField)]]">[[getProperty(item, dataText)]]</a>
-                </template>
-                <template is="dom-if" if="[[!showLink]]">
-                  [[getProperty(item, dataText)]]
-                </template>
-              </div>
-              <div class="bar-count flex-none">[[getProperty(item, dataCount)]]</div>
-            </div>
-          </div>
+      <div class$="chart-items [[doesOverflow(combinedItems.length, limit)]] [[isSmall(small)]]">
+        <template id="barList" is="dom-repeat" items="[[shownItems]]">
+          <horizontal-bar
+            name="[[getProperty(item, textProperty)]]"
+            count="[[getProperty(item, countProperty)]]"
+            width="[[item.width]]"
+            selected="{{item.selected}}"
+            toggle-listener="[[createToggleListener(item)]]">
+          </horizontal-bar>
         </template>
       </div>
 
-      <div class$="loading-container [[isSmall(small)]]">
-        <template is="dom-if" if="[[showMore]]">
-          <paper-button raised on-tap="showMoreAggregations">Show More</paper-button>
-        </template>
-        <template is="dom-if" if="[[!small]]">
-          <template is="dom-if" if="[[loading]]">
-            <paper-spinner active="[[loading]]"></paper-spinner>
-            <span class="button-height-text">Loading...</span>
-          </template>
-        </template>
-      </div>
+      <loading-spinner show="[[loading]]"></loading-spinner>
+
+      <template is="dom-if" if="[[showMore]]">
+        <div class="show-more">
+          <button-action text="Show More" click-listener="[[createShowMoreListener()]]"></button-action>
+        </div>
+      </template>
     </div>
   </template>
 
@@ -173,47 +98,44 @@ Custom property | Description | Default
   (function() {
     'use strict';
 
-    /* globals _, DigBehaviors */
+    /* globals _ */
     Polymer({
       is: 'feature-aggregation',
 
-      behaviors: [DigBehaviors.CreateLinkBehavior],
-
       properties: {
         /**
-         * Property in the data objects containing a unique ID (used to set the filter values).
+         * Property in each item for its unique ID (used to set the filter values).
          */
-        dataId: {
+        idProperty: {
           type: String,
           value: 'id'
         },
 
         /**
-         * Property in the data objects containing the text to display.
+         * Property in each item for its count to show.
          */
-        dataText: {
-          type: String,
-          value: 'text'
-        },
-
-        /**
-         * Property in the data objects containing the count to display.
-         */
-        dataCount: {
+        countProperty: {
           type: String,
           value: 'count'
         },
 
         /**
-         * The input data for this component.
+         * Property in each item for its text to show.
          */
-        data: {
-          type: Array,
-          notify: true
+        textProperty: {
+          type: String,
+          value: 'text'
         },
 
         /**
-         * The limit on the initial amount of display data for this component (or 0 to display all data).
+         * The input items for this component.
+         */
+        items: {
+          type: Array
+        },
+
+        /**
+         * The limit on the initial number of items to show in this component (or 0 to show all items).
          */
         limit: {
           type: Number,
@@ -221,34 +143,11 @@ Custom property | Description | Default
         },
 
         /**
-         * Whether the data for this component is loading.
+         * Whether the items for this component are loading.
          */
         loading: {
           type: Boolean,
           value: false,
-          notify: true
-        },
-
-        /**
-         * Whether this component has more data to show.
-         */
-        showMore: {
-          type: Boolean,
-          value: false
-        },
-
-        showLink: {
-          type: Boolean,
-          value: false
-        },
-
-        linkType: {
-          type: String,
-          notify: true
-        },
-
-        linkField: {
-          type: String,
           notify: true
         },
 
@@ -263,9 +162,18 @@ Custom property | Description | Default
         /**
          * The title for this component.
          */
-        featureTitle: {
+        chartTitle: {
           type: String,
-          value: 'Features'
+          value: 'Data'
+        },
+
+        /**
+         * The values on which to filter.
+         */
+        filterValues: {
+          type: Array,
+          notify: true,
+          computed: 'computeFilterValues(selectedItems)'
         },
 
         /**
@@ -279,77 +187,87 @@ Custom property | Description | Default
         },
 
         /**
-         * The values on which to filter.
+         * The combined list of selected items and input items for this component.
          */
-        filterValues: {
+        combinedItems: {
           type: Array,
           notify: true,
-          computed: 'computeFilterValues(selectedItems)'
+          computed: 'computeCombinedItems(items, selectedItems)',
+          observer: 'updateShownItems'
         },
 
         /**
-         * The combined list of selected items and data for this component.
+         * The shown items for this component.
          */
-        combinedData: {
-          type: Array,
-          notify: true,
-          computed: 'computeCombinedData(data, selectedItems)',
-          observer: 'updateDisplayAggregations'
-        },
-
-        /**
-         * The display data for this component.
-         */
-        displayAggregations: {
+        shownItems: {
           type: Array,
           notify: true
+        },
+
+        /**
+         * Whether this component has more items to show.
+         */
+        showMore: {
+          type: Boolean,
+          value: false
         }
       },
 
       /**
-       * Returns the combined list of selected items and data for this component.  Sets the 'selected' and 'width' properties for the items.
+       * Returns the width of the bar for the given item in CSS syntax.
        */
-      computeCombinedData: function() {
-        var self = this;
-        var combinedData = [];
+      computeWidth: function(count, maxCount) {
+        // This returns bar widths relative to the highest count item, assuming it's first.
+        // Could also sum up all counts and do widths relative to the total.
+        // Will return a minimum of 1 as the width if the count is greater than 0.
+        var widthCalc = Math.round((count / maxCount) * 100);
+        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
+      },
 
-        // Ensure that the count for each selected item is up-to-date based on the new input data.
+      /**
+       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'width' properties for the items.
+       */
+      computeCombinedItems: function() {
+        var self = this;
+        var combinedItems = [];
+
+        // Ensure that the count for each selected item is up-to-date based on the new input items.
         this.selectedItems.forEach(function(selectedItem) {
-          var index = self.data.map(function(item) {
-            return self.getProperty(item, self.dataId);
-          }).indexOf(self.getProperty(selectedItem, self.dataId));
+          var index = self.items.map(function(item) {
+            return self.getProperty(item, self.idProperty);
+          }).indexOf(self.getProperty(selectedItem, self.idProperty));
 
           // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
-          var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.data[index]));
+          var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.items[index]));
           clonedItem.selected = true;
-          combinedData.push(clonedItem);
+          combinedItems.push(clonedItem);
         });
 
         // Ensure that the selected item with the highest count is on top.
-        combinedData.sort(function(a, b) {
-          return b[self.dataCount] - a[self.dataCount];
+        combinedItems.sort(function(a, b) {
+          return b[self.countProperty] - a[self.countProperty];
         });
 
-        var topCount = Math.max((combinedData.length ? combinedData[0][this.dataCount] : 0), (this.data.length ? this.data[0][this.dataCount] : 0));
+        var maxCount = Math.max((combinedItems.length ? combinedItems[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
 
         // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
-        combinedData.forEach(function(item) {
-          item.width = self.getWidth(item[self.dataCount], topCount);
+        combinedItems.forEach(function(item) {
+          item.width = self.computeWidth(item[self.countProperty], maxCount);
         });
 
-        this.data.forEach(function(item) {
-          var index = self.filterValues.indexOf(self.getProperty(item, self.dataId));
+        this.items.forEach(function(item) {
+          var index = self.filterValues.indexOf(self.getProperty(item, self.idProperty));
           if(index < 0) {
-            // Ensure that this component does not affect the input data by creating a copy.
+            // Ensure that this component does not affect the input items by creating a copy.
             var clonedItem = _.cloneDeep(item);
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
-            clonedItem.width = self.getWidth(clonedItem[self.dataCount], topCount);
-            combinedData.push(clonedItem);
+            clonedItem.width = self.computeWidth(clonedItem[self.countProperty], maxCount);
+            combinedItems.push(clonedItem);
           }
         });
 
-        return combinedData;
+        return combinedItems;
       },
 
       /**
@@ -358,24 +276,64 @@ Custom property | Description | Default
       computeFilterValues: function() {
         var self = this;
         return this.selectedItems.map(function(item) {
-          return self.getProperty(item, self.dataId);
+          return self.getProperty(item, self.idProperty);
         });
       },
 
       /**
-       * Returns whether this component has data that may overflow its list (requiring a scrollbar).
+       * Returns a listener that shows the full list of items on clicking the Show More button.
        */
-      doesOverflow: function(length, limit) {
-        // Overflow causes a scrollbar to be displayed when the bottom checkbox in the list is checked because of the
-        // ripple effect so only add overflow if needed because there are more than the limit of aggregations.
-        return length > limit ? 'overflow' : '';
+      createShowMoreListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            for(var i = self.limit; i < self.combinedItems.length; ++i) {
+              self.push('shownItems', self.combinedItems[i]);
+            }
+            self.set('showMore', false);
+            self.$.barList.render();
+          }
+        };
       },
 
       /**
-       * Returns whether this component should show its 'no aggregations' text.
+       * Returns a listener that recreates the list of selected items on toggling a horizontal-bar checkbox.
        */
-      doesShowNoAggregationsText: function(length, loading) {
-        return !length && !loading;
+      createToggleListener: function() {
+        var self = this;
+
+        return {
+          onToggle: function() {
+            var change = false;
+            var filters = [];
+            self.shownItems.forEach(function(item) {
+              var index = self.selectedItems.map(function(selectedItem) {
+                return self.getProperty(selectedItem, self.idProperty);
+              }).indexOf(self.getProperty(item, self.idProperty));
+
+              if(item.selected) {
+                change = change || (index < 0);
+                filters.push(item);
+              } else if(index >= 0) {
+                change = true;
+                self.splice('selectedItems', index, 1);
+              }
+            });
+
+            if(change) {
+              self.set('selectedItems', filters);
+            }
+          }
+        };
+      },
+
+      /**
+       * Returns whether this component has items that may overflow its list (requiring a scrollbar).
+       */
+      doesOverflow: function(length, limit) {
+        // Overflow causes a scrollbar to be displayed when the bottom checkbox in the list is checked because of the
+        // ripple effect so only add overflow if needed because there are more than the limit of items.
+        return length > limit ? 'overflow' : '';
       },
 
       /**
@@ -386,17 +344,6 @@ Custom property | Description | Default
       },
 
       /**
-       * Returns the width of the bar for the given item in CSS syntax.
-       */
-      getWidth: function(count, topCount) {
-        // This returns bar widths relative to the highest count item, assuming it's first.
-        // Could also sum up all counts and do widths relative to the total.
-        // Will return a minimum of 1 as the width if the count is greater than 0.
-        var widthCalc = Math.round((count / topCount) * 100);
-        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
-      },
-
-      /**
        * Returns whether this component is marked as small.
        */
       isSmall: function(small) {
@@ -404,54 +351,22 @@ Custom property | Description | Default
       },
 
       /**
-       * Adds all of the aggregation results to the list of display aggregations.
+       * Returns whether this component should show its 'no data' text.
        */
-      showMoreAggregations: function() {
-        for(var i = this.limit; i < this.combinedData.length; ++i) {
-          this.push('displayAggregations', this.combinedData[i]);
-        }
-        this.set('showMore', false);
-        this.$.barList.render();
+      showNoDataText: function(length, loading) {
+        return !length && !loading;
       },
 
       /**
-       * Toggles the selected status of the item in the given event and recreates the list of selected items if needed.
+       * Updates the list of display items using the combined list of selected items and input items and the limit.
        */
-      toggleItem: function(event) {
-        event.model.item.selected = !event.model.item.selected;
-
-        var self = this;
-        var change = false;
-        var filters = [];
-        this.displayAggregations.forEach(function(item) {
-          var index = self.selectedItems.map(function(selectedItem) {
-            return self.getProperty(selectedItem, self.dataId);
-          }).indexOf(self.getProperty(item, self.dataId));
-
-          if(item.selected) {
-            change = change || (index < 0);
-            filters.push(item);
-          } else if(index >= 0) {
-            change = true;
-            self.splice('selectedItems', index, 1);
-          }
-        });
-
-        if(change) {
-          this.set('selectedItems', filters);
-        }
-      },
-
-      /**
-       * Updates the list of display aggregations using the selected items, the aggregation results, and the limit.
-       */
-      updateDisplayAggregations: function() {
-        this.set('displayAggregations', []);
-        var limit = (this.limit > 0 ? Math.min(this.combinedData.length, this.limit) : this.combinedData.length);
+      updateShownItems: function() {
+        this.set('shownItems', []);
+        var limit = (this.limit > 0 ? Math.min(this.combinedItems.length, this.limit) : this.combinedItems.length);
         for(var i = 0; i < limit; ++i) {
-          this.push('displayAggregations', this.combinedData[i]);
+          this.push('shownItems', this.combinedItems[i]);
         }
-        this.set('showMore', (this.combinedData.length > this.limit));
+        this.set('showMore', (this.combinedItems.length > this.limit));
       }
     });
   })();
