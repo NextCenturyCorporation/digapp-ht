@@ -30,10 +30,10 @@ curl -XPUT localhost:9200/dig-users -d '
             },
             "digUIState": {
               "properties" :{
-                "query": {
+                "searchText": {
                   "type": "string"
                 },
-                "filters": {
+                "facets": {
                   "type": "string"
                 }
               }
@@ -60,6 +60,10 @@ curl -XPUT localhost:9200/dig-users -d '
             "createdBy": {
               "type": "string",
               "index": "not_analyzed"
+            },
+            "createdAt": {
+              "type": "date",
+              "format" : "dateOptionalTime"
             }
           }
         },

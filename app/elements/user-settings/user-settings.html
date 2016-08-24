@@ -128,6 +128,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
     </style>
 
+    <!-- find user if record exists -->
     <template is="dom-if" if="{{_userTypeAsArray}}">
       <elastic-client-query-builder
         type="term"
@@ -150,6 +151,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </elastic-client-search>
     </template>
 
+    <!-- Save Query Dialog -->
+    <!-- TODO: hide save button if no search exists yet or if original search text caused errors -->
+    <template is="dom-if" if="{{searchText}}" restamp="true">
+      <paper-icon-button icon="save" title="Save Query" on-tap="_openSaveQueryDialog"></paper-icon-button>
+    </template>
+
+    <paper-dialog id="saveQueryDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="save-query">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Save Query</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close Save Query"></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <template is="dom-if" if="{{_userRecordExists}}" restamp="true">
+
+          <div class="layout horizontal">
+            <span class="name tall right-space">Name of Query:</span>
+            <paper-input class="right-space" label="Enter Name" value="{{_saveQueryName}}" no-label-float></paper-input>
+            <button-action title="Save Name" text="Save" disabled="[[!_saveQueryName]]" click-listener="[[_createSaveQueryListener()]]"></button-action>
+          </div>
+
+          <div class="divider"></div>
+        </template>
+      </div>
+    </paper-dialog>
+
+    <!-- User preferences dialog -->
     <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
 
     <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -204,10 +234,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
                   <div class="layout vertical flex">
-                    <div class="text search-text">[[search.text]]</div>
-                    <template is="dom-if" if="[[search.facets.length]]">
+                    <div class="text search-text">[[search.name]]</div>
+                    <div class="name search-text">Search Text</div>
+                    <div class="text search-text">[[search.digUIState.searchText]]</div>
+                    <template is="dom-if" if="[[search.digUIState.facets.length]]">
+                    <div class="name search-text">Facets</div>
                       <div class="layout horizontal wrap facets">
-                        <template is="dom-repeat" items="[[search.facets]]">
+                        <template is="dom-repeat" items="[[search.digUIState.facets]]">
                           <breadbox-item text="[[item]]"></breadbox-item>
                         </template>
                       </div>
@@ -221,8 +254,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       <div class="name tall right-space">Created At</div>
                     </div>
                     <div class="layout vertical right-space">
-                      <div class="text tall right-space">[[search.user]]</div>
-                      <div class="text tall right-space">[[search.date]]</div>
+                      <div class="text tall right-space">[[search.createdBy]]</div>
+                      <div class="text tall right-space">[[search.createdAt]]</div>
                     </div>
                     <div class="layout vertical right-space">
                       <div class="name tall right-space">Send Saved Search to User</div>
@@ -231,16 +264,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     <div class="layout vertical right-space">
                       <paper-input label="Enter Username" value="{{search.sendTo}}" no-label-float></paper-input>
                       <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
-                        <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.interval}}">
-                          <!-- TODO Update values to match user settings data schema. -->
-                          <paper-item value="off">Off</paper-item>
-                          <paper-item value="hour">Every Hour</paper-item>
-                          <paper-item value="2_hours">Every Two Hours</paper-item>
-                          <paper-item value="6_hours">Every 6 Hours</paper-item>
-                          <paper-item value="12_hours">Every 12 Hours</paper-item>
-                          <paper-item value="day">Every Day</paper-item>
-                          <paper-item value="2_days">Every Two Days</paper-item>
-                          <paper-item value="week">Every Week</paper-item>
+                        <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
+                          <paper-item value="never">Never</paper-item>
+                          <paper-item value="hourly">Every Hour</paper-item>
+                          <paper-item value="daily">Every Day</paper-item>
+                          <paper-item value="weekly">Every Week</paper-item>
                         </paper-listbox>
                       </paper-dropdown-menu>
                     </div>
@@ -259,30 +287,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <template is="dom-if" if="{{!_userRecordExists}}" restamp="true">
           Creating user record...
         </template>
-        <elastic-create
-          client="[[client]]"
-          index="[[userIndex]]"
-          elastic-type="[[userType]]"
-          body='{{_userCreateBody}}'
-          results="{{_createdUser}}"
-          last-error="{{createError}}">
-        </elastic-create>
-        <elastic-update
-          client="[[client]]"
-          index="[[userIndex]]"
-          elastic-type="[[userType]]"
-          id="{{_userId}}"
-          body='{{_userUpdateBody}}'
-          results="{{_updatedUser}}"
-          last-error="{{createError}}">
-        </elastic-update>
       </div>
     </paper-dialog>
+    <!-- if no user record found, create it -->
+    <elastic-create
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-type="[[userType]]"
+      body='{{_userCreateBody}}'
+      results="{{_createdUser}}"
+      last-error="{{createError}}">
+    </elastic-create>
+    <!--Updates to user record initiated by user preferences dialog-->
+    <elastic-update
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-type="[[userType]]"
+      id="{{_userId}}"
+      body='{{_userUpdateBody}}'
+      results="{{_updatedUser}}"
+      last-error="{{updateError}}">
+    </elastic-update>
   </template>
 
   <script>
   (function() {
-    /* globals _ */
     'use strict';
 
     Polymer({
@@ -442,6 +471,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _updatedUser: {
           type: Object,
           notify: true
+        },
+        _saveQueryName: {
+          type: String
         }
       },
       observers: [
@@ -515,6 +547,56 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      /**
+       * Creates and returns a listener to save a user's query.
+       */
+      _createSaveQueryListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            // TODO: check initial values for savedSearch
+            var currentQuery = {
+              name: self._saveQueryName,
+              digUIState: {
+                searchText: self.searchText,
+                facets: {}
+              },
+              esState: '',
+              frequency: 'never',
+              lastRunDate: new Date(),
+              notificationDate: new Date(),
+              notificationHasRun: false,
+              createdBy: self.username,
+              createdAt: new Date()
+            };
+            if(!self._searches) {
+              self._searches = [];
+            }
+            self.push('_searches', currentQuery);
+            self._set_userUpdateBody({
+              doc: {
+                savedQueries: self._searches
+              }
+            });
+            self.$$('#saveQueryDialog').close();
+          }
+        };
+      },
+
+      /**
+       * Deletes the given saved search.
+       */
+      _deleteSearch: function(event) {
+        var self = this;
+        console.log('Delete ' + event.model.search + ' index ' + event.model.index);
+        self.splice('_searches', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self._searches
+          }
+        });
+      },
+
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
@@ -529,14 +611,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             // TODO Save the search in the other user's data.
           }
         };
-      },
-
-      /**
-       * Deletes the given saved search.
-       */
-      _deleteSearch: function(event) {
-        console.log('Delete ' + event.model.search + ' index ' + event.model.index);
-        // TODO Remove the search from the user's data.
       },
 
       /**
@@ -568,10 +642,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
+       * Opens the save query dialog.
+       */
+      _openSaveQueryDialog: function() {
+        this.$$('#saveQueryDialog').open();
+      },
+
+      /**
        * Populates the properties in this user-settings component using the given settings object.
        */
       _populateUserSettings: function(settings) {
-        var self = this;
+        //var self = this;
 
         if(settings.advancedSearch !== undefined) {
           this.set('advancedSearch', settings.advancedSearch);
@@ -586,8 +667,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.set('_noEmailAddress', false);
         }
 
-        if(settings.searches) {
-          var searches = _.reduce(settings.searches, function(searches, search) {
+        if(settings.savedQueries) {
+          /*var searches = _.reduce(settings.searches, function(searches, search) {
             if(search.text) {
               searches.push({
                 date: search.date || 'Unknown',
@@ -602,8 +683,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               });
             }
             return searches;
-          }, []);
-          self.set('_searches', searches);
+          }, []);*/
+          this.set('_searches', settings.savedQueries);
         }
       },
 
@@ -612,7 +693,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
-        this.set('searchText', event.model.search.text);
+        this.set('searchText', event.model.search.digUIState.searchText);
         // TODO Set the facets with the search text simultaneously.
       },
 
