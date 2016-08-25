@@ -34,7 +34,7 @@ curl -XPUT localhost:9200/dig-users -d '
                   "type": "string"
                 },
                 "facets": {
-                  "type": "string"
+                  "type": "object"
                 }
               }
             },

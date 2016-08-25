@@ -230,18 +230,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-repeat" items="[[_searches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
-                  <modal-icon openable open="[[search.open]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
                   <div class="layout vertical flex">
                     <div class="text search-text">[[search.name]]</div>
                     <div class="name search-text">Search Text</div>
                     <div class="text search-text">[[search.digUIState.searchText]]</div>
-                    <template is="dom-if" if="[[search.digUIState.facets.length]]">
+                    <template is="dom-if" if="[[search.digUIState.facets]]">
                     <div class="name search-text">Facets</div>
                       <div class="layout horizontal wrap facets">
-                        <template is="dom-repeat" items="[[search.digUIState.facets]]">
-                          <breadbox-item text="[[item]]"></breadbox-item>
+                        <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
+                          <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
+                            <breadbox-item
+                              text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
+                              title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                            </breadbox-item>
+                          </template>
                         </template>
                       </div>
                     </template>
@@ -313,6 +318,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
   (function() {
     'use strict';
+    /* globals _ */
 
     Polymer({
       is: 'user-settings',
@@ -382,6 +388,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         searchText: {
           type: String,
+          notify: true
+        },
+
+        /**
+         * The facets used (if any) along with searchText.
+         */
+        facets: {
+          type: Object,
           notify: true
         },
 
@@ -559,7 +573,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               name: self._saveQueryName,
               digUIState: {
                 searchText: self.searchText,
-                facets: {}
+                facets: self.facets
               },
               esState: '',
               frequency: 'never',
@@ -694,7 +708,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
         this.set('searchText', event.model.search.digUIState.searchText);
-        // TODO Set the facets with the search text simultaneously.
+        this.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        // TODO Save the query in elasticsearch format
       },
 
       /**
@@ -751,6 +766,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this._userRecordExists = false;
           }
         }
+      },
+      /**
+       * Get all the facet selection groups.
+       */
+      _getFacetGroups: function(facets) {
+        return _.keys(facets);
+      },
+      /**
+       * Get the selected facets from the facet group.
+       */
+      _getFacetGroupKeys: function(facets, facetGroupName) {
+        return _.keys(facets[facetGroupName]);
+      },
+      /**
+       * Get the property of a selected facet.
+       */
+      _getFacetProperty: function(facets, facetGroupName, key, prop) {
+        return facets[facetGroupName][key][prop];
       }
     });
   })();
