@@ -39,7 +39,14 @@ curl -XPUT localhost:9200/dig-users -d '
               }
             },
             "esState": {
-              "type": "string"
+              "properties" :{
+                "query": {
+                  "type": "object"
+                },
+                "filter": {
+                  "type": "object"
+                }
+              }
             },
             "frequency": {  
               "type": "string",

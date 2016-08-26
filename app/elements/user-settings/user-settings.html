@@ -269,10 +269,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       <div class="layout horizontal wrap facets">
                         <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
                           <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
-                            <breadbox-item
-                              text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
-                              title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
-                            </breadbox-item>
+                            <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
+                              <breadbox-item
+                                text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
+                                title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                              </breadbox-item>
+                            </template>
                           </template>
                         </template>
                       </div>
@@ -344,8 +346,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
-    'use strict';
     /* globals _ */
+    'use strict';
 
     Polymer({
       is: 'user-settings',
@@ -432,6 +434,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         showSaveBtn: {
           type: Boolean,
           value: false,
+          notify: true
+        },
+
+        /**
+         * Most recent request to elasticsearch.
+         */
+        esRequest: {
+          type: Object,
           notify: true
         },
 
@@ -658,7 +668,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             searchText: this.searchText,
             facets: this.facets
           },
-          esState: '',
+          esState: {
+            query: this.esRequest.query,
+            filter: this.esRequest.filter
+          },
           frequency: 'never',
           lastRunDate: new Date(),
           notificationDate: new Date(),
@@ -810,7 +823,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$$('#settingsDialog').close();
         this.set('searchText', event.model.search.digUIState.searchText);
         this.set('facets', event.model.search.digUIState.facets);
-        // TODO Save the query in elasticsearch format
       },
 
       /**
@@ -884,7 +896,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Get the property of a selected facet.
        */
       _getFacetProperty: function(facets, facetGroupName, key, prop) {
-        return facets[facetGroupName][key][prop];
+        if(facets && facets[facetGroupName] && facets[facetGroupName][key]) {
+          return facets[facetGroupName][key][prop];
+        }
       }
     });
   })();
