@@ -29,15 +29,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style>
       :host {
         display: block;
+        --paper-listbox-background-color: #FFFFFF;
+      }
+
+      paper-listbox {
+        padding-top: 0px;
       }
 
       paper-dialog {
         background-color: white;
         border-radius: 5px;
-        height: 100%;
         margin: 50px;
         overflow: auto;
         white-space: nowrap;
+      }
+
+      #settingsDialog {
+        height: 100%;
+        width: 100%;
+      }
+
+      #saveSearchDialog {
+        height: 100%;
         width: 100%;
       }
 
@@ -151,30 +164,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </elastic-client-search>
     </template>
 
-    <!-- Save Query Dialog -->
+    <!-- Save Search Dialog -->
     <!-- TODO: hide save button if no search exists yet or if original search text caused errors -->
     <template is="dom-if" if="{{searchText}}" restamp="true">
-      <paper-icon-button icon="save" title="Save Query" on-tap="_openSaveQueryDialog"></paper-icon-button>
+      <paper-icon-button icon="save" title="Save Search" on-tap="_openSaveSearchDialog"></paper-icon-button>
     </template>
 
-    <paper-dialog id="saveQueryDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <div class="save-query">
+    <paper-dialog id="saveSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="layout vertical flex">
         <div class="layout horizontal">
-          <span class="bold tall flex">Save Query</span>
-          <paper-icon-button icon="clear" dialog-confirm title="Close Save Query"></paper-icon-button>
+          <span class="bold tall flex">Save Search</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close Save Search"></paper-icon-button>
         </div>
 
         <div class="divider"></div>
 
         <template is="dom-if" if="{{_userRecordExists}}" restamp="true">
-
-          <div class="layout horizontal">
-            <span class="name tall right-space">Name of Query:</span>
-            <paper-input class="right-space" label="Enter Name" value="{{_saveQueryName}}" no-label-float></paper-input>
-            <button-action title="Save Name" text="Save" disabled="[[!_saveQueryName]]" click-listener="[[_createSaveQueryListener()]]"></button-action>
+          <div class="layout vertical flex">
+            <span class="name tall">Previously Saved Searches</span>
+            <paper-listbox>
+              <template is="dom-repeat" items="[[_searches]]" as="search">
+                <paper-item on-tap="_useExistingSearchName">{{search.name}}</paper-item>
+              </template>
+            </paper-listbox>
+            <span class="name tall right-space">Name of New Search</span>
+            <div class="layout horizontal">
+              <paper-input class="flex right-space" label="Enter Name" value="{{_savedSearchName}}" no-label-float></paper-input>
+              <button-action title="Save Name" text="Save" disabled="[[!_checkSavedSearchName()]]" click-listener="[[_createSavedSearchListener()]]"></button-action>
+              <!-- Confirm dialog for saving over an existing search -->
+              <paper-dialog id="saveAlert"  modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+                <div class="layout horizontal">
+                  <span class="bold tall flex">Are you sure you want to save over existing saved search "[[_savedSearchName]]"?</span>
+                </div>
+                <div class="buttons">
+                  <paper-button dialog-confirm on-tap="_confirmSaveSearch">OK</paper-button>
+                  <paper-button dialog-dismiss>Cancel</paper-button>
+                </div>
+              </paper-dialog>
+            </div>
           </div>
-
-          <div class="divider"></div>
         </template>
       </div>
     </paper-dialog>
@@ -238,7 +266,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     <div class="name search-text">Search Text</div>
                     <div class="text search-text">[[search.digUIState.searchText]]</div>
                     <template is="dom-if" if="[[search.digUIState.facets]]">
-                    <div class="name search-text">Facets</div>
+                      <div class="name search-text">Facets</div>
                       <div class="layout horizontal wrap facets">
                         <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
                           <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
@@ -486,8 +514,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true
         },
-        _saveQueryName: {
+        /**
+         * Name chosen by user to save a new search.
+         */
+        _savedSearchName: {
           type: String
+        },
+        /**
+         * Index to replace in _searches if saving over existing search.
+         */
+        _saveOverIndex: {
+          type: Number
         }
       },
       observers: [
@@ -564,37 +601,83 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Creates and returns a listener to save a user's query.
        */
-      _createSaveQueryListener: function() {
+      _createSavedSearchListener: function() {
         var self = this;
         return {
           onClick: function() {
-            // TODO: check initial values for savedSearch
-            var currentQuery = {
-              name: self._saveQueryName,
-              digUIState: {
-                searchText: self.searchText,
-                facets: self.facets
-              },
-              esState: '',
-              frequency: 'never',
-              lastRunDate: new Date(),
-              notificationDate: new Date(),
-              notificationHasRun: false,
-              createdBy: self.username,
-              createdAt: new Date()
-            };
-            if(!self._searches) {
-              self._searches = [];
-            }
-            self.push('_searches', currentQuery);
-            self._set_userUpdateBody({
-              doc: {
-                savedQueries: self._searches
+            if(self._checkSavedSearchName()) {
+              var indexToReplace = _.findIndex(self._searches, {name: self._savedSearchName});
+
+              if(indexToReplace !== -1) {
+                self._saveOverIndex = indexToReplace;
+                self.$$('#saveAlert').open();
+              } else {
+                self._addNewSearch();
+                self._saveSearches();
               }
-            });
-            self.$$('#saveQueryDialog').close();
+            }
           }
         };
+      },
+
+      /**
+       * Add new search to _searches array.
+       */
+      _addNewSearch: function() {
+        var queryToAdd = this._createSearchRecord();
+
+        if(!this._searches) {
+          this._searches = [];
+        }
+        this.push('_searches', queryToAdd);
+      },
+
+      /**
+       * Save over an existing record in _searches.
+       */
+      _confirmSaveSearch: function() {
+        this.splice('_searches', this._saveOverIndex, 1, this._createSearchRecord());
+        this._saveSearches();
+      },
+
+      /**
+       * Returns a new search record.
+       */
+      _createSearchRecord: function() {
+        return {
+          name: this._savedSearchName,
+          digUIState: {
+            searchText: this.searchText,
+            facets: this.facets
+          },
+          esState: '',
+          frequency: 'never',
+          lastRunDate: new Date(),
+          notificationDate: new Date(),
+          notificationHasRun: false,
+          createdBy: this.username,
+          createdAt: new Date()
+        };
+      },
+
+      /**
+       * Update savedQueries in elasticsearch.
+       */
+      _saveSearches: function() {
+        var self = this;
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self._searches
+          }
+        });
+        self.$$('#saveSearchDialog').close();
+      },
+
+      /**
+       * Make sure user has entered a valid name for a search record.
+       */
+      _checkSavedSearchName: function() {
+        return !_.isEmpty(_.trim(this._savedSearchName));
       },
 
       /**
@@ -656,10 +739,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Opens the save query dialog.
+       * Opens the save search dialog and reset variables.
        */
-      _openSaveQueryDialog: function() {
-        this.$$('#saveQueryDialog').open();
+      _openSaveSearchDialog: function() {
+        if(this._savedSearchName) {
+          this._savedSearchName = undefined;
+        }
+        this.$$('#saveSearchDialog').open();
+      },
+
+      /**
+       * Save selected search name from list as _savedSearchName.
+       */
+      _useExistingSearchName: function(event) {
+        this._savedSearchName = event.model.search.name;
       },
 
       /**
@@ -708,7 +801,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
         this.set('searchText', event.model.search.digUIState.searchText);
-        this.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        this.set('facets', event.model.search.digUIState.facets);
         // TODO Save the query in elasticsearch format
       },
 
