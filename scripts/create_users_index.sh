@@ -48,7 +48,59 @@ curl -XPUT localhost:9200/dig-users -d '
                 }
               }
             },
-            "frequency": {  
+            "frequency": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "lastRunDate": {
+              "type": "date",
+              "format" : "dateOptionalTime"
+            },
+            "notificationDate": {
+              "type": "date",
+              "format" : "dateOptionalTime"
+            },
+            "notificationHasRun": {
+              "type": "boolean",
+              "index": "not_analyzed"
+            },
+            "createdBy": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "createdAt": {
+              "type": "date",
+              "format" : "dateOptionalTime"
+            }
+          }
+        },
+        "receivedQueries": {
+          "properties": {
+            "name": {
+              "type": "string",
+              "index": "not_analyzed"
+            },
+            "digUIState": {
+              "properties" :{
+                "searchText": {
+                  "type": "string"
+                },
+                "facets": {
+                  "type": "object"
+                }
+              }
+            },
+            "esState": {
+              "properties" :{
+                "query": {
+                  "type": "object"
+                },
+                "filter": {
+                  "type": "object"
+                }
+              }
+            },
+            "frequency": {
               "type": "string",
               "index": "not_analyzed"
             },

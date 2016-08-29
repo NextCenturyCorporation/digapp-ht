@@ -230,11 +230,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             </div>
           </div>
 
-          <div class="layout horizontal">
-            <span class="name tall right-space">Email Address for Notifications:</span>
-            <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
-            <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
-          </div>
+<!--           
+Don't show email address field until notifications are working
+<div class="layout horizontal">
+  <span class="name tall right-space">Email Address for Notifications:</span>
+  <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
+  <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
+</div> -->
 
           <div class="divider"></div>
 
@@ -296,7 +298,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       <div class="name tall right-space">Automatically Run Query</div>
                     </div>
                     <div class="layout vertical right-space">
-                      <paper-input label="Enter Username" value="{{search.sendTo}}" no-label-float></paper-input>
+                      <paper-input label="Enter Username" value="{{_usernameInput}}" no-label-float></paper-input>
                       <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
                         <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
                           <paper-item value="never">Never</paper-item>
@@ -307,7 +309,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       </paper-dropdown-menu>
                     </div>
                     <div class="layout vertical">
-                      <button-action title="Send this Search to User" text="Send" disabled="[[!search.sendTo]]" click-listener="[[_createSendSearchListener(index)]]"></button-action>
+                      <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener(index)]]"></button-action>
+
+                      <template is="dom-if" if="{{_userTypeAsArray}}">
+                        <elastic-client-query-builder
+                          type="term"
+                          field="username"
+                          values="[[_checkForUser]]"
+                          ejs-query="{{_sendUserQuery}}">
+                        </elastic-client-query-builder>
+
+                        <elastic-client-search
+                          client="[[client]]"
+                          index="[[userIndex]]"
+                          elastic-types="[[_userTypeAsArray]]"
+                          query="[[_sendUserQuery]]"
+                          sort-field="dateCreated"
+                          sort-order="desc"
+                          aggregations="[]"
+                          filters="[]"
+                          results="{{_sentUserSearchResult}}"
+                          last-error="{{error}}">
+                        </elastic-client-search>
+                      </template>
+
+                      <elastic-update
+                        client="[[client]]"
+                        index="[[userIndex]]"
+                        elastic-type="[[userType]]"
+                        id="{{_userIdToSendQuery}}"
+                        body='{{_sendUserUpdateBody}}'
+                        results="{{_sentQueryUpdate}}"
+                        last-error="{{sendError}}">
+                      </elastic-update>
                       <template is="dom-if" if="[[_noEmailAddress]]">
                         <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
                       </template>
@@ -316,6 +350,70 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 </iron-collapse>
               </div>
             </template>
+            <div class="name">Searches Received From Other Users</div>
+            <template is="dom-repeat" items="[[_receivedSearches]]" as="search">
+              <div class="layout vertical search">
+                <div class="layout horizontal">
+                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
+                  <div class="layout vertical flex">
+                    <div class="text search-text">[[search.name]]</div>
+                    <div class="name search-text">Search Text</div>
+                    <div class="text search-text">[[search.digUIState.searchText]]</div>
+                    <template is="dom-if" if="[[search.digUIState.facets]]">
+                      <div class="name search-text">Facets</div>
+                      <div class="layout horizontal wrap facets">
+                        <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
+                          <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
+                            <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
+                              <breadbox-item
+                                text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
+                                title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                              </breadbox-item>
+                            </template>
+                          </template>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+                <iron-collapse opened="[[search.open]]">
+                  <div class="layout horizontal search-settings">
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Created By</div>
+                      <div class="name tall right-space">Created At</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="text tall right-space">[[search.createdBy]]</div>
+                      <div class="text tall right-space">[[search.createdAt]]</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Add To Saved Searches</div>
+                      <div class="name tall right-space">Automatically Run Query</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <button-action title="Add this Search to Saved Searches" text="Add" click-listener="[[_createAddSearchListener(index)]]"></button-action>
+                      <!--TODO: check for saving over existing search-->
+                      <div class="layout horizontal">
+                        <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
+                          <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
+                            <paper-item value="never">Never</paper-item>
+                            <paper-item value="hourly">Every Hour</paper-item>
+                            <paper-item value="daily">Every Day</paper-item>
+                            <paper-item value="weekly">Every Week</paper-item>
+                          </paper-listbox>
+                        </paper-dropdown-menu>
+                        <template is="dom-if" if="[[_noEmailAddress]]">
+                          <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+                </iron-collapse>
+              </div>
+            </template>
+
           </div>
         </template>
         <template is="dom-if" if="{{!_userRecordExists}}" restamp="true">
@@ -515,7 +613,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          * _id from existing user record (used to make updates)
          */
         _userId: {
-          type: Object
+          type: String
         },
         /**
          * Result from elastic-create.
@@ -543,6 +641,60 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         _saveOverIndex: {
           type: Number
+        },
+        /**
+         * Document info to pass into the elastic-update component for sending queries
+         */
+        _sendUserUpdateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * Input for username when sending a query
+         */
+        _usernameInput: {
+          type: String
+        },
+        /**
+         * Check if user exists before attempting to send query.
+         */
+        _checkForUser: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * _id to use when sending a query to another user
+         */
+        _userIdToSendQuery: {
+          type: String
+        },
+        /**
+         * The query to use to find if user to send a query to exists.
+         */
+        _queryToSend: {
+          type: Object
+        },
+        _sentUserRecordExists: {
+          type: Boolean,
+          value: undefined,
+          notify: true
+        },
+        /**
+         * The received searches for this user.
+         */
+        _receivedSearches: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+        /**
+         * Search result from elastic-client-search query for user to send a query to.
+         */
+        _sentUserSearchResult: {
+          type: Object,
+          observer: '_transformSentUserSearchResult'
         }
       },
       observers: [
@@ -638,6 +790,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
       },
 
+      _createAddSearchListener: function(index) {
+        var self = this;
+        return {
+          onClick: function() {
+            var indexToReplace = _.findIndex(self._searches, {name: self._receivedSearches[index].name});
+
+            if(indexToReplace !== -1) {
+              //self._saveOverIndex = indexToReplace;
+              //self.$$('#saveAlert').open();
+            } else {
+              self.push('_searches', JSON.parse(JSON.stringify(self._receivedSearches[index])));
+              self.splice('_receivedSearches', index, 1);
+              self._set_userUpdateBody({
+                doc: {
+                  savedQueries: self._searches,
+                  receivedQueries: self._receivedSearches
+                }
+              });
+            }
+          }
+        };
+      },
       /**
        * Add new search to _searches array.
        */
@@ -715,8 +889,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
       },
 
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
       /**
        * Creates and returns a listener to send the given saved search to another user.
        */
@@ -724,12 +896,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var self = this;
         return {
           onClick: function() {
-            console.log('Send ' + self._searches[index].text + ' to ' + self._searches[index].sendTo);
-            self.set('_searches.' + index + '.sendTo', '');
-            // TODO Save the search in the other user's data.
+            if(self._usernameInput && !_.isEqual(self._usernameInput, self.username)) {
+              console.log('Send ' + self._searches[index].name + ' to ' + self._checkForUser);
+              self._queryToSend = self._searches[index];
+              self._checkForUser = self._usernameInput;
+            }
           }
         };
       },
+
+      /**
+       * Populate properties based on search results.
+       */
+      _transformSentUserSearchResult: function() {
+        if(this._sentUserSearchResult) {
+          if(this._sentUserSearchResult.hits.hits.length > 0 && this._queryToSend) {
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            var receivedSearches = this._sentUserSearchResult.hits.hits[0]._source.receivedQueries;
+            this._userIdToSendQuery = this._sentUserSearchResult.hits.hits[0]._id;
+            if(!receivedSearches) {
+              receivedSearches = [];
+            }
+            receivedSearches.push(this._queryToSend);
+            this._set_sendUserUpdateBody({
+              doc: {
+                receivedQueries: receivedSearches
+              }
+            });
+            this._sentUserRecordExists = true;
+            console.log('success!');
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            this._sentUserRecordExists = false;
+            console.log('fail!');
+          }
+        }
+      },
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
        * Returns the checkbox icon for the given setting.
@@ -814,6 +1018,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }, []);*/
           this.set('_searches', settings.savedQueries);
         }
+
+        if(settings.receivedQueries) {
+          this.set('_receivedSearches', settings.receivedQueries);
+        }
+
       },
 
       /**
