@@ -222,15 +222,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return addresses;
   }
 
-  function redirectWebpageToOffer(webpageObj) {
-    //We do not want to show webpage page, but instead direct
-    //to offer. The below handles that.
-    if(webpageObj.offer) {
-      webpageObj.type = 'offer';
-      webpageObj.id = webpageObj.offer;
-    }
-  }
-
   function getWebpageSummary(record) {
     /*  build webpage summary object:
         {
@@ -253,11 +244,11 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         }
     */
     var webpageObj = {
-      id: record._id,
-      type: record._type,
+      id: _.get(record, '_source.mainEntity.uri'),
+      type: 'offer',
       text: _.get(record, '_source.name[0]', 'Title N/A'),
       icon: commonTransforms.getIronIcon('offer'),
-      link: commonTransforms.getLink(record._id, 'offer'),
+      link: commonTransforms.getLink(_.get(record, '_source.mainEntity.uri'), 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
       descriptors: [{
         icon: commonTransforms.getIronIcon('webpage'),
@@ -343,8 +334,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         });
       }
     }
-
-    redirectWebpageToOffer(webpageObj);
 
     return webpageObj;
   }
