@@ -311,52 +311,62 @@ Don't show email address field until notifications are working
                     <div class="layout vertical">
                       <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener(index)]]"></button-action>
 
-                      <template is="dom-if" if="{{_userTypeAsArray}}">
-                        <elastic-client-query-builder
-                          type="term"
-                          field="username"
-                          values="[[_checkForUser]]"
-                          ejs-query="{{_sendUserQuery}}">
-                        </elastic-client-query-builder>
-
-                        <elastic-client-search
-                          client="[[client]]"
-                          index="[[userIndex]]"
-                          elastic-types="[[_userTypeAsArray]]"
-                          query="[[_sendUserQuery]]"
-                          sort-field="dateCreated"
-                          sort-order="desc"
-                          aggregations="[]"
-                          filters="[]"
-                          results="{{_sentUserSearchResult}}"
-                          last-error="{{error}}">
-                        </elastic-client-search>
-                      </template>
-
-                      <elastic-update
-                        client="[[client]]"
-                        index="[[userIndex]]"
-                        elastic-type="[[userType]]"
-                        id="{{_userIdToSendQuery}}"
-                        body='{{_sendUserUpdateBody}}'
-                        results="{{_sentQueryUpdate}}"
-                        last-error="{{sendError}}">
-                      </elastic-update>
                       <template is="dom-if" if="[[_noEmailAddress]]">
                         <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
+                      </template>
+                    </div>
+                    <div class="layout vertical">
+                      <template is="dom-if" if="[[_isFalse(_sentUserRecordExists)]]" restamp="true">
+                        <paper-icon-button icon="error" title="User entered does not exist." noink></paper-icon-button>
+                      </template>
+                      <template is="dom-if" if="[[_queryAlreadySent]]" restamp="true">
+                        <paper-icon-button icon="error" title="Query has already been sent to user specified." noink></paper-icon-button>
                       </template>
                     </div>
                   </div>
                 </iron-collapse>
               </div>
             </template>
+
+            <template is="dom-if" if="{{_userTypeAsArray}}">
+              <elastic-client-query-builder
+                type="term"
+                field="username"
+                values="[[_checkForUser]]"
+                ejs-query="{{_sendUserQuery}}">
+              </elastic-client-query-builder>
+
+              <elastic-client-search
+                client="[[client]]"
+                index="[[userIndex]]"
+                elastic-types="[[_userTypeAsArray]]"
+                query="[[_sendUserQuery]]"
+                sort-field="dateCreated"
+                sort-order="desc"
+                aggregations="[]"
+                filters="[]"
+                results="{{_sentUserSearchResult}}"
+                last-error="{{error}}">
+              </elastic-client-search>
+            </template>
+
+            <elastic-update
+              client="[[client]]"
+              index="[[userIndex]]"
+              elastic-type="[[userType]]"
+              id="{{_userIdToSendQuery}}"
+              body='{{_sendUserUpdateBody}}'
+              results="{{_sentQueryUpdate}}"
+              last-error="{{sendError}}">
+            </elastic-update>
+
             <div class="name">Searches Received From Other Users</div>
             <template is="dom-repeat" items="[[_receivedSearches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
                   <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
+                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch"></paper-icon-button>
                   <div class="layout vertical flex">
                     <div class="text search-text">[[search.name]]</div>
                     <div class="name search-text">Search Text</div>
@@ -395,6 +405,16 @@ Don't show email address field until notifications are working
                     <div class="layout vertical right-space">
                       <button-action title="Add this Search to Saved Searches" text="Add" click-listener="[[_createAddSearchListener(index)]]"></button-action>
                       <!--TODO: check for saving over existing search-->
+                      <!-- Confirm dialog for saving over an existing search -->
+                      <paper-dialog id="receiveAlert"  modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+                        <div class="layout horizontal">
+                          <span class="bold tall flex">Adding this query will save over your previously saved search of the same name.</span>
+                        </div>
+                        <div class="buttons">
+                          <paper-button dialog-confirm on-tap="_confirmReceivedSearch">OK</paper-button>
+                          <paper-button dialog-dismiss>Cancel</paper-button>
+                        </div>
+                      </paper-dialog>
                       <div class="layout horizontal">
                         <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
                           <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
@@ -695,6 +715,11 @@ Don't show email address field until notifications are working
         _sentUserSearchResult: {
           type: Object,
           observer: '_transformSentUserSearchResult'
+        },
+        _queryAlreadySent: {
+          type: Boolean,
+          notify: true,
+          value: undefined
         }
       },
       observers: [
@@ -797,8 +822,8 @@ Don't show email address field until notifications are working
             var indexToReplace = _.findIndex(self._searches, {name: self._receivedSearches[index].name});
 
             if(indexToReplace !== -1) {
-              //self._saveOverIndex = indexToReplace;
-              //self.$$('#saveAlert').open();
+              self._saveOverIndex = indexToReplace;
+              self.$$('#receiveAlert').open();
             } else {
               self.push('_searches', JSON.parse(JSON.stringify(self._receivedSearches[index])));
               self.splice('_receivedSearches', index, 1);
@@ -812,6 +837,22 @@ Don't show email address field until notifications are working
           }
         };
       },
+
+      /**
+       * Save over an existing record in _searches.
+       */
+      _confirmReceivedSearch: function() {
+        var self = this;
+        self.splice('_searches', this._saveOverIndex, 1, JSON.parse(JSON.stringify(event.model.search)));
+        self.splice('_receivedSearches', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self._searches,
+            receivedQueries: self._receivedSearches
+          }
+        });
+      },
+
       /**
        * Add new search to _searches array.
        */
@@ -890,6 +931,21 @@ Don't show email address field until notifications are working
       },
 
       /**
+       * Deletes the given saved search.
+       */
+      _deleteReceivedSearch: function(event) {
+        var self = this;
+        console.log('Delete ' + event.model.search + ' index ' + event.model.index);
+        self.splice('_receivedSearches', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            receivedQueries: self._receivedSearches
+          }
+        });
+      },
+
+
+      /**
        * Creates and returns a listener to send the given saved search to another user.
        */
       _createSendSearchListener: function(index) {
@@ -897,8 +953,8 @@ Don't show email address field until notifications are working
         return {
           onClick: function() {
             if(self._usernameInput && !_.isEqual(self._usernameInput, self.username)) {
-              console.log('Send ' + self._searches[index].name + ' to ' + self._checkForUser);
-              self._queryToSend = self._searches[index];
+              console.log('Send ' + self._searches[index].name + ' to ' + self._usernameInput);
+              self._queryToSend = JSON.parse(JSON.stringify(self._searches[index]));
               self._checkForUser = self._usernameInput;
             }
           }
@@ -913,22 +969,29 @@ Don't show email address field until notifications are working
           if(this._sentUserSearchResult.hits.hits.length > 0 && this._queryToSend) {
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             var receivedSearches = this._sentUserSearchResult.hits.hits[0]._source.receivedQueries;
+
             this._userIdToSendQuery = this._sentUserSearchResult.hits.hits[0]._id;
             if(!receivedSearches) {
               receivedSearches = [];
             }
-            receivedSearches.push(this._queryToSend);
-            this._set_sendUserUpdateBody({
-              doc: {
-                receivedQueries: receivedSearches
-              }
-            });
-            this._sentUserRecordExists = true;
-            console.log('success!');
+            // check if already sent query
+            if(_.findIndex(receivedSearches, {name: this._queryToSend.name, createdBy: this._queryToSend.createdBy}) !== -1) {
+              console.log('Query has already been sent to user');
+              this._queryAlreadySent = true;
+            } else {
+              receivedSearches.push(this._queryToSend);
+              this._set_sendUserUpdateBody({
+                doc: {
+                  receivedQueries: receivedSearches
+                }
+              });
+              this._sentUserRecordExists = true;
+              console.log('Successfully sent query!');
+            }
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
             this._sentUserRecordExists = false;
-            console.log('fail!');
+            console.log('User to send query to not found.');
           }
         }
       },
@@ -1045,7 +1108,7 @@ Don't show email address field until notifications are working
        * Updates the notification setting of the given saved search.
        */
       _updateNotification: function(event) {
-        console.log('Notify ' + event.model.search.text + ' index ' + event.model.index + ' interval ' + event.model.search.interval);
+        console.log('Notify ' + event.model.search.name + ' index ' + event.model.index + ' interval ' + event.model.search.frequency);
         // TODO Update the notification interval for the search in the user's data.
       },
 
