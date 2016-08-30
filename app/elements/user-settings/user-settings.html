@@ -18,8 +18,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item.html">
-<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../lodash.html">
 
 <script src="../../scripts/google-analytics.js"></script>
@@ -29,11 +27,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <style>
       :host {
         display: block;
-        --paper-listbox-background-color: #FFFFFF;
-      }
-
-      paper-listbox {
-        padding-top: 0px;
       }
 
       paper-dialog {
@@ -45,11 +38,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       #settingsDialog {
-        height: 100%;
-        width: 100%;
-      }
-
-      #saveSearchDialog {
         height: 100%;
         width: 100%;
       }
@@ -164,47 +152,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </elastic-client-search>
     </template>
 
-    <!-- Save Search Dialog -->
-    <template is="dom-if" if="{{showSaveBtn}}" restamp="true">
-      <paper-icon-button icon="save" title="Save Search" on-tap="_openSaveSearchDialog"></paper-icon-button>
-    </template>
-
-    <paper-dialog id="saveSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <div class="layout vertical flex">
-        <div class="layout horizontal">
-          <span class="bold tall flex">Save Search</span>
-          <paper-icon-button icon="clear" dialog-confirm title="Close Save Search"></paper-icon-button>
-        </div>
-
-        <div class="divider"></div>
-
-        <template is="dom-if" if="{{_userRecordExists}}" restamp="true">
-          <div class="layout vertical flex">
-            <span class="name tall">Previously Saved Searches</span>
-            <paper-listbox>
-              <template is="dom-repeat" items="[[_searches]]" as="search">
-                <paper-item on-tap="_useExistingSearchName">{{search.name}}</paper-item>
-              </template>
-            </paper-listbox>
-            <span class="name tall right-space">Name of New Search</span>
-            <div class="layout horizontal">
-              <paper-input class="flex right-space" label="Enter Name" value="{{_savedSearchName}}" no-label-float></paper-input>
-              <button-action title="Save Name" text="Save" disabled="[[!_checkSavedSearchName()]]" click-listener="[[_createSavedSearchListener()]]"></button-action>
-              <!-- Confirm dialog for saving over an existing search -->
-              <paper-dialog id="saveAlert"  modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-                <div class="layout horizontal">
-                  <span class="bold tall flex">Are you sure you want to save over existing saved search "[[_savedSearchName]]"?</span>
-                </div>
-                <div class="buttons">
-                  <paper-button dialog-confirm on-tap="_confirmSaveSearch">OK</paper-button>
-                  <paper-button dialog-dismiss>Cancel</paper-button>
-                </div>
-              </paper-dialog>
-            </div>
-          </div>
-        </template>
-      </div>
-    </paper-dialog>
+    <save-search
+      client="[[client]]"
+      username="[[username]]"
+      user-id="[[_userId]]"
+      existing-searches="{{_searches}}"
+      search-text="[[searchText]]"
+      facets="[[facets]]"
+      es-request="[[esRequest]]"
+      user-index="[[userIndex]]"
+      user-type="[[userType]]"
+      show-save-btn="[[showSaveBtn]]"
+      user-record-exists="[[_userRecordExists]]">
+    </save-search>
 
     <!-- User preferences dialog -->
     <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
@@ -650,12 +610,7 @@ Don't show email address field until notifications are working
           type: Object,
           notify: true
         },
-        /**
-         * Name chosen by user to save a new search.
-         */
-        _savedSearchName: {
-          type: String
-        },
+
         /**
          * Index to replace in _searches if saving over existing search.
          */
@@ -793,27 +748,6 @@ Don't show email address field until notifications are working
         }
       },
 
-      /**
-       * Creates and returns a listener to save a user's query.
-       */
-      _createSavedSearchListener: function() {
-        var self = this;
-        return {
-          onClick: function() {
-            if(self._checkSavedSearchName()) {
-              var indexToReplace = _.findIndex(self._searches, {name: self._savedSearchName});
-
-              if(indexToReplace !== -1) {
-                self._saveOverIndex = indexToReplace;
-                self.$$('#saveAlert').open();
-              } else {
-                self._addNewSearch();
-                self._saveSearches();
-              }
-            }
-          }
-        };
-      },
 
       _createAddSearchListener: function(index) {
         var self = this;
@@ -851,69 +785,6 @@ Don't show email address field until notifications are working
             receivedQueries: self._receivedSearches
           }
         });
-      },
-
-      /**
-       * Add new search to _searches array.
-       */
-      _addNewSearch: function() {
-        var queryToAdd = this._createSearchRecord();
-
-        if(!this._searches) {
-          this._searches = [];
-        }
-        this.push('_searches', queryToAdd);
-      },
-
-      /**
-       * Save over an existing record in _searches.
-       */
-      _confirmSaveSearch: function() {
-        this.splice('_searches', this._saveOverIndex, 1, this._createSearchRecord());
-        this._saveSearches();
-      },
-
-      /**
-       * Returns a new search record.
-       */
-      _createSearchRecord: function() {
-        return {
-          name: this._savedSearchName,
-          digUIState: {
-            searchText: this.searchText,
-            facets: this.facets
-          },
-          esState: {
-            query: this.esRequest.query,
-            filter: this.esRequest.filter
-          },
-          frequency: 'never',
-          lastRunDate: new Date(),
-          notificationDate: new Date(),
-          notificationHasRun: false,
-          createdBy: this.username,
-          createdAt: new Date()
-        };
-      },
-
-      /**
-       * Update savedQueries in elasticsearch.
-       */
-      _saveSearches: function() {
-        var self = this;
-        self._set_userUpdateBody({
-          doc: {
-            savedQueries: self._searches
-          }
-        });
-        self.$$('#saveSearchDialog').close();
-      },
-
-      /**
-       * Make sure user has entered a valid name for a search record.
-       */
-      _checkSavedSearchName: function() {
-        return !_.isEmpty(_.trim(this._savedSearchName));
       },
 
       /**
@@ -1027,23 +898,6 @@ Don't show email address field until notifications are working
       },
 
       /**
-       * Opens the save search dialog and reset variables.
-       */
-      _openSaveSearchDialog: function() {
-        if(this._savedSearchName) {
-          this._savedSearchName = undefined;
-        }
-        this.$$('#saveSearchDialog').open();
-      },
-
-      /**
-       * Save selected search name from list as _savedSearchName.
-       */
-      _useExistingSearchName: function(event) {
-        this._savedSearchName = event.model.search.name;
-      },
-
-      /**
        * Populates the properties in this user-settings component using the given settings object.
        */
       _populateUserSettings: function(settings) {
@@ -1093,8 +947,12 @@ Don't show email address field until notifications are working
        */
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
-        this.set('searchText', event.model.search.digUIState.searchText);
-        this.set('facets', JSON.parse(JSON.stringify(event.model.search.digUIState.facets)));
+        var self = this;
+        self.set('searchText', event.model.search.digUIState.searchText);
+        // TODO: find better solution
+        setTimeout(function(){
+          self.set('facets', JSON.parse(JSON.stringify(event.model.search.digUIState.facets)));
+        }, 100);
       },
 
       /**
