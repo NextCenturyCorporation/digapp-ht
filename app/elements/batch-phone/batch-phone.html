@@ -1,0 +1,184 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/file-upload/file-upload.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
+
+<dom-module id="batch-phone">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      paper-dialog {
+        background-color: white;
+        border-radius: 5px;
+        margin: 50px;
+        overflow: auto;
+        white-space: nowrap;
+      }
+
+      #batchPhoneDialog {
+        height: 100%;
+        width: 100%;
+      }
+
+      #batchPhoneDialog > div {
+        min-height: 700px;
+        min-width: 900px;
+      }
+
+      #batchPhoneDialog > div > * {
+        margin: 10px;
+      }
+
+      .bold {
+        color: var(--primary-text-color);
+        font-size: 20px;
+        font-weight: bold;
+      }
+
+      .name {
+        color: var(--secondary-text-color);
+        font-size: 14px;
+        line-height: 20px;
+        margin: 2px 0;
+        min-height: 20px;
+        text-transform: uppercase;
+      }
+
+      .text {
+        color: var(--primary-text-color);
+        font-size: 18px;
+        line-height: 24px;
+        min-height: 24px;
+      }
+
+      .right-space {
+        margin-right: 10px;
+      }
+
+      .tall {
+        line-height: 40px;
+        min-height: 40px;
+      }
+
+      .divider {
+        border: 1px solid #eee;
+      }
+
+      /* Apply DIG Element button styling to the file upload button. */
+      file-upload ::content paper-button {
+        @apply(--shadow-elevation-4dp);
+        font-size: 14px;
+        line-height: 20px;
+        margin: 0;
+        padding: 5px 10px;
+      }
+
+      /* Apply DIG Element button styling to the file upload button. */
+      file-upload ::content paper-button:hover {
+        @apply(--shadow-elevation-8dp);
+      }
+
+      file-upload ::content #UploadBorder {
+        margin-left: 10px;
+      }
+    </style>
+
+    <paper-icon-button icon="file-upload" title="Upload or Enter Multiple Telephone Numbers" on-tap="_openDialog"></paper-icon-button>
+
+    <paper-dialog id="batchPhoneDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="layout vertical">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Upload or Enter Multiple Telephone Numbers</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <span class="text">Please enter/paste telephone numbers in the text box below or upload your own files.</span>
+
+        <div class="layout horizontal">
+          <span class="name right-space">Supported file types:</span>
+          <span class="text">plain text files (including .csv and .txt)</span>
+        </div>
+
+        <div class="layout horizontal">
+          <span class="name right-space">Supported delimiters:</span>
+          <span class="text">commas, semicolons, whitespace (including spaces, tabs, and newlines)</span>
+        </div>
+
+        <paper-textarea label="Enter or Paste Telephone Numbers" value="{{_phoneInput}}" no-label-float></paper-textarea>
+
+        <file-upload droppable="true" method="POST" multi="true" raised="true" target="/upload" on-success="_handleUpload">Upload File...</file-upload>
+
+        <button-action text="Search" disabled="[[!_phoneInput]]" click-listener="[[_createSearchListener()]]"></button-action>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'batch-phone',
+
+      properties: {
+        queryValue: {
+          type: String,
+          notify: true
+        },
+
+        _phoneInput: {
+          type: String
+        }
+      },
+
+      _cleanPhoneInput: function(phoneInput) {
+        // Replace all delimiters (whitespace, commas, and, semicolons) with single spaces.
+        return phoneInput.replace(/[\s,;]/g, ' ')
+          // Remove all non-digit, non-whitespace characters.
+          .replace(/[^\d\s]/g, '')
+          // Remove extra spaces.
+          .replace(/\s+/g, ' ');
+      },
+
+      _createSearchListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(self._phoneInput) {
+              self.$$('#batchPhoneDialog').close();
+              self.set('queryValue', self._cleanPhoneInput(self._phoneInput));
+            }
+          }
+        }
+      },
+
+      _handleUpload: function(event) {
+        if(event.detail && event.detail.xhr && event.detail.xhr.response) {
+          this._phoneInput = (this._phoneInput || '') + event.detail.xhr.response;
+        }
+      },
+
+      _openDialog: function() {
+        this.$$('#batchPhoneDialog').open();
+      }
+    });
+  })();
+  </script>
+</dom-module>
