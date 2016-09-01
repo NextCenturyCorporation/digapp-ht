@@ -270,8 +270,11 @@ gulp.task('clean', function() {
 
 // Watch files for changes & reload
 gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
-  var proxyOptions = url.parse('http://localhost:9000/config');
-  proxyOptions.route = '/config';
+  var configProxyOptions = url.parse('http://localhost:9000/config');
+  configProxyOptions.route = '/config';
+
+  var uploadProxyOptions = url.parse('http://localhost:9000/upload');
+  uploadProxyOptions.route = '/upload';
 
   browserSync({
     port: 5009,
@@ -291,7 +294,7 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
     // https: true,
     server: {
       baseDir: ['.tmp', 'app'],
-      middleware: [proxy(proxyOptions), historyApiFallback()]
+      middleware: [proxy(configProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
     }
   });
 
@@ -303,8 +306,11 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
 
 // Build and serve the output from the dist build
 gulp.task('serve:dist', ['default', 'nodemon'], function() {
-  var proxyOptions = url.parse('http://localhost:9000/config');
-  proxyOptions.route = '/config';
+  var configProxyOptions = url.parse('http://localhost:9000/config');
+  configProxyOptions.route = '/config';
+
+  var uploadProxyOptions = url.parse('http://localhost:9000/upload');
+  uploadProxyOptions.route = '/upload';
 
   browserSync({
     port: 5001,
@@ -323,7 +329,7 @@ gulp.task('serve:dist', ['default', 'nodemon'], function() {
     //       will present a certificate warning in the browser.
     // https: true,
     server: dist(),
-    middleware: [proxy(proxyOptions), historyApiFallback()]
+    middleware: [proxy(configProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
   });
 });
 

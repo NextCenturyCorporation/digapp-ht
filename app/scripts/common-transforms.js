@@ -32,6 +32,9 @@ var commonTransforms = (function(_, dateFormat) {
    * Returns the link for the given ID and type.
    */
   function getLink(id, type) {
+    if(!id || !type) {
+      return undefined;
+    }
     return '/' + type + '.html?value=' + id + '&field=_id';
   }
 
@@ -39,6 +42,9 @@ var commonTransforms = (function(_, dateFormat) {
    * Returns the style class for the given type.
    */
   function getStyleClass(type) {
+    if(!type) {
+      return '';
+    }
     return 'entity-' + type + '-font';
   }
 

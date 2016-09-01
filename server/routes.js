@@ -4,12 +4,16 @@
 
 'use strict';
 
-var errors = require('./components/errors'),
-config = require('./config/environment'),
-path = require('path');
+var errors = require('./components/errors');
+var config = require('./config/environment');
+var path = require('path');
+var multer = require('multer');
+var storage = multer.memoryStorage();
+var upload = multer({
+  storage: storage
+});
 
 module.exports = function(app) {
-
 
     app.get('/config/?', function(req, res) {
         res.status(200).send({
@@ -23,6 +27,10 @@ module.exports = function(app) {
             username: req.headers.user ? req.headers.user : 'mockUser',
             memexImageSimilarity: JSON.parse(config.memexImageSimilarity)
         });
+    });
+
+    app.post('/upload', upload.array('file'), function(req, res) {
+      res.status(200).send(req.files[0].buffer.toString());
     });
 
     // All undefined asset or api routes should return a 404
