@@ -81,6 +81,7 @@
     </elastic-client>
 
     <!-- Main Search Query -->
+
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
@@ -92,11 +93,16 @@
       last-error="{{searchError}}"
       result-count="{{resultCount}}"
       aggregations="[]"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       sort="{{sort}}"
       loading="{{loading}}"
       request-as-json="{{esRequest}}">
     </elastic-client-search>
+
+    <create-filter-array
+      facet-selection="[[facetSelection]]"
+      filter-array="{{filterArray}}">
+    </create-filter-array>
 
     <json-transform
       data-in="{{searchResults}}"
@@ -113,7 +119,7 @@
       results="{{countryResult}}"
       last-error="{{countryError}}"
       aggregations="{{buildArray(countryAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{countryLoading}}">
     </elastic-client-search>
 
@@ -125,7 +131,7 @@
       results="{{cityResult}}"
       last-error="{{cityError}}"
       aggregations="{{buildArray(cityAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{cityLoading}}">
     </elastic-client-search>
 
@@ -137,7 +143,7 @@
       results="{{phoneEmailResult}}"
       last-error="{{phoneEmailError}}"
       aggregations="{{buildArray(phoneEmailAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{phoneEmailLoading}}">
     </elastic-client-search>
 
@@ -149,7 +155,7 @@
       results="{{publisherResult}}"
       last-error="{{publisherError}}"
       aggregations="{{buildArray(publisherAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{publisherLoading}}">
     </elastic-client-search>
 
@@ -161,7 +167,7 @@
       results="{{nameResult}}"
       last-error="{{nameError}}"
       aggregations="{{buildArray(nameAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{nameLoading}}">
     </elastic-client-search>
 
@@ -173,7 +179,7 @@
       results="{{ageResult}}"
       last-error="{{ageError}}"
       aggregations="{{buildArray(ageAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{ageLoading}}">
     </elastic-client-search>
 
@@ -185,7 +191,7 @@
       results="{{ethnicityResult}}"
       last-error="{{ethnicityError}}"
       aggregations="{{buildArray(ethnicityAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{ethnicityLoading}}">
     </elastic-client-search>
 
@@ -197,7 +203,7 @@
       results="{{heightResult}}"
       last-error="{{heightError}}"
       aggregations="{{buildArray(heightAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{heightLoading}}">
     </elastic-client-search>
 
@@ -209,7 +215,7 @@
       results="{{weightResult}}"
       last-error="{{weightError}}"
       aggregations="{{buildArray(weightAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{weightLoading}}">
     </elastic-client-search>
 
@@ -221,7 +227,7 @@
       results="{{hairColorResult}}"
       last-error="{{hairColorError}}"
       aggregations="{{buildArray(hairColorAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{hairColorLoading}}">
     </elastic-client-search>
 
@@ -233,7 +239,7 @@
       results="{{eyeColorResult}}"
       last-error="{{eyeColorError}}"
       aggregations="{{buildArray(eyeColorAgg)}}"
-      filters="[[buildArray(countryFilter, cityFilter, phoneFilter, emailFilter, publisherFilter, nameFilter, ageFilter, ethnicityFilter, heightFilter, weightFilter, hairColorFilter, eyeColorFilter, dateCreatedFilter)]]"
+      filters="[[filterArray]]"
       loading="{{eyeColorLoading}}">
     </elastic-client-search>
     <!-- End Facets -->
@@ -315,6 +321,7 @@
                 <iron-icon id="date-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Date Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
+              <!-- TODO: incorporate date-range-filter into filterArray -->
               <iron-collapse id="date-list" class="facet-list" opened>
                 <elastic-date-range-filter ejs-filter="{{dateCreatedFilter}}" 
                   facet-selection="{{facetSelection.dateCreated}}" field="dateCreated">
@@ -361,13 +368,6 @@
                   facets="{{countryFacets}}"
                   category="Country">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.country}}"
-                  filter-name="countryAgg"
-                  combination-type="or"
-                  field="mainEntity.availableAtOrFrom.address.addressCountry"
-                  ejs-filter="{{countryFilter}}">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[countryError]]" message="{{countryErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[countryFacets.length]]"
@@ -423,14 +423,6 @@
                   facets="{{cityFacets}}"
                   category="City">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.city}}"
-                  filter-name="cityAgg"
-                  combination-type="or"
-                  field="mainEntity.availableAtOrFrom.address.key"
-                  ejs-filter="{{cityFilter}}"
-                  category="City">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[cityError]]" message="{{cityErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[cityFacets.length]]"
@@ -491,14 +483,6 @@
                   show="{{phoneFacetMax}}"
                   category="Telephone">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.phone}}"
-                  filter-name="phoneAgg"
-                  combination-type="or"
-                  field="mentions"
-                  ejs-filter="{{phoneFilter}}"
-                  category="Telephone">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[phoneEmailError]]" message="{{phoneEmailErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[phoneFacets.length]]"
@@ -549,14 +533,6 @@
                   show="{{emailFacetMax}}"
                   category="Email Address">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.email}}"
-                  filter-name="emailAgg"
-                  combination-type="or"
-                  field="mentions"
-                  ejs-filter="{{emailFilter}}"
-                  category="Email Address">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[phoneEmailError]]" message="{{phoneEmailErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[emailFacets.length]]"
@@ -606,14 +582,6 @@
                   facets="{{publisherFacets}}"
                   category="Website">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.website}}"
-                  filter-name="publisherAgg"
-                  combination-type="or"
-                  field="publisher.name.raw"
-                  ejs-filter="{{publisherFilter}}"
-                  category="Website">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[publisherError]]" message="{{publisherErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[publisherFacets.length]]"
@@ -663,14 +631,6 @@
                   facets="{{nameFacets}}"
                   category="Name">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.name}}"
-                  filter-name="nameAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.name.raw"
-                  ejs-filter="{{nameFilter}}"
-                  category="Name">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[nameError]]" message="{{nameErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[nameFacets.length]]"
@@ -702,7 +662,7 @@
                     buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
                     loading="[[ageLoading]]"
                     error="[[ageError]]"
-                    facet-selection="{{ageFacetSelection}}"
+                    facet-selection="{{facetSelection.age}}"
                     agg-count="{{ageCount}}"
                     order-by="{{ageSortOrder}}">
                   </view-all-facets>
@@ -716,18 +676,10 @@
               <iron-collapse id="age-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
-                  facet-selection="{{ageFacetSelection}}"
+                  facet-selection="{{facetSelection.age}}"
                   facets="{{ageFacets}}"
                   category="Age">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{ageFacetSelection}}"
-                  filter-name="ageAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.age"
-                  ejs-filter="{{ageFilter}}"
-                  category="Age">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[ageError]]" message="{{ageErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[ageFacets.length]]"
@@ -777,14 +729,6 @@
                   facets="{{ethnicityFacets}}"
                   category="Ethnicity">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.ethnicity}}"
-                  filter-name="ethnicityAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.ethnicity"
-                  ejs-filter="{{ethnicityFilter}}"
-                  category="Ethnicity">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[ethnicityError]]" message="{{ethnicityErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[ethnicityFacets.length]]"
@@ -834,14 +778,6 @@
                   facet-selection="{{facetSelection.height}}"
                   category="Height (cm)">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.height}}"
-                  filter-name="heightAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.height"
-                  ejs-filter="{{heightFilter}}"
-                  category="Height (cm)">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[heightError]]" message="{{heightErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[heightFacets.length]]"
@@ -891,14 +827,6 @@
                   facet-selection="{{facetSelection.weight}}"
                   category="Weight (kg)">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.weight}}"
-                  filter-name="weightAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.weight"
-                  ejs-filter="{{weightFilter}}"
-                  category="Weight (kg)">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[weightError]]" message="{{weightErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[weightFacets.length]]"
@@ -948,14 +876,6 @@
                   facet-selection="{{facetSelection.hairColor}}"
                   category="Hair Color">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.hairColor}}"
-                  filter-name="hairColorAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.hairColor"
-                  ejs-filter="{{hairColorFilter}}"
-                  category="Hair Color">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[hairColorFacets.length]]"
@@ -1006,14 +926,6 @@
                   facet-selection="{{facetSelection.eyeColor}}"
                   category="Eye Color">
                 </checkbox-list-display>
-                <elastic-checkbox-list-filter
-                  facet-selection="{{facetSelection.eyeColor}}"
-                  filter-name="eyeColorAgg"
-                  combination-type="or"
-                  field="mainEntity.itemOffered.eyeColor"
-                  ejs-filter="{{eyeColorFilter}}"
-                  category="Eye Color">
-                </elastic-checkbox-list-filter>
                 <elastic-error error="[[eyeColorError]]" message="{{eyeColorErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[eyeColorFacets.length]]"

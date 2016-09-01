@@ -1,0 +1,127 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="create-filter-array">
+  <script>
+  (function() {
+    /* globals _, ejs */
+    'use strict';
+
+    Polymer({
+      is: 'create-filter-array',
+
+      properties: {
+        facetSelection: {
+          type: Object,
+          notify: true
+        },
+        filterArray: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true
+        }
+      },
+      observers: [
+        'rebuildFilterArray(facetSelection.*)'
+      ],
+      getFilterField: function(group) {
+        if(group === 'country') {
+          return 'mainEntity.availableAtOrFrom.address.addressCountry';
+        } else if(group === 'city') {
+          return 'mainEntity.availableAtOrFrom.address.key';
+        } else if(group === 'phone') {
+          return 'mentions';
+        } else if(group === 'email') {
+          return 'mentions';
+        } else if(group === 'website') {
+          return 'publisher.name.raw';
+        } else if(group === 'name') {
+          return 'mainEntity.itemOffered.name.raw';
+        } else if(group === 'age') {
+          return 'mainEntity.itemOffered.age';
+        } else if(group === 'ethnicity') {
+          return 'mainEntity.itemOffered.ethnicity';
+        } else if(group === 'height') {
+          return 'mainEntity.itemOffered.height';
+        } else if(group === 'weight') {
+          return 'mainEntity.itemOffered.weight';
+        } else if(group === 'hairColor') {
+          return 'mainEntity.itemOffered.hairColor';
+        } else if(group === 'eyeColor') {
+          return 'mainEntity.itemOffered.eyeColor';
+        }
+      },
+      getAggName: function(group) {
+        if(group === 'country') {
+          return 'countryAgg';
+        } else if(group === 'city') {
+          return 'cityAgg';
+        } else if(group === 'phone') {
+          return 'phoneEmailAgg';
+        } else if(group === 'email') {
+          return 'phoneEmailAgg';
+        } else if(group === 'website') {
+          return 'publisherAgg';
+        } else if(group === 'name') {
+          return 'nameAgg';
+        } else if(group === 'age') {
+          return 'ageAgg';
+        } else if(group === 'ethnicity') {
+          return 'ethnicityAgg';
+        } else if(group === 'height') {
+          return 'heightAgg';
+        } else if(group === 'weight') {
+          return 'weightAgg';
+        } else if(group === 'hairColor') {
+          return 'hairColorAgg';
+        } else if(group === 'eyeColor') {
+          return 'eyeColorAgg';
+        }
+      },
+      rebuildFilterArray: function() {
+        var me = this;
+        var arrayFilters = [];
+
+        _.each(_.keys(me.facetSelection), function(group) {
+          var filters = [];
+          var field = me.getFilterField(group);
+          var aggName = me.getAggName(group);
+          _.each(_.keys(me.facetSelection[group]), function(key) {
+            if(me.facetSelection[group][key].enabled) {
+              filters.push(ejs.TermFilter(field, key));
+            }
+          });
+          var filter;
+
+          if(filters.length > 0) {
+            if(me.combinationType === 'and') {
+              filter = ejs.AndFilter(filters);
+            } else {
+              filter = ejs.OrFilter(filters);
+            }
+            
+            filter.name(aggName);
+          } else {
+            filter = ejs.MatchAllFilter();
+          }
+          arrayFilters.push(filter);
+        });
+
+        this.set('filterArray', arrayFilters);
+      }
+      
+    });
+  })();
+  </script>
+</dom-module>
