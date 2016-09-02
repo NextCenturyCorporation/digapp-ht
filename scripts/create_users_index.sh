@@ -22,6 +22,22 @@ curl -XPUT localhost:9200/dig-users -d '
           "type": "boolean",
           "index": "not_analyzed"
         },
+        "notificationFrequency": {
+          "type": "string",
+          "index": "not_analyzed"
+        },
+        "lastRunDate": {
+          "type": "date",
+          "format" : "dateOptionalTime"
+        },
+        "notificationDate": {
+          "type": "date",
+          "format" : "dateOptionalTime"
+        },
+        "notificationHasRun": {
+          "type": "boolean",
+          "index": "not_analyzed"
+        },
         "savedQueries": {
           "properties": {
             "name": {
@@ -39,7 +55,7 @@ curl -XPUT localhost:9200/dig-users -d '
               }
             },
             "esState": {
-              "properties" :{
+              "properties" : {
                 "query": {
                   "type": "object"
                 },
@@ -47,22 +63,6 @@ curl -XPUT localhost:9200/dig-users -d '
                   "type": "object"
                 }
               }
-            },
-            "frequency": {
-              "type": "string",
-              "index": "not_analyzed"
-            },
-            "lastRunDate": {
-              "type": "date",
-              "format" : "dateOptionalTime"
-            },
-            "notificationDate": {
-              "type": "date",
-              "format" : "dateOptionalTime"
-            },
-            "notificationHasRun": {
-              "type": "boolean",
-              "index": "not_analyzed"
             },
             "createdBy": {
               "type": "string",
@@ -99,22 +99,6 @@ curl -XPUT localhost:9200/dig-users -d '
                   "type": "object"
                 }
               }
-            },
-            "frequency": {
-              "type": "string",
-              "index": "not_analyzed"
-            },
-            "lastRunDate": {
-              "type": "date",
-              "format" : "dateOptionalTime"
-            },
-            "notificationDate": {
-              "type": "date",
-              "format" : "dateOptionalTime"
-            },
-            "notificationHasRun": {
-              "type": "boolean",
-              "index": "not_analyzed"
             },
             "createdBy": {
               "type": "string",
