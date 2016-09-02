@@ -60,6 +60,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return 'mainEntity.itemOffered.hairColor';
         } else if(group === 'eyeColor') {
           return 'mainEntity.itemOffered.eyeColor';
+        } else if(group === 'dateCreated') {
+          return 'dateCreated';
         }
       },
       getAggName: function(group) {
@@ -89,36 +91,82 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return 'eyeColorAgg';
         }
       },
+      getCombinationType: function() {
+        return 'or';
+      },
       rebuildFilterArray: function() {
         var me = this;
         var arrayFilters = [];
 
         _.each(_.keys(me.facetSelection), function(group) {
-          var filters = [];
-          var field = me.getFilterField(group);
-          var aggName = me.getAggName(group);
-          _.each(_.keys(me.facetSelection[group]), function(key) {
-            if(me.facetSelection[group][key].enabled) {
-              filters.push(ejs.TermFilter(field, key));
-            }
-          });
-          var filter;
 
-          if(filters.length > 0) {
-            if(me.combinationType === 'and') {
-              filter = ejs.AndFilter(filters);
-            } else {
-              filter = ejs.OrFilter(filters);
+          var field = me.getFilterField(group);
+          if(group === 'dateCreated') {
+            var rangeFilter = me.buildDateRangeEjsFilter(me.facetSelection[group], field);
+            if(rangeFilter) {
+              arrayFilters.push(rangeFilter);
             }
-            
-            filter.name(aggName);
           } else {
-            filter = ejs.MatchAllFilter();
+            var filters = me.buildTermFilterArray(me.facetSelection[group], field);
+            var filter = me.buildAndOrFilter(filters, group);
+
+            arrayFilters.push(filter);
           }
-          arrayFilters.push(filter);
         });
 
         this.set('filterArray', arrayFilters);
+      },
+      buildAndOrFilter: function(filters, group) {
+        var filter;
+
+        if(filters.length > 0) {
+          var combinationType = this.getCombinationType();
+          if(combinationType === 'and') {
+            filter = ejs.AndFilter(filters);
+          } else {
+            filter = ejs.OrFilter(filters);
+          }
+
+          filter.name(this.getAggName(group));
+        } else {
+          filter = ejs.MatchAllFilter();
+        }
+        return filter;
+      },
+      buildTermFilterArray: function(facetGroup, field) {
+        var filters = [];
+
+        _.each(_.keys(facetGroup), function(key) {
+          if(facetGroup[key].enabled) {
+            filters.push(ejs.TermFilter(field, key));
+          }
+        });
+
+        return filters;
+      },
+      buildDateRangeEjsFilter: function(facetGroup, field) {
+        var me = this;
+        if(!field || _.isEqual(facetGroup, {})) {
+          return;
+        }
+        var filter = ejs.RangeFilter(field);
+
+        _.each(_.keys(facetGroup), function(key) {
+          if(key === 'Begin Date') {
+            if(facetGroup[key].enabled) {
+              filter = filter.gte(facetGroup[key].date);
+            } else {
+              me.beginDate = null;
+            }
+          } else if(key === 'End Date') {
+            if(facetGroup[key].enabled) {
+              filter = filter.lte(facetGroup[key].date);
+            } else {
+              me.endDate = null;
+            }
+          }
+        });
+        return filter;
       }
       
     });
