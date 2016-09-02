@@ -9,156 +9,155 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/button-link/button-link.html">
+<link rel="import" href="../../bower_components/icon-label/icon-label.html">
+<link rel="import" href="../../bower_components/image-gallery/image-gallery.html">
 <link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
-<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
-<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item.html">
-<link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
+<link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
-<link rel="import" href="../behaviors.html">
+<link rel="import" href="../../styles/list-styles.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 
 <dom-module id="single-record">
   <template>
-    <style include="icon-styles"></style>
-    <style include="icon-with-text-styles"></style>
-    <style include="list-item-styles"></style>
+    <style include="list-styles"></style>
 
     <style>
       :host {
         display: block;
       }
 
-      .entity-offer-font {
-        /* Hide the offer icons because users have said they are confusing */
-        display: none;
+      modal-icon ::content .entity-offer-font {
+        /* Hide the offer icons because users didn't like them. */
+        visibility: hidden;
       }
 
-      annotate-record {
-        /* Margin between annotation icon and text (left) / 'open' button (right). */
-        margin: 0 15px;
+      .head annotate-record {
+        /* Margin between the text and the annotation icon. */
+        margin-left: 15px;
       }
 
-      .list-item-body {
-        padding: 20px;
+      .head button-link {
+        /* Margin between the annotation icon and the 'open' button. */
+        margin-left: 15px;
       }
 
-      .list-item-body .list-item-button {
-        margin: 10px 0;
+      .body button-link ::content paper-button {
+        /* Needed to make the button look nice. */
+        margin-top: 10px;
       }
 
-      .icon-with-text {
-        /* Margin between descriptors. */
+      icon-label {
+        display: inline-block;
         margin-right: 5px;
+
+        --icon-label-text: {
+          color: var(--secondary-text-color);
+        };
+
+        --icon-label-link-hover: {
+          color: var(--primary-text-color);
+        };
       }
     </style>
 
-    <div class="record">
-      <paper-material class$="list-item-head [[getHeaderClass(opened)]]" clickable$="[[showDetails]]" on-tap="toggleRecord">
-        <paper-icon-item>
-          <iron-icon class$="list-item-icon [[getItemTypeStyleClass(item, '_type')]]" icon$="[[getItemTypeIronIcon(item, '_type')]]" item-icon></iron-icon>
+    <paper-material class$="layout horizontal flex head [[getHeaderClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
+      <modal-icon
+        icon="[[item.icon]]"
+        icon-style-class="[[item.styleClass]]"
+        show-icon="[[!hovering]]"
+        openable="[[showDetails]]"
+        open="[[open]]">
+      </modal-icon>
 
-          <template is="dom-if" if="[[showDetails]]">
-            <iron-icon class="closed-icon" icon="icons:expand-more" item-icon></iron-icon>
-            <iron-icon class="opened-icon" icon="icons:expand-less" item-icon></iron-icon>
-          </template>
+      <template is="dom-if" if="[[imageSource]]">
+        <iron-image class$="layout vertical center-justified [[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
+      </template>
 
-          <template is="dom-if" if="[[imageSource]]">
-            <iron-image class$="list-item-image [[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
-          </template>
+      <div class="layout vertical flex center-justified vertical-text">
+        <div class="text" title$="[[getTitle(item.text)]]"><strong>[[item.text]]</strong></div>
 
-          <paper-item-body two-line>
-            <div title$="[[item.title]]"><strong>[[item.title]]</strong></div>
+        <template is="dom-if" if="[[item.descriptors.length]]">
+          <div class="text" title$="[[getSubtitle(item.descriptors)]]" secondary>
+            <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
+              <icon-label title="Open [[descriptor.text]]"
+                icon="[[descriptor.icon]]"
+                icon-style-class="[[descriptor.styleClass]]"
+                link="[[descriptor.link]]"
+                target="[[getTarget(newTab)]]"
+                text="[[descriptor.text]]">
+              </icon-label>
+            </template>
+          </div>
+        </template>
+      </div>
 
-            <template is="dom-if" if="[[item.descriptors.length]]">
-              <div secondary>
-                <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
-                  <template is="dom-if" if="[[descriptor.id]]">
-                    <a class="icon-with-text" target="[[getTarget(newTab)]]" href$="[[createIdLink(descriptor, 'type', 'id')]]" title="Open [[descriptor.text]]">
-                      <iron-icon class$="iron-icon-small [[getTypeStyleClass(descriptor.type)]]" icon$="[[getTypeIronIcon(descriptor.type)]]"></iron-icon>
-                      <strong>[[descriptor.text]]</strong>
-                    </a>
+      <template is="dom-if" if="[[showAnnotation(item)]]">
+        <annotate-record class="layout vertical center-justified"
+          client="[[client]]"
+          annotation-index="[[annotationIndex]]"
+          annotation-type="[[annotationType]]"
+          annotation-relevant="[[annotationRelevant]]"
+          item="{{item}}"
+          item-type="[[getTypeText(item, 'true')]]"
+          current-user="[[currentUser]]">
+        </annotate-record>
+      </template>
+
+      <button-link class="layout vertical center-justified"
+        link="[[item.link]]"
+        target="[[getTarget(newTab)]]"
+        text="open [[getTypeText(item)]]"
+        show="[[showLinks]]">
+      </button-link>
+    </paper-material>
+
+    <template is="dom-if" if="[[showDetails]]">
+      <iron-collapse id="recordDetail">
+        <div>
+          <paper-material class="body">
+            <template is="dom-repeat" items="[[item.details]]" as="detail">
+              <div class="text">
+                <strong>[[cleanCamelCase(detail.label)]]</strong>
+                <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
+                  <template is="dom-if" if="[[detail.url]]">
+                    <a target="_blank" href$="[[value]]">[[value]]</a>
                   </template>
-                  <template is="dom-if" if="[[!descriptor.id]]">
-                    <span class="icon-with-text" title="[[descriptor.text]]">
-                      <iron-icon class$="iron-icon-small [[getTypeStyleClass(descriptor.type)]]" icon$="[[getTypeIronIcon(descriptor.type)]]"></iron-icon>
-                      <strong>[[descriptor.text]]</strong>
-                    </span>
+                  <template is="dom-if" if="[[!detail.url]]">
+                    <span>[[value]]</span>
                   </template>
                 </template>
               </div>
             </template>
-          </paper-item-body>
-
-          <!-- annotation controls -->
-          <template is="dom-if" if="[[showAnnotation(item)]]">
-            <annotate-record client="[[client]]"
-              annotation-index="[[annotationIndex]]"
-              annotation-type="[[annotationType]]"
-              annotation-relevant="[[annotationRelevant]]"
-              item="{{item}}"
-              item-type="[[getItemTypeText(item, '_type', 'true')]]"
-              current-user="[[currentUser]]">
-            </annotate-record>
-          </template>
-
-          <!-- secondary actions -->
-          <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createIdLink(item, '_type', '_id')]]">
-            <paper-button class="list-item-button">open {{getItemTypeText(item, '_type')}}</paper-button>
-          </a>
-        </paper-icon-item>
-      </paper-material>
-
-      <template is="dom-if" if="[[showDetails]]">
-        <iron-collapse id="recordDetail">
-          <paper-material class="list-item-collapse-body list-item-body">
-            <template is="dom-repeat" items="[[item.details]]" as="detail">
-              <paper-item>
-                <paper-item-body>
-                  <span>
-                    <strong class="capitalize">[[replaceCamelCaseText(detail.label)]]:</strong>
-                    <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
-                      <template is="dom-if" if="[[detail.url]]">
-                        <a target="_blank" href$="[[value]]">[[value]]</a>
-                      </template>
-                      <template is="dom-if" if="[[!detail.url]]">
-                        <span>[[value]]</span>
-                      </template>
-                    </template>
-                  </span>
-                </paper-item-body>
-              </paper-item>
-            </template>
 
             <template is="dom-if" if="[[item.images]]">
-              <image-viewer images="[[item.images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-viewer>
+              <image-gallery images="[[item.images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-gallery>
             </template>
 
             <template is="dom-if" if="[[images]]">
-              <image-viewer images="[[images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-viewer>
+              <image-gallery images="[[images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-gallery>
             </template>
 
-            <a class="list-item-link" target="[[getTarget(newTab)]]" href$="[[createIdLink(item, '_type', '_id')]]">
-              <paper-button class="list-item-button" raised>open {{getItemTypeText(item, '_type')}}</paper-button>
-            </a>
+            <button-link
+              link="[[item.link]]"
+              target="[[getTarget(newTab)]]"
+              text="open [[getTypeText(item)]]"
+              show="[[showLinks]]">
+            </button-link>
           </paper-material>
-        </iron-collapse>
-      </template>
-    </div>
+        </div>
+      </iron-collapse>
+    </template>
   </template>
 
   <script>
   (function() {
-    /* globals _, DigBehaviors */
+    /* globals _ */
     'use strict';
 
     Polymer({
       is: 'single-record',
-
-      behaviors: [DigBehaviors.CreateLinkBehavior, DigBehaviors.DataTypeBehavior],
 
       properties: {
         /**
@@ -228,8 +227,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           * User currently logged in.
           */
         currentUser: {
-          type: String,
-          notify: true
+          type: String
         },
 
         /**
@@ -243,19 +241,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * Whether the details are opened.
          */
-        opened: {
+        open: {
           type: Boolean,
-          value: false,
-          notify: true
+          value: false
         },
 
         /**
-         * Whether details should be available.
+         * Whether details should be shown.
          */
         showDetails: {
           type: Boolean,
-          value: false,
-          notify: true
+          value: false
+        },
+
+        /**
+         * Whether links should be shown.
+         */
+        showLinks: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether the user is hovering over the record.
+         */
+        hovering: {
+          type: Boolean,
+          value: false
         },
 
         error: {
@@ -277,20 +289,61 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return (detail && detail.value) ? (_.isArray(detail.value) ? detail.value : [detail.value]) : [];
       },
 
-      getHeaderClass: function(opened) {
-        return (opened ? 'opened' : 'closed');
+      getHeaderClass: function(open) {
+        return (open ? 'opened' : 'closed');
+      },
+
+      getSubtitle: function(descriptors) {
+        return descriptors.map(function(descriptor) {
+          return descriptor.text;
+        }).join(', ') || '';
       },
 
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
       },
 
-      replaceCamelCaseText: function(key) {
-        return key.replace(/([A-Z])/g, ' $1');
+      getTitle: function(text) {
+        return (_.isArray(text) ? text.join(', ') : text) || '';
+      },
+
+      /**
+       * Returns the text for the given item (and returns long text if specified).
+       */
+      getTypeText: function(item, longText) {
+        if(item.type === 'offer') {
+          return 'ad';
+        }
+        if(item.type === 'seller') {
+          return 'email/phone cluster';
+        }
+        if(longText && item.type === 'email') {
+          return 'email address';
+        }
+        if(longText && item.type === 'phone') {
+          return 'telephone number';
+        }
+        return item.type;
+      },
+
+      cleanCamelCase: function(key) {
+        return key.replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
+          return word.charAt(0).toUpperCase() + word.substr(1);
+        }) + ':';
       },
 
       showAnnotation: function(item) {
-        return item && item._type !== 'seller';
+        return item && item.type !== 'seller';
+      },
+
+      startHover: function() {
+        this.hovering = true;
+        this.showLinks = true;
+      },
+
+      endHover: function() {
+        this.hovering = false;
+        this.showLinks = this.open;
       },
 
       /**
@@ -299,10 +352,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       toggleRecord: function(event) {
         // Do not open a record with no details.
         if(this.showDetails) {
-          // Do not open the record if the user clicked on a button or link inside the record.
-          if(event.target.localName !== 'paper-button' && event.target.localName !== 'paper-icon-button' && !event.target.classList.contains('paper-icon-button') &&
-              event.target.localName !== 'a' && (!event.target.parentElement || event.target.parentElement.localName !== 'a')) {
-            this.set('opened', !this.opened);
+          var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
+          var isButton = (event.target.localName === 'paper-button');
+          var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
+          // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
+          if(!isAnnotation && !isButton && !isLink) {
+            this.set('open', !this.open);
             this.$$('#recordDetail').toggle();
           }
         }

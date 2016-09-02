@@ -9,14 +9,16 @@
 /* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
 var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
-  function createLocationTimelineDetails(bucket) {
-    var details = [];
+  function createLocationTimelineNotes(bucket) {
+    var notes = [];
 
     if(bucket.publishers) {
-      details.push({
-        name: 'Website',
-        items: _.map(bucket.publishers.buckets, function(publisher) {
+      notes.push({
+        name: 'Websites',
+        data: _.map(bucket.publishers.buckets, function(publisher) {
           return {
+            icon: commonTransforms.getIronIcon('webpage'),
+            styleClass: commonTransforms.getStyleClass('webpage'),
             text: publisher.key,
             type: 'webpage'
           };
@@ -29,37 +31,43 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         return mention.key;
       }));
       if(emailAndPhoneLists.phones.length) {
-        details.push({
-          name: 'Telephone Number',
-          items: _.map(emailAndPhoneLists.phones, function(phone) {
+        notes.push({
+          name: 'Telephone Numbers',
+          data: _.map(emailAndPhoneLists.phones, function(phone) {
             return {
-              text: phone.title,
+              icon: commonTransforms.getIronIcon('phone'),
+              link: commonTransforms.getLink(phone.id, 'phone'),
+              styleClass: commonTransforms.getStyleClass('phone'),
+              text: phone.text,
               type: 'phone',
-              id: phone._id
+              id: phone.id
             };
           })
         });
       }
       if(emailAndPhoneLists.emails.length) {
-        details.push({
-          name: 'Email Address',
-          items: _.map(emailAndPhoneLists.emails, function(email) {
+        notes.push({
+          name: 'Email Addresses',
+          data: _.map(emailAndPhoneLists.emails, function(email) {
             return {
-              text: email.title,
+              icon: commonTransforms.getIronIcon('email'),
+              link: commonTransforms.getLink(email.id, 'email'),
+              styleClass: commonTransforms.getStyleClass('email'),
+              text: email.text,
               type: 'email',
-              id: email._id
+              id: email.id
             };
           })
         });
       }
     }
 
-    return details;
+    return notes;
   }
 
   /**
    * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
-   * and details for each location.
+   * and notes for each location.
    * [{
    *     date: 1455657767,
    *     subtitle: "Mountain View, CA",
@@ -67,27 +75,30 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
    *         name: "Mountain View, CA, USA",
    *         type: "location",
    *         count: 12,
-   *         details: [{
+   *         notes: [{
    *             name: "Email Address",
-   *             items: [{
+   *             data: [{
+   *                 id: "http://email/abc@xyz.com",
+   *                 link: "/email.html?value=http://email/abc@xyz.com&field=_id",
    *                 text: "abc@xyz.com",
-   *                 type: "email",
-   *                 id: "http://email/abc@xyz.com"
+   *                 type: "email"
    *             }]
    *         }, {
    *             name: "Telephone Number",
-   *             items: [{
+   *             data: [{
+   *                 id: "http://phone/1234567890",
+   *                 link: "/phone.html?value=http://phone/1234567890&field=_id",
    *                 text: "1234567890",
-   *                 type: "phone",
-   *                 id: "http://phone/1234567890"
+   *                 type: "phone"
    *             }, {
+   *                 id: "http://phone/0987654321",
+   *                 link: "/phone.html?value=http://phone/0987654321&field=_id",
    *                 text: "0987654321",
-   *                 type: "phone",
-   *                 id: "http://phone/0987654321"
+   *                 type: "phone"
    *             }]
    *         }, {
    *             name: "Website",
-   *             items: [{
+   *             data: [{
    *                 text: "google.com",
    *                 type: "webpage"
    *             }]
@@ -100,7 +111,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       if(bucket.doc_count) {
         var dateBucket = {
-          date: commonTransforms.getDate(bucket.key)
+          date: commonTransforms.getDate(bucket.key),
+          icon: commonTransforms.getIronIcon('date'),
+          styleClass: commonTransforms.getStyleClass('date')
         };
 
         var sum = 0;
@@ -111,17 +124,21 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
           subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
           return {
             name: locationBucket.key.split(':').slice(0, 3).join(', '),
+            icon: commonTransforms.getIronIcon('location'),
+            styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
             count: locationBucket.doc_count,
-            details: createLocationTimelineDetails(locationBucket)
+            notes: createLocationTimelineNotes(locationBucket)
           };
         });
 
         if(sum < bucket.doc_count) {
           dateBucket.locations.push({
+            icon: commonTransforms.getIronIcon('location'),
+            styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
             count: bucket.doc_count - sum,
-            details: []
+            notes: []
           });
         }
 
@@ -141,21 +158,21 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     return timeline;
   }
 
-  function getSellerTitle(phones, emails) {
-    var title = '';
+  function getSellerText(phones, emails) {
+    var text = '';
     var otherPhonesAndEmails = 0;
     if(phones.length > 0) {
-      title = phones[0].title;
+      text = phones[0].text;
       otherPhonesAndEmails += phones.length - 1;
     }
     if(emails.length > 0) {
-      title += (title ? ', ' : '') + emails[0].title;
+      text += (text ? ', ' : '') + emails[0].text;
       otherPhonesAndEmails += emails.length - 1;
     }
     if(otherPhonesAndEmails) {
-      title += ' (' + otherPhonesAndEmails + ' more)';
+      text += ' (' + otherPhonesAndEmails + ' more)';
     }
-    return title || 'Info N/A';
+    return text || 'Info N/A';
   }
 
   return {
@@ -164,21 +181,46 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       var newData = {};
 
       if(data && data.hits.hits.length > 0) {
-        newData._id = _.get(data.hits.hits[0], '_id');
-        newData._type = _.get(data.hits.hits[0], '_type');
+        newData.id = _.get(data.hits.hits[0], '_id');
+        newData.type = _.get(data.hits.hits[0], '_type');
+        newData.icon = commonTransforms.getIronIcon('seller');
+        newData.styleClass = commonTransforms.getStyleClass('seller');
+        newData.link = commonTransforms.getLink(newData.id, 'seller');
         newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
         newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
-        newData.title = getSellerTitle(newData.telephone, newData.emailAddress);
-        newData.descriptors = [];
+        newData.text = getSellerText(newData.telephone, newData.emailAddress);
         newData.communications = newData.telephone.concat(newData.emailAddress);
       }
 
       return newData;
     },
 
-    removeItemFromCommunications: function(communications, title) {
+    removeItemFromCommunications: function(communications, text) {
       return (communications || []).filter(function(communication) {
-        return communication.title !== title;
+        return communication.text !== text;
+      });
+    },
+
+    removeNoteFromLocationTimeline: function(noteItemId, timeline) {
+      return timeline.map(function(date) {
+        date.locations = date.locations.map(function(location) {
+          location.notes = location.notes.map(function(note) {
+            var previousLength = note.data.length;
+            note.data = note.data.filter(function(item) {
+              return item.id !== noteItemId;
+            });
+            if(note.data.length < previousLength) {
+              note.name = 'Other ' + note.name;
+            }
+            return note;
+          });
+          // Remove any notes that no longer have any data.
+          location.notes = location.notes.filter(function(note) {
+            return note.data.length;
+          });
+          return location;
+        });
+        return date;
       });
     },
 

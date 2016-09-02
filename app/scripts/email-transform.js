@@ -11,15 +11,17 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
   /** build email object:
       'email': {
-          '_id': 'http://someuri/1234567890'
+          'id': 'http://someuri/1234567890'
           'emailAddress': 'abc@xyz.com'
       }
   */
   function getEmail(record) {
     var email = {};
-    email._id = _.get(record, 'uri');
+    email.id = _.get(record, 'uri');
     email.emailAddress = decodeURIComponent(_.get(record, 'name'));
     email.sellerId = commonTransforms.getSellerId(record);
+    email.icon = commonTransforms.getIronIcon('email');
+    email.styleClass = commonTransforms.getStyleClass('email');
     return email;
   }
 

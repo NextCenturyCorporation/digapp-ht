@@ -12,23 +12,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/json-transform/json-transform.html">
-<link rel="import" href="../../bower_components/iron-scroll-threshold/iron-scroll-threshold.html">
-<link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-<link rel="import" href="../behaviors.html">
-<link rel="import" href="../image-viewer/image-viewer.html">
+<link rel="import" href="../../bower_components/paginated-image-gallery/paginated-image-gallery.html">
 
 <dom-module id="image-query-and-display">
   <template>
-    <style include="icon-styles"></style>
-    <style include="web-component-styles"></style>
-
     <style>
-      iron-scroll-threshold {
-        margin-top: 10px;
-        /* The height of 5 rows of images. */
-        max-height: 850px;
-      }
     </style>
 
     <elastic-client-query-builder
@@ -67,32 +55,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       transform-function="[[imageTotalTransform]]">
     </json-transform>
 
-    <template is="dom-if" if="[[displayResults.length]]">
-      <iron-scroll-threshold id="scrollThreshold">
-        <image-viewer id="imageViewer" images="[[displayResults]]" blur="[[blur]]"></image-viewer>
-      </iron-scroll-threshold>
-    </template>
-
-    <div class="loading-container">
-      <template is="dom-if" if="[[showMore]]">
-        <paper-button raised on-tap="goToNextPage">Show More Results</paper-button>
-      </template>
-      <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <span class="button-height-text">Loading Results...</span>
-      </template>
-    </div>
+    <paginated-image-gallery
+      blur="[[blur]]"
+      loading="[[loading]]"
+      load-type="[[computeLoadType(type)]]"
+      image-items="[[imageResults]]"
+      total-items="[[totalResults]]"
+      page="{{page}}"
+      shown-items="{{shownResults}}">
+    </paginated-image-gallery>
   </template>
 
   <script>
   (function() {
     'use strict';
 
-    /* globals DigBehaviors */
     Polymer({
       is: 'image-query-and-display',
-
-      behaviors: [DigBehaviors.ResultListBehavior],
 
       properties: {
         imageQueryField: {
@@ -111,8 +90,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object
         },
 
+        /**
+         * The results from the image query to show in this list that are reset for each new page.
+         */
         imageResults: {
           type: Array,
+          notify: true
+        },
+
+        /**
+         * The total number of results for all pages.
+         */
+        totalResults: {
+          type: Number
+        },
+
+        /**
+         * The results shown in this list that are taken from the query results.
+         */
+        shownResults: {
+          type: Array,
+          notify: true
+        },
+
+        /**
+         * The current page.
+         */
+        page: {
+          type: Number,
+          value: 1,
+          notify: true
+        },
+
+        /**
+         * Whether a query is running.
+         */
+        loading: {
+          type: Boolean,
+          value: false,
           notify: true
         },
 
@@ -144,7 +159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         imageDisplayTitle: {
           type: String,
           value: 'No Images',
-          computed: 'computeTitle(type, displayResults.length, totalResults)',
+          computed: 'computeTitle(type, shownResults.length, totalResults)',
           notify: true
         },
 
@@ -158,22 +173,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      observers: [
-        'updateQueryResults(imageResults.splices)'
-      ],
+      computeLoadType: function(type) {
+        return type + 's';
+      },
 
       /**
-       * Returns the title for this image viewer based on the type, displayResults, and totalResults.
+       * Returns the title for this image viewer based on the type, shownResults, and totalResults.
        */
       computeTitle: function(type, count, total) {
         if(total) {
           return ((count && count < total) ? (count + ' of ') : '') + total + ' ' + type + (total === 1 ? '' : 's');
         }
         return 'No ' + type + 's';
-      },
-
-      updateQueryResults: function() {
-        this.set('queryResults', this.imageResults);
       }
     });
   })();
