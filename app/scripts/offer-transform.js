@@ -139,6 +139,15 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     revisions: function(data) {
       return relatedEntityTransform.offer(data);
+    },
+
+    removeDescriptorFromOffers: function(descriptorId, offers) {
+      return offers.map(function(offer) {
+        offer.descriptors = offer.descriptors.filter(function(descriptor) {
+          return descriptor.id !== descriptorId;
+        });
+        return offer;
+      });
     }
   };
 })(_, commonTransforms, relatedEntityTransform);

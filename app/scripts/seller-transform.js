@@ -14,7 +14,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     if(bucket.publishers) {
       notes.push({
-        name: 'Website',
+        name: 'Websites',
         data: _.map(bucket.publishers.buckets, function(publisher) {
           return {
             icon: commonTransforms.getIronIcon('webpage'),
@@ -32,7 +32,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       }));
       if(emailAndPhoneLists.phones.length) {
         notes.push({
-          name: 'Telephone Number',
+          name: 'Telephone Numbers',
           data: _.map(emailAndPhoneLists.phones, function(phone) {
             return {
               icon: commonTransforms.getIronIcon('phone'),
@@ -47,7 +47,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       }
       if(emailAndPhoneLists.emails.length) {
         notes.push({
-          name: 'Email Address',
+          name: 'Email Addresses',
           data: _.map(emailAndPhoneLists.emails, function(email) {
             return {
               icon: commonTransforms.getIronIcon('email'),
@@ -198,6 +198,29 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
     removeItemFromCommunications: function(communications, text) {
       return (communications || []).filter(function(communication) {
         return communication.text !== text;
+      });
+    },
+
+    removeNoteFromLocationTimeline: function(noteItemId, timeline) {
+      return timeline.map(function(date) {
+        date.locations = date.locations.map(function(location) {
+          location.notes = location.notes.map(function(note) {
+            var previousLength = note.data.length;
+            note.data = note.data.filter(function(item) {
+              return item.id !== noteItemId;
+            });
+            if(note.data.length < previousLength) {
+              note.name = 'Other ' + note.name;
+            }
+            return note;
+          });
+          // Remove any notes that no longer have any data.
+          location.notes = location.notes.filter(function(note) {
+            return note.data.length;
+          });
+          return location;
+        });
+        return date;
       });
     },
 
