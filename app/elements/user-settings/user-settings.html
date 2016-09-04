@@ -287,40 +287,43 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 </iron-collapse>
               </div>
             </template>
+          </div>
+          <template is="dom-if" if="{{_userTypeAsArray}}">
+            <elastic-client-query-builder
+              type="term"
+              field="username"
+              values="[[_checkForUser]]"
+              ejs-query="{{_sendUserQuery}}">
+            </elastic-client-query-builder>
 
-            <template is="dom-if" if="{{_userTypeAsArray}}">
-              <elastic-client-query-builder
-                type="term"
-                field="username"
-                values="[[_checkForUser]]"
-                ejs-query="{{_sendUserQuery}}">
-              </elastic-client-query-builder>
-
-              <elastic-client-search
-                client="[[client]]"
-                index="[[userIndex]]"
-                elastic-types="[[_userTypeAsArray]]"
-                query="[[_sendUserQuery]]"
-                sort-field="dateCreated"
-                sort-order="desc"
-                aggregations="[]"
-                filters="[]"
-                results="{{_sentUserSearchResult}}"
-                last-error="{{error}}">
-              </elastic-client-search>
-            </template>
-
-            <elastic-update
+            <elastic-client-search
               client="[[client]]"
               index="[[userIndex]]"
-              elastic-type="[[userType]]"
-              id="{{_userIdToSendQuery}}"
-              body='{{_sendUserUpdateBody}}'
-              results="{{_sentQueryUpdate}}"
-              last-error="{{sendError}}">
-            </elastic-update>
+              elastic-types="[[_userTypeAsArray]]"
+              query="[[_sendUserQuery]]"
+              sort-field="dateCreated"
+              sort-order="desc"
+              aggregations="[]"
+              filters="[]"
+              results="{{_sentUserSearchResult}}"
+              last-error="{{error}}">
+            </elastic-client-search>
+          </template>
 
-            <div class="name">Searches Received From Other Users</div>
+          <elastic-update
+            client="[[client]]"
+            index="[[userIndex]]"
+            elastic-type="[[userType]]"
+            id="{{_userIdToSendQuery}}"
+            body='{{_sendUserUpdateBody}}'
+            results="{{_sentQueryUpdate}}"
+            last-error="{{sendError}}">
+          </elastic-update>
+
+          <div class="divider"></div>
+
+          <div class="layout vertical">
+            <div class="name">Received Searches</div>
             <template is="dom-repeat" items="[[_receivedSearches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
@@ -379,8 +382,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 </iron-collapse>
               </div>
             </template>
-
           </div>
+
         </template>
         <template is="dom-if" if="{{!_userRecordExists}}" restamp="true">
           Creating user record...
@@ -636,6 +639,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _queryToSend: {
           type: Object
         },
+        /**
+         * Used for error checking when sending queries.
+         */
         _sentUserRecordExists: {
           type: Boolean,
           value: undefined,
@@ -657,10 +663,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           observer: '_transformSentUserSearchResult'
         },
+        /**
+         * Boolean to track if query has previously been sent to user specified.
+         */
         _queryAlreadySent: {
           type: Boolean,
           notify: true,
           value: undefined
+        },
+        /**
+         * Boolean to track when associated elastic-client-search query has finished loading.
+         */
+        loading: {
+          type: Boolean,
+          notify: true,
+          observer: '_fillOutFacets'
+        },
+        /**
+         * Where to store facets while waiting for query results to reload (fix for timing issues when loading
+         * both the searchText and facets).
+         */
+        _facetsToLoad: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return undefined;
+          }
         }
       },
       observers: [
@@ -738,7 +766,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-
+      /**
+       * Creates and returns a listener to add a new search from the list of receivedSearches.
+       */
       _createAddSearchListener: function(index) {
         var self = this;
         return {
@@ -804,7 +834,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         });
       },
-
 
       /**
        * Creates and returns a listener to send the given saved search to another user.
@@ -938,11 +967,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
         var self = this;
-        self.set('searchText', event.model.search.digUIState.searchText);
-        // TODO: find better solution
-        setTimeout(function(){
+
+        if(this.searchText !== event.model.search.digUIState.searchText) {
+          self.set('searchText', event.model.search.digUIState.searchText);
+          self.set('_facetsToLoad', JSON.parse(JSON.stringify(event.model.search.digUIState.facets)));
+        } else {
           self.set('facets', JSON.parse(JSON.stringify(event.model.search.digUIState.facets)));
-        }, 100);
+        }
+      },
+
+      /**
+       * Wait to reload facets until after initial search string has been processed.
+       */
+      _fillOutFacets: function() {
+        if(this.loading === false) {
+          if(this._facetsToLoad && this.searchText) {
+            this.set('facets', JSON.parse(JSON.stringify(this._facetsToLoad)));
+            this._facetsToLoad = undefined;
+          }
+        }
       },
 
       /**
