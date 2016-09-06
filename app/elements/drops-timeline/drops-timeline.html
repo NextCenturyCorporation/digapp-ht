@@ -7,76 +7,25 @@
   <style>
     :host {
       display: block;
-    }
-
-    #timeline-container {
-      margin-top: 20px;
-      margin-bottom: 20px;
-      width: 100%;
-    }
-
-    .zoom,
-    .zoom-area {
-        fill: transparent;
-        cursor: pointer
-    }
-    .line-separator,
-    .x-axis,
-    .y-tick {
-        stroke: #000;
-        fill: none;
-        stroke-width: 1px
-    }
-    .line-separator:last-child {
-        display: none
-    }
-    .x-axis {
-        position: absolute;
-        z-index: 50
-    }
-
-    text {
-        stroke: none;
-        fill: #37474F;
-        color: #37474F;
-    }
-    .graph-body .line {
-        height: 20px;
-        padding: 10px
-    }
-
-    paper-button {
-      position: absolute;
-      right: 0;
-      top: 0;
-      margin: 0;
-    }
-
-    paper-button{
-      background-color: var(--text-primary-color);
-      color: var(--primary-text-color);
-      font-size: 12px;
+      font-size: 14px;
     }
 
     #timeline {
-      width:100%;
+      width: 100%;
     }
-
   </style>
+
   <template>
-    <div class="layout horizontal">
-        <div class="flex auto" id="timeline-container">
-          <div id="timeline"></div>
-        </div>
-      </div>
+    <div id="timeline"></div>
+    <div class="layout horizontal flex center-justified">
+      <button-action text="Reset Timeline" click-listener="[[_createResetListener()]]"></button-action>
     </div>
   </template>
+
   <script>
     (function() {
       'use strict';
-      /* globals d3 */
-      /* globals _ */
-
+      /* globals _, d3 */
       Polymer({
         is: 'drops-timeline',
 
@@ -89,36 +38,37 @@
             notify: true
           }
         },
-        observers: [
-          'setupChart(payload)'
-        ],
-        getEndTime: function() {
-          if(this.payload.timestamps.length) {
-            return Math.max.apply(null, this.payload.timestamps) + (60 * 60 * 24 * 30 * 1000);
-          }
-          //else
-          return Date.now();
-        },
-        getStartTime: function() {
-          if(this.payload.timestamps.length) {
-            return Math.min.apply(null, this.payload.timestamps) - (60 * 60 * 24 * 30 * 1000);
-          }
-          //else
-          return Date.now();
-        },
-        setupChart: function() {
 
+        observers: [
+          '_createChart(payload)'
+        ],
+
+        _createChart: function() {
           if(_.isEmpty(this.payload)) {
             return;
           }
 
-          var color = d3.scale.category20();
-          var endTime = this.getEndTime();
-          var startTime = this.getStartTime();
+          this._drawChart();
 
-          // Set width based on width of container element.
-          var container = document.getElementById('timeline-container');
-          var width = (container ? parseInt(container.offsetWidth, 10) : 600);
+          var self = this;
+          d3.select(window).on('resize', function() {
+            self._drawChart();
+          });
+        },
+
+        _createResetListener: function() {
+          var self = this;
+          return {
+            onClick: function() {
+              self._drawChart();
+            }
+          };
+        },
+
+        _drawChart: function() {
+          var color = d3.scale.category20();
+          var endTime = this._getEndTime();
+          var startTime = this._getStartTime();
 
           var chart = d3.chart.eventDrops();
           chart.eventLineColor(function(datum, index) {
@@ -126,19 +76,27 @@
           });
           chart.start(new Date(startTime));
           chart.end(new Date(endTime));
-          chart.width(width);
           chart.metaballs(true);
 
-          var node = this.$.timeline;
-
-          d3.select(node)
+          d3.select(this.$$('#timeline'))
             .datum(this.payload.data)
             .call(chart);
 
-          var _t = this;
-          d3.select(window).on('resize', function() {
-            _t.setupChart();
-          });
+          this.$$('.event-drops-chart').setAttribute('style', 'width: 100%;');
+        },
+
+        _getEndTime: function() {
+          if(this.payload.timestamps.length) {
+            return Math.max.apply(null, this.payload.timestamps) + (60 * 60 * 24 * 30 * 1000);
+          }
+          return Date.now();
+        },
+
+        _getStartTime: function() {
+          if(this.payload.timestamps.length) {
+            return Math.min.apply(null, this.payload.timestamps) - (60 * 60 * 24 * 30 * 1000);
+          }
+          return Date.now();
         }
       });
     })();
