@@ -50,17 +50,17 @@ curl -XPUT localhost:9200/dig-users -d '
                   "type": "string"
                 },
                 "facets": {
-                  "type": "object"
+                  "type": "string"
                 }
               }
             },
             "esState": {
               "properties" : {
                 "query": {
-                  "type": "object"
+                  "type": "string"
                 },
                 "filter": {
-                  "type": "object"
+                  "type": "string"
                 }
               }
             },
@@ -86,17 +86,17 @@ curl -XPUT localhost:9200/dig-users -d '
                   "type": "string"
                 },
                 "facets": {
-                  "type": "object"
+                  "type": "string"
                 }
               }
             },
             "esState": {
-              "properties" :{
+              "properties" : {
                 "query": {
-                  "type": "object"
+                  "type": "string"
                 },
                 "filter": {
-                  "type": "object"
+                  "type": "string"
                 }
               }
             },
