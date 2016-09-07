@@ -167,229 +167,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </save-search>
 
     <!-- User preferences dialog -->
-    <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
+    <user-preferences show-search
+      preferences="{{_preferences}}"
+      client="[[client]]"
+      user-id="[[_userId]]"
+      loading="[[loading]]"
+      username="[[username]]"
+      advanced-search="{{advancedSearch}}"
+      blur-images="{{blurImages}}"
+      search-text="{{searchText}}"
+      facets="{{facets}}"
+      es-request="{{esRequest}}"
+      user-index="[[userIndex]]"
+      user-type="[[userType]]"
+      user-record-exists="[[_userRecordExists]]">
+    </user-preferences>
 
-    <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <div class="settings">
-        <div class="layout horizontal">
-          <span class="bold tall flex">User Settings</span>
-          <paper-icon-button icon="clear" dialog-confirm title="Close User Settings"></paper-icon-button>
-        </div>
-
-        <div class="divider"></div>
-
-        <template is="dom-if" if="{{_userRecordExists}}" restamp="true">
-          <div class="layout horizontal">
-            <div class="start-justified flex">
-              <span class="name right-space">Logged in as:</span>
-              <span class="text">[[username]]</span>
-            </div>
-            <div class="end-justified">
-              <span class="name right-space">DIG Version:</span>
-              <span class="text">DIG_VERSION</span>
-            </div>
-          </div>
-
-          <!-- Don't show email address and interval fields until notifications are working
-          <div class="layout horizontal">
-            <span class="name tall right-space">Email Address for Notifications:</span>
-            <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
-            <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
-          </div>
-          <div class="layout horizontal pointer">
-            <span class="name tall right-space">Automatically Run Searches:</span>
-            <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
-              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
-                <paper-item value="never">Never</paper-item>
-                <paper-item value="hourly">Every Hour</paper-item>
-                <paper-item value="daily">Every Day</paper-item>
-                <paper-item value="weekly">Every Week</paper-item>
-              </paper-listbox>
-            </paper-dropdown-menu>
-            <template is="dom-if" if="[[_noEmailAddress]]">
-              <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
-            </template>
-          </div>-->
-
-          <div class="divider"></div>
-
-          <template is="dom-if" if="[[showSearch]]">
-            <div class="layout horizontal pointer" title="Toggle Advanced Search" on-tap="_toggleAdvancedSearch">
-              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(advancedSearch)]]"></iron-icon>
-              <span class="text">Advanced Search</span>
-            </div>
-          </template>
-
-          <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
-            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
-            <span class="text">Blur Images</span>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="layout vertical">
-            <div class="name">Saved Searches</div>
-            <template is="dom-repeat" items="[[_searches]]" as="search">
-              <div class="layout vertical search">
-                <div class="layout horizontal">
-                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
-                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
-                  <div class="layout vertical flex">
-                    <div class="text search-text">[[search.name]]</div>
-                    <div class="name search-text">Search Text</div>
-                    <div class="text search-text">[[search.digUIState.searchText]]</div>
-                    <template is="dom-if" if="[[search.digUIState.facets]]">
-                      <div class="name search-text">Facets</div>
-                      <div class="layout horizontal wrap facets">
-                        <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
-                          <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
-                            <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
-                              <breadbox-item
-                                text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
-                                title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
-                              </breadbox-item>
-                            </template>
-                          </template>
-                        </template>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-                <iron-collapse opened="[[search.open]]">
-                  <div class="layout horizontal search-settings">
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Created By</div>
-                      <div class="name tall right-space">Created At</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <div class="text tall right-space">[[search.createdBy]]</div>
-                      <div class="text tall right-space">[[search.createdAt]]</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Send Saved Search to User</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <paper-input label="Enter Username" value="{{_usernameInput}}" no-label-float></paper-input>
-                    </div>
-                    <div class="layout vertical">
-                      <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener(index)]]"></button-action>
-                    </div>
-                    <div class="layout vertical">
-                      <template is="dom-if" if="[[_isFalse(_sentUserRecordExists)]]" restamp="true">
-                        <paper-icon-button icon="error" title="User entered does not exist." noink></paper-icon-button>
-                      </template>
-                      <template is="dom-if" if="[[_queryAlreadySent]]" restamp="true">
-                        <paper-icon-button icon="error" title="Query has already been sent to user specified." noink></paper-icon-button>
-                      </template>
-                    </div>
-                  </div>
-                </iron-collapse>
-              </div>
-            </template>
-          </div>
-          <template is="dom-if" if="{{_userTypeAsArray}}">
-            <elastic-client-query-builder
-              type="term"
-              field="username"
-              values="[[_checkForUser]]"
-              ejs-query="{{_sendUserQuery}}">
-            </elastic-client-query-builder>
-
-            <elastic-client-search
-              client="[[client]]"
-              index="[[userIndex]]"
-              elastic-types="[[_userTypeAsArray]]"
-              query="[[_sendUserQuery]]"
-              sort-field="dateCreated"
-              sort-order="desc"
-              aggregations="[]"
-              filters="[]"
-              results="{{_sentUserSearchResult}}"
-              last-error="{{error}}">
-            </elastic-client-search>
-          </template>
-
-          <elastic-update
-            client="[[client]]"
-            index="[[userIndex]]"
-            elastic-type="[[userType]]"
-            id="{{_userIdToSendQuery}}"
-            body='{{_sendUserUpdateBody}}'
-            results="{{_sentQueryUpdate}}"
-            last-error="{{sendError}}">
-          </elastic-update>
-
-          <div class="divider"></div>
-
-          <div class="layout vertical">
-            <div class="name">Received Searches</div>
-            <template is="dom-repeat" items="[[_receivedSearches]]" as="search">
-              <div class="layout vertical search">
-                <div class="layout horizontal">
-                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
-                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch"></paper-icon-button>
-                  <div class="layout vertical flex">
-                    <div class="text search-text">[[search.name]]</div>
-                    <div class="name search-text">Search Text</div>
-                    <div class="text search-text">[[search.digUIState.searchText]]</div>
-                    <template is="dom-if" if="[[search.digUIState.facets]]">
-                      <div class="name search-text">Facets</div>
-                      <div class="layout horizontal wrap facets">
-                        <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
-                          <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
-                            <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
-                              <breadbox-item
-                                text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
-                                title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
-                              </breadbox-item>
-                            </template>
-                          </template>
-                        </template>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-                <iron-collapse opened="[[search.open]]">
-                  <div class="layout horizontal search-settings">
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Created By</div>
-                      <div class="name tall right-space">Created At</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <div class="text tall right-space">[[search.createdBy]]</div>
-                      <div class="text tall right-space">[[search.createdAt]]</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Add To Saved Searches</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <button-action title="Add this Search to Saved Searches" text="Add" click-listener="[[_createAddSearchListener(index)]]"></button-action>
-                      <!--TODO: check for saving over existing search-->
-                      <!-- Confirm dialog for saving over an existing search -->
-                      <paper-dialog id="receiveAlert"  modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-                        <div class="layout horizontal">
-                          <span class="bold tall flex">Adding this query will save over your previously saved search of the same name.</span>
-                        </div>
-                        <div class="buttons">
-                          <paper-button dialog-confirm on-tap="_confirmReceivedSearch">OK</paper-button>
-                          <paper-button dialog-dismiss>Cancel</paper-button>
-                        </div>
-                      </paper-dialog>
-                    </div>
-                  </div>
-                </iron-collapse>
-              </div>
-            </template>
-          </div>
-
-        </template>
-        <template is="dom-if" if="{{!_userRecordExists}}" restamp="true">
-          Creating user record...
-        </template>
-      </div>
-    </paper-dialog>
     <!-- if no user record found, create it -->
     <elastic-create
       client="[[client]]"
@@ -399,16 +192,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       results="{{_createdUser}}"
       last-error="{{createError}}">
     </elastic-create>
-    <!--Updates to user record initiated by user preferences dialog-->
-    <elastic-update
-      client="[[client]]"
-      index="[[userIndex]]"
-      elastic-type="[[userType]]"
-      id="{{_userId}}"
-      body='{{_userUpdateBody}}'
-      results="{{_updatedUser}}"
-      last-error="{{updateError}}">
-    </elastic-update>
+
   </template>
 
   <script>
@@ -462,24 +246,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Whether advanced search is enabled.
-         */
-        advancedSearch: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-
-        /**
-         * Whether image blurring is enabled.
-         */
-        blurImages: {
-          type: Boolean,
-          value: true,
-          notify: true
-        },
-
-        /**
          * The text on which to search.
          */
         searchText: {
@@ -512,29 +278,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
-        /**
-         * The email address of this user.
-         */
-        _emailAddress: {
-          type: String
-        },
-
-        /**
-         * Whether this user has entered an email address.
-         */
-        _noEmailAddress: {
-          type: Boolean,
-          value: true
-        },
-
-        /**
-         * The saved searches for this user.
-         */
-        _searches: {
-          type: Array,
-          value: function() {
-            return [];
-          }
+        _preferences: {
+          type: Object,
+          notify: true
         },
         /**
          * The query to use to find if user record exists already or needs to be created.
@@ -572,13 +318,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           readOnly: true
         },
         /**
-         * Document info to pass into the elastic-update component
-         */
-        _userUpdateBody: {
-          type: Object,
-          readOnly: true
-        },
-        /**
          * _id from existing user record (used to make updates)
          */
         _userId: {
@@ -592,103 +331,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true,
           observer: '_getUserId'
         },
-        /**
-         * Result from elastic-update.
-         */
-        _updatedUser: {
-          type: Object,
-          notify: true
-        },
 
-        /**
-         * Index to replace in _searches if saving over existing search.
-         */
-        _saveOverIndex: {
-          type: Number
-        },
-        /**
-         * Document info to pass into the elastic-update component for sending queries
-         */
-        _sendUserUpdateBody: {
-          type: Object,
-          readOnly: true
-        },
-        /**
-         * Input for username when sending a query
-         */
-        _usernameInput: {
-          type: String
-        },
-        /**
-         * Check if user exists before attempting to send query.
-         */
-        _checkForUser: {
-          type: String,
-          notify: true
-        },
-
-        /**
-         * _id to use when sending a query to another user
-         */
-        _userIdToSendQuery: {
-          type: String
-        },
-        /**
-         * The query to use to find if user to send a query to exists.
-         */
-        _queryToSend: {
-          type: Object
-        },
-        /**
-         * Used for error checking when sending queries.
-         */
-        _sentUserRecordExists: {
-          type: Boolean,
-          value: undefined,
-          notify: true
-        },
-        /**
-         * The received searches for this user.
-         */
-        _receivedSearches: {
-          type: Array,
-          value: function() {
-            return [];
-          }
-        },
-        /**
-         * Search result from elastic-client-search query for user to send a query to.
-         */
-        _sentUserSearchResult: {
-          type: Object,
-          observer: '_transformSentUserSearchResult'
-        },
-        /**
-         * Boolean to track if query has previously been sent to user specified.
-         */
-        _queryAlreadySent: {
-          type: Boolean,
-          notify: true,
-          value: undefined
-        },
         /**
          * Boolean to track when associated elastic-client-search query has finished loading.
          */
         loading: {
           type: Boolean,
-          notify: true,
-          observer: '_fillOutFacets'
-        },
-        /**
-         * Where to store facets while waiting for query results to reload (fix for timing issues when loading
-         * both the searchText and facets).
-         */
-        _facetsToLoad: {
-          type: Object,
-          notify: true,
-          value: function() {
-            return undefined;
-          }
+          notify: true
         }
       },
       observers: [
@@ -696,55 +345,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ],
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-
-      /**
-       * Creates and returns a listener to save the user's email address.
-       */
-      _createSaveEmailAddressListener: function() {
-        var self = this;
-        return {
-          onClick: function() {
-            if(self._emailAddress) {
-              console.log('Save ' + self._emailAddress);
-              self.set('_noEmailAddress', false);
-
-              self._set_userUpdateBody({
-                doc: {
-                  emailAddress: self._emailAddress
-                }
-              });
-            }
-          }
-        };
-      },
-
-      /**
-       * Toggles the user's advanced search setting.
-       */
-      _toggleAdvancedSearch: function() {
-        var self = this;
-        this.advancedSearch = !this.advancedSearch;
-
-        self._set_userUpdateBody({
-          doc: {
-            advancedSearch: self.advancedSearch
-          }
-        });
-      },
-
-      /**
-       * Toggles the user's blur setting.
-       */
-      _toggleBlur: function() {
-        var self = this;
-        this.blurImages = !this.blurImages;
-
-        self._set_userUpdateBody({
-          doc: {
-            blurImages: self.blurImages
-          }
-        });
-      },
 
       /**
        * If user record does not exist, create it.
@@ -766,242 +366,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      /**
-       * Creates and returns a listener to add a new search from the list of receivedSearches.
-       */
-      _createAddSearchListener: function(index) {
-        var self = this;
-        return {
-          onClick: function() {
-            var indexToReplace = _.findIndex(self._searches, {name: self._receivedSearches[index].name});
-
-            if(indexToReplace !== -1) {
-              self._saveOverIndex = indexToReplace;
-              self.$$('#receiveAlert').open();
-            } else {
-              self.push('_searches', JSON.parse(JSON.stringify(self._receivedSearches[index])));
-              self.splice('_receivedSearches', index, 1);
-              self._set_userUpdateBody({
-                doc: {
-                  savedQueries: self._searches,
-                  receivedQueries: self._receivedSearches
-                }
-              });
-            }
-          }
-        };
-      },
-
-      /**
-       * Save over an existing record in _searches.
-       */
-      _confirmReceivedSearch: function() {
-        var self = this;
-        self.splice('_searches', this._saveOverIndex, 1, JSON.parse(JSON.stringify(event.model.search)));
-        self.splice('_receivedSearches', event.model.index, 1);
-        self._set_userUpdateBody({
-          doc: {
-            savedQueries: self._searches,
-            receivedQueries: self._receivedSearches
-          }
-        });
-      },
-
-      /**
-       * Deletes the given saved search.
-       */
-      _deleteSearch: function(event) {
-        var self = this;
-        console.log('Delete ' + event.model.search + ' index ' + event.model.index);
-        self.splice('_searches', event.model.index, 1);
-        self._set_userUpdateBody({
-          doc: {
-            savedQueries: self._searches
-          }
-        });
-      },
-
-      /**
-       * Deletes the given saved search.
-       */
-      _deleteReceivedSearch: function(event) {
-        var self = this;
-        console.log('Delete ' + event.model.search + ' index ' + event.model.index);
-        self.splice('_receivedSearches', event.model.index, 1);
-        self._set_userUpdateBody({
-          doc: {
-            receivedQueries: self._receivedSearches
-          }
-        });
-      },
-
-      /**
-       * Creates and returns a listener to send the given saved search to another user.
-       */
-      _createSendSearchListener: function(index) {
-        var self = this;
-        return {
-          onClick: function() {
-            if(self._usernameInput && !_.isEqual(self._usernameInput, self.username)) {
-              console.log('Send ' + self._searches[index].name + ' to ' + self._usernameInput);
-              self._queryToSend = JSON.parse(JSON.stringify(self._searches[index]));
-              self._checkForUser = self._usernameInput;
-            }
-          }
-        };
-      },
-
-      /**
-       * Populate properties based on search results.
-       */
-      _transformSentUserSearchResult: function() {
-        if(this._sentUserSearchResult) {
-          if(this._sentUserSearchResult.hits.hits.length > 0 && this._queryToSend) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            var receivedSearches = this._sentUserSearchResult.hits.hits[0]._source.receivedQueries;
-
-            this._userIdToSendQuery = this._sentUserSearchResult.hits.hits[0]._id;
-            if(!receivedSearches) {
-              receivedSearches = [];
-            }
-            // check if already sent query
-            if(_.findIndex(receivedSearches, {name: this._queryToSend.name, createdBy: this._queryToSend.createdBy}) !== -1) {
-              console.log('Query has already been sent to user');
-              this._queryAlreadySent = true;
-            } else {
-              receivedSearches.push(this._queryToSend);
-              this._set_sendUserUpdateBody({
-                doc: {
-                  receivedQueries: receivedSearches
-                }
-              });
-              this._sentUserRecordExists = true;
-              console.log('Successfully sent query!');
-            }
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          } else {
-            this._sentUserRecordExists = false;
-            console.log('User to send query to not found.');
-          }
-        }
-      },
-
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      /**
-       * Returns the checkbox icon for the given setting.
-       */
-      _getCheckboxIconToShow: function(setting) {
-        return setting ? 'check-box' : 'check-box-outline-blank';
-      },
-
-      /**
-       * Returns the title of the modal-icon for the given open setting.
-       */
-      _getModalIconTitle: function(open) {
-        return (open ? 'Close' : 'Open') + ' Search Settings';
-      },
-
-      /**
-       * Returns whether the given value is false.
-       */
-      _isFalse: function(value) {
-        return !value;
-      },
-
-      /**
-       * Opens the settings dialog.
-       */
-      _openSettingsDialog: function() {
-        this.$$('#settingsDialog').open();
-      },
-
-      /**
-       * Populates the properties in this user-settings component using the given settings object.
-       */
-      _populateUserSettings: function(settings) {
-        //var self = this;
-
-        if(settings.advancedSearch !== undefined) {
-          this.set('advancedSearch', settings.advancedSearch);
-        }
-
-        if(settings.blurImages !== undefined) {
-          this.set('blurImages', settings.blurImages);
-        }
-
-        if(settings.emailAddress) {
-          this.set('_emailAddress', settings.emailAddress);
-          this.set('_noEmailAddress', false);
-        }
-
-        if(settings.savedQueries) {
-          /*var searches = _.reduce(settings.searches, function(searches, search) {
-            if(search.text) {
-              searches.push({
-                date: search.date || 'Unknown',
-                facets: (search.facets || []).map(function(facet) {
-                  return facet.key + ': ' + facet.value;
-                }),
-                interval: search.interval || 'off',
-                open: false,
-                sendTo: '',
-                text: search.text,
-                user: search.user || 'Unknown'
-              });
-            }
-            return searches;
-          }, []);*/
-          this.set('_searches', settings.savedQueries);
-        }
-
-        if(settings.receivedQueries) {
-          this.set('_receivedSearches', settings.receivedQueries);
-        }
-
-      },
-
-      /**
-       * Runs the given saved search.
-       */
-      _runSearch: function(event) {
-        this.$$('#settingsDialog').close();
-        var self = this;
-
-        if(this.searchText !== event.model.search.digUIState.searchText) {
-          self.set('searchText', event.model.search.digUIState.searchText);
-          self.set('_facetsToLoad', JSON.parse(event.model.search.digUIState.facets));
-        } else {
-          self.set('facets', JSON.parse(event.model.search.digUIState.facets));
-        }
-      },
-
-      /**
-       * Wait to reload facets until after initial search string has been processed.
-       */
-      _fillOutFacets: function() {
-        if(this.loading === false) {
-          if(this._facetsToLoad && this.searchText) {
-            this.set('facets', JSON.parse(JSON.stringify(this._facetsToLoad)));
-            this._facetsToLoad = undefined;
-          }
-        }
-      },
-
-      /**
-       * Toggles the open setting of the given saved search.
-       */
-      _toggleSearchSettings: function(event) {
-        this.set('_searches.' + event.model.index + '.open', !event.model.search.open);
-      },
-
-      /**
-       * Updates the notification setting of the given saved search.
-       */
-      _updateNotification: function(event) {
-        console.log('Notify ' + event.model.search.name + ' index ' + event.model.index + ' interval ' + event.model.search.frequency);
-        // TODO Update the notification interval for the search in the user's data.
-      },
 
       /**
        * Observes and logs changes to the username.
@@ -1036,33 +401,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(this._userSearchResult.hits.hits.length > 0) {
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             this._getUserId(this._userSearchResult.hits.hits[0]);
-            this._populateUserSettings(this._userSearchResult.hits.hits[0]._source);
+            this.set('_preferences', this._userSearchResult.hits.hits[0]._source);
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
             this._userRecordExists = false;
           }
-        }
-      },
-      /**
-       * Get all the facet selection groups.
-       */
-      _getFacetGroups: function(facets) {
-        return _.keys(JSON.parse(facets));
-      },
-      /**
-       * Get the selected facets from the facet group.
-       */
-      _getFacetGroupKeys: function(facets, facetGroupName) {
-        var facetsAsObject = JSON.parse(facets);
-        return _.keys(facetsAsObject[facetGroupName]);
-      },
-      /**
-       * Get the property of a selected facet.
-       */
-      _getFacetProperty: function(facets, facetGroupName, key, prop) {
-        var facetsAsObject = JSON.parse(facets);
-        if(facetsAsObject && facetsAsObject[facetGroupName] && facetsAsObject[facetGroupName][key]) {
-          return facetsAsObject[facetGroupName][key][prop];
         }
       }
     });
