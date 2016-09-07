@@ -29,6 +29,10 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
       var location = {};
       location.latitude = latitude;
       location.longitude = longitude;
+      var locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
+      var region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
+      var country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
+      location.longName = locality + ', ' + region + ', ' + country;
       geolocation.push(location);
     }
 
