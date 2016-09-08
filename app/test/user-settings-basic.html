@@ -28,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, test, assert, setup, fixture, flush */
+  /* globals suite, test, assert, setup, fixture */
   /* jshint -W030 */
   suite('user-settings tests', function() {
     var element;
@@ -45,9 +45,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(element.advancedSearch);
       assert.isTrue(element.blurImages);
       assert(!element.searchText);
-      assert.isUndefined(element._emailAddress);
-      assert.isTrue(element._noEmailAddress);
-      assert.deepEqual(element._searches, []);
+      assert(!element.facets);
+      assert.isUndefined(element.esRequest);
+      assert.isUndefined(element._preferences);
       assert.isUndefined(element._userQuery);
       assert.isUndefined(element._userSearchResult);
       assert.deepEqual(element._userTypeAsArray, ['user']);
@@ -55,7 +55,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isUndefined(element._userCreateBody);
       assert.isUndefined(element._userId);
       assert.isUndefined(element._createdUser);
-      assert.isUndefined(element._updatedUser);
+      assert.isUndefined(element.loading);
+    });
+
+    test('_createUserRecord does nothing if userRecordExists is true', function() {
+      element.userRecordExists = true;
+      element._createUserRecord();
+
+      assert.isUndefined(element._userCreateBody);
+    });
+
+    test('_createUserRecord populates _userCreateBody if userRecordExists is false', function() {
+      element._userRecordExists = false;
+      element._createUserRecord();
+
+      assert.isDefined(element._userCreateBody);
+      assert.equal(element._userCreateBody.username, element.username);
+      assert.equal(element._userCreateBody.advancedSearch, element.advancedSearch);
+      assert.equal(element._userCreateBody.blurImages, element.blurImages);
+      assert.equal(element._userCreateBody.notificationFrequency, 'never');
+      assert.isFalse(element._userCreateBody.notificationHasRun);
+      assert.isDefined(element._userCreateBody.dateCreated);
+      assert.isDefined(element._userCreateBody.lastRunDate);
+      assert.isDefined(element._userCreateBody.notificationDate);
     });
 
     test('_getUserId only returns id if there is a valid userRecord', function() {
@@ -99,9 +121,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       element._transformUserSearchResult();
       assert.isTrue(element._userRecordExists);
-      assert.isTrue(element.blurImages);
-      assert.isTrue(element.advancedSearch);
-      assert.equal(element._emailAddress, 'test@test.com');
+      assert.deepEqual(element._userSearchResult.hits.hits[0]._source, element._preferences);
+      assert.equal(element._userId, 2);
     });
 
   });
