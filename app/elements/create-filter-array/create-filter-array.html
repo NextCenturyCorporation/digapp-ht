@@ -9,6 +9,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/dig-common/dig-common.html">
 
 <dom-module id="create-filter-array">
   <script>
@@ -20,120 +21,133 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'create-filter-array',
 
       properties: {
+        /**
+         * Contains state of facet checkboxes
+         *
+         * @type: {{'Los Angeles': {text: 'Los Angeles, CA', key: 'Los Angeles', count: 10, enabled: true, category: 'City'}}}
+         */
         facetSelection: {
           type: Object,
           notify: true
         },
+        /**
+         * Array of ejs filter objects to pass to elastic-client-search
+         */
         filterArray: {
           type: Array,
           value: function() {
             return [];
           },
-          notify: true
+          notify: true,
+          readOnly: true
         }
       },
       observers: [
-        'rebuildFilterArray(facetSelection.*)'
+        '_rebuildFilterArray(facetSelection.*)'
       ],
-      getFilterField: function(group) {
-        if(group === 'country') {
-          return 'mainEntity.availableAtOrFrom.address.addressCountry';
-        } else if(group === 'city') {
-          return 'mainEntity.availableAtOrFrom.address.key';
-        } else if(group === 'phone') {
-          return 'mentions';
-        } else if(group === 'email') {
-          return 'mentions';
-        } else if(group === 'website') {
-          return 'publisher.name.raw';
-        } else if(group === 'name') {
-          return 'mainEntity.itemOffered.name.raw';
-        } else if(group === 'age') {
-          return 'mainEntity.itemOffered.age';
-        } else if(group === 'ethnicity') {
-          return 'mainEntity.itemOffered.ethnicity';
-        } else if(group === 'height') {
-          return 'mainEntity.itemOffered.height';
-        } else if(group === 'weight') {
-          return 'mainEntity.itemOffered.weight';
-        } else if(group === 'hairColor') {
-          return 'mainEntity.itemOffered.hairColor';
-        } else if(group === 'eyeColor') {
-          return 'mainEntity.itemOffered.eyeColor';
-        } else if(group === 'dateCreated') {
-          return 'dateCreated';
+      _getFilterField: function(group) {
+        var field;
+        switch(group) {
+          case 'country': field = 'mainEntity.availableAtOrFrom.address.addressCountry';
+            break;
+          case 'city': field = 'mainEntity.availableAtOrFrom.address.key';
+            break;
+          case 'phone': field = 'mentions';
+            break;
+          case 'email': field = 'mentions';
+            break;
+          case 'website': field = 'publisher.name.raw';
+            break;
+          case 'name': field = 'mainEntity.itemOffered.name.raw';
+            break;
+          case 'age': field = 'mainEntity.itemOffered.age';
+            break;
+          case 'ethnicity': field = 'mainEntity.itemOffered.ethnicity';
+            break;
+          case 'height': field = 'mainEntity.itemOffered.height';
+            break;
+          case 'weight': field = 'mainEntity.itemOffered.weight';
+            break;
+          case 'hairColor': field = 'mainEntity.itemOffered.hairColor';
+            break;
+          case 'eyeColor': field = 'mainEntity.itemOffered.eyeColor';
+            break;
+          case 'dateCreated': field = 'dateCreated';
+            break;
         }
+        return field;
       },
-      getAggName: function(group) {
-        if(group === 'country') {
-          return 'countryAgg';
-        } else if(group === 'city') {
-          return 'cityAgg';
-        } else if(group === 'phone') {
-          return 'phoneEmailAgg';
-        } else if(group === 'email') {
-          return 'phoneEmailAgg';
-        } else if(group === 'website') {
-          return 'publisherAgg';
-        } else if(group === 'name') {
-          return 'nameAgg';
-        } else if(group === 'age') {
-          return 'ageAgg';
-        } else if(group === 'ethnicity') {
-          return 'ethnicityAgg';
-        } else if(group === 'height') {
-          return 'heightAgg';
-        } else if(group === 'weight') {
-          return 'weightAgg';
-        } else if(group === 'hairColor') {
-          return 'hairColorAgg';
-        } else if(group === 'eyeColor') {
-          return 'eyeColorAgg';
+      _getAggName: function(group) {
+        var aggName;
+        switch(group) {
+          case 'country': aggName = 'countryAgg';
+            break;
+          case 'city': aggName = 'cityAgg';
+            break;
+          case 'phone': aggName = 'phoneEmailAgg';
+            break;
+          case 'email': aggName = 'phoneEmailAgg';
+            break;
+          case 'website': aggName = 'publisherAgg';
+            break;
+          case 'name': aggName = 'nameAgg';
+            break;
+          case 'age': aggName = 'ageAgg';
+            break;
+          case 'ethnicity': aggName = 'ethnicityAgg';
+            break;
+          case 'height': aggName = 'heightAgg';
+            break;
+          case 'weight': aggName = 'weightAgg';
+            break;
+          case 'hairColor': aggName = 'hairColorAgg';
+            break;
+          case 'eyeColor': aggName = 'eyeColorAgg';
+            break;
         }
+        return aggName;
       },
-      getCombinationType: function() {
+      _getCombinationType: function() {
         return 'or';
       },
-      rebuildFilterArray: function() {
+      _rebuildFilterArray: function() {
         var me = this;
         var arrayFilters = [];
 
         _.each(_.keys(me.facetSelection), function(group) {
 
-          var field = me.getFilterField(group);
+          var field = me._getFilterField(group);
           if(group === 'dateCreated') {
-            var rangeFilter = me.buildDateRangeEjsFilter(me.facetSelection[group], field);
+            var rangeFilter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
             if(rangeFilter) {
               arrayFilters.push(rangeFilter);
             }
           } else {
-            var filters = me.buildTermFilterArray(me.facetSelection[group], field);
-            var filter = me.buildAndOrFilter(filters, group);
-
-            arrayFilters.push(filter);
+            var filters = me._buildTermFilterArray(me.facetSelection[group], field);
+            var filter = me._buildAndOrFilter(filters, group);
+            if(filter) {
+              arrayFilters.push(filter);
+            }
           }
         });
 
-        this.set('filterArray', arrayFilters);
+        this._setFilterArray(arrayFilters);
       },
-      buildAndOrFilter: function(filters, group) {
+      _buildAndOrFilter: function(filters, group) {
         var filter;
 
         if(filters.length > 0) {
-          var combinationType = this.getCombinationType();
+          var combinationType = this._getCombinationType();
           if(combinationType === 'and') {
             filter = ejs.AndFilter(filters);
           } else {
             filter = ejs.OrFilter(filters);
           }
-
-          filter.name(this.getAggName(group));
-        } else {
-          filter = ejs.MatchAllFilter();
+          filter.name(this._getAggName(group));
         }
         return filter;
       },
-      buildTermFilterArray: function(facetGroup, field) {
+      _buildTermFilterArray: function(facetGroup, field) {
         var filters = [];
 
         _.each(_.keys(facetGroup), function(key) {
@@ -144,8 +158,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         return filters;
       },
-      buildDateRangeEjsFilter: function(facetGroup, field) {
-        var me = this;
+      _buildDateRangeEjsFilter: function(facetGroup, field) {
         if(!field || _.isEqual(facetGroup, {})) {
           return;
         }
@@ -155,20 +168,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(key === 'Begin Date') {
             if(facetGroup[key].enabled) {
               filter = filter.gte(facetGroup[key].date);
-            } else {
-              me.beginDate = null;
             }
           } else if(key === 'End Date') {
             if(facetGroup[key].enabled) {
               filter = filter.lte(facetGroup[key].date);
-            } else {
-              me.endDate = null;
             }
           }
         });
         return filter;
       }
-
     });
   })();
   </script>
