@@ -103,12 +103,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <!-- Don't show email address and interval fields until notifications are working
           <div class="layout horizontal">
             <span class="name tall right-space">Email Address for Notifications:</span>
-            <paper-input class="right-space" label="Enter Email Address" value="{{_emailAddress}}" no-label-float></paper-input>
-            <button-action title="Save Email Address" text="Save" disabled="[[!_emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
+            <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}" no-label-float></paper-input>
+            <button-action title="Save Email Address" text="Save" disabled="[[!emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
           </div>
           <div class="layout horizontal pointer">
             <span class="name tall right-space">Automatically Run Searches:</span>
-            <paper-dropdown-menu disabled="[[_noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
+            <paper-dropdown-menu disabled="[[noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
               <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
                 <paper-item value="never">Never</paper-item>
                 <paper-item value="hourly">Every Hour</paper-item>
@@ -116,7 +116,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 <paper-item value="weekly">Every Week</paper-item>
               </paper-listbox>
             </paper-dropdown-menu>
-            <template is="dom-if" if="[[_noEmailAddress]]">
+            <template is="dom-if" if="[[noEmailAddress]]">
               <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
             </template>
           </div>-->
@@ -139,7 +139,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           <div class="layout vertical">
             <div class="name">Saved Searches</div>
-            <template is="dom-repeat" items="[[_searches]]" as="search">
+            <template is="dom-repeat" items="[[searches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
                   <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
@@ -233,7 +233,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           <div class="layout vertical">
             <div class="name">Received Searches</div>
-            <template is="dom-repeat" items="[[_receivedSearches]]" as="search">
+            <template is="dom-repeat" items="[[receivedSearches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
                   <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleReceivedSearchSettings"></modal-icon>
@@ -353,15 +353,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Preferences previously saved for this user.
-         */
-        preferences: {
-          type: Object,
-          notify: true,
-          observer: '_populateUserPreferences'
-        },
-
-        /**
          * Whether to show search options.
          */
         showSearch: {
@@ -468,7 +459,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           readOnly: true
         },
         /**
-         * Index to replace in _searches if saving over existing search.
+         * Index to replace in searches if saving over existing search.
          */
         _saveOverIndex: {
           type: Number
@@ -476,14 +467,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * The email address of this user.
          */
-        _emailAddress: {
+        emailAddress: {
           type: String
         },
 
         /**
          * Whether this user has entered an email address.
          */
-        _noEmailAddress: {
+        noEmailAddress: {
           type: Boolean,
           value: true
         },
@@ -491,7 +482,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * The received searches for this user.
          */
-        _receivedSearches: {
+        receivedSearches: {
           type: Array,
           value: function() {
             return [];
@@ -500,7 +491,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * The saved searches for this user.
          */
-        _searches: {
+        searches: {
           type: Array,
           value: function() {
             return [];
@@ -561,13 +552,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var self = this;
         return {
           onClick: function() {
-            if(self._emailAddress) {
-              console.log('Save ' + self._emailAddress);
-              self.set('_noEmailAddress', false);
+            if(self.emailAddress) {
+              console.log('Save ' + self.emailAddress);
+              self.set('noEmailAddress', false);
 
               self._set_userUpdateBody({
                 doc: {
-                  emailAddress: self._emailAddress
+                  emailAddress: self.emailAddress
                 }
               });
             }
@@ -610,18 +601,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var self = this;
         return {
           onClick: function() {
-            var indexToReplace = _.findIndex(self._searches, {name: self._receivedSearches[index].name});
+            var indexToReplace = _.findIndex(self.searches, {name: self.receivedSearches[index].name});
 
             if(indexToReplace !== -1) {
               self._saveOverIndex = indexToReplace;
               self.$$('#receiveAlert').open();
             } else {
-              self.push('_searches', JSON.parse(JSON.stringify(self._receivedSearches[index])));
-              self.splice('_receivedSearches', index, 1);
+              self.push('searches', JSON.parse(JSON.stringify(self.receivedSearches[index])));
+              self.splice('receivedSearches', index, 1);
               self._set_userUpdateBody({
                 doc: {
-                  savedQueries: self._searches,
-                  receivedQueries: self._receivedSearches
+                  savedQueries: self.searches,
+                  receivedQueries: self.receivedSearches
                 }
               });
             }
@@ -630,16 +621,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Save over an existing record in _searches.
+       * Save over an existing record in searches.
        */
       _confirmReceivedSearch: function(event) {
         var self = this;
-        self.splice('_searches', this._saveOverIndex, 1, JSON.parse(JSON.stringify(event.model.search)));
-        self.splice('_receivedSearches', event.model.index, 1);
+        self.splice('searches', this._saveOverIndex, 1, JSON.parse(JSON.stringify(event.model.search)));
+        self.splice('receivedSearches', event.model.index, 1);
         self._set_userUpdateBody({
           doc: {
-            savedQueries: self._searches,
-            receivedQueries: self._receivedSearches
+            savedQueries: self.searches,
+            receivedQueries: self.receivedSearches
           }
         });
       },
@@ -650,10 +641,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _deleteSearch: function(event) {
         var self = this;
         console.log('Delete ' + event.model.search.name + ' index ' + event.model.index);
-        self.splice('_searches', event.model.index, 1);
+        self.splice('searches', event.model.index, 1);
         self._set_userUpdateBody({
           doc: {
-            savedQueries: self._searches
+            savedQueries: self.searches
           }
         });
       },
@@ -664,10 +655,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _deleteReceivedSearch: function(event) {
         var self = this;
         console.log('Delete ' + event.model.search + ' index ' + event.model.index);
-        self.splice('_receivedSearches', event.model.index, 1);
+        self.splice('receivedSearches', event.model.index, 1);
         self._set_userUpdateBody({
           doc: {
-            receivedQueries: self._receivedSearches
+            receivedQueries: self.receivedSearches
           }
         });
       },
@@ -683,8 +674,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               // reset error checking booleans, prepare to send query
               self._sentUserRecordExists = undefined;
               self._queryAlreadySent = undefined;
-              console.log('Send ' + self._searches[index].name + ' to ' + self._usernameInput);
-              self._queryToSend = JSON.parse(JSON.stringify(self._searches[index]));
+              console.log('Send ' + self.searches[index].name + ' to ' + self._usernameInput);
+              self._queryToSend = JSON.parse(JSON.stringify(self.searches[index]));
               self._checkForUser = self._usernameInput;
             }
           }
@@ -743,51 +734,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Populates the properties in this user-preferences component using the given preferences object.
-       */
-      _populateUserPreferences: function(prefs) {
-        //var self = this;
-
-        if(prefs.advancedSearch !== undefined) {
-          this.set('advancedSearch', prefs.advancedSearch);
-        }
-
-        if(prefs.blurImages !== undefined) {
-          this.set('blurImages', prefs.blurImages);
-        }
-
-        if(prefs.emailAddress) {
-          this.set('_emailAddress', prefs.emailAddress);
-          this.set('_noEmailAddress', false);
-        }
-
-        if(prefs.savedQueries) {
-          /*var searches = _.reduce(settings.searches, function(searches, search) {
-            if(search.text) {
-              searches.push({
-                date: search.date || 'Unknown',
-                facets: (search.facets || []).map(function(facet) {
-                  return facet.key + ': ' + facet.value;
-                }),
-                interval: search.interval || 'off',
-                open: false,
-                sendTo: '',
-                text: search.text,
-                user: search.user || 'Unknown'
-              });
-            }
-            return searches;
-          }, []);*/
-          this.set('_searches', prefs.savedQueries);
-        }
-
-        if(prefs.receivedQueries) {
-          this.set('_receivedSearches', prefs.receivedQueries);
-        }
-
-      },
-
-      /**
        * Runs the given saved search.
        */
       _runSearch: function(event) {
@@ -818,14 +764,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Toggles the open setting of the given saved search.
        */
       _toggleSearchSettings: function(event) {
-        this.set('_searches.' + event.model.index + '.open', !event.model.search.open);
+        this.set('searches.' + event.model.index + '.open', !event.model.search.open);
       },
 
       /**
        * Toggles the open setting of the given received search.
        */
       _toggleReceivedSearchSettings: function(event) {
-        this.set('_receivedSearches.' + event.model.index + '.open', !event.model.search.open);
+        this.set('receivedSearches.' + event.model.index + '.open', !event.model.search.open);
       },
 
       /**

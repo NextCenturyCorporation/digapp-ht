@@ -28,7 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 </test-fixture>
 
 <script>
-  /* globals suite, test, assert, setup, fixture */
+  /* globals suite, test, assert, setup, fixture, flush */
   /* jshint -W030 */
   suite('load-user-info tests', function() {
     var element;
@@ -47,7 +47,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert(!element.searchText);
       assert(!element.facets);
       assert.isUndefined(element.esRequest);
-      assert.isUndefined(element._preferences);
+      assert.isUndefined(element._searches);
+      assert.isUndefined(element._receivedSearches);
+      assert.isUndefined(element._emailAddress);
+      assert.isTrue(element._noEmailAddress);
       assert.isUndefined(element._userQuery);
       assert.isUndefined(element._userSearchResult);
       assert.deepEqual(element._userTypeAsArray, ['user']);
@@ -121,9 +124,104 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       element._transformUserSearchResult();
       assert.isTrue(element._userRecordExists);
-      assert.deepEqual(element._userSearchResult.hits.hits[0]._source, element._preferences);
+      assert.equal(element._userSearchResult.hits.hits[0]._source.blurImages, element.blurImages);
+      assert.equal(element._userSearchResult.hits.hits[0]._source.advancedSearch, element.advancedSearch);
+      assert.equal(element._userSearchResult.hits.hits[0]._source.emailAddress, element._emailAddress);
       assert.equal(element._userId, 2);
     });
+
+
+    test('_populateUserPreferences sets advancedSearch', function() {
+      element._populateUserPreferences({
+        advancedSearch: true
+      });
+      assert.isTrue(element.advancedSearch);
+      element._populateUserPreferences({
+        advancedSearch: false
+      });
+      assert.isFalse(element.advancedSearch);
+    });
+
+    test('_populateUserPreferences sets blurImages', function() {
+      element._populateUserPreferences({
+        blurImages: false
+      });
+      assert.isFalse(element.blurImages);
+      element._populateUserPreferences({
+        blurImages: true
+      });
+      assert.isTrue(element.blurImages);
+    });
+
+    test('_populateUserPreferences sets _emailAddress', function() {
+      element._populateUserPreferences({
+        emailAddress: 'my@email.com'
+      });
+      assert.equal(element._emailAddress, 'my@email.com');
+      assert.isFalse(element._noEmailAddress);
+    });
+
+    test('_populateUserPreferences sets _searches', function(done) {
+      element._populateUserPreferences({
+        savedQueries: [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]
+      });
+
+      // Flush so that interval is updated.
+      flush(function() {
+        assert.deepEqual(element._searches, [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]);
+        done();
+      });
+    });
+
+    test('_populateUserPreferences sets _receivedSearches', function(done) {
+      element._populateUserPreferences({
+        receivedQueries: [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]
+      });
+
+      // Flush so that interval is updated.
+      flush(function() {
+        assert.deepEqual(element._receivedSearches, [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]);
+        done();
+      });
+    });
+
+
 
   });
 </script>

@@ -58,7 +58,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     <!-- User preferences dialog -->
     <user-preferences show-search="{{showSearch}}"
-      preferences="{{_preferences}}"
+      searches="{{_searches}}"
+      email-address="{{_emailAddress}}"
+      no-email-address="{{_noEmailAddress}}"
+      received-queries="{{_receivedSearches}}"
       client="[[client]]"
       user-id="[[_userId]]"
       loading="[[loading]]"
@@ -194,12 +197,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Existing user preferences (if any).
+         * The email address of this user.
          */
-        _preferences: {
-          type: Object,
-          notify: true
+        _emailAddress: {
+          type: String
         },
+
+        /**
+         * Whether this user has entered an email address.
+         */
+        _noEmailAddress: {
+          type: Boolean,
+          value: true
+        },
+
         /**
          * The query to use to find if user record exists already or needs to be created.
          */
@@ -311,13 +322,57 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(this._userSearchResult.hits.hits.length > 0) {
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             this._getUserId(this._userSearchResult.hits.hits[0]);
-            this.set('_preferences', this._userSearchResult.hits.hits[0]._source);
+            this._populateUserPreferences(this._userSearchResult.hits.hits[0]._source);
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
             this._userRecordExists = false;
           }
         }
-      }
+      },
+      /**
+       * Populates the properties in this user-preferences component using the given preferences object.
+       */
+      _populateUserPreferences: function(prefs) {
+        //var self = this;
+
+        if(prefs.advancedSearch !== undefined) {
+          this.set('advancedSearch', prefs.advancedSearch);
+        }
+
+        if(prefs.blurImages !== undefined) {
+          this.set('blurImages', prefs.blurImages);
+        }
+
+        if(prefs.emailAddress) {
+          this.set('_emailAddress', prefs.emailAddress);
+          this.set('_noEmailAddress', false);
+        }
+
+        if(prefs.savedQueries) {
+          /*var searches = _.reduce(settings.searches, function(searches, search) {
+            if(search.text) {
+              searches.push({
+                date: search.date || 'Unknown',
+                facets: (search.facets || []).map(function(facet) {
+                  return facet.key + ': ' + facet.value;
+                }),
+                interval: search.interval || 'off',
+                open: false,
+                sendTo: '',
+                text: search.text,
+                user: search.user || 'Unknown'
+              });
+            }
+            return searches;
+          }, []);*/
+          this.set('_searches', prefs.savedQueries);
+        }
+
+        if(prefs.receivedQueries) {
+          this.set('_receivedSearches', prefs.receivedQueries);
+        }
+
+      },
     });
   })();
   </script>
