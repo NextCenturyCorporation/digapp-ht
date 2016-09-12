@@ -56,7 +56,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.userId, '1');
       assert.isTrue(element.userRecordExists);
       assert.isUndefined(element._checkForUser);
-      assert.isUndefined(element._usernameInput);
       assert.isUndefined(element._queryToSend);
       assert.isUndefined(element._sentUserRecordExists);
       assert.isUndefined(element._userIdToSendQuery);
@@ -249,33 +248,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('_createSendSearchListener.onClick sends the saved search', function() {
-      element._usernameInput = 'someUser';
       element._sentUserRecordExists = false;
       element._queryAlreadySent = false;
       element.searches = [{
-        name: 'myText'
+        name: 'myText',
+        open: true,
+        _userToSendQuery: 'someUser'
       }];
       element._createSendSearchListener(0).onClick();
       assert.isUndefined(element._sentUserRecordExists);
       assert.isUndefined(element._queryAlreadySent);
-      assert.deepEqual(element._queryToSend, element.searches[0]);
-      assert.equal(element._usernameInput, element._checkForUser);
+      assert.equal(element._queryToSend.name, element.searches[0].name);
+      assert.isUndefined(element._queryToSend.open);
+      assert.isUndefined(element._queryToSend._userToSendQuery);
+      assert.equal(element.searches[0]._userToSendQuery, element._checkForUser);
     });
 
-    test('_createSendSearchListener.onClick does nothing if _usernameInput matches username', function() {
-      element._usernameInput = 'testUser';
+    test('_createSendSearchListener.onClick does nothing if _userToSendQuery matches username', function() {
       element.searches = [{
-        name: 'myText'
+        name: 'myText',
+        open: true,
+        _userToSendQuery: 'testUser'
       }];
       element._createSendSearchListener(0).onClick();
       assert.isUndefined(element._queryToSend);
       assert.isUndefined(element._checkForUser);
     });
 
-    test('_createSendSearchListener.onClick does nothing if no _usernameInput specified', function() {
-      element._usernameInput = undefined;
+    test('_createSendSearchListener.onClick does nothing if no _userToSendQuery specified', function() {
       element.searches = [{
-        name: 'myText'
+        name: 'myText',
+        open: true
       }];
       element._createSendSearchListener(0).onClick();
       assert.isUndefined(element._queryToSend);
