@@ -19,28 +19,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
     </style>
-    <!-- find user if record exists -- TODO: rename find-or-create-user/get-user-info -->
-    <template is="dom-if" if="{{_userTypeAsArray}}">
-      <elastic-client-query-builder
-        type="term"
-        field="username"
-        values="[[username]]"
-        ejs-query="{{_userQuery}}">
-      </elastic-client-query-builder>
-
-      <elastic-client-search
-        client="[[client]]"
-        index="[[userIndex]]"
-        elastic-types="[[_userTypeAsArray]]"
-        query="[[_userQuery]]"
-        sort-field="dateCreated"
-        sort-order="desc"
-        aggregations="[]"
-        filters="[]"
-        results="{{_userSearchResult}}"
-        last-error="{{error}}">
-      </elastic-client-search>
-    </template>
+    <user-query
+      client="[[client]]"
+      user-index="[[userIndex]]"
+      user-type="[[userType]]"
+      username="[[username]]"
+      user-result="{{_userSearchResult}}">
+    </user-query>
 
     <save-search
       client="[[client]]"
@@ -61,7 +46,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       searches="{{_searches}}"
       email-address="{{_emailAddress}}"
       no-email-address="{{_noEmailAddress}}"
-      received-queries="{{_receivedSearches}}"
+      received-searches="{{_receivedSearches}}"
       client="[[client]]"
       user-id="[[_userId]]"
       loading="[[loading]]"
@@ -212,24 +197,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The query to use to find if user record exists already or needs to be created.
-         */
-        _userQuery: {
-          type: Object
-        },
-        /**
          * Search result from elastic-client-search query if user record already exists.
          */
         _userSearchResult: {
           type: Object,
           observer: '_transformUserSearchResult'
-        },
-        /**
-         * userType variable converted to an array for elastic-client-search
-         */
-        _userTypeAsArray: {
-          type: Array,
-          computed: '_computeTypeArray(userType)'
         },
         /**
          * Boolean variable to track if/when user record is created in elasticsearch.
@@ -298,12 +270,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         ga('set', 'userId', window.btoa(this.username));
         ga('send', 'pageview');
         /* jshint ignore:end */
-      },
-      /**
-       * Create type array for elastic-client-search.
-       */
-      _computeTypeArray: function(userType) {
-        return [userType];
       },
       /**
        * Get _id from user record.
