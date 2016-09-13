@@ -1,0 +1,99 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="search-info-display">
+  <template>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .search-text {
+        /* Align the left of the text with the left of the facets. */
+        margin-left: 5px;
+        /* Align the height of the text with the height of the paper-icon-button elements. */
+        margin-top: 8px;
+        margin-bottom: 3px;
+        white-space: normal;
+      }
+
+      .facets {
+        /* Align the left of the facets with the left of the search-text. */
+        margin: 2px;
+      }
+    </style>
+    <div class="layout vertical flex">
+      <div class="text search-text">[[search.name]]</div>
+      <div class="name search-text">Search Text</div>
+      <div class="text search-text">[[search.digUIState.searchText]]</div>
+      <template is="dom-if" if="[[search.digUIState.facets]]">
+        <div class="name search-text">Facets</div>
+        <div class="layout horizontal wrap facets">
+          <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
+            <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
+              <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
+                <breadbox-item
+                  text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
+                  title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                </breadbox-item>
+              </template>
+            </template>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+  (function() {
+    /* globals _ */
+    'use strict';
+
+    Polymer({
+      is: 'search-info-display',
+
+      properties: {
+        /**
+         * Search to display
+         */
+        search: {
+          type: Object,
+          notify: true
+        }
+      },
+      /**
+       * Get all the facet selection groups.
+       */
+      _getFacetGroups: function(facets) {
+        return _.keys(JSON.parse(facets));
+      },
+      /**
+       * Get the selected facets from the facet group.
+       */
+      _getFacetGroupKeys: function(facets, facetGroupName) {
+        var facetsAsObject = JSON.parse(facets);
+        return _.keys(facetsAsObject[facetGroupName]);
+      },
+      /**
+       * Get the property of a selected facet.
+       */
+      _getFacetProperty: function(facets, facetGroupName, key, prop) {
+        var facetsAsObject = JSON.parse(facets);
+        if(facetsAsObject && facetsAsObject[facetGroupName] && facetsAsObject[facetGroupName][key]) {
+          return facetsAsObject[facetGroupName][key][prop];
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>
