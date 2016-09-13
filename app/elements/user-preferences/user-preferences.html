@@ -143,45 +143,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       <div class="text tall right-space">[[search.createdBy]]</div>
                       <div class="text tall right-space">[[search.createdAt]]</div>
                     </div>
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Send Saved Search to User</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <paper-input label="Enter Username" value="{{search._userToSendQuery}}" no-label-float></paper-input>
-                    </div>
-                    <div class="layout vertical">
-                      <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener(index)]]"></button-action>
-                    </div>
-                    <div class="layout vertical">
-                      <template is="dom-if" if="[[_isFalse(_sentUserRecordExists)]]" restamp="true">
-                        <paper-icon-button icon="error" title="User entered does not exist." noink></paper-icon-button>
-                      </template>
-                      <template is="dom-if" if="[[!_isFalse(_queryAlreadySent)]]" restamp="true">
-                        <paper-icon-button icon="error" title="Query has already been sent to user specified." noink></paper-icon-button>
-                      </template>
-                    </div>
+                    <send-search
+                      search="[[search]]"
+                      client="[[client]]"
+                      current-user="[[username]]"
+                      user-index="[[userIndex]]"
+                      user-type="[[userType]]">
+                    </send-search>
                   </div>
                 </iron-collapse>
               </div>
             </template>
           </div>
-          <user-query
-            client="[[client]]"
-            user-index="[[userIndex]]"
-            user-type="[[userType]]"
-            username="[[_checkForUser]]"
-            user-result="{{_sentUserSearchResult}}">
-          </user-query>
-
-          <elastic-update
-            client="[[client]]"
-            index="[[userIndex]]"
-            elastic-type="[[userType]]"
-            id="{{_userIdToSendQuery}}"
-            body='{{_sendUserUpdateBody}}'
-            results="{{_sentQueryUpdate}}"
-            last-error="{{sendError}}">
-          </elastic-update>
 
           <div class="divider"></div>
 
@@ -353,41 +326,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Check if user exists before attempting to send query.
-         */
-        _checkForUser: {
-          type: String,
-          notify: true
-        },
-
-        /**
-         * The query to use to find if user to send a query to exists.
-         */
-        _queryToSend: {
-          type: Object
-        },
-        /**
-         * Used for error checking when sending queries.
-         */
-        _sentUserRecordExists: {
-          type: Boolean,
-          value: undefined,
-          notify: true
-        },
-        /**
-         * _id to use when sending a query to another user
-         */
-        _userIdToSendQuery: {
-          type: String
-        },
-        /**
-         * Document info to pass into the elastic-update component for sending queries
-         */
-        _sendUserUpdateBody: {
-          type: Object,
-          readOnly: true
-        },
-        /**
          * Index to replace in searches if saving over existing search.
          */
         _saveOverIndex: {
@@ -428,13 +366,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Search result from elastic-client-search query for user to send a query to.
-         */
-        _sentUserSearchResult: {
-          type: Object,
-          observer: '_transformSentUserSearchResult'
-        },
-        /**
          * Document info to pass into the elastic-update component
          */
         _userUpdateBody: {
@@ -447,15 +378,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _updatedUser: {
           type: Object,
           notify: true
-        },
-
-        /**
-         * Boolean to track if query has previously been sent to user specified.
-         */
-        _queryAlreadySent: {
-          type: Boolean,
-          notify: true,
-          value: undefined
         },
 
         /**
@@ -590,62 +512,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             receivedQueries: self.receivedSearches
           }
         });
-      },
-
-      /**
-       * Creates and returns a listener to send the given saved search to another user.
-       */
-      _createSendSearchListener: function(index) {
-        var self = this;
-        return {
-          onClick: function() {
-            if(_.trim(self.searches[index]._userToSendQuery) &&
-              !_.isEqual(self.searches[index]._userToSendQuery, self.username)) {
-              // reset error checking booleans, prepare to send query
-              self._sentUserRecordExists = undefined;
-              self._queryAlreadySent = undefined;
-              console.log('Sending ' + self.searches[index].name + ' to ' + self.searches[index]._userToSendQuery);
-              self._queryToSend = JSON.parse(JSON.stringify(self.searches[index]));
-              // don't send record with 'open' flag or userToSendQuery input field value (should only be used in the html)
-              self._checkForUser = JSON.parse(JSON.stringify(self.searches[index]._userToSendQuery));
-              delete self._queryToSend.open;
-              delete self._queryToSend._userToSendQuery;
-            }
-          }
-        };
-      },
-
-      /**
-       * Populate properties based on search results.
-       */
-      _transformSentUserSearchResult: function() {
-        if(this._sentUserSearchResult) {
-          if(this._sentUserSearchResult.hits.hits.length > 0 && this._queryToSend) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            this._sentUserRecordExists = true;
-            var receivedSearches = this._sentUserSearchResult.hits.hits[0]._source.receivedQueries;
-
-            this._userIdToSendQuery = this._sentUserSearchResult.hits.hits[0]._id;
-            if(!receivedSearches) {
-              receivedSearches = [];
-            }
-            // check if already sent query
-            if(_.findIndex(receivedSearches, {name: this._queryToSend.name, createdBy: this._queryToSend.createdBy}) !== -1) {
-              this._queryAlreadySent = true;
-            } else {
-              receivedSearches.push(this._queryToSend);
-              this._set_sendUserUpdateBody({
-                doc: {
-                  receivedQueries: receivedSearches
-                }
-              });
-              console.log('Successfully sent query!');
-            }
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          } else {
-            this._sentUserRecordExists = false;
-          }
-        }
       },
 
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */

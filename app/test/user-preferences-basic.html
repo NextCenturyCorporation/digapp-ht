@@ -55,20 +55,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert(!element.loading);
       assert.equal(element.userId, '1');
       assert.isTrue(element.userRecordExists);
-      assert.isUndefined(element._checkForUser);
-      assert.isUndefined(element._queryToSend);
-      assert.isUndefined(element._sentUserRecordExists);
-      assert.isUndefined(element._userIdToSendQuery);
-      assert.isUndefined(element._sendUserUpdateBody);
       assert.isUndefined(element._saveOverIndex);
       assert.isUndefined(element.emailAddress);
       assert.isTrue(element.noEmailAddress);
       assert.deepEqual(element.receivedSearches, []);
       assert.deepEqual(element.searches, []);
-      assert.isUndefined(element._sentUserSearchResult);
       assert.isUndefined(element._userUpdateBody);
       assert.isUndefined(element._updatedUser);
-      assert.isUndefined(element._queryAlreadySent);
       assert.isUndefined(element._facetsToLoad);
     });
 
@@ -239,112 +232,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element._userUpdateBody, {doc: {
         receivedQueries: element.receivedSearches
       }});
-    });
-
-    test('_createSendSearchListener returns an object with a function', function() {
-      var listener = element._createSendSearchListener();
-      assert.isObject(listener);
-      assert.isFunction(listener.onClick);
-    });
-
-    test('_createSendSearchListener.onClick sends the saved search', function() {
-      element._sentUserRecordExists = false;
-      element._queryAlreadySent = false;
-      element.searches = [{
-        name: 'myText',
-        open: true,
-        _userToSendQuery: 'someUser'
-      }];
-      element._createSendSearchListener(0).onClick();
-      assert.isUndefined(element._sentUserRecordExists);
-      assert.isUndefined(element._queryAlreadySent);
-      assert.equal(element._queryToSend.name, element.searches[0].name);
-      assert.isUndefined(element._queryToSend.open);
-      assert.isUndefined(element._queryToSend._userToSendQuery);
-      assert.equal(element.searches[0]._userToSendQuery, element._checkForUser);
-    });
-
-    test('_createSendSearchListener.onClick does nothing if _userToSendQuery matches username', function() {
-      element.searches = [{
-        name: 'myText',
-        open: true,
-        _userToSendQuery: 'testUser'
-      }];
-      element._createSendSearchListener(0).onClick();
-      assert.isUndefined(element._queryToSend);
-      assert.isUndefined(element._checkForUser);
-    });
-
-    test('_createSendSearchListener.onClick does nothing if no _userToSendQuery specified', function() {
-      element.searches = [{
-        name: 'myText',
-        open: true
-      }];
-      element._createSendSearchListener(0).onClick();
-      assert.isUndefined(element._queryToSend);
-      assert.isUndefined(element._checkForUser);
-    });
-
-    test('_transformSentUserSearchResult if no results found', function() {
-      element._sentUserSearchResult = {
-        hits: {
-          hits: []
-        }
-      };
-
-      element._transformSentUserSearchResult();
-
-      assert.isFalse(element._sentUserRecordExists);
-    });
-
-    test('_transformSentUserSearchResult if user result found and query to send exists', function() {
-      element._sentUserSearchResult = {
-        hits: {
-          hits: [{
-            _id: 2,
-            _source: {
-              username: 'mockUser',
-              blurImages: true,
-              advancedSearch: true,
-              emailAddress: 'test@test.com',
-              receivedQueries: []
-            }
-          }]
-        }
-      };
-      element._queryToSend = {name: 'query #1', createdBy: 'testUser'};
-
-      element._transformSentUserSearchResult();
-      assert.isTrue(element._sentUserRecordExists);
-      assert.isUndefined(element._queryAlreadySent);
-      assert.equal(element._userIdToSendQuery, 2);
-      assert.deepEqual(element._sendUserUpdateBody, {doc: {
-        receivedQueries: [{name: 'query #1', createdBy: 'testUser'}]
-      }});
-    });
-
-    test('_transformSentUserSearchResult if query was already sent', function() {
-      element._sentUserSearchResult = {
-        hits: {
-          hits: [{
-            _id: 2,
-            _source: {
-              username: 'mockUser',
-              blurImages: true,
-              advancedSearch: true,
-              emailAddress: 'test@test.com',
-              receivedQueries: [{name: 'query #1', createdBy: 'testUser'}]
-            }
-          }]
-        }
-      };
-      element._queryToSend = {name: 'query #1', createdBy: 'testUser'};
-
-      element._transformSentUserSearchResult();
-      assert.isTrue(element._sentUserRecordExists);
-      assert.isTrue(element._queryAlreadySent);
-      assert.equal(element._userIdToSendQuery, 2);
-      assert.isUndefined(element._sendUserUpdateBody);
     });
 
     test('_getCheckboxIconToShow returns the correct values', function() {
