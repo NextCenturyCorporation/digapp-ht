@@ -7,6 +7,26 @@
 var relatedEntityTransform = (function(_, commonTransforms) {
 
   /**
+   * Returns the list of addresses as strings from the given record using the given path from its _source.
+   */
+  function getAddresses(record, path) {
+    var addresses = [];
+    var addressesFromData = _.get(record, '_source.' + path, []);
+
+    (_.isArray(addressesFromData) ? addressesFromData : [addressesFromData]).forEach(function(addressFromData) {
+      var locality = _.get(addressFromData, 'addressLocality');
+      var region = _.get(addressFromData, 'addressRegion');
+      var country = _.get(addressFromData, 'addressCountry');
+
+      if(locality) {
+        addresses.push(locality + (region ? (', ' + region) : '') + (country ? (', ' + country) : ''));
+      }
+    });
+
+    return addresses;
+  }
+
+  /**
    * Returns the list of image objects from the given record using the given path from its _source.
    */
   function getImages(record, path) {
@@ -31,38 +51,64 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             "link": "/offer.html?value=http://someuri&field=_id",
             "descriptors": [{type: 'date', text: 'July 1, 2016'}], // array of date, phone, email
             "details": [{
-                "label": "description",
-                "value": "This is the description."
+                "name": "description",
+                "text": "This is the description."
             }, {
-                "label": "address",
-                "value": "Los Angeles"
+                "name": "address",
+                "text": "Los Angeles"
             }, {
-                "label": "publisher",
-                "value": "google.com."
+                "name": "publisher",
+                "text": "google.com."
             }]
         }
     */
-    var validFromDateString = _.get(record, '_source.validFrom');
-    var validFromDate;
-    if(validFromDateString) {
-      validFromDate = commonTransforms.getDate(validFromDateString);
-    }
-    var datePhoneEmail = [];
-    if(validFromDate) {
-      datePhoneEmail.push({
+
+    var offerObj = {
+      id: record._id,
+      type: 'offer',
+      text: _.get(record, '_source.mainEntityOfPage.name', 'No Title'),
+      icon: commonTransforms.getIronIcon('offer'),
+      link: commonTransforms.getLink(record._id, 'offer'),
+      styleClass: commonTransforms.getStyleClass('offer'),
+      images: getImages(record, 'mainEntityOfPage.hasImagePart'),
+      descriptors: [{
         icon: commonTransforms.getIronIcon('date'),
         styleClass: commonTransforms.getStyleClass('date'),
-        text: validFromDate,
-        type: 'date'
-      });
-    }
-    var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
+        type: 'date',
+        text: commonTransforms.getDate(_.get(record, '_source.validFrom')) || 'No Date'
+      }, {
+        icon: commonTransforms.getIronIcon('webpage'),
+        styleClass: commonTransforms.getStyleClass('webpage'),
+        type: 'webpage',
+        text: _.get(record, '_source.mainEntityOfPage.publisher.name', 'No Publisher')
+      }],
+      details: [{
+        name: 'url',
+        link: true,
+        text: _.get(record, '_source.mainEntityOfPage.url', 'None')
+      }, {
+        name: 'description',
+        text: _.get(record, '_source.mainEntityOfPage.description', 'None')
+      }]
+    };
 
+    offerObj.text = _.isArray(offerObj.text) ? offerObj.text.join(', ') : offerObj.text;
+
+    getAddresses(record, 'availableAtOrFrom.address').forEach(function(address) {
+      offerObj.descriptors.push({
+        icon: commonTransforms.getIronIcon('location'),
+        styleClass: commonTransforms.getStyleClass('location'),
+        type: 'location',
+        text: address
+      });
+    });
+
+    var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
     if(mentions) {
       var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
       if(communications.phones && communications.phones.length) {
         communications.phones.forEach(function(phone) {
-          datePhoneEmail.push({
+          offerObj.descriptors.push({
             id: phone.id,
             icon: commonTransforms.getIronIcon('phone'),
             link: phone.link,
@@ -74,7 +120,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       }
       if(communications.emails && communications.emails.length) {
         communications.emails.forEach(function(email) {
-          datePhoneEmail.push({
+          offerObj.descriptors.push({
             id: email.id,
             icon: commonTransforms.getIronIcon('email'),
             link: email.link,
@@ -84,40 +130,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
           });
         });
       }
-    }
-
-    var offerObj = {
-      id: record._id,
-      type: record._type,
-      text: _.get(record, '_source.mainEntityOfPage.name', 'Title N/A'),
-      icon: commonTransforms.getIronIcon('offer'),
-      link: commonTransforms.getLink(record._id, 'offer'),
-      styleClass: commonTransforms.getStyleClass('offer'),
-      descriptors: datePhoneEmail,
-      images: getImages(record, 'mainEntityOfPage.hasImagePart'),
-      details: []
-    };
-
-    var description = _.get(record, '_source.mainEntityOfPage.description');
-    if(description) {
-      offerObj.details.push({
-        label: 'description',
-        value: _.get(record, '_source.mainEntityOfPage.description')
-      });
-    }
-    var address = _.get(record, '_source.availableAtOrFrom.address[0].addressLocality');
-    if(address) {
-      offerObj.details.push({
-        label: 'address',
-        value: _.get(record, '_source.availableAtOrFrom.address[0].addressLocality')
-      });
-    }
-    var publisher = _.get(record, '_source.mainEntityOfPage.publisher.name');
-    if(publisher) {
-      offerObj.details.push({
-        label: 'publisher',
-        value: _.get(record, '_source.mainEntityOfPage.publisher.name')
-      });
     }
 
     return offerObj;
@@ -202,26 +214,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return sellerObj;
   }
 
-  function getAddressArray(record) {
-    /** build address array:
-        "addresses": ["Los Angeles"]
-    */
-    var addresses = [];
-    var addressesArr = _.get(record, '_source.mainEntity.availableAtOrFrom.address', []);
-
-    (_.isArray(addressesArr) ? addressesArr : [addressesArr]).forEach(function(addressElem) {
-      var locality = _.get(addressElem, 'addressLocality');
-      var region = _.get(addressElem, 'addressRegion');
-      var country = _.get(addressElem, 'addressCountry');
-
-      if(locality) {
-        var address = locality + ', ' + region + ', ' + country;
-        addresses.push(address);
-      }
-    });
-    return addresses;
-  }
-
   function getWebpageSummary(record) {
     /*  build webpage summary object:
         {
@@ -231,79 +223,65 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             "link": "/offer.html?value=http://someuri&field=_id",
             "descriptors": [{type: 'webpage', text: 'something'}], // array of publisher, date, phone, email
             "details": [{
-                "label": "url",
-                "value": "http://someurlhere.com",
-                "url": true
+                "name": "url",
+                "text": "http://someurlhere.com",
+                "link": true
             }, {
-                "label": "body",
-                "value": "description text here"
+                "name": "body",
+                "text": "description text here"
             }, {
-                "label": "addresses",
-                "value": ["Los Angeles"]
+                "name": "addresses",
+                "text": ["Los Angeles"]
             }]
         }
     */
+
     var webpageObj = {
       id: _.get(record, '_source.mainEntity.uri'),
       type: 'offer',
-      text: _.get(record, '_source.name[0]', 'Title N/A'),
+      text: _.get(record, '_source.name[0]', 'No Title'),
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(_.get(record, '_source.mainEntity.uri'), 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      descriptors: [{
-        icon: commonTransforms.getIronIcon('webpage'),
-        styleClass: commonTransforms.getStyleClass('webpage'),
-        type: 'webpage',
-        text: _.get(record, '_source.publisher.name', 'Publisher N/A')
-      }],
       images: getImages(record, 'hasImagePart'),
-      offer: _.get(record, '_source.mainEntity.uri'),
-      details: []
-    };
-
-    var url = _.get(record, '_source.url');
-    if(url) {
-      webpageObj.details.push({
-        label: 'url',
-        value: url,
-        url: true
-      });
-    }
-    var body = _.get(record, '_source.description');
-    if(body) {
-      webpageObj.details.push({
-        label: 'body',
-        value: body
-      });
-    }
-    var addresses = getAddressArray(record);
-    if(addresses && addresses.length) {
-      webpageObj.details.push({
-        label: 'addresses',
-        value: addresses
-      });
-    }
-
-    var xDate = _.get(record, '_source.dateCreated');
-    if(xDate) {
-      webpageObj.descriptors.push({
+      descriptors: [{
         icon: commonTransforms.getIronIcon('date'),
         styleClass: commonTransforms.getStyleClass('date'),
         type: 'date',
-        text: commonTransforms.getDate(xDate)
+        text: commonTransforms.getDate(_.get(record, '_source.dateCreated')) || 'No Date'
+      }, {
+        icon: commonTransforms.getIronIcon('webpage'),
+        styleClass: commonTransforms.getStyleClass('webpage'),
+        type: 'webpage',
+        text: _.get(record, '_source.publisher.name', 'No Publisher')
+      }],
+      details: [{
+        name: 'url',
+        link: true,
+        text: _.get(record, '_source.url', 'None')
+      }, {
+        name: 'description',
+        highlightedText: _.get(record, 'highlight.description[0]'),
+        text: _.get(record, '_source.description', 'None')
+      }]
+    };
+
+    webpageObj.text = _.isArray(webpageObj.text) ? webpageObj.text.join(', ') : webpageObj.text;
+    webpageObj.highlightedText = _.get(record, 'highlight.name[0]');
+
+    getAddresses(record, 'mainEntity.availableAtOrFrom.address').forEach(function(address) {
+      webpageObj.descriptors.push({
+        icon: commonTransforms.getIronIcon('location'),
+        styleClass: commonTransforms.getStyleClass('location'),
+        type: 'location',
+        text: address
       });
-    }
+    });
 
     var mentions = _.get(record, '_source.mentions');
     if(mentions) {
       var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
       if(communications.phones.length) {
-        webpageObj.details.push({
-          label: 'telephone numbers',
-          value: communications.phones.map(function(phone) {
-            return phone.text;
-          }).join(', ')
-        });
         communications.phones.forEach(function(phone) {
           webpageObj.descriptors.push({
             id: phone.id,
@@ -316,12 +294,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         });
       }
       if(communications.emails.length) {
-        webpageObj.details.push({
-          label: 'email addresses',
-          value: communications.emails.map(function(email) {
-            return email.text;
-          }).join(', ')
-        });
         communications.emails.forEach(function(email) {
           webpageObj.descriptors.push({
             id: email.id,
@@ -348,14 +320,14 @@ var relatedEntityTransform = (function(_, commonTransforms) {
             "link": "/provider.html?value=http://someuri&field=_id",
             "descriptors": [{type: 'age', text: 'Age: 20'}], // array of age
             "details": [{
-                "label": "height",
-                "value": 64
+                "name": "height",
+                "text": 64
             }, {
-                "label": "weight",
-                "value": 115
+                "name": "weight",
+                "text": 115
             }, {
-                "label": "ethnicity",
-                "value": "white"
+                "name": "ethnicity",
+                "text": "white"
             }]
         }
     */
@@ -376,22 +348,22 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     var height = _.get(record, '_source.height');
     if(height) {
       serviceObj.details.push({
-        label: 'height',
-        value: height
+        name: 'height',
+        text: _.isArray(height) ? height.join(', ') : height
       });
     }
     var weight = _.get(record, '_source.weight');
     if(weight) {
       serviceObj.details.push({
-        label: 'weight',
-        value: weight
+        name: 'weight',
+        text: _.isArray(weight) ? weight.join(', ') : weight
       });
     }
     var ethnicity = _.get(record, '_source.ethnicity');
     if(ethnicity) {
       serviceObj.details.push({
-        label: 'ethnicity',
-        value: ethnicity
+        name: 'ethnicity',
+        text: _.isArray(ethnicity) ? ethnicity.join(', ') : ethnicity
       });
     }
 
