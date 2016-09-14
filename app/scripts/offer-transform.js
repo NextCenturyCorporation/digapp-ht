@@ -207,6 +207,24 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         data: transformedData,
         timestamps: timestamps
       };
+    },
+
+    mentions: function(entityId, data) {
+      var mentions = [];
+      if(data && data.aggregations) {
+        data.aggregations.mentions.mentions.buckets.forEach(function(entityBucket) {
+          if(entityId !== entityBucket.key) {
+            var type = entityBucket.key.indexOf('email') >= 0 ? 'email' : 'phone';
+            mentions.push({
+              icon: commonTransforms.getIronIcon(type),
+              link: commonTransforms.getLink(entityBucket.key, type),
+              styleClass: commonTransforms.getStyleClass(type),
+              text: decodeURIComponent(entityBucket.key.substring(33))
+            });
+          }
+        });
+      }
+      return mentions;
     }
   };
 })(_, commonTransforms, relatedEntityTransform);
