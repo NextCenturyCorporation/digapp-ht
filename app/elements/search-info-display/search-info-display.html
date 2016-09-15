@@ -28,6 +28,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       .facets {
         /* Align the left of the facets with the left of text in collapsed view */
         margin-left: 7px;
+        margin-top: 5px;
       }
 
       .name {
@@ -41,22 +42,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </div>
     <div class="layout horizontal">
       <div class="name tall right-space">Search Text</div>
-      <div class="text tall right-space search-text">[[search.digUIState.searchText]]</div>
+      <div class="text tall right-space search-text">
+        <template is="dom-if" if="[[search.digUIState.searchText]]">
+          [[search.digUIState.searchText]]
+        </template>
+        <template is="dom-if" if="[[!search.digUIState.searchText]]">
+          None
+        </template>
+      </div>
     </div>
     <div class="layout horizontal">
       <div class="name tall right-space">Facets</div>
-      <div class="wrap facets">
-        <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
-          <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
-            <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
-              <breadbox-item
-                text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
-                title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
-              </breadbox-item>
+      <template is="dom-if" if="{{_hasNoFacets}}">
+        <div class="text tall right-space search-text">None</div>
+      </template>
+      <template is="dom-if" if="{{!_hasNoFacets}}">
+        <div class="wrap facets">
+          <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
+            <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
+              <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
+                <breadbox-item
+                  text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
+                  title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                </breadbox-item>
+              </template>
             </template>
           </template>
-        </template>
-      </div>
+        </div>
+      </template>
     </div>
   </template>
   <script>
@@ -74,7 +87,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         search: {
           type: Object,
           notify: true
+        },
+        /**
+         * Indicates if current search has facets or not
+         */
+        _hasNoFacets: {
+          type: Boolean,
+          computed: '_isFacetSelectionEmpty(search)'
         }
+      },
+      /**
+       * Computes _hasNoFacets property
+       */
+      _isFacetSelectionEmpty: function(search) {
+        var isEmpty = true;
+        if(search && search.digUIState && search.digUIState.facets) {
+          var facets = search.digUIState.facets;
+
+          var facetSelection = JSON.parse(facets);
+          _.each(_.keys(facetSelection), function(key) {
+            if(!_.isEmpty(facetSelection[key])) {
+              isEmpty = false;
+              return false;
+            }
+          });
+        }
+
+        return isEmpty;
       },
       /**
        * Get all the facet selection groups.
