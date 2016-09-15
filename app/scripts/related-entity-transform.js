@@ -19,7 +19,12 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       var country = _.get(addressFromData, 'addressCountry');
 
       if(locality) {
-        addresses.push(locality + (region ? (', ' + region) : '') + (country ? (', ' + country) : ''));
+        addresses.push({
+          icon: commonTransforms.getIronIcon('location'),
+          styleClass: commonTransforms.getStyleClass('location'),
+          text: locality + (region ? (', ' + region) : '') + (country ? (', ' + country) : ''),
+          type: 'location'
+        });
       }
     });
 
@@ -94,43 +99,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
 
     offerObj.text = _.isArray(offerObj.text) ? offerObj.text.join(', ') : offerObj.text;
 
-    getAddresses(record, 'availableAtOrFrom.address').forEach(function(address) {
-      offerObj.descriptors.push({
-        icon: commonTransforms.getIronIcon('location'),
-        styleClass: commonTransforms.getStyleClass('location'),
-        type: 'location',
-        text: address
-      });
-    });
-
-    var mentions = _.get(record, '_source.mainEntityOfPage.mentions');
-    if(mentions) {
-      var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
-      if(communications.phones && communications.phones.length) {
-        communications.phones.forEach(function(phone) {
-          offerObj.descriptors.push({
-            id: phone.id,
-            icon: commonTransforms.getIronIcon('phone'),
-            link: phone.link,
-            styleClass: commonTransforms.getStyleClass('phone'),
-            text: phone.text,
-            type: 'phone'
-          });
-        });
-      }
-      if(communications.emails && communications.emails.length) {
-        communications.emails.forEach(function(email) {
-          offerObj.descriptors.push({
-            id: email.id,
-            icon: commonTransforms.getIronIcon('email'),
-            link: email.link,
-            styleClass: commonTransforms.getStyleClass('email'),
-            text: decodeURIComponent(email.text),
-            type: 'email'
-          });
-        });
-      }
-    }
+    offerObj.descriptors = offerObj.descriptors.concat(getAddresses(record, 'availableAtOrFrom.address'));
+    offerObj.descriptors = offerObj.descriptors.concat(commonTransforms.getMentions(_.get(record, '_source.mainEntityOfPage.mentionsPhone', []), 'phone'));
+    offerObj.descriptors = offerObj.descriptors.concat(commonTransforms.getMentions(_.get(record, '_source.mainEntityOfPage.mentionsEmail', []), 'email'));
 
     return offerObj;
   }
@@ -269,43 +240,9 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     webpageObj.text = _.isArray(webpageObj.text) ? webpageObj.text.join(', ') : webpageObj.text;
     webpageObj.highlightedText = _.get(record, 'highlight.name[0]');
 
-    getAddresses(record, 'mainEntity.availableAtOrFrom.address').forEach(function(address) {
-      webpageObj.descriptors.push({
-        icon: commonTransforms.getIronIcon('location'),
-        styleClass: commonTransforms.getStyleClass('location'),
-        type: 'location',
-        text: address
-      });
-    });
-
-    var mentions = _.get(record, '_source.mentions');
-    if(mentions) {
-      var communications = commonTransforms.getEmailAndPhoneFromMentions(mentions);
-      if(communications.phones.length) {
-        communications.phones.forEach(function(phone) {
-          webpageObj.descriptors.push({
-            id: phone.id,
-            icon: commonTransforms.getIronIcon('phone'),
-            link: phone.link,
-            styleClass: commonTransforms.getStyleClass('phone'),
-            text: phone.text,
-            type: 'phone'
-          });
-        });
-      }
-      if(communications.emails.length) {
-        communications.emails.forEach(function(email) {
-          webpageObj.descriptors.push({
-            id: email.id,
-            icon: commonTransforms.getIronIcon('email'),
-            link: email.link,
-            styleClass: commonTransforms.getStyleClass('email'),
-            text: decodeURIComponent(email.text),
-            type: 'email'
-          });
-        });
-      }
-    }
+    webpageObj.descriptors = webpageObj.descriptors.concat(getAddresses(record, 'mainEntity.availableAtOrFrom.address'));
+    webpageObj.descriptors = webpageObj.descriptors.concat(commonTransforms.getMentions(_.get(record, '_source.mentionsPhone', []), 'phone'));
+    webpageObj.descriptors = webpageObj.descriptors.concat(commonTransforms.getMentions(_.get(record, '_source.mentionsEmail', []), 'email'));
 
     return webpageObj;
   }
