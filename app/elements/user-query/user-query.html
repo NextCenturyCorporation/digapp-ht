@@ -9,6 +9,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
+<link rel="import" href="../behaviors.html">
 
 <dom-module id="user-query">
   <template>
@@ -17,34 +20,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         display: block;
       }
     </style>
-    <template is="dom-if" if="{{_userTypeAsArray}}">
-      <elastic-client-query-builder
-        type="term"
-        field="username"
-        values="[[username]]"
-        ejs-query="{{_userQuery}}">
-      </elastic-client-query-builder>
+    <elastic-client-query-builder
+      type="term"
+      field="username"
+      values="[[username]]"
+      ejs-query="{{_userQuery}}">
+    </elastic-client-query-builder>
 
-      <elastic-client-search
-        client="[[client]]"
-        index="[[userIndex]]"
-        elastic-types="[[_userTypeAsArray]]"
-        query="[[_userQuery]]"
-        sort-field="dateCreated"
-        sort-order="desc"
-        aggregations="[]"
-        filters="[]"
-        results="{{userResult}}"
-        last-error="{{userQueryError}}">
-      </elastic-client-search>
-    </template>
+    <elastic-client-search
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-types="[[buildArray(userType)]]"
+      query="[[_userQuery]]"
+      sort-field="dateCreated"
+      sort-order="desc"
+      aggregations="[]"
+      filters="[]"
+      results="{{userResult}}"
+      last-error="{{userQueryError}}">
+    </elastic-client-search>
   </template>
   <script>
   (function() {
+    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'user-query',
+
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
 
       properties: {
         /**
@@ -79,7 +85,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
         /**
-         * Error performing query (if any)
+         * User result found
          */
         userResult: {
           type: Object,
@@ -97,20 +103,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         _userQuery: {
           type: Object
-        },
-        /**
-         * userType variable converted to an array for elastic-client-search
-         */
-        _userTypeAsArray: {
-          type: Array,
-          computed: '_computeTypeArray(userType)'
         }
-      },
-      /**
-       * Create type array for elastic-client-search.
-       */
-      _computeTypeArray: function(userType) {
-        return [userType];
       }
     });
   })();
