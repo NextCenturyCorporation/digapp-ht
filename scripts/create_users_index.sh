@@ -15,28 +15,17 @@ curl -XPUT localhost:9200/dig-users -d '
           "index": "not_analyzed"
         },
         "advancedSearch": {
-          "type": "boolean",
-          "index": "not_analyzed"
+          "type": "boolean"
         },
         "blurImages": {
-          "type": "boolean",
-          "index": "not_analyzed"
+          "type": "boolean"
         },
         "notificationFrequency": {
           "type": "string",
           "index": "not_analyzed"
         },
-        "lastRunDate": {
-          "type": "date",
-          "format" : "dateOptionalTime"
-        },
-        "notificationDate": {
-          "type": "date",
-          "format" : "dateOptionalTime"
-        },
-        "notificationHasRun": {
-          "type": "boolean",
-          "index": "not_analyzed"
+        "defaultSort": {
+          "type": "string"
         },
         "savedQueries": {
           "properties": {
@@ -71,6 +60,20 @@ curl -XPUT localhost:9200/dig-users -d '
             "createdAt": {
               "type": "date",
               "format" : "dateOptionalTime"
+            },
+            "lastRunDate": {
+              "type": "date",
+              "format" : "dateOptionalTime"
+            },
+            "notificationDate": {
+              "type": "date",
+              "format" : "dateOptionalTime"
+            },
+            "notificationHasRun": {
+              "type": "boolean"
+            },
+            "sendEmailNotification": {
+              "type": "boolean"
             }
           }
         },
