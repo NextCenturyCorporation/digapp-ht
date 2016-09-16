@@ -42,6 +42,21 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
       var newData = {};
       newData.relatedOffers = relatedEntityTransform.offer(data);
       return newData;
+    },
+
+    cleanPhoneBuckets: function(buckets) {
+      return _.map(buckets, function(bucket) {
+        var key = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
+        if(key.indexOf('-') >= 0) {
+          key = key.substring(key.indexOf('-') + 1);
+        }
+        return {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          doc_count: bucket.doc_count,
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          key: key
+        };
+      });
     }
   };
 })(_, relatedEntityTransform, commonTransforms);
