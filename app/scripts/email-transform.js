@@ -49,7 +49,8 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           doc_count: bucket.doc_count,
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          key: decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1))
+          key: bucket.key,
+          text: decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1))
         };
       });
     }

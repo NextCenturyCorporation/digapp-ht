@@ -46,15 +46,16 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     cleanPhoneBuckets: function(buckets) {
       return _.map(buckets, function(bucket) {
-        var key = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
-        if(key.indexOf('-') >= 0) {
-          key = key.substring(key.indexOf('-') + 1);
+        var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
+        if(text.indexOf('-') >= 0) {
+          text = text.substring(text.indexOf('-') + 1);
         }
         return {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           doc_count: bucket.doc_count,
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          key: key
+          key: bucket.key,
+          text: text
         };
       });
     }
