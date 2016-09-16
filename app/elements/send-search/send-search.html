@@ -29,6 +29,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener()]]"></button-action>
       </div>
       <div class="layout vertical">
+        <template is="dom-if" if="[[_querySentSuccessfully]]" restamp="true">
+          <paper-icon-button icon="check" title="Query sent successfully!" noink></paper-icon-button>
+        </template>
         <template is="dom-if" if="[[_noUserRecordFound]]" restamp="true">
           <paper-icon-button icon="error" title="User entered does not exist." noink></paper-icon-button>
         </template>
@@ -171,6 +174,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         _userToSendQuery: {
           type: String
+        },
+
+        /**
+         * Check to see if query was sent to specified user.
+         */
+        _querySentSuccessfully: {
+          type: Boolean,
+          notify: true,
+          value: undefined
+        }
+      },
+      observers: [
+        '_checkIfQuerySent(_sentQueryUpdate)'
+      ],
+
+      /**
+       * Updates _querySentSuccessfully when appropriate.
+       */
+      _checkIfQuerySent: function(_sentQueryUpdate) {
+        if(_sentQueryUpdate && _sentQueryUpdate._version) {
+          this._querySentSuccessfully = true;
         }
       },
       /**
@@ -182,9 +206,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           onClick: function() {
             if(_.trim(self._userToSendQuery) &&
               !_.isEqual(self._userToSendQuery, self.currentUser)) {
-              // reset error checking booleans, prepare to send query
+              // reset error checking booleans and user update values, prepare to send query
+              self._querySentSuccessfully = undefined;
               self._noUserRecordFound = undefined;
               self._queryAlreadySent = undefined;
+              self._userIdToSendQuery = undefined;
+              self._set_sendUserUpdateBody(undefined);
               self._queryToSend = JSON.parse(JSON.stringify(self.search));
               // don't send record with 'open' flag (should only be used in the html) or notification fields
               self._checkForUser = JSON.parse(JSON.stringify(self._userToSendQuery));
