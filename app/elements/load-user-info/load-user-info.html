@@ -1,0 +1,335 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<script src="../../scripts/google-analytics.js"></script>
+
+<dom-module id="load-user-info">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <user-query
+      client="[[client]]"
+      user-index="[[userIndex]]"
+      user-type="[[userType]]"
+      username="[[username]]"
+      user-result="{{_userSearchResult}}">
+    </user-query>
+
+    <template is="dom-if" if="{{showSaveBtn}}">
+      <save-search
+        client="[[client]]"
+        username="[[username]]"
+        user-id="[[_userId]]"
+        existing-searches="{{_searches}}"
+        search-text="[[searchText]]"
+        facets="[[facets]]"
+        es-request="[[esRequest]]"
+        user-index="[[userIndex]]"
+        user-type="[[userType]]"
+        enable-save-btn="[[enableSaveBtn]]"
+        user-record-exists="[[_userRecordExists]]">
+      </save-search>
+    </template>
+
+    <!-- User preferences dialog -->
+    <user-preferences show-search="{{showSearch}}"
+      searches="{{_searches}}"
+      email-address="{{_emailAddress}}"
+      no-email-address="{{_noEmailAddress}}"
+      received-searches="{{_receivedSearches}}"
+      client="[[client]]"
+      user-id="[[_userId]]"
+      loading="[[loading]]"
+      username="[[username]]"
+      advanced-search="{{advancedSearch}}"
+      blur-images="{{blurImages}}"
+      search-text="{{searchText}}"
+      facets="{{facets}}"
+      es-request="{{esRequest}}"
+      user-index="[[userIndex]]"
+      user-type="[[userType]]"
+      user-record-exists="[[_userRecordExists]]">
+    </user-preferences>
+
+    <!-- if no user record found, create it -->
+    <elastic-create
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-type="[[userType]]"
+      body='{{_userCreateBody}}'
+      results="{{_createdUser}}"
+      last-error="{{createError}}">
+    </elastic-create>
+
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'load-user-info',
+
+      properties: {
+        /**
+         * The name of this user.
+         */
+        username: {
+          type: String,
+          notify: true,
+          observer: '_usernameObserver'
+        },
+
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The index where users are stored
+         */
+        userIndex: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The user type
+         */
+        userType: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * Whether to show search options.
+         */
+        showSearch: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The text on which to search.
+         */
+        searchText: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The facets used (if any) along with searchText.
+         */
+        facets: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * Whether or not to show save search button.
+         */
+        showSaveBtn: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Whether or not to enable save search button.
+         */
+        enableSaveBtn: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Most recent request to elasticsearch.
+         */
+        esRequest: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * Boolean to track when associated elastic-client-search query has finished loading.
+         */
+        loading: {
+          type: Boolean,
+          notify: true
+        },
+
+        /**
+         * Whether advanced search is enabled.
+         */
+        advancedSearch: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Whether image blurring is enabled.
+         */
+        blurImages: {
+          type: Boolean,
+          value: true,
+          notify: true
+        },
+
+        /**
+         * The email address of this user.
+         */
+        _emailAddress: {
+          type: String
+        },
+
+        /**
+         * Whether this user has entered an email address.
+         */
+        _noEmailAddress: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * Search result from elastic-client-search query if user record already exists.
+         */
+        _userSearchResult: {
+          type: Object,
+          observer: '_transformUserSearchResult'
+        },
+        /**
+         * Boolean variable to track if/when user record is created in elasticsearch.
+         */
+        _userRecordExists: {
+          type: Boolean,
+          value: undefined,
+          notify: true
+        },
+        /**
+         * Document info to pass into the elastic-create component
+         */
+        _userCreateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * _id from existing user record (used to make updates)
+         */
+        _userId: {
+          type: String
+        },
+        /**
+         * Result from elastic-create.
+         */
+        _createdUser: {
+          type: Object,
+          notify: true,
+          observer: '_getUserId'
+        }
+      },
+      observers: [
+        '_createUserRecord(_userRecordExists, username, advancedSearch, blurImages)'
+      ],
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * If user record does not exist, create it.
+       */
+      _createUserRecord: function() {
+        var self = this;
+
+        if(this._userRecordExists === false) {
+          this._set_userCreateBody({
+            username: self.username,
+            advancedSearch: self.advancedSearch,
+            blurImages: self.blurImages,
+            dateCreated: new Date(),
+            notificationFrequency: 'never'
+          });
+        }
+      },
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Observes and logs changes to the username.
+       */
+      _usernameObserver: function() {
+        /* jshint ignore:start */
+        ga('set', 'dimension1', window.btoa(this.username));
+        ga('set', 'userId', window.btoa(this.username));
+        ga('send', 'pageview');
+        /* jshint ignore:end */
+      },
+      /**
+       * Get _id from user record.
+       */
+      _getUserId: function(userRecord) {
+        if(userRecord && userRecord._id) {
+          this._userRecordExists = true;
+          this._userId = userRecord._id;
+        }
+      },
+      /**
+       * Populate properties based on search results.
+       */
+      _transformUserSearchResult: function() {
+        if(this._userSearchResult) {
+          if(this._userSearchResult.hits.hits.length > 0) {
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            this._getUserId(this._userSearchResult.hits.hits[0]);
+            this._populateUserPreferences(this._userSearchResult.hits.hits[0]._source);
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            this._userRecordExists = false;
+          }
+        }
+      },
+      /**
+       * Populates the properties in this user-preferences component using the given preferences object.
+       */
+      _populateUserPreferences: function(prefs) {
+        if(prefs.advancedSearch !== undefined) {
+          this.set('advancedSearch', prefs.advancedSearch);
+        }
+
+        if(prefs.blurImages !== undefined) {
+          this.set('blurImages', prefs.blurImages);
+        }
+
+        if(prefs.emailAddress) {
+          this.set('_emailAddress', prefs.emailAddress);
+          this.set('_noEmailAddress', false);
+        }
+
+        if(prefs.savedQueries) {
+          this.set('_searches', prefs.savedQueries);
+        }
+
+        if(prefs.receivedQueries) {
+          this.set('_receivedSearches', prefs.receivedQueries);
+        }
+
+      },
+    });
+  })();
+  </script>
+</dom-module>

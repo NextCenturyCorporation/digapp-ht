@@ -1,0 +1,328 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="save-search">
+  <template>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: inline-block;
+        --paper-listbox-background-color: #FFFFFF;
+      }
+
+      paper-listbox {
+        padding-top: 0px;
+      }
+
+      #saveSearchDialog {
+        height: 100%;
+        width: 100%;
+      }
+
+    </style>
+    <!-- Save Search Dialog -->
+    <paper-icon-button icon="save" title="Save Search" on-tap="_openSaveSearchDialog" disabled="{{!enableSaveBtn}}"></paper-icon-button>
+
+    <paper-dialog id="saveSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="layout vertical flex">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Save Search</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close Save Search"></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <template is="dom-if" if="{{userRecordExists}}" restamp="true">
+          <div class="layout vertical flex">
+            <span class="name tall">Previously Saved Searches</span>
+            <paper-listbox>
+              <template is="dom-repeat" items="[[existingSearches]]" as="search">
+                <paper-item on-tap="_useExistingSearchName">{{search.name}}</paper-item>
+              </template>
+            </paper-listbox>
+            <span class="name tall right-space">Name of New Search</span>
+            <div class="layout horizontal">
+              <paper-input class="flex right-space" label="Enter Name" value="{{_savedSearchName}}" no-label-float></paper-input>
+              <button-action title="Save Name" text="Save" disabled="[[!_checkSavedSearchName(_savedSearchName)]]" click-listener="[[_createSavedSearchListener()]]"></button-action>
+              <!-- Confirm dialog for saving over an existing search -->
+              <paper-dialog id="saveAlert"  modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+                <div class="layout horizontal">
+                  <span class="bold tall flex">Are you sure you want to save over existing saved search "[[_savedSearchName]]"?</span>
+                </div>
+                <div class="buttons">
+                  <paper-button dialog-confirm on-tap="_confirmSaveSearch">OK</paper-button>
+                  <paper-button dialog-dismiss>Cancel</paper-button>
+                </div>
+              </paper-dialog>
+            </div>
+          </div>
+        </template>
+      </div>
+    </paper-dialog>
+    <elastic-update
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-type="[[userType]]"
+      id="{{userId}}"
+      body='{{_userUpdateBody}}'
+      results="{{_updatedUser}}"
+      last-error="{{updateError}}">
+    </elastic-update>
+  </template>
+  <script>
+  (function() {
+    /* globals _ */
+    'use strict';
+
+    Polymer({
+      is: 'save-search',
+
+      properties: {
+        /**
+         * The name of this user.
+         */
+        username: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * _id from existing user record (used to make updates)
+         */
+        userId: {
+          type: String,
+          notify: true
+        },
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The index where users are stored
+         */
+        userIndex: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The user type
+         */
+        userType: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * Whether or not to enable save search button.
+         */
+        enableSaveBtn: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        /**
+         * The text on which to search.
+         */
+        searchText: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The facets used (if any) along with searchText.
+         */
+        facets: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return {};
+          }
+        },
+        /**
+         * The saved searches that already exist for this user.
+         */
+        existingSearches: {
+          type: Array,
+          notify: true,
+          value: function() {
+            return [];
+          }
+        },
+        /**
+         * elasticsearch request in JSON format.
+         */
+        esRequest: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return undefined;
+          }
+        },
+        /**
+         * Boolean variable to track if/when user record is created in elasticsearch.
+         */
+        userRecordExists: {
+          type: Boolean,
+          value: undefined,
+          notify: true
+        },
+        /**
+         * Error (if any)
+         */
+        updateError: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Name chosen by user to save a new search.
+         */
+        _savedSearchName: {
+          type: String
+        },
+        /**
+         * Index to replace in existingSearches if saving over an existing search.
+         */
+        _saveOverIndex: {
+          type: Number
+        },
+        /**
+         * Document info to pass into the elastic-update component
+         */
+        _userUpdateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * Result from elastic-update.
+         */
+        _updatedUser: {
+          type: Object,
+          notify: true
+        }
+      },
+      /**
+       * Opens the save search dialog and reset variables.
+       */
+      _openSaveSearchDialog: function() {
+        if(this._savedSearchName) {
+          this._savedSearchName = '';
+        }
+        this.$$('#saveSearchDialog').open();
+      },
+      /**
+       * Creates and returns a listener to save a user's query.
+       */
+      _createSavedSearchListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(self._checkSavedSearchName(self._savedSearchName)) {
+              var indexToReplace = _.findIndex(self.existingSearches, {name: self._savedSearchName});
+
+              if(indexToReplace !== -1) {
+                self._saveOverIndex = indexToReplace;
+                self.$$('#saveAlert').open();
+              } else {
+                self._addNewSearch();
+                self._saveSearches();
+              }
+            }
+          }
+        };
+      },
+
+      /**
+       * Returns a new search record.
+       */
+      _createSearchRecord: function() {
+        return {
+          name: this._savedSearchName,
+          digUIState: {
+            searchText: this.searchText,
+            facets: JSON.stringify(this.facets)
+          },
+          esState: {
+            query: JSON.stringify(this.esRequest.query),
+            filter: JSON.stringify(this.esRequest.filter)
+          },
+          createdBy: this.username,
+          createdAt: new Date()
+        };
+      },
+
+      /**
+       * Save over an existing record in existingSearches.
+       */
+      _confirmSaveSearch: function() {
+        this.splice('existingSearches', this._saveOverIndex, 1, this._createSearchRecord());
+        this._saveSearches();
+      },
+
+      /**
+       * Save selected search name from list as _savedSearchName.
+       */
+      _useExistingSearchName: function(event) {
+        this._savedSearchName = event.model.search.name;
+      },
+
+      /**
+       * Add new search to existingSearches array.
+       */
+      _addNewSearch: function() {
+        var queryToAdd = this._createSearchRecord();
+
+        if(!this.existingSearches) {
+          this.existingSearches = [];
+        }
+        this.push('existingSearches', queryToAdd);
+      },
+
+      /**
+       * Make sure user has entered a valid name for a search record.
+       */
+      _checkSavedSearchName: function(_savedSearchName) {
+        return !_.isEmpty(_.trim(_savedSearchName));
+      },
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Update savedQueries in elasticsearch.
+       */
+      _saveSearches: function() {
+        var self = this;
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self.existingSearches
+          }
+        });
+        self.$$('#saveSearchDialog').close();
+      }
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+    });
+  })();
+  </script>
+</dom-module>
