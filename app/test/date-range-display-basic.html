@@ -1,0 +1,255 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>date-range-display</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/date-range-display/date-range-display.html">
+
+</head>
+<body>
+
+<test-fixture id="date-range-display-fixture">
+  <template>
+    <date-range-display></date-range-display>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, setup, fixture, assert, flush, moment */
+  /* jshint -W030 */
+  suite('date-range-display tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('date-range-display-fixture');
+      flush(function() {
+        done();
+      });
+    });
+
+    test('properties are initialized correctly', function() {
+      assert.isNull(element.beginDate);
+      assert.isNull(element.endDate);
+      assert.equal(element.facetLabelFormat, 'MM/DD/YYYY');
+      assert.deepEqual(element.facetSelection, {});
+      assert.equal(element.beginDateLabel, 'Click to set begin date');
+      assert.equal(element.endDateLabel, 'Click to set end date');
+    });
+
+    test('date dialogs are closed initially', function() {
+      assert.isFalse(element.$.beginDateDialog.opened);
+      assert.isFalse(element.$.endDateDialog.opened);
+    });
+
+    test('facetSelection changes trigger _updateDisplay', function(done) {
+      element.facetSelection = {
+        'Begin Date': {
+          text: '10/05/2015',
+          date: '2015-10-05T00:00:00',
+          enabled: true,
+          category: 'Begin Date'
+        }
+      };
+      flush(function() {
+        assert.equal(element.beginDateLabel, 'From: October 5, 2015');
+        assert.deepEqual(element.beginDate, moment('2015-10-05T00:00:00').toDate());
+        assert.equal(element.endDateLabel, 'Click to set end date');
+        assert.isNull(element.endDate);
+        done();
+      });
+    });
+
+    test('_formatDateToESString returns correct string value', function() {
+      var dateVal = new Date('August 30, 2016 12:15:05');
+      assert.equal(element._formatDateToESString(dateVal), '2016-08-30T00:00:00');
+    });
+
+    test('_formatDate returns correct string value', function() {
+      var dateVal = new Date('August 30, 2016 12:15:05');
+      assert.equal(element._formatDate(dateVal, 'MM/DD/YYYY'), '08/30/2016');
+      assert.equal(element._formatDate(dateVal, 'MMMM Do YYYY, h:mm:ss a'), 'August 30th 2016, 12:15:05 pm');
+    });
+
+    test('_updateFacetSelection test', function() {
+      element._updateFacetSelection('End Date', new Date('August 30, 2016 12:15:05'));
+      assert.deepEqual(element.facetSelection['End Date'], {
+        text: '08/30/2016',
+        date: '2016-08-30T00:00:00',
+        enabled: true,
+        category: 'End Date'
+      });
+    });
+
+    test('_checkDateEquality test', function() {
+      assert.isTrue(element._checkDateEquality(new Date('August 30, 2016 06:55:55'),
+        new Date('August 30, 2016 12:15:05')));
+      assert.isFalse(element._checkDateEquality(new Date('August 29, 2016 06:55:55'),
+        new Date('August 30, 2016 06:55:55')));
+    });
+
+    test('_openBeginDateDialog test', function(done) {
+      element._openBeginDateDialog();
+      flush(function() {
+        assert.isTrue(element.$.beginDateDialog.opened);
+        assert.isFalse(element.$.endDateDialog.opened);
+        done();
+      });
+    });
+
+    test('_openEndDateDialog test', function(done) {
+      element._openEndDateDialog();
+      flush(function() {
+        assert.isFalse(element.$.beginDateDialog.opened);
+        assert.isTrue(element.$.endDateDialog.opened);
+        done();
+      });
+    });
+
+    test('_closeBeginDateDialog and _closeEndDateDialog do nothing if dialog not confirmed', function(done) {
+      var eventToPassIn = {
+        detail: {
+          confirmed: false
+        }
+      };
+      element._closeBeginDateDialog(eventToPassIn);
+      element._closeEndDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.isNull(element.beginDate);
+        assert.isNull(element.endDate);
+        assert.deepEqual(element.facetSelection, {});
+        done();
+      });
+    });
+
+    test('_closeBeginDateDialog and _closeEndDateDialog do nothing if date selections have not changed', function(done) {
+      element.beginDate = new Date('October 5, 2015 12:15:05');
+      element.$.beginDatePicker.date = new Date('October 5, 2015 11:45:05');
+      element.endDate = new Date('August 30, 2016 12:15:05');
+      element.$.endDatePicker.date = new Date('August 30, 2016 11:45:05');
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeBeginDateDialog(eventToPassIn);
+      element._closeEndDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.deepEqual(element.beginDate, new Date('October 5, 2015 12:15:05'));
+        assert.deepEqual(element.endDate, new Date('August 30, 2016 12:15:05'));
+        assert.deepEqual(element.facetSelection, {});
+        done();
+      });
+    });
+
+    test('_closeBeginDateDialog updates beginDate and facetSelection', function(done) {
+      element.beginDate = new Date('October 5, 2015 12:15:05');
+      element.$.beginDatePicker.date = new Date('October 11, 2015 12:45:05');
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeBeginDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.deepEqual(element.beginDate, new Date('October 11, 2015'));
+        assert.isNull(element.endDate);
+        assert.deepEqual(element.facetSelection, {
+          'Begin Date': {
+            text: '10/11/2015',
+            date: '2015-10-11T00:00:00',
+            enabled: true,
+            category: 'Begin Date'
+          }
+        });
+        done();
+      });
+    });
+
+    test('_closeEndDateDialog updates endDate and facetSelection', function(done) {
+      element.$.endDatePicker.date = new Date('August 30, 2016 11:45:05');
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeEndDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.isNull(element.beginDate);
+        assert.deepEqual(element.endDate, new Date('August 30, 2016'));
+        assert.deepEqual(element.facetSelection, {
+          'End Date': {
+            text: '08/30/2016',
+            date: '2016-08-30T00:00:00',
+            enabled: true,
+            category: 'End Date'
+          }
+        });
+        done();
+      });
+    });
+
+    test('_updateDisplay if facetSelection is empty', function(done) {
+      element.beginDate = new Date('October 5, 2015 12:15:05');
+
+      element._updateDisplay();
+
+      flush(function() {
+        assert.isNull(element.beginDate);
+        assert.isNull(element.endDate);
+        done();
+      });
+    });
+
+    test('_updateDisplay if facetSelection is not empty', function(done) {
+      element.beginDate = new Date('October 5, 2015 12:15:05');
+      element.facetSelection = {
+        'Begin Date': {
+          text: '10/05/2015',
+          date: '2015-10-05T00:00:00',
+          enabled: false,
+          category: 'Begin Date'
+        },
+        'End Date': {
+          text: '08/30/2016',
+          date: '2016-08-30T00:00:00',
+          enabled: true,
+          category: 'End Date'
+        }
+      };
+
+      element._updateDisplay();
+
+      flush(function() {
+        assert.isNull(element.beginDate);
+        assert.deepEqual(element.endDate, new Date('August 30, 2016'));
+        assert.deepEqual(element.endDate, element.$.endDatePicker.date);
+        done();
+      });
+    });
+  });
+</script>
+
+</body>
+</html>

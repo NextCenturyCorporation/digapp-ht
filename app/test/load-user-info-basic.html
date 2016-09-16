@@ -1,0 +1,223 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>load-user-info</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/load-user-info/load-user-info.html">
+</head>
+
+<body>
+<test-fixture id="load-user-info-fixture">
+  <template>
+    <load-user-info username="testUser" user-index="dig-users"
+      user-type="user">
+    </load-user-info>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('load-user-info tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('load-user-info-fixture');
+    });
+
+    test('properties are the correct values', function() {
+      assert.equal(element.username, 'testUser');
+      assert.equal(element.userIndex, 'dig-users');
+      assert.equal(element.userType, 'user');
+      assert.isFalse(element.showSearch);
+      assert.isFalse(element.advancedSearch);
+      assert.isTrue(element.blurImages);
+      assert(!element.searchText);
+      assert(!element.facets);
+      assert.isUndefined(element.esRequest);
+      assert.isUndefined(element._searches);
+      assert.isUndefined(element._receivedSearches);
+      assert.isUndefined(element._emailAddress);
+      assert.isTrue(element._noEmailAddress);
+      assert.isUndefined(element._userSearchResult);
+      assert.isUndefined(element._userRecordExists);
+      assert.isUndefined(element._userCreateBody);
+      assert.isUndefined(element._userId);
+      assert.isUndefined(element._createdUser);
+      assert.isUndefined(element.loading);
+      assert.isFalse(element.showSaveBtn);
+      assert.isFalse(element.enableSaveBtn);
+    });
+
+    test('_createUserRecord does nothing if userRecordExists is true', function() {
+      element.userRecordExists = true;
+      element._createUserRecord();
+
+      assert.isUndefined(element._userCreateBody);
+    });
+
+    test('_createUserRecord populates _userCreateBody if userRecordExists is false', function() {
+      element._userRecordExists = false;
+      element._createUserRecord();
+
+      assert.isDefined(element._userCreateBody);
+      assert.equal(element._userCreateBody.username, element.username);
+      assert.equal(element._userCreateBody.advancedSearch, element.advancedSearch);
+      assert.equal(element._userCreateBody.blurImages, element.blurImages);
+      assert.equal(element._userCreateBody.notificationFrequency, 'never');
+      assert.isDefined(element._userCreateBody.dateCreated);
+    });
+
+    test('_getUserId only returns id if there is a valid userRecord', function() {
+      element._getUserId({});
+
+      assert.isUndefined(element._userId);
+      assert.isUndefined(element._userRecordExists);
+
+      element._getUserId({_id: 1});
+
+      assert.equal(element._userId, 1);
+      assert.isTrue(element._userRecordExists);
+    });
+
+    test('_transformUserSearchResult if no results found', function() {
+      element._userSearchResult = {
+        hits: {
+          hits: []
+        }
+      };
+
+      element._transformUserSearchResult();
+
+      assert.isFalse(element._userRecordExists);
+    });
+
+    test('_transformUserSearchResult if user result found', function() {
+      element._userSearchResult = {
+        hits: {
+          hits: [{
+            _id: 2,
+            _source: {
+              username: 'mockUser',
+              blurImages: true,
+              advancedSearch: true,
+              emailAddress: 'test@test.com'
+            }
+          }]
+        }
+      };
+
+      element._transformUserSearchResult();
+      assert.isTrue(element._userRecordExists);
+      assert.equal(element._userSearchResult.hits.hits[0]._source.blurImages, element.blurImages);
+      assert.equal(element._userSearchResult.hits.hits[0]._source.advancedSearch, element.advancedSearch);
+      assert.equal(element._userSearchResult.hits.hits[0]._source.emailAddress, element._emailAddress);
+      assert.equal(element._userId, 2);
+    });
+
+    test('_populateUserPreferences sets advancedSearch', function() {
+      element._populateUserPreferences({
+        advancedSearch: true
+      });
+      assert.isTrue(element.advancedSearch);
+      element._populateUserPreferences({
+        advancedSearch: false
+      });
+      assert.isFalse(element.advancedSearch);
+    });
+
+    test('_populateUserPreferences sets blurImages', function() {
+      element._populateUserPreferences({
+        blurImages: false
+      });
+      assert.isFalse(element.blurImages);
+      element._populateUserPreferences({
+        blurImages: true
+      });
+      assert.isTrue(element.blurImages);
+    });
+
+    test('_populateUserPreferences sets _emailAddress', function() {
+      element._populateUserPreferences({
+        emailAddress: 'my@email.com'
+      });
+      assert.equal(element._emailAddress, 'my@email.com');
+      assert.isFalse(element._noEmailAddress);
+    });
+
+    test('_populateUserPreferences sets _searches', function(done) {
+      element._populateUserPreferences({
+        savedQueries: [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]
+      });
+
+      // Flush so that interval is updated.
+      flush(function() {
+        assert.deepEqual(element._searches, [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]);
+        done();
+      });
+    });
+
+    test('_populateUserPreferences sets _receivedSearches', function(done) {
+      element._populateUserPreferences({
+        receivedQueries: [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]
+      });
+
+      // Flush so that interval is updated.
+      flush(function() {
+        assert.deepEqual(element._receivedSearches, [{
+          date: 'Jan 1 2016',
+          facets: [{
+            key: 'Key',
+            value: 'Value'
+          }],
+          interval: 'hour',
+          text: 'two',
+          user: 'user'
+        }]);
+        done();
+      });
+    });
+
+  });
+</script>
+</body>
+</html>

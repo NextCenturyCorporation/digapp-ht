@@ -1,0 +1,422 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>user-preferences</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/user-preferences/user-preferences.html">
+
+</head>
+<body>
+
+<test-fixture id="user-preferences-fixture">
+  <template>
+    <user-preferences username="testUser" user-index="dig-users"
+      user-type="user" show-search user-id="1" user-record-exists></user-preferences>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('user-preferences tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('user-preferences-fixture');
+      flush(function() {
+        done();
+      });
+    });
+
+    test('properties are the correct values', function() {
+      assert.equal(element.username, 'testUser');
+      assert.equal(element.userIndex, 'dig-users');
+      assert.equal(element.userType, 'user');
+      assert.isTrue(element.showSearch);
+      assert.isFalse(element.advancedSearch);
+      assert.isTrue(element.blurImages);
+      assert(!element.searchText);
+      assert(!element.facets);
+      assert(!element.loading);
+      assert.equal(element.userId, '1');
+      assert.isTrue(element.userRecordExists);
+      assert.isUndefined(element._saveOverIndex);
+      assert.isUndefined(element.emailAddress);
+      assert.isTrue(element.noEmailAddress);
+      assert.deepEqual(element.receivedSearches, []);
+      assert.deepEqual(element.searches, []);
+      assert.isUndefined(element._userUpdateBody);
+      assert.isUndefined(element._updatedUser);
+      assert.isUndefined(element._facetsToLoad);
+    });
+
+    test('does have settings button element', function() {
+      var settingsButton = element.$$('#settingsButton');
+      assert(settingsButton);
+      assert.equal(settingsButton.icon, 'settings');
+      assert.isString(settingsButton.title);
+    });
+
+    test('does have closed settings dialog element', function() {
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isFalse(settingsDialog.opened);
+    });
+
+    test('when userRecordExists and showSearch are true, advancedSearch and blurImages sections are visible', function() {
+      assert.isNotNull(element.$$('div[title="Toggle Advanced Search"]'));
+      assert.isNotNull(element.$$('div[title="Toggle Blur Images"]'));
+    });
+
+    test('does not have search element if userRecordExists is undefined', function(done) {
+      element.userRecordExists = undefined;
+      flush(function() {
+        var search = element.$$('.search');
+        assert(!search);
+        done();
+      });
+    });
+
+    test('does not have search element if userRecordExists is false', function(done) {
+      element.userRecordExists = false;
+      flush(function() {
+        var search = element.$$('.search');
+        assert(!search);
+        done();
+      });
+    });
+
+    test('does have search element if searches is set and userRecordExists is true', function(done) {
+      element.searches = [{
+        text: 'myText'
+      }];
+      flush(function() {
+        var search = element.$$('.search');
+        assert(search);
+        done();
+      });
+    });
+
+    test('_createSaveEmailAddressListener returns an object with a function', function() {
+      var listener = element._createSaveEmailAddressListener();
+      assert.isObject(listener);
+      assert.isFunction(listener.onClick);
+    });
+
+    test('_createSaveEmailAddressListener.onClick saves the email address', function() {
+      element.emailAddress = 'my@email.com';
+      element._createSaveEmailAddressListener().onClick();
+      assert.isFalse(element.noEmailAddress);
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        emailAddress: 'my@email.com'
+      }});
+    });
+
+    test('_toggleAdvancedSearch toggles advancedSearch', function() {
+      element._toggleAdvancedSearch();
+      assert.isTrue(element.advancedSearch);
+      element._toggleAdvancedSearch();
+      assert.isFalse(element.advancedSearch);
+    });
+
+    test('_toggleBlur toggles blurImages', function() {
+      element._toggleBlur();
+      assert.isFalse(element.blurImages);
+      element._toggleBlur();
+      assert.isTrue(element.blurImages);
+    });
+
+    test('#receiveAlert is closed by default', function() {
+      element.receivedSearches = [{name: 'newsearch'}];
+      element.searches = [{name: 'newsearch'}];
+      flush(function(done) {
+        assert.isFalse(element.$$('#receiveAlert').opened);
+        done();
+      });
+    });
+
+    test('_createAddSearchListener.onClick adds a new saved search from the receivedSearch list', function() {
+      element.receivedSearches = [{name: 'newsearch'}];
+      element.searches = [];
+      element._createAddSearchListener(0).onClick();
+      assert.equal(element.receivedSearches.length, 0);
+      assert.equal(element.searches.length, 1);
+      assert.deepEqual(element.searches[0], {name: 'newsearch'});
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        savedQueries: element.searches,
+        receivedQueries: element.receivedSearches
+      }});
+    });
+
+    test('_createAddSearchListener.onClick kicks off process to save over a previously saved search', function() {
+      element.receivedSearches = [{name: 'newsearch'}];
+      element.searches = [{name: 'newsearch'}];
+      flush(function(done) {
+        element._createAddSearchListener(0).onClick();
+        assert.equal(element._saveOverIndex, 0);
+        assert.isTrue(element.$$('#receiveAlert').opened);
+        done();
+      });
+    });
+
+    test('_copyReceivedSearch returns a copy of a search without extraneous properties', function() {
+      var search1 = {name: 'search#1', open: true};
+      var search2 = {name: 'search#2', somekey: 'hi'};
+      assert.deepEqual(element._copyReceivedSearch(search1), {name: 'search#1'});
+      assert.deepEqual(element._copyReceivedSearch(search2), {name: 'search#2', somekey: 'hi'});
+    });
+
+    test('_confirmReceivedSearch updates saved searches and received searches lists', function() {
+      element.receivedSearches = [{name: 'newsearch', data: 'new'}];
+      element.searches = [{name: 'newsearch', data: 'old'}];
+      element._saveOverIndex = 0;
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+      element._confirmReceivedSearch(mockEvent);
+      assert.equal(element.receivedSearches.length, 0);
+      assert.equal(element.searches.length, 1);
+      assert.deepEqual(element.searches[0], {name: 'newsearch', data: 'old'});
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        savedQueries: element.searches,
+        receivedQueries: element.receivedSearches
+      }});
+    });
+
+    test('_createAddSearchListener returns an object with a function', function() {
+      var listener = element._createAddSearchListener();
+      assert.isObject(listener);
+      assert.isFunction(listener.onClick);
+    });
+
+    test('_deleteSearch deletes the saved search', function() {
+      element.searches = [{
+        name: 'myText'
+      }];
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+      element._deleteSearch(mockEvent);
+      assert.equal(element.searches.length, 0);
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        savedQueries: element.searches
+      }});
+    });
+
+    test('_deleteReceivedSearch deletes the saved search', function() {
+      element.receivedSearches = [{
+        name: 'myText'
+      }];
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.receivedSearches[0]
+        }
+      };
+      element._deleteReceivedSearch(mockEvent);
+      assert.equal(element.receivedSearches.length, 0);
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        receivedQueries: element.receivedSearches
+      }});
+    });
+
+    test('_getCheckboxIconToShow returns the correct values', function() {
+      assert.equal(element._getCheckboxIconToShow(false), 'check-box-outline-blank');
+      assert.equal(element._getCheckboxIconToShow(true), 'check-box');
+    });
+
+    test('_getModalIconTitle returns strings', function() {
+      assert.isString(element._getModalIconTitle(false));
+      assert.isString(element._getModalIconTitle(true));
+    });
+
+    test('_runSearch sets the search text from the saved search and closes the settings dialog', function() {
+      element.searches = [{
+        digUIState: {
+          searchText: 'myText',
+          facets: '{\"dateCreated\":{}}'
+        }
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._runSearch(mockEvent);
+      assert.equal(element.searchText, 'myText');
+      assert.deepEqual(element._facetsToLoad, {dateCreated: {}});
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isFalse(settingsDialog.opened);
+    });
+
+    test('_runSearch sets the facets from the saved search and closes the settings dialog', function() {
+      element.searchText = 'myText';
+      element.searches = [{
+        digUIState: {
+          searchText: 'myText',
+          facets: '{\"dateCreated\":{}}'
+        }
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._runSearch(mockEvent);
+      assert.equal(element.searchText, 'myText');
+      assert.deepEqual(element.facets, {dateCreated: {}});
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isFalse(settingsDialog.opened);
+    });
+
+    test('_fillOutFacets loads facets (if needed) set in _facetsToLoad when finished loading previous request', function() {
+      element.searchText = 'myText';
+      element.loading = false;
+      element._facetsToLoad = {dateCreated: {}};
+      element.searches = [{
+        digUIState: {
+          searchText: 'myText',
+          facets: '{\"dateCreated\":{}}'
+        }
+      }];
+
+      element._fillOutFacets();
+      assert.equal(element.searchText, 'myText');
+      assert.deepEqual(element.facets, {dateCreated: {}});
+    });
+
+    test('_toggleSearchSettings opens the saved search', function() {
+      element.searches = [{
+        open: false,
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._toggleSearchSettings(mockEvent);
+      assert.isTrue(element.searches[0].open);
+    });
+
+    test('_toggleSearchSettings closes the saved search', function() {
+      element.searches = [{
+        open: true,
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._toggleSearchSettings(mockEvent);
+      assert.isFalse(element.searches[0].open);
+    });
+
+    test('_toggleReceivedSearchSettings opens the saved search', function() {
+      element.receivedSearches = [{
+        open: false,
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.receivedSearches[0]
+        }
+      };
+
+      element._toggleReceivedSearchSettings(mockEvent);
+      assert.isTrue(element.receivedSearches[0].open);
+    });
+
+    test('_toggleReceivedSearchSettings closes the saved search', function() {
+      element.receivedSearches = [{
+        open: true,
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.receivedSearches[0]
+        }
+      };
+
+      element._toggleReceivedSearchSettings(mockEvent);
+      assert.isFalse(element.receivedSearches[0].open);
+    });
+
+    test('_updateNotification updates the notification for the saved search', function() {
+      element.searches = [{
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._updateNotification(mockEvent);
+      // TODO
+    });
+
+    test('_isFalse returns the correct values', function() {
+      assert.isTrue(element._isFalse(false));
+      assert.isFalse(element._isFalse(true));
+    });
+
+    test('_openSettingsDialog opens the settings dialog', function() {
+      element._openSettingsDialog();
+      var settingsDialog = element.$$('#settingsDialog');
+      assert(settingsDialog);
+      assert.isTrue(settingsDialog.opened);
+    });
+
+    test('_getFormattedDate returns correctly formatted string', function() {
+      assert.equal(element._getFormattedDate('2016-08-30T00:00:00'), 'August 30, 2016');
+      assert.equal(element._getFormattedDate('2015-10-05T00:00:00'), 'October 05, 2015');
+      assert.isUndefined(element._getFormattedDate(null));
+    });
+  });
+</script>
+
+</body>
+</html>

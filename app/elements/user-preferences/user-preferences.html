@@ -1,0 +1,611 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/breadbox-item/breadbox-item.html">
+<link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../lodash.html">
+<link rel="import" href="../dateformat.html">
+
+<dom-module id="user-preferences">
+  <template>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: inline-block;
+      }
+
+      #settingsDialog {
+        height: 100%;
+        width: 100%;
+      }
+
+      .settings {
+        min-height: 700px;
+        min-width: 900px;
+      }
+
+      .settings > div {
+        margin: 10px;
+      }
+
+      .checkbox {
+        height: 20px;
+        width: 20px;
+        /* Align the checkbox with the text. */
+        top: 1px;
+      }
+
+      .search {
+        margin: 5px 5px 0;
+      }
+
+      .search-settings {
+        /* Align the left of the search-settings with the left of the search-text and the facets. */
+        margin-left: 125px;
+      }
+
+      modal-icon {
+        align-items: inherit;
+      }
+    </style>
+    <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
+
+    <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="settings">
+        <div class="layout horizontal">
+          <span class="bold tall flex">User Settings</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close User Settings"></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <template is="dom-if" if="{{userRecordExists}}" restamp="true">
+          <div class="layout horizontal">
+            <div class="start-justified flex">
+              <span class="name right-space">Logged in as:</span>
+              <span class="text">[[username]]</span>
+            </div>
+            <div class="end-justified">
+              <span class="name right-space">DIG Version:</span>
+              <span class="text">DIG_VERSION</span>
+            </div>
+          </div>
+
+          <!-- Don't show email address and interval fields until notifications are working
+          <div class="layout horizontal">
+            <span class="name tall right-space">Email Address for Notifications:</span>
+            <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}" no-label-float></paper-input>
+            <button-action title="Save Email Address" text="Save" disabled="[[!emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
+          </div>
+          <div class="layout horizontal pointer">
+            <span class="name tall right-space">Automatically Run Searches:</span>
+            <paper-dropdown-menu disabled="[[noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
+              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
+                <paper-item value="never">Never</paper-item>
+                <paper-item value="hourly">Every Hour</paper-item>
+                <paper-item value="daily">Every Day</paper-item>
+                <paper-item value="weekly">Every Week</paper-item>
+              </paper-listbox>
+            </paper-dropdown-menu>
+            <template is="dom-if" if="[[noEmailAddress]]">
+              <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
+            </template>
+          </div>-->
+
+          <div class="divider"></div>
+
+          <template is="dom-if" if="[[showSearch]]">
+            <div class="layout horizontal pointer" title="Toggle Advanced Search" on-tap="_toggleAdvancedSearch">
+              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(advancedSearch)]]"></iron-icon>
+              <span class="text">Advanced Search</span>
+            </div>
+          </template>
+
+          <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
+            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
+            <span class="text">Blur Images</span>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="layout vertical">
+            <div class="name">Saved Searches</div>
+            <template is="dom-repeat" items="[[searches]]" as="search">
+              <div class="layout vertical search">
+                <div class="layout horizontal">
+                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch"></paper-icon-button>
+                  <search-info-display search="[[search]]"></search-info-display>
+                </div>
+                <iron-collapse opened="[[search.open]]">
+                  <div class="layout horizontal search-settings">
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Created By</div>
+                      <div class="name tall right-space">Created On</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="text tall right-space">[[search.createdBy]]</div>
+                      <div class="text tall right-space">[[_getFormattedDate(search.createdAt)]]</div>
+                    </div>
+                    <send-search
+                      search="[[search]]"
+                      client="[[client]]"
+                      current-user="[[username]]"
+                      user-index="[[userIndex]]"
+                      user-type="[[userType]]">
+                    </send-search>
+                  </div>
+                </iron-collapse>
+              </div>
+            </template>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="layout vertical">
+            <div class="name">Received Searches</div>
+            <template is="dom-repeat" items="[[receivedSearches]]" as="search">
+              <div class="layout vertical search">
+                <div class="layout horizontal">
+                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleReceivedSearchSettings"></modal-icon>
+                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch"></paper-icon-button>
+                  <search-info-display search="[[search]]"></search-info-display>
+                </div>
+                <iron-collapse opened="[[search.open]]">
+                  <div class="layout horizontal search-settings">
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Created By</div>
+                      <div class="name tall right-space">Created On</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="text tall right-space">[[search.createdBy]]</div>
+                      <div class="text tall right-space">[[_getFormattedDate(search.createdAt)]]</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Add To Saved Searches</div>
+                    </div>
+                    <div class="layout vertical right-space">
+                      <button-action title="Add this Search to Saved Searches" text="Add" click-listener="[[_createAddSearchListener(index)]]"></button-action>
+                      <!-- Confirm dialog for saving over an existing search -->
+                      <paper-dialog id="receiveAlert"  modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+                        <div class="layout horizontal">
+                          <span class="bold tall flex">Adding this query will save over your previously saved search of the same name.</span>
+                        </div>
+                        <div class="buttons">
+                          <paper-button dialog-confirm on-tap="_confirmReceivedSearch">OK</paper-button>
+                          <paper-button dialog-dismiss>Cancel</paper-button>
+                        </div>
+                      </paper-dialog>
+                    </div>
+                  </div>
+                </iron-collapse>
+              </div>
+            </template>
+          </div>
+
+        </template>
+        <template is="dom-if" if="{{!userRecordExists}}" restamp="true">
+          Creating user record...
+        </template>
+      </div>
+    </paper-dialog>
+
+    <!--Updates to user record initiated by user preferences dialog-->
+    <elastic-update
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-type="[[userType]]"
+      id="{{userId}}"
+      body='{{_userUpdateBody}}'
+      results="{{_updatedUser}}"
+      last-error="{{updateError}}">
+    </elastic-update>
+
+  </template>
+  <script>
+  (function() {
+    /* globals _, dateFormat */
+    'use strict';
+
+    Polymer({
+      is: 'user-preferences',
+
+      properties: {
+        /**
+         * The name of this user.
+         */
+        username: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+        /**
+         * The index where users are stored
+         */
+        userIndex: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The user type
+         */
+        userType: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * Whether to show search options.
+         */
+        showSearch: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The text on which to search.
+         */
+        searchText: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The facets used (if any) along with searchText.
+         */
+        facets: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Boolean to track when associated elastic-client-search query has finished loading.
+         */
+        loading: {
+          type: Boolean,
+          notify: true,
+          observer: '_fillOutFacets'
+        },
+
+        /**
+         * Whether advanced search is enabled.
+         */
+        advancedSearch: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
+         * Whether image blurring is enabled.
+         */
+        blurImages: {
+          type: Boolean,
+          value: true,
+          notify: true
+        },
+        /**
+         * _id from existing user record (used to make updates)
+         */
+        userId: {
+          type: String
+        },
+
+        /**
+         * Boolean variable to track if/when user record is created in elasticsearch.
+         */
+        userRecordExists: {
+          type: Boolean,
+          value: undefined,
+          notify: true
+        },
+
+        /**
+         * Index to replace in searches if saving over existing search.
+         */
+        _saveOverIndex: {
+          type: Number
+        },
+        /**
+         * The email address of this user.
+         */
+        emailAddress: {
+          type: String
+        },
+
+        /**
+         * Whether this user has entered an email address.
+         */
+        noEmailAddress: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * The received searches for this user.
+         */
+        receivedSearches: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+        /**
+         * The saved searches for this user.
+         */
+        searches: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * Document info to pass into the elastic-update component
+         */
+        _userUpdateBody: {
+          type: Object,
+          readOnly: true
+        },
+        /**
+         * Result from elastic-update.
+         */
+        _updatedUser: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * Where to store facets while waiting for query results to reload (fix for timing issues when loading
+         * both the searchText and facets).
+         */
+        _facetsToLoad: {
+          type: Object,
+          notify: true,
+          value: function() {
+            return undefined;
+          }
+        }
+
+      },
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Creates and returns a listener to save the user's email address.
+       */
+      _createSaveEmailAddressListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(self.emailAddress) {
+              self.set('noEmailAddress', false);
+
+              self._set_userUpdateBody({
+                doc: {
+                  emailAddress: self.emailAddress
+                }
+              });
+            }
+          }
+        };
+      },
+
+      /**
+       * Toggles the user's advanced search setting.
+       */
+      _toggleAdvancedSearch: function() {
+        var self = this;
+        this.advancedSearch = !this.advancedSearch;
+
+        self._set_userUpdateBody({
+          doc: {
+            advancedSearch: self.advancedSearch
+          }
+        });
+      },
+
+      /**
+       * Toggles the user's blur setting.
+       */
+      _toggleBlur: function() {
+        var self = this;
+        this.blurImages = !this.blurImages;
+
+        self._set_userUpdateBody({
+          doc: {
+            blurImages: self.blurImages
+          }
+        });
+      },
+
+      /**
+       * Creates and returns a listener to add a new search from the list of receivedSearches.
+       */
+      _createAddSearchListener: function(index) {
+        var self = this;
+        return {
+          onClick: function() {
+            var indexToReplace = _.findIndex(self.searches, {name: self.receivedSearches[index].name});
+
+            if(indexToReplace !== -1) {
+              self._saveOverIndex = indexToReplace;
+              self.$$('#receiveAlert').open();
+            } else {
+              self.push('searches', self._copyReceivedSearch(self.receivedSearches[index]));
+              self.splice('receivedSearches', index, 1);
+              self._set_userUpdateBody({
+                doc: {
+                  savedQueries: self.searches,
+                  receivedQueries: self.receivedSearches
+                }
+              });
+            }
+          }
+        };
+      },
+
+      /**
+       * Copy search and delete UI property 'open' when receiving a saved search
+       */
+      _copyReceivedSearch: function(search) {
+        var searchCopy = JSON.parse(JSON.stringify(search));
+        delete searchCopy.open;
+        return searchCopy;
+      },
+
+      /**
+       * Save over an existing record in searches.
+       */
+      _confirmReceivedSearch: function(event) {
+        var self = this;
+        self.splice('searches', this._saveOverIndex, 1, self._copyReceivedSearch(event.model.search));
+        self.splice('receivedSearches', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self.searches,
+            receivedQueries: self.receivedSearches
+          }
+        });
+      },
+
+      /**
+       * Deletes the given saved search.
+       */
+      _deleteSearch: function(event) {
+        var self = this;
+        self.splice('searches', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self.searches
+          }
+        });
+      },
+
+      /**
+       * Deletes the given saved search.
+       */
+      _deleteReceivedSearch: function(event) {
+        var self = this;
+        self.splice('receivedSearches', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            receivedQueries: self.receivedSearches
+          }
+        });
+      },
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Returns the checkbox icon for the given setting.
+       */
+      _getCheckboxIconToShow: function(setting) {
+        return setting ? 'check-box' : 'check-box-outline-blank';
+      },
+
+      /**
+       * Returns the title of the modal-icon for the given open setting.
+       */
+      _getModalIconTitle: function(open) {
+        return (open ? 'Close' : 'Open') + ' Search Settings';
+      },
+
+      /**
+       * Runs the given saved search.
+       */
+      _runSearch: function(event) {
+        this.$$('#settingsDialog').close();
+        var self = this;
+
+        if(this.searchText !== event.model.search.digUIState.searchText) {
+          self.set('searchText', event.model.search.digUIState.searchText);
+          self.set('_facetsToLoad', JSON.parse(event.model.search.digUIState.facets));
+        } else {
+          self.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        }
+      },
+
+      /**
+       * Wait to reload facets until after initial search string has been processed.
+       */
+      _fillOutFacets: function() {
+        if(this.loading === false) {
+          if(this._facetsToLoad && this.searchText) {
+            this.set('facets', JSON.parse(JSON.stringify(this._facetsToLoad)));
+            this._facetsToLoad = undefined;
+          }
+        }
+      },
+
+      /**
+       * Toggles the open setting of the given saved search.
+       */
+      _toggleSearchSettings: function(event) {
+        this.set('searches.' + event.model.index + '.open', !event.model.search.open);
+      },
+
+      /**
+       * Toggles the open setting of the given received search.
+       */
+      _toggleReceivedSearchSettings: function(event) {
+        this.set('receivedSearches.' + event.model.index + '.open', !event.model.search.open);
+      },
+
+      /**
+       * Updates the notification setting of the given saved search.
+       */
+      _updateNotification: function(event) {
+        console.log('Notify ' + event.model.search.name + ' index ' + event.model.index + ' interval ' + event.model.search.frequency);
+        // TODO Update the notification interval for the search in the user's data.
+      },
+
+      /**
+       * Opens the settings dialog.
+       */
+      _openSettingsDialog: function() {
+        this.$$('#settingsDialog').open();
+      },
+      /**
+       * Returns whether the given value is false.
+       */
+      _isFalse: function(value) {
+        return !value;
+      },
+      /**
+       * Returns more readable string of createdAt date.
+       */
+      _getFormattedDate: function(date) {
+        if(date) {
+          return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>
