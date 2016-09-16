@@ -207,6 +207,32 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         data: transformedData,
         timestamps: timestamps
       };
+    },
+
+    mentions: function(entityId, data) {
+      var mentions = [];
+      if(data && data.aggregations) {
+        data.aggregations.mentions.mentions.buckets.forEach(function(entityBucket) {
+          if(entityId !== entityBucket.key) {
+            var type = entityBucket.key.indexOf('email') >= 0 ? 'email' : 'phone';
+            var text = entityBucket.key.substring(entityBucket.key.lastIndexOf('/') + 1);
+            if(type === 'phone' && text.indexOf('-') >= 0) {
+              // Remove country code.
+              text = text.substring(text.indexOf('-') + 1);
+            }
+            if(type === 'email') {
+              text = decodeURIComponent(text);
+            }
+            mentions.push({
+              icon: commonTransforms.getIronIcon(type),
+              link: commonTransforms.getLink(entityBucket.key, type),
+              styleClass: commonTransforms.getStyleClass(type),
+              text: text
+            });
+          }
+        });
+      }
+      return mentions;
     }
   };
 })(_, commonTransforms, relatedEntityTransform);

@@ -136,6 +136,39 @@
       transform-function="[[clientConfig.transforms.image.imageOffersData]]">
     </json-transform>
 
+    <!-- Mentions in Offers -->
+
+    <elastic-client-aggregation-builder
+      name="mentions"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentions"
+      ejs-aggregation="{{offerMentionsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query="[[imageOffersQuery]]"
+      aggregations="[[buildArray(offerMentionsAggregation)]]"
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      sort-field="validFrom"
+      sort-order="desc"
+      results="{{offersMentions}}"
+      loading="{{mentionsLoading}}"
+      last-error="{{mentionsError}}">
+    </elastic-client-search>
+
+    <json-combine
+      data-in1="[[imageDisplay.url]]"
+      data-in2="[[offersMentions]]"
+      data-out="{{imageDisplay.offersMentions}}"
+      combine-function="[[clientConfig.transforms.offer.mentions]]">
+    </json-combine>
+
     <!-- Location timeline for bar chart and itinerary -->
 
     <location-timeline
@@ -241,6 +274,38 @@
                     produced-filters="{{peopleFilters}}"
                     transforms="[[clientConfig.transforms]]">
                   </people-features>
+                </section>
+              </paper-material>
+
+              <!-- Mentions Section -->
+
+              <div class="h-divider"></div>
+
+              <paper-material>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
+                    <div>Emails & Phones in Ads for this Image</div>
+                  </div>
+
+                  <template is="dom-if" if="[[mentionsError]]">
+                    <elastic-error error="[[mentionsError]]" message="{{mentionsErrorMessage}}"></elastic-error>
+                    <div>[[mentionsErrorMessage]]</div>
+                  </template>
+
+                  <template is="dom-if" if="[[!imageDisplay.offersMentions.length]]">
+                    <template is="dom-if" if="[[mentionsLoading]]">
+                      <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
+                    </template>
+                    <template is="dom-if" if="[[!mentionsLoading]]">
+                      <div>None</div>
+                    </template>
+                  </template>
+
+                  <icon-label-grid
+                    icon-style-class-property="styleClass"
+                    data="[[imageDisplay.offersMentions]]">
+                  </icon-label-grid>
                 </section>
               </paper-material>
 
