@@ -44,16 +44,10 @@ var all = {
     elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
-<<<<<<< HEAD
     memexImageSimilarity: process.env.MEMEX_IMAGE_SIMILARITY || '',
     annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case'
-    
-=======
-    annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
     userIndex: process.env.USER_INDEX || 'dig-users',
     userType: process.env.USER_TYPE || 'user'
- 
->>>>>>> b8b1172cca3be3b7597530fda74c775eaee05da9
 };
 
 // Export the config object based on the NODE_ENV
