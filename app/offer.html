@@ -44,7 +44,7 @@
   <!-- endbuild -->
 
   <script src="scripts/google-analytics.js"></script>
-  
+
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -210,6 +210,46 @@
      data-out="{{offersWithSameUrl}}"
      transform-function="[[clientConfig.transforms.offer.revisions]]"
      ></json-transform>
+
+    <!-- Get daily phone+locations data for event drops viz-->
+
+    <elastic-client-aggregation-builder
+      name="dates"
+      type="date_histogram"
+      interval="day"
+      count="0"
+      field="validFrom"
+      ejs-aggregation="{{datesAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="locations"
+      type="terms"
+      count="0"
+      order="_term"
+      direction="asc"
+      field="availableAtOrFrom.address.key"
+      nested-aggregations="[[buildArray(datesAggregation)]]"
+      ejs-aggregation="{{locationsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      query="[[offerQuery]]"
+      aggregations="[[buildArray(locationsAggregation)]]"
+      filters="[]"
+      results="{{dropsQueryResults}}"
+      loading="{{dropsLoading}}"
+      last-error="{{dropsError}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[dropsQueryResults]]"
+      data-out="{{dropsResults}}"
+      transform-function="[[clientConfig.transforms.offer.dropsTimeline]]">
+    </json-transform>
 
     <!-- Display Content -->
     <div class="entity">
@@ -502,20 +542,31 @@
             <div class="flex layout vertical">
               <!-- Map section -->
               <paper-material>
-                  <!-- Address -->
-                  <section class="where-header flex-none content">
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                      <div>[[offerDisplay.address.formattedAddress]]</div>
-                    </div>
-                  </section>
+                <!-- Address -->
+                <section class="where-header flex-none content">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[offerDisplay.address.formattedAddress]]</div>
+                  </div>
+                </section>
 
-                  <!-- Leaflet map -->
-                  <template is="dom-if" if="{{offerDisplay.geolocation.length > 0}}">
-                    <section class="where flex-auto">
-                      <leaflet-wrapper data="{{offerDisplay.geolocation}}"></leaflet-wrapper>
-                    </section>
-                  </template>
+                <!-- Leaflet map -->
+                <template is="dom-if" if="{{offerDisplay.geolocation.length > 0}}">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper
+                      text-property="longName"
+                      data="{{offerDisplay.geolocation}}">
+                    </leaflet-wrapper>
+                  </section>
+                </template>
+              </paper-material>
+
+              <paper-material>
+                <!-- Event drops timeline -->
+                  <section class="who flex-auto">
+                    <div class="paper-font-title">Location Timeline</div>
+                    <drops-timeline payload="{{dropsResults}}"></drops-timeline>
+                  </section>
               </paper-material>
 
               <!-- Revisions Timeline -->
@@ -594,6 +645,7 @@
     </div>
   </template>
 
+  <script src="behaviors/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
 
   <script>
@@ -602,6 +654,8 @@
     var app = document.querySelector('#app');
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+
+    app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
   })(document);
   </script>
 </body>

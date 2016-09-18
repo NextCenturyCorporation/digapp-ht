@@ -2,7 +2,6 @@
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-spinner/paper-spinner.html">
-<link rel="import" href="../image-viewer/image-viewer.html">
 
 <dom-module id="image-similar-search">
   <template>
@@ -23,35 +22,28 @@
         <paper-button on-tap="getData" autofocus>Search</paper-button>
       </div>
 
-<!--       <iron-ajax auto
-          url="https://isi.memexproxy.com/ColumbiaUimgSearch.php"
-          headers='{"X-Requested-With": "XMLHttpRequest"}'
-          params='{"part":"snippet", "q":"polymer", "key": "AIzaSyAuecFZ9xJXbGDkQYWBmYrtzOGJD-iDIgI", "type": "video"}'
-          handle-as="json"
-          last-response="{{ajaxResponse}}"></iron-ajax> -->
 
       <iron-ajax
       id="xhr"
       url="https://isi.memexproxy.com/ColumbiaUimgSearch.php"
-      params='{"url":"https://s3.amazonaws.com/roxyimages/5df359ba5aa9409fad27de9a895b90dab8291d94.jpg"}'
+      params='{"url":"https://c1.staticflickr.com/9/8177/8055293459_12a4fe0869_z_d.jpg"}'
       handle-as="json"
       method="GET"
       with-credentials="true"
-      last-response="{{ajaxResponse}}"></iron-ajax>
+      on-response="handleResponse"></iron-ajax>
 
-<!--     <template is="dom-repeat" items="[[ajaxResponse.images.similar_images.cached_image_urls]]">
-        <div class="horizontal-section">
-          <h2><a href="[[url(item)]]" target="_blank">url</a></h2>
-          <iron-image src="[[item]]" width="256" height="256" sizing="cover" preload fade></iron-image>
+      <paper-dialog id="simImages" modal style='width: 75%;'>
+        <h2>Similar Images</h2>
+        <paper-dialog-scrollable>
+          <template is="dom-repeat" items="[[images]]">
+            <iron-image src="[[item]]" width="150" height="150" sizing="cover" preload fade></iron-image>
+          </template>
+        </paper-dialog-scrollable>
+        <div class="buttons">
+          <paper-button dialog-confirm >Close</paper-button>
         </div>
-    </template>
-
-    <div class="loading-container">
-      <template is="dom-if" if="[[loading]]">
-        <paper-spinner active="[[loading]]"></paper-spinner>
-        <span class="button-height-text">Loading Images...</span>
-      </template>
-    </div> -->
+        </div>
+      </paper-dialog>
 
   </template>
 
@@ -71,26 +63,39 @@
           }
         },
         user: String,
-        password: String
-
+        password: String,
+        images: {
+            type: Array,
+            value: function() {
+              return [];
+            },
+            notify: true
+        },
+        blur: {
+          type: Boolean,
+          notify: true
+        }
       },
 
-
-      makeHeaders: function(user, password){
+      makeHeaders: function(user, password) {
         return "Basic " + btoa(user + ":" + password);
       },
 
       observers: ['_setBasicAuth(user, password)'],
 
-      _setBasicAuth(user, password){
+      _setBasicAuth(user, password) {
           // might be needed
           this.headers['X-Requested-With'] = "XMLHttpRequest";
           this.headers['content-type']='application/json';
           // this sets your Auth header
           this.headers['Authorization'] = this.makeHeaders(user, password);
       },
-      // observers: ['_setBasicAuth(user, password)'],
-
+      handleResponse: function(event) {
+        console.log(event.detail.response);
+        var resp = event.detail.response;
+        this.images = resp.images[0].similar_images.cached_image_urls;
+        this.$.simImages.open();
+      },
       getData: function(){
         // this.$.xhr.headers['X-Requested-With'] = "XMLHttpRequest";
         // this.$.xhr.headers['Content-type'] = "text/plain";

@@ -29,6 +29,10 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
       var location = {};
       location.latitude = latitude;
       location.longitude = longitude;
+      var locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
+      var region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
+      var country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
+      location.longName = locality + ', ' + region + ', ' + country;
       geolocation.push(location);
     }
 
@@ -125,6 +129,18 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     return newData;
   }
+
+  var offsetDates = function(dates) {
+    var sorted = _.sortBy(dates);
+    for(var i = 1; i < sorted.length; i++) {
+      if(sorted[i] === sorted[i - 1]) {
+        sorted[i] = new Date(sorted[i].getTime() + 300);
+      }
+    }
+
+    return sorted;
+  };
+
   return {
     // expected data is from an elasticsearch
     offer: function(data) {
@@ -139,6 +155,58 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     revisions: function(data) {
       return relatedEntityTransform.offer(data);
+    },
+
+    removeDescriptorFromOffers: function(descriptorId, offers) {
+      return offers.map(function(offer) {
+        offer.descriptors = offer.descriptors.filter(function(descriptor) {
+          return descriptor.id !== descriptorId;
+        });
+        return offer;
+      });
+    },
+
+    dropsTimeline: function(data) {
+
+      var timestamps = [];
+      var transformedData = [];
+
+      if(data && data.aggregations) {
+
+        /* Aggregate cities */
+        var cityAggs = {};
+
+        data.aggregations.locations.locations.buckets.forEach(function(locationBucket) {
+          var city = locationBucket.key;
+
+          /* Assign city Aggregations */
+          if(!(city in cityAggs)) {
+            cityAggs[city] = [];
+          }
+
+          locationBucket.dates.buckets.forEach(function(dateBucket) {
+            if(dateBucket.key) {
+              cityAggs[city].push(new Date(dateBucket.key));
+              timestamps.push(dateBucket.key);
+            }
+          });
+        });
+
+        /* Transform data */
+        for(var city in cityAggs) {
+          var dates = offsetDates(cityAggs[city]);
+
+          transformedData.push({
+            name: city.split(':')[0],
+            data: dates
+          });
+        }
+      }
+
+      return {
+        data: transformedData,
+        timestamps: timestamps
+      };
     }
   };
 })(_, commonTransforms, relatedEntityTransform);

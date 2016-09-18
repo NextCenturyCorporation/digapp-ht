@@ -247,7 +247,7 @@
       assert.equal(dataOut.data[0].descriptors.length, 3);
       assert.isObject(dataOut.data[0].descriptors[0]);
       assert.equal(dataOut.data[0].descriptors[0].type, 'date');
-      assert.equal(dataOut.data[0].descriptors[0].text, 'October 30, 2015');
+      assert.equal(dataOut.data[0].descriptors[0].text, 'Oct 30, 2015');
       assert.isObject(dataOut.data[0].descriptors[1]);
       assert.equal(dataOut.data[0].descriptors[1].type, 'phone');
       assert.equal(dataOut.data[0].descriptors[1].text, '9876543210');
@@ -279,7 +279,7 @@
       assert.equal(dataOut.data[1].descriptors.length, 3);
       assert.isObject(dataOut.data[1].descriptors[0]);
       assert.equal(dataOut.data[1].descriptors[0].type, 'date');
-      assert.equal(dataOut.data[1].descriptors[0].text, 'November 02, 2015');
+      assert.equal(dataOut.data[1].descriptors[0].text, 'Nov 2, 2015');
       assert.isObject(dataOut.data[1].descriptors[1]);
       assert.equal(dataOut.data[1].descriptors[1].type, 'phone');
       assert.equal(dataOut.data[1].descriptors[1].text, '1112223333');
@@ -298,6 +298,57 @@
       assert.equal(dataOut.data[1].details[1].value, 'Atlanta');
       assert.equal(dataOut.data[1].details[2].label, 'publisher');
       assert.equal(dataOut.data[1].details[2].value, 'Publisher_2');
+    });
+  });
+
+  suite('<client-config> offer tests for dropsTimeline', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with dropsTimeline transform', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer.dropsTimeline).to.be.a('Function');
+    });
+
+    test('drops timeline function given empty input returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.dropsTimeline({
+        aggregations: {
+          locations: {
+            locations: {
+              buckets: []
+            }
+          }
+        }
+      });
+      expect(output.data).to.be.an('Array');
+      expect(output.data.length).to.equal(0);
+      expect(output.timestamps).to.deep.equal([]);
+    });
+
+    test('drops timeline function given offer aggregations returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.dropsTimeline(offerAgg);
+      expect(output.data).to.be.an('Array');
+      expect(output.data.length).to.equal(2);
+      expect(output.data[0].name).to.equal('Brooklyn');
+      expect(output.data[0].data).to.be.an('Array');
+      expect(output.data[0].data.length).to.equal(3);
+      expect(output.data[0].data[0]).to.be.a('Date');
+      expect(output.data[0].data[0].getTime()).to.equal(1444435200000);
+      expect(output.data[0].data[1]).to.be.a('Date');
+      expect(output.data[0].data[1].getTime()).to.equal(1444521600000);
+      expect(output.data[0].data[2]).to.be.a('Date');
+      expect(output.data[0].data[2].getTime()).to.equal(1444608000000);
+      expect(output.data[1].name).to.equal('Mumbai');
+      expect(output.data[1].data).to.be.an('Array');
+      expect(output.data[1].data.length).to.equal(1);
+      expect(output.data[1].data[0]).to.be.a('Date');
+      expect(output.data[1].data[0].getTime()).to.equal(1444608000000);
+      expect(output.timestamps).to.deep.equal([1444608000000, 1444521600000, 1444435200000, 1444608000000]);
     });
   });
 </script>

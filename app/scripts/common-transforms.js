@@ -218,7 +218,7 @@ var commonTransforms = (function(_, dateFormat) {
      * Returns the string for the given date number/string in UTC format.
      */
     getDate: function(date) {
-      return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
+      return dateFormat(new Date(date), 'mmm d, yyyy', true);
     },
 
     /**
