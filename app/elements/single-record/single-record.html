@@ -60,9 +60,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           color: var(--primary-text-color);
         };
       }
+
+      a {
+        display: block;
+      }
     </style>
 
-    <paper-material class$="layout horizontal flex head [[getHeaderClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
+    <paper-material class$="layout horizontal flex head [[getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
       <modal-icon
         icon="[[item.icon]]"
         icon-style-class="[[item.styleClass]]"
@@ -72,14 +76,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </modal-icon>
 
       <template is="dom-if" if="[[imageSource]]">
-        <iron-image class$="layout vertical center-justified [[getBlurClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
+        <iron-image class$="layout vertical center-justified [[getBlurStyleClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
       </template>
 
       <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[getTitle(item.text)]]"><strong>[[item.text]]</strong></div>
+        <div class="text" title$="[[item.text]]"><strong>
+          <highlighted-text text="[[getHeaderText(item)]]"></highlighted-text>
+        </strong></div>
 
         <template is="dom-if" if="[[item.descriptors.length]]">
-          <div class="text" title$="[[getSubtitle(item.descriptors)]]" secondary>
+          <div class="text wrap" secondary>
             <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
               <icon-label title="Open [[descriptor.text]]"
                 icon="[[descriptor.icon]]"
@@ -119,14 +125,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <paper-material class="body">
             <template is="dom-repeat" items="[[item.details]]" as="detail">
               <div class="text">
-                <strong>[[cleanCamelCase(detail.label)]]</strong>
-                <template is="dom-repeat" items="[[getDetailValueArray(detail)]]" as="value">
-                  <template is="dom-if" if="[[detail.url]]">
-                    <a target="_blank" href$="[[value]]">[[value]]</a>
-                  </template>
-                  <template is="dom-if" if="[[!detail.url]]">
-                    <span>[[value]]</span>
-                  </template>
+                <strong>[[cleanCamelCase(detail.name)]]</strong>
+                <template is="dom-if" if="[[detail.link]]">
+                  <a target="_blank" href$="[[detail.text]]">[[detail.text]]</a>
+                </template>
+                <template is="dom-if" if="[[!detail.link]]">
+                  <highlighted-text text="[[getDetailText(detail)]]"></highlighted-text>
                 </template>
               </div>
             </template>
@@ -153,7 +157,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
-    /* globals _ */
     'use strict';
 
     Polymer({
@@ -281,30 +284,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           'updateShowDetails(item.details)'
       ],
 
-      getBlurClass: function(blur) {
+      getBlurStyleClass: function(blur) {
         return (blur ? 'small-blur' : '');
       },
 
-      getDetailValueArray: function(detail) {
-        return (detail && detail.value) ? (_.isArray(detail.value) ? detail.value : [detail.value]) : [];
+      getDetailText: function(detail) {
+        return (detail ? (detail.highlightedText || detail.text) : '') || 'None';
       },
 
-      getHeaderClass: function(open) {
+      getHeaderStyleClass: function(open) {
         return (open ? 'opened' : 'closed');
       },
 
-      getSubtitle: function(descriptors) {
-        return descriptors.map(function(descriptor) {
-          return descriptor.text;
-        }).join(', ') || '';
+      getHeaderText: function(item) {
+        return item.highlightedText || item.text;
       },
 
       getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
-      },
-
-      getTitle: function(text) {
-        return (_.isArray(text) ? text.join(', ') : text) || '';
       },
 
       /**
@@ -327,7 +324,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       cleanCamelCase: function(key) {
-        return key.replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
+        return (key || '').replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
           return word.charAt(0).toUpperCase() + word.substr(1);
         }) + ':';
       },

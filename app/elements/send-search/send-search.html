@@ -1,0 +1,262 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+
+<dom-module id="send-search">
+  <template>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <div class="layout horizontal">
+      <div class="layout vertical right-space">
+        <div class="name tall right-space">Send Saved Search to User</div>
+      </div>
+      <div class="layout vertical right-space">
+        <paper-input label="Enter Username" value="{{_userToSendQuery}}" no-label-float></paper-input>
+      </div>
+      <div class="layout vertical">
+        <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener()]]"></button-action>
+      </div>
+      <div class="layout vertical">
+        <template is="dom-if" if="[[_querySentSuccessfully]]" restamp="true">
+          <paper-icon-button icon="check" title="Query sent successfully!" noink></paper-icon-button>
+        </template>
+        <template is="dom-if" if="[[_noUserRecordFound]]" restamp="true">
+          <paper-icon-button icon="error" title="User entered does not exist." noink></paper-icon-button>
+        </template>
+        <template is="dom-if" if="[[_queryAlreadySent]]" restamp="true">
+          <paper-icon-button icon="error" title="Query has already been sent to user specified." noink></paper-icon-button>
+        </template>
+      </div>
+    </div>
+
+    <user-query
+      client="[[client]]"
+      user-index="[[userIndex]]"
+      user-type="[[userType]]"
+      username="[[_checkForUser]]"
+      user-result="{{_sentUserSearchResult}}">
+    </user-query>
+
+    <elastic-update
+      client="[[client]]"
+      index="[[userIndex]]"
+      elastic-type="[[userType]]"
+      id="{{_userIdToSendQuery}}"
+      body='{{_sendUserUpdateBody}}'
+      results="{{_sentQueryUpdate}}"
+      last-error="{{sendError}}">
+    </elastic-update>
+  </template>
+  <script>
+  (function() {
+    /* globals _ */
+    'use strict';
+
+    Polymer({
+      is: 'send-search',
+
+      properties: {
+        /**
+         * The name of this user.
+         */
+        currentUser: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
+         */
+        client: {
+          type: Object
+        },
+        /**
+         * The search object.
+         */
+        search: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * The index where users are stored
+         */
+        userIndex: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * The user type
+         */
+        userType: {
+          type: String,
+          notify: true
+        },
+        /**
+         * Error sending update (if any)
+         */
+        sendError: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * The query to use to find if user to send a query to exists.
+         */
+        _queryToSend: {
+          type: Object
+        },
+
+        /**
+         * Search result from elastic-client-search query for user to send a query to.
+         */
+        _sentUserSearchResult: {
+          type: Object,
+          observer: '_transformSentUserSearchResult'
+        },
+        /**
+         * Used for error checking when sending queries.
+         */
+        _noUserRecordFound: {
+          type: Boolean,
+          value: undefined,
+          notify: true
+        },
+
+        /**
+         * Boolean to track if query has previously been sent to user specified.
+         */
+        _queryAlreadySent: {
+          type: Boolean,
+          notify: true,
+          value: undefined
+        },
+
+        /**
+         * Check if user exists before attempting to send query.
+         */
+        _checkForUser: {
+          type: String,
+          notify: true
+        },
+
+        /**
+         * Document info to pass into the elastic-update component for sending queries
+         */
+        _sendUserUpdateBody: {
+          type: Object,
+          readOnly: true
+        },
+
+        /**
+         * _id to use when sending a query to another user
+         */
+        _userIdToSendQuery: {
+          type: String
+        },
+
+        /**
+         * Input for username when sending a query
+         */
+        _userToSendQuery: {
+          type: String
+        },
+
+        /**
+         * Check to see if query was sent to specified user.
+         */
+        _querySentSuccessfully: {
+          type: Boolean,
+          notify: true,
+          value: undefined
+        }
+      },
+      observers: [
+        '_checkIfQuerySent(_sentQueryUpdate)'
+      ],
+
+      /**
+       * Updates _querySentSuccessfully when appropriate.
+       */
+      _checkIfQuerySent: function(_sentQueryUpdate) {
+        if(_sentQueryUpdate && _sentQueryUpdate._version) {
+          this._querySentSuccessfully = true;
+        }
+      },
+      /**
+       * Creates and returns a listener to send the given saved search to another user.
+       */
+      _createSendSearchListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(_.trim(self._userToSendQuery) &&
+              !_.isEqual(self._userToSendQuery, self.currentUser)) {
+              // reset error checking booleans and user update values, prepare to send query
+              self._querySentSuccessfully = undefined;
+              self._noUserRecordFound = undefined;
+              self._queryAlreadySent = undefined;
+              self._userIdToSendQuery = undefined;
+              self._set_sendUserUpdateBody(undefined);
+              self._queryToSend = JSON.parse(JSON.stringify(self.search));
+              // don't send record with 'open' flag (should only be used in the html) or notification fields
+              self._checkForUser = JSON.parse(JSON.stringify(self._userToSendQuery));
+              delete self._queryToSend.open;
+              delete self._queryToSend.lastRunDate;
+              delete self._queryToSend.notificationDate;
+              delete self._queryToSend.notificationHasRun;
+              delete self._queryToSend.sendEmailNotification;
+            }
+          }
+        };
+      },
+
+      /**
+       * Populate properties based on search results.
+       */
+      _transformSentUserSearchResult: function() {
+        if(this._sentUserSearchResult) {
+          if(this._sentUserSearchResult.hits.hits.length > 0 && this._queryToSend) {
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            this._noUserRecordFound = false;
+            var receivedSearches = this._sentUserSearchResult.hits.hits[0]._source.receivedQueries;
+
+            this._userIdToSendQuery = this._sentUserSearchResult.hits.hits[0]._id;
+            if(!receivedSearches) {
+              receivedSearches = [];
+            }
+            // check if already sent query
+            if(_.findIndex(receivedSearches, {name: this._queryToSend.name, createdBy: this._queryToSend.createdBy}) !== -1) {
+              this._queryAlreadySent = true;
+            } else {
+              receivedSearches.push(this._queryToSend);
+              this._set_sendUserUpdateBody({
+                doc: {
+                  receivedQueries: receivedSearches
+                }
+              });
+            }
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            this._noUserRecordFound = true;
+          }
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>

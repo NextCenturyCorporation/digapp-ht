@@ -1,0 +1,149 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="search-info-display">
+  <template>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: block;
+        width: 100%;
+      }
+
+      .text {
+        /* Align the left of the text with the left of the facets/text in collapsed view */
+        margin-left: 10px;
+      }
+
+      .facets {
+        /* Align the left of the facets with the left of text in collapsed view */
+        margin-left: 7px;
+        margin-top: 5px;
+      }
+
+      .name {
+        /* Align the left of the text with the left of labels in collapsed view */
+        margin-left: 10px;
+      }
+    </style>
+    <div class="layout horizontal">
+      <div class="name tall right-space">Search Name</div>
+      <div class="text tall right-space search-text">[[search.name]]</div>
+    </div>
+    <div class="layout horizontal">
+      <div class="name tall right-space">Search Text</div>
+      <div class="text tall right-space search-text">
+        <template is="dom-if" if="[[search.digUIState.searchText]]">
+          [[search.digUIState.searchText]]
+        </template>
+        <template is="dom-if" if="[[!search.digUIState.searchText]]">
+          None
+        </template>
+      </div>
+    </div>
+    <div class="layout horizontal">
+      <div class="name tall right-space">Facets</div>
+      <template is="dom-if" if="{{_hasNoFacets}}">
+        <div class="text tall right-space search-text">None</div>
+      </template>
+      <template is="dom-if" if="{{!_hasNoFacets}}">
+        <div class="wrap facets">
+          <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
+            <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
+              <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
+                <breadbox-item
+                  text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
+                  title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                </breadbox-item>
+              </template>
+            </template>
+          </template>
+        </div>
+      </template>
+    </div>
+  </template>
+  <script>
+  (function() {
+    /* globals _ */
+    'use strict';
+
+    Polymer({
+      is: 'search-info-display',
+
+      properties: {
+        /**
+         * Search to display
+         */
+        search: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Indicates if current search has facets or not
+         */
+        _hasNoFacets: {
+          type: Boolean,
+          computed: '_isFacetSelectionEmpty(search)'
+        }
+      },
+      /**
+       * Computes _hasNoFacets property
+       */
+      _isFacetSelectionEmpty: function(search) {
+        var isEmpty = true;
+        if(search && search.digUIState && search.digUIState.facets) {
+          var facets = search.digUIState.facets;
+
+          var facetSelection = JSON.parse(facets);
+          _.each(_.keys(facetSelection), function(key) {
+            _.each(_.keys(facetSelection[key]), function(subkey) {
+              if(facetSelection[key][subkey].enabled === true) {
+                isEmpty = false;
+                return false;
+              }
+            });
+
+            if(!isEmpty) {
+              return false;
+            }
+          });
+        }
+
+        return isEmpty;
+      },
+      /**
+       * Get all the facet selection groups.
+       */
+      _getFacetGroups: function(facets) {
+        return _.keys(JSON.parse(facets));
+      },
+      /**
+       * Get the selected facets from the facet group.
+       */
+      _getFacetGroupKeys: function(facets, facetGroupName) {
+        var facetsAsObject = JSON.parse(facets);
+        return _.keys(facetsAsObject[facetGroupName]);
+      },
+      /**
+       * Get the property of a selected facet.
+       */
+      _getFacetProperty: function(facets, facetGroupName, key, prop) {
+        var facetsAsObject = JSON.parse(facets);
+        if(facetsAsObject && facetsAsObject[facetGroupName] && facetsAsObject[facetGroupName][key]) {
+          return facetsAsObject[facetGroupName][key][prop];
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>

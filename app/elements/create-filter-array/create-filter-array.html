@@ -1,0 +1,181 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/dig-common/dig-common.html">
+
+<dom-module id="create-filter-array">
+  <script>
+  (function() {
+    /* globals _, ejs */
+    'use strict';
+
+    Polymer({
+      is: 'create-filter-array',
+
+      properties: {
+        /**
+         * Contains state of facet checkboxes
+         */
+        facetSelection: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Array of ejs filter objects to pass to elastic-client-search
+         */
+        filterArray: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true,
+          readOnly: true
+        }
+      },
+      observers: [
+        '_rebuildFilterArray(facetSelection.*)'
+      ],
+      _getFilterField: function(group) {
+        var field;
+        switch(group) {
+          case 'country': field = 'mainEntity.availableAtOrFrom.address.addressCountry';
+            break;
+          case 'city': field = 'mainEntity.availableAtOrFrom.address.key';
+            break;
+          case 'phone': field = 'mentions';
+            break;
+          case 'email': field = 'mentions';
+            break;
+          case 'website': field = 'publisher.name.raw';
+            break;
+          case 'name': field = 'mainEntity.itemOffered.name.raw';
+            break;
+          case 'age': field = 'mainEntity.itemOffered.age';
+            break;
+          case 'ethnicity': field = 'mainEntity.itemOffered.ethnicity';
+            break;
+          case 'height': field = 'mainEntity.itemOffered.height';
+            break;
+          case 'weight': field = 'mainEntity.itemOffered.weight';
+            break;
+          case 'hairColor': field = 'mainEntity.itemOffered.hairColor';
+            break;
+          case 'eyeColor': field = 'mainEntity.itemOffered.eyeColor';
+            break;
+          case 'dateCreated': field = 'dateCreated';
+            break;
+        }
+        return field;
+      },
+      _getAggName: function(group) {
+        var aggName;
+        switch(group) {
+          case 'country': aggName = 'countryAgg';
+            break;
+          case 'city': aggName = 'cityAgg';
+            break;
+          case 'phone': aggName = 'phoneEmailAgg';
+            break;
+          case 'email': aggName = 'phoneEmailAgg';
+            break;
+          case 'website': aggName = 'publisherAgg';
+            break;
+          case 'name': aggName = 'nameAgg';
+            break;
+          case 'age': aggName = 'ageAgg';
+            break;
+          case 'ethnicity': aggName = 'ethnicityAgg';
+            break;
+          case 'height': aggName = 'heightAgg';
+            break;
+          case 'weight': aggName = 'weightAgg';
+            break;
+          case 'hairColor': aggName = 'hairColorAgg';
+            break;
+          case 'eyeColor': aggName = 'eyeColorAgg';
+            break;
+        }
+        return aggName;
+      },
+      _getCombinationType: function() {
+        return 'or';
+      },
+      _rebuildFilterArray: function() {
+        var me = this;
+        var arrayFilters = [];
+
+        _.each(_.keys(me.facetSelection), function(group) {
+
+          var field = me._getFilterField(group);
+          if(group === 'dateCreated') {
+            var rangeFilter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
+            if(rangeFilter) {
+              arrayFilters.push(rangeFilter);
+            }
+          } else {
+            var filters = me._buildTermFilterArray(me.facetSelection[group], field);
+            var filter = me._buildAndOrFilter(filters, group);
+            if(filter) {
+              arrayFilters.push(filter);
+            }
+          }
+        });
+
+        this._setFilterArray(arrayFilters);
+      },
+      _buildAndOrFilter: function(filters, group) {
+        var filter;
+
+        if(filters.length > 0) {
+          var combinationType = this._getCombinationType();
+          if(combinationType === 'and') {
+            filter = ejs.AndFilter(filters);
+          } else {
+            filter = ejs.OrFilter(filters);
+          }
+          filter.name(this._getAggName(group));
+        }
+        return filter;
+      },
+      _buildTermFilterArray: function(facetGroup, field) {
+        var filters = [];
+
+        _.each(_.keys(facetGroup), function(key) {
+          if(facetGroup[key].enabled) {
+            filters.push(ejs.TermFilter(field, key));
+          }
+        });
+
+        return filters;
+      },
+      _buildDateRangeEjsFilter: function(facetGroup, field) {
+        if(!field || _.isEqual(facetGroup, {})) {
+          return;
+        }
+        var filter = ejs.RangeFilter(field);
+
+        _.each(_.keys(facetGroup), function(key) {
+          if(key === 'Begin Date') {
+            if(facetGroup[key].enabled) {
+              filter = filter.gte(facetGroup[key].date);
+            }
+          } else if(key === 'End Date') {
+            if(facetGroup[key].enabled) {
+              filter = filter.lte(facetGroup[key].date);
+            }
+          }
+        });
+        return filter;
+      }
+    });
+  })();
+  </script>
+</dom-module>
