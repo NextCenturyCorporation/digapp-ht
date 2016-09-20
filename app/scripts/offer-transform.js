@@ -196,9 +196,10 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         for(var city in cityAggs) {
           var dates = offsetDates(cityAggs[city]);
 
+          var nameList = city.split(':');
           transformedData.push({
-            name: city.split(':')[0],
-            data: dates
+            name: nameList[0] + ', ' + nameList[1],
+            dates: dates
           });
         }
       }

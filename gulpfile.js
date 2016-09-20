@@ -195,7 +195,6 @@ gulp.task('copy', function() {
   ]).pipe(gulp.dest(dist('scripts')));
 
   var sourceMaps = gulp.src([
-    'app/bower_components/eventDrops/dist/eventDrops.js.map',
     'app/bower_components/web-animations-js/web-animations-next-lite.min.js.map'
   ]).pipe(gulp.dest(dist('elements')));
 

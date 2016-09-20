@@ -1,13 +1,13 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/paper-styles/paper-styles-classes.html">
 <script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
-<script src="../../bower_components/eventDrops/dist/eventDrops.js"></script>
+<script src="../../bower_components/eventDrops/src/eventDrops.js"></script>
 
 <dom-module id="drops-timeline">
   <style>
     :host {
       display: block;
-      font-size: 14px;
+      font-size: 12px;
     }
 
     #timeline {
@@ -47,7 +47,8 @@
         },
 
         listeners: {
-          'iron-resize': '_createChart'
+          // Delete the chart on resize because the chart won't shrink and the width of the chart may make the columns on the page uneven.
+          'iron-resize': '_deleteChart'
         },
 
         _createChart: function() {
@@ -65,6 +66,10 @@
           };
         },
 
+        _deleteChart: function() {
+          d3.select('#timeline svg').remove();
+        },
+
         _drawChart: function() {
           var color = d3.scale.category20();
           var endTime = this._getEndTime();
@@ -72,7 +77,16 @@
 
           // Use the width of the timeline container.
           var container = document.getElementById('timeline');
-          var width = (container ? parseInt(container.offsetWidth, 10) : 350) + 250;
+          var width = (container ? parseInt(container.offsetWidth, 10) : 600);
+
+          // Measure the width of the labels in the data to find a good width for the label column in the chart.
+          var textPixelWidth = 100;
+          this.payload.data.forEach(function(item) {
+            var text = d3.select('#timeline').append('text').text(item.name + ' (' + item.dates.length + ')');
+            textPixelWidth = Math.max(textPixelWidth, text[0][0].offsetWidth);
+          });
+          // Clean up the temporary text elements we created to measure.
+          d3.selectAll('#timeline text').remove();
 
           var chart = d3.chart.eventDrops();
           chart.eventLineColor(function(datum, index) {
@@ -81,11 +95,19 @@
           chart.start(new Date(startTime));
           chart.end(new Date(endTime));
           chart.width(width);
-          chart.metaballs(true);
+          chart.margin({
+            top: 60,
+            left: textPixelWidth + 20,
+            bottom: 20,
+            right: 20
+          });
 
-          d3.select(this.$$('#timeline'))
+          d3.select('#timeline')
             .datum(this.payload.data)
             .call(chart);
+
+          // The library fails to set the fill making it black by default so we must set the fill to transparent ourselves.
+          d3.select('.zoom').style('fill', 'transparent');
         },
 
         _getEndTime: function() {
