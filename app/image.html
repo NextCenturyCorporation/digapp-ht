@@ -139,11 +139,19 @@
     <!-- Mentions in Offers -->
 
     <elastic-client-aggregation-builder
-      name="mentions"
+      name="emails"
       type="terms"
       count="0"
-      field="mainEntityOfPage.mentions"
-      ejs-aggregation="{{offerMentionsAggregation}}">
+      field="mainEntityOfPage.mentionsEmail"
+      ejs-aggregation="{{emailMentionsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="phones"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentionsPhone"
+      ejs-aggregation="{{phoneMentionsAggregation}}">
     </elastic-client-aggregation-builder>
 
     <elastic-client-search
@@ -153,7 +161,7 @@
       page="{{pageNum}}"
       page-size="{{pageSize}}"
       query="[[imageOffersQuery]]"
-      aggregations="[[buildArray(offerMentionsAggregation)]]"
+      aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
       filters="[[buildArray(locationFilter, peopleFilters)]]"
       sort-field="validFrom"
       sort-order="desc"
@@ -166,7 +174,7 @@
       data-in1="[[imageDisplay.url]]"
       data-in2="[[offersMentions]]"
       data-out="{{imageDisplay.offersMentions}}"
-      combine-function="[[clientConfig.transforms.offer.mentions]]">
+      combine-function="[[clientConfig.transforms.offer.createMentions]]">
     </json-combine>
 
     <!-- Location timeline for bar chart and itinerary -->
@@ -317,37 +325,37 @@
                 </section>
               </paper-material>
 
-              <!-- Hiding the similar image section until the data is better.
-              <div class="h-divider"></div>
+              <template is="dom-if" if="[[imageDisplay.similarImageId]]">
+                <div class="h-divider"></div>
 
-              <paper-material>
-                <section class="photos">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                    <div>[[imageDisplayTitle]]</div>
-                  </div>
+                <paper-material>
+                  <section class="photos">
+                    <div class="paper-font-title layout horizontal start center">
+                      <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
+                      <div>[[imageDisplayTitle]]</div>
+                    </div>
 
-                  <template is="dom-if" if="[[similarImageError]]">
-                    <elastic-error error="[[similarImageError]]" message="{{similarImageErrorMessage}}"></elastic-error>
-                    <div>[[similarImageErrorMessage]]</div>
-                  </template>
+                    <template is="dom-if" if="[[similarImageError]]">
+                      <elastic-error error="[[similarImageError]]" message="{{similarImageErrorMessage}}"></elastic-error>
+                      <div>[[similarImageErrorMessage]]</div>
+                    </template>
 
-                  <image-query-and-display
-                    image-query-field="identifier"
-                    image-query-values="[[imageDisplay.similarImages.array]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["image"]'
-                    image-transform="[[clientConfig.transforms.image.images]]"
-                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                    type="Similar Image"
-                    image-display-title="{{imageDisplayTitle}}"
-                    error="{{similarImageError}}"
-                    blur="[[blurImages]]">
-                  </image-query-and-display>
-                </section>
-              </paper-material>
-              -->
+                    <image-query-and-display
+                      image-query-field="similarImageId.similarImageId"
+                      image-query-values="[[imageDisplay.similarImageId.similarImageId]]"
+                      client="[[esclient]]"
+                      index="[[config.elasticIndex]]"
+                      index-types='["image"]'
+                      image-transform="[[clientConfig.transforms.image.images]]"
+                      image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
+                      type="Similar Image"
+                      image-display-title="{{imageDisplayTitle}}"
+                      error="{{similarImageError}}"
+                      blur="[[blurImages]]">
+                    </image-query-and-display>
+                  </section>
+                </paper-material>
+              </template>
 
               <!-- Itinerary section -->
               <div class="h-divider"></div>

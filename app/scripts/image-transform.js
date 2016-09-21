@@ -46,14 +46,6 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
         });
 
         newData.adultService = adultService;
-
-        if(newData.similarImageId && newData.similarImageId.similarImageId) {
-          newData.similarImageId.similarImageId = _.isArray(newData.similarImageId.similarImageId) ? newData.similarImageId.similarImageId : [newData.similarImageId.similarImageId];
-          newData.similarImages = {
-            total: newData.similarImageId.similarImageId.length,
-            array: newData.similarImageId.similarImageId
-          };
-        }
       }
       newData.id = newData.uri;
       return newData;

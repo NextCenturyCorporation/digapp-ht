@@ -266,51 +266,27 @@ var commonTransforms = (function(_, dateFormat) {
       return sellerId;
     },
 
-    getEmailAndPhoneFromMentions: function(mentions) {
-      var newData = {};
-      newData.phones = [];
-      newData.emails = [];
-
-      if(mentions) {
-        (_.isArray(mentions) ? mentions : [mentions]).forEach(function(elem) {
-          var type = 'none';
-          if(elem.indexOf('phone') !== -1) {
-            type = 'phone';
-          } else if(elem.indexOf('email') !== -1) {
-            type = 'email';
-          }
-          if(type !== 'none') {
-            var idx = elem.lastIndexOf('/');
-            var text = elem.substring(idx + 1);
-            var countryCode = '';
-            if(type === 'phone') {
-              if(text.indexOf('-') !== -1) {
-                var idx2 = text.indexOf('-');
-                text = text.substring(idx2 + 1);
-                var cc = text.substring(0,idx2);
-                if(cc.length < 5) {
-                  countryCode = cc;
-                }
-              }
-            }
-            var newObj = {
-              id: elem,
-              type: type,
-              text: type === 'email' ? decodeURIComponent(text) : text,
-              icon: getIronIcon(type),
-              link: getLink(elem, type),
-              styleClass: getStyleClass(type)
-            };
-            if(type === 'phone') {
-              newData.phones.push(newObj);
-            }
-            if(type === 'email') {
-              newData.emails.push(newObj);
-            }
-          }
+    getMentions: function(mentions, type) {
+      var output = [];
+      (_.isArray(mentions) ? mentions : [mentions]).forEach(function(uri) {
+        var text = uri.substring(uri.lastIndexOf('/') + 1);
+        if(type === 'phone' && text.indexOf('-') >= 0) {
+          // Remove country code.
+          text = text.substring(text.indexOf('-') + 1);
+        }
+        if(type === 'email') {
+          text = decodeURIComponent(text);
+        }
+        output.push({
+          id: uri,
+          type: type,
+          text: text,
+          icon: getIronIcon(type),
+          link: getLink(uri, type),
+          styleClass: getStyleClass(type)
         });
-      }
-      return newData;
+      });
+      return output;
     }
   };
 })(_, dateFormat);

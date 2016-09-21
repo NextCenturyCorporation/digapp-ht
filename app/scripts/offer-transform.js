@@ -210,25 +210,31 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
       };
     },
 
-    mentions: function(entityId, data) {
+    createMentions: function(ignoreId, data) {
       var mentions = [];
       if(data && data.aggregations) {
-        data.aggregations.mentions.mentions.buckets.forEach(function(entityBucket) {
-          if(entityId !== entityBucket.key) {
-            var type = entityBucket.key.indexOf('email') >= 0 ? 'email' : 'phone';
-            var text = entityBucket.key.substring(entityBucket.key.lastIndexOf('/') + 1);
-            if(type === 'phone' && text.indexOf('-') >= 0) {
+        data.aggregations.phones.phones.buckets.forEach(function(bucket) {
+          if(ignoreId !== bucket.key) {
+            var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
+            if(text.indexOf('-') >= 0) {
               // Remove country code.
               text = text.substring(text.indexOf('-') + 1);
             }
-            if(type === 'email') {
-              text = decodeURIComponent(text);
-            }
             mentions.push({
-              icon: commonTransforms.getIronIcon(type),
-              link: commonTransforms.getLink(entityBucket.key, type),
-              styleClass: commonTransforms.getStyleClass(type),
+              icon: commonTransforms.getIronIcon('phone'),
+              link: commonTransforms.getLink(bucket.key, 'phone'),
+              styleClass: commonTransforms.getStyleClass('phone'),
               text: text
+            });
+          }
+        });
+        data.aggregations.emails.emails.buckets.forEach(function(bucket) {
+          if(ignoreId !== bucket.key) {
+            mentions.push({
+              icon: commonTransforms.getIronIcon('email'),
+              link: commonTransforms.getLink(bucket.key, 'email'),
+              styleClass: commonTransforms.getStyleClass('email'),
+              text: decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1))
             });
           }
         });

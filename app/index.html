@@ -147,11 +147,23 @@
       index="[[config.elasticIndex]]"
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
-      results="{{phoneEmailResult}}"
-      last-error="{{phoneEmailError}}"
-      aggregations="{{buildArray(phoneEmailAgg)}}"
+      results="{{phoneResult}}"
+      last-error="{{phoneError}}"
+      aggregations="{{buildArray(phoneAgg)}}"
       filters="[[filterArray]]"
-      loading="{{phoneEmailLoading}}">
+      loading="{{phoneLoading}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      results="{{emailResult}}"
+      last-error="{{emailError}}"
+      aggregations="{{buildArray(emailAgg)}}"
+      filters="[[filterArray]]"
+      loading="{{emailLoading}}">
     </elastic-client-search>
 
     <elastic-client-search
@@ -464,62 +476,57 @@
                 </status-text>
               </iron-collapse>
 
-              <!-- Phone and email use a transform on the same aggregation set -->
-              <elastic-client-aggregation-builder
-                name="phoneEmailAgg"
-                field="mentions"
-                ejs-aggregation="{{phoneEmailAgg}}"
-                type="terms"
-                count="0"
-                order="{{phoneEmailSortOrder}}">
-              </elastic-client-aggregation-builder>
-
               <div id="phone" class="facet-header">
                 <span class="facet-toggle" title="Toggle Telephone Facet List" on-tap="toggleList">Telephone</span>
                 <iron-icon id="phone-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Telephone Facet List" on-tap="toggleList"></iron-icon>
                 <iron-icon id="phone-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Telephone Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
-              <facets-transform
-                data-in="{{phoneEmailResult}}"
-                data-out="{{phoneResult}}"
-                limit="{{phoneCount}}"
-                transform-function="[[clientConfig.transforms.filterAggs.mentionsPhoneResults]]">
-              </facets-transform>
+              <elastic-client-aggregation-builder
+                name="phoneAgg"
+                field="mentionsPhone"
+                count="{{phoneCount}}"
+                ejs-aggregation="{{phoneAgg}}"
+                type="terms"
+                order="{{phoneSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-transform
+                data-in="{{phoneResult.aggregations.phoneAgg.phoneAgg.buckets}}"
+                data-out="{{phoneResultBuckets}}"
+                transform-function="[[clientConfig.transforms.phone.cleanPhoneBuckets]]">
+              </json-transform>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
                   <view-all-facets
                     title="Telephone"
-                    buckets="[[phoneResult.aggregations.phoneAgg.phoneAgg.buckets]]"
-                    current-max-facets="[[phoneFacetMax]]"
-                    loading="[[phoneEmailLoading]]"
-                    error="[[phoneEmailError]]"
+                    buckets="[[phoneResultBuckets]]"
+                    loading="[[phoneLoading]]"
+                    error="[[phoneError]]"
                     facet-selection="{{facetSelection.phone}}"
                     agg-count="{{phoneCount}}"
-                    paging="true"
-                    order-by="{{phoneEmailSortOrder}}">
+                    order-by="{{phoneSortOrder}}">
                   </view-all-facets>
                 </div>
                 <div class="flex self-end">
-                  <aggregation-sort facets="[[phoneFacets]]" order-by="{{phoneEmailSortOrder}}">
+                  <aggregation-sort facets="[[phoneFacets]]" order-by="{{phoneSortOrder}}">
                   </aggregation-sort>
                 </div>
               </div>
 
               <iron-collapse id="phone-list" class="facet-list" opened>
                 <checkbox-list-display
-                  buckets="[[phoneResult.aggregations.phoneAgg.phoneAgg.buckets]]"
+                  buckets="[[phoneResultBuckets]]"
                   facet-selection="{{facetSelection.phone}}"
                   facets="{{phoneFacets}}"
-                  show="{{phoneFacetMax}}"
                   category="Telephone">
                 </checkbox-list-display>
-                <elastic-error error="[[phoneEmailError]]" message="{{phoneEmailErrorMessage}}"></elastic-error>
+                <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[phoneFacets.length]]"
-                  error="[[phoneEmailErrorMessage]]"
-                  loading="[[phoneEmailLoading]]"
+                  error="[[phoneErrorMessage]]"
+                  loading="[[phoneLoading]]"
                   empty="No Facets">
                 </status-text>
               </iron-collapse>
@@ -530,46 +537,51 @@
                 <iron-icon id="email-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Email Address Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
-              <facets-transform
-                data-in="{{phoneEmailResult}}"
-                data-out="{{emailResult}}"
-                limit="{{emailCount}}"
-                transform-function="[[clientConfig.transforms.filterAggs.mentionsEmailResults]]">
-              </facets-transform>
+              <elastic-client-aggregation-builder
+                name="emailAgg"
+                field="mentionsEmail"
+                count="{{emailCount}}"
+                ejs-aggregation="{{emailAgg}}"
+                type="terms"
+                order="{{emailSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-transform
+                data-in="{{emailResult.aggregations.emailAgg.emailAgg.buckets}}"
+                data-out="{{emailResultBuckets}}"
+                transform-function="[[clientConfig.transforms.email.cleanEmailBuckets]]">
+              </json-transform>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
                   <view-all-facets
                     title="Email Address"
-                    buckets="[[emailResult.aggregations.emailAgg.emailAgg.buckets]]"
-                    current-max-facets="[[emailFacetMax]]"
-                    loading="[[phoneEmailLoading]]"
-                    error="[[phoneEmailError]]"
+                    buckets="[[emailResultBuckets]]"
+                    loading="[[emailLoading]]"
+                    error="[[emailError]]"
                     facet-selection="{{facetSelection.email}}"
                     agg-count="{{emailCount}}"
-                    paging="true"
-                    order-by="{{phoneEmailSortOrder}}">
+                    order-by="{{emailSortOrder}}">
                   </view-all-facets>
                 </div>
                 <div class="flex self-end">
-                  <aggregation-sort facets="[[emailFacets]]" order-by="{{phoneEmailSortOrder}}">
+                  <aggregation-sort facets="[[emailFacets]]" order-by="{{emailSortOrder}}">
                   </aggregation-sort>
                 </div>
               </div>
 
               <iron-collapse id="email-list" class="facet-list" opened>
                 <checkbox-list-display
-                  buckets="[[emailResult.aggregations.emailAgg.emailAgg.buckets]]"
+                  buckets="[[emailResultBuckets]]"
                   facet-selection="{{facetSelection.email}}"
                   facets="{{emailFacets}}"
-                  show="{{emailFacetMax}}"
                   category="Email Address">
                 </checkbox-list-display>
-                <elastic-error error="[[phoneEmailError]]" message="{{phoneEmailErrorMessage}}"></elastic-error>
+                <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[emailFacets.length]]"
-                  error="[[phoneEmailErrorMessage]]"
-                  loading="[[phoneEmailLoading]]"
+                  error="[[emailErrorMessage]]"
+                  loading="[[emailLoading]]"
                   empty="No Facets">
                 </status-text>
               </iron-collapse>
@@ -905,7 +917,7 @@
                 <checkbox-list-display
                   buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
                   facets="{{hairColorFacets}}"
-                  facet-selection="{{hairColorFacetSelection}}"
+                  facet-selection="{{facetSelection.hairColor}}"
                   category="Hair Color">
                 </checkbox-list-display>
                 <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
