@@ -28,6 +28,11 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return images;
     },
 
+    similarImages: function(data) {
+      var images = [];
+      console.log('images here');
+    },
+
     image: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
