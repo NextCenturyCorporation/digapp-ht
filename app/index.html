@@ -294,6 +294,7 @@
       <paper-toolbar>
         <img class="bottom" src="images/dig-logo-original.png" alt="">
         <div class="bottom drawer-spacer"></div>
+
         <!-- Hide until we can support multiple search types.
         <div class="bottom v-divider"></div>
         <elastic-type-selector class="bottom white-input-container"
@@ -301,6 +302,7 @@
           elastic-types="{{esTypes}}">
         </elastic-type-selector>
         -->
+
         <div class="bottom v-divider"></div>
         <div class="bottom flex">
             <elastic-client-input class="white-input-container"
@@ -312,12 +314,28 @@
               autobuild="true">
             </elastic-client-input>
         </div>
-        <paper-icon-button class="bottom" icon="custom-icons:show-all" title="Show All Results for Selected Facets" on-tap="_showAll"></paper-icon-button>
+
+        <paper-icon-button
+          active="[[advancedSearch]]"
+          class="bottom toggle"
+          icon="custom-icons:advanced-search"
+          title="[[getAdvancedSearchTitle(advancedSearch)]]"
+          on-tap="toggleAdvancedSearch">
+        </paper-icon-button>
+
+        <paper-icon-button
+          class="bottom"
+          icon="custom-icons:show-all"
+          title="Show All Results for Selected Facets"
+          on-tap="showAll">
+        </paper-icon-button>
+
         <a class="bottom" href="." style="color: #ffffff;">
           <paper-icon-button icon="clear" title="Reset Page"></paper-icon-button>
         </a>
+
         <batch-phone class="bottom" query-value="{{queryValue}}"></batch-phone>
-        <!-- Add a top margin to the user settings so it aligns vertically with the buttons in the elastic-client-input -->
+
         <load-user-info class="bottom"
           show-search
           client="[[esclient]]"
@@ -330,7 +348,7 @@
           es-request="{{esRequest}}"
           user-index="[[config.userIndex]]"
           user-type="[[config.userType]]"
-          enable-save-btn="[[enableSaveBtn(searchResults, searchError)]]"
+          enable-save-btn="[[enableSaveButton(searchResults, searchError)]]"
           show-save-btn>
         </load-user-info>
       </paper-toolbar>
@@ -1063,12 +1081,24 @@
 
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
+      app.enableSaveButton = function(searchResults, searchError) {
+        return searchResults !== null && searchError === null;
+      };
+
+      app.getAdvancedSearchTitle = function(advancedSearch) {
+        return 'Click to ' + (advancedSearch ? 'Deactivate' : 'Activate') + ' Advanced Search Mode';
+      };
+
       app.getElasticTypes = function() {
         return ['webpage'];
       };
 
-      app._showAll = function() {
+      app.showAll = function() {
         app.set('queryValue', null);
+      };
+
+      app.toggleAdvancedSearch = function() {
+        document.querySelector('load-user-info')._toggleAdvancedSearch();
       };
 
       /**
@@ -1084,11 +1114,6 @@
           }
         }
       };
-
-      app.enableSaveBtn = function(searchResults, searchError) {
-        return searchResults !== null && searchError === null;
-      };
-
     })(document);
   </script>
 </body>
