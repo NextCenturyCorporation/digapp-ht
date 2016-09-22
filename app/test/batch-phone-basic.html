@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>batch-phone</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/batch-phone/batch-phone.html">
+</head>
+<body>
+
+<test-fixture id="batch-phone-fixture">
+  <template>
+    <batch-phone></batch-phone>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, expect, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('<batch-phone> default tests', function() {
+    var component;
+
+    setup(function() {
+      component = fixture('batch-phone-fixture');
+    });
+
+    test('_phoneInput is blank by default', function() {
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('does have expected elements', function() {
+      expect(component.$$('paper-icon-button')).to.exist;
+      expect(component.$$('paper-dialog')).to.exist;
+      expect(component.$$('paper-dialog').id).to.equal('batchPhoneDialog');
+      expect(component.$$('file-upload')).to.exist;
+      expect(component.$$('file-upload').id).to.equal('fileUpload');
+    });
+
+    test('_cleanPhoneInput does not change numbers', function() {
+      expect(component._cleanPhoneInput('1234567890')).to.equal('1234567890');
+    });
+
+    test('_cleanPhoneInput does replace commas or semicolons with spaces', function() {
+      expect(component._cleanPhoneInput('1234567890,8905671234')).to.equal('1234567890 8905671234');
+      expect(component._cleanPhoneInput('1234567890;8905671234')).to.equal('1234567890 8905671234');
+    });
+
+    test('_cleanPhoneInput does remove punctuation', function() {
+      expect(component._cleanPhoneInput('123-456-7890')).to.equal('1234567890');
+      expect(component._cleanPhoneInput('123.456.7890')).to.equal('1234567890');
+      expect(component._cleanPhoneInput('(123)4567890')).to.equal('1234567890');
+      expect(component._cleanPhoneInput('(123)-456-7890')).to.equal('1234567890');
+    });
+
+    test('_cleanPhoneInput does remove letters', function() {
+      expect(component._cleanPhoneInput('phone1234567890')).to.equal('1234567890');
+    });
+
+    test('_createSearchListener.onClick does nothing if _phoneInput is blank', function() {
+      component._phoneInput = '';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.queryValue).to.not.exist;
+    });
+
+    test('_createSearchListener.onClick sets queryValue and clears _phoneInput', function() {
+      component._phoneInput = '1234567890';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.queryValue).to.equal('1234567890');
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('_createSearchListener.onClick cleans queryValue', function() {
+      component._phoneInput = '(123)-456-7890';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.queryValue).to.equal('1234567890');
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('_createClearListener.onClick clears _phoneInput', function() {
+      component._phoneInput = '1234567890';
+      var listener = component._createClearListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('_handleUpload sets _phoneInput', function() {
+      component._handleUpload({
+        detail: {
+          xhr: {
+            response: '1234567890'
+          }
+        }
+      });
+      expect(component._phoneInput).to.equal('1234567890');
+    });
+
+    test('_openDialog opens the dialog', function(done) {
+      var dialog = component.$$('#batchPhoneDialog');
+      expect(dialog.style.display).to.equal('none');
+      component._openDialog();
+      flush(function() {
+        expect(dialog.style.display).to.equal('');
+        done();
+      });
+    });
+  });
+</script>
+</body>
+</html>
