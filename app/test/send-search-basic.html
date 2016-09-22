@@ -50,6 +50,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.userType, 'user');
       assert.deepEqual(element.search, {name: 'query #1', createdBy: 'testUser'});
       assert.isUndefined(element.sendError);
+      assert.isFalse(element.disableSend);
+      assert.isUndefined(element.sendInProgress);
+      assert.isUndefined(element._sendingThisQuery);
       assert.isUndefined(element._queryToSend);
       assert.isUndefined(element._sentUserSearchResult);
       assert.isUndefined(element._noUserRecordFound);
@@ -61,13 +64,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isUndefined(element._querySentSuccessfully);
     });
 
-    test('_checkIfQuerySent updates _querySentSuccessfully when needed', function() {
-      element._checkIfQuerySent({_version: 2});
-      assert.isTrue(element._querySentSuccessfully);
-      element._querySentSuccessfully = undefined;
+    test('_isSendDisabled returns correct value', function() {
+      assert.isTrue(element._isSendDisabled(true, true));
+      assert.isTrue(element._isSendDisabled(true, false));
+      assert.isTrue(element._isSendDisabled(false, true));
+      assert.isFalse(element._isSendDisabled(false, false));
+    });
 
-      element._checkIfQuerySent();
-      assert.isUndefined(element._querySentSuccessfully);
+    test('_checkIfQuerySent updates appropriate values when needed', function() {
+      element._checkIfQuerySent({_version: 2});
+      setTimeout(function() {
+        assert.isTrue(element._querySentSuccessfully);
+        assert.isFalse(element._sendingThisQuery);
+        assert.isFalse(element.sendInProgress);
+      }, 1000);
     });
 
     test('_createSendSearchListener returns an object with a function', function() {
@@ -150,6 +160,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(element._noUserRecordFound);
       assert.isUndefined(element._queryAlreadySent);
       assert.equal(element._userIdToSendQuery, 2);
+      assert.isTrue(element._sendingThisQuery);
+      assert.isTrue(element.sendInProgress);
       assert.deepEqual(element._sendUserUpdateBody, {doc: {
         receivedQueries: [{name: 'query #1', createdBy: 'testUser'}]
       }});
@@ -177,6 +189,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(element._queryAlreadySent);
       assert.equal(element._userIdToSendQuery, 2);
       assert.isUndefined(element._sendUserUpdateBody);
+      assert.isUndefined(element._sendingThisQuery);
+      assert.isUndefined(element.sendInProgress);
     });
 
   });
