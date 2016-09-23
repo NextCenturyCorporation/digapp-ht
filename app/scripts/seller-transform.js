@@ -26,38 +26,26 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
       });
     }
 
-    if(bucket.mentions) {
-      var emailAndPhoneLists = commonTransforms.getEmailAndPhoneFromMentions(_.map(bucket.mentions.buckets, function(mention) {
-        return mention.key;
-      }));
-      if(emailAndPhoneLists.phones.length) {
+    if(bucket.phones) {
+      var phones = commonTransforms.getMentions(_.map(bucket.phones.buckets, function(phone) {
+        return phone.key;
+      }), 'phone');
+      if(phones.length) {
         notes.push({
           name: 'Telephone Numbers',
-          data: _.map(emailAndPhoneLists.phones, function(phone) {
-            return {
-              icon: commonTransforms.getIronIcon('phone'),
-              link: commonTransforms.getLink(phone.id, 'phone'),
-              styleClass: commonTransforms.getStyleClass('phone'),
-              text: phone.text,
-              type: 'phone',
-              id: phone.id
-            };
-          })
+          data: phones
         });
       }
-      if(emailAndPhoneLists.emails.length) {
+    }
+
+    if(bucket.emails) {
+      var emails = commonTransforms.getMentions(_.map(bucket.emails.buckets, function(email) {
+        return email.key;
+      }), 'email');
+      if(emails.length) {
         notes.push({
           name: 'Email Addresses',
-          data: _.map(emailAndPhoneLists.emails, function(email) {
-            return {
-              icon: commonTransforms.getIronIcon('email'),
-              link: commonTransforms.getLink(email.id, 'email'),
-              styleClass: commonTransforms.getStyleClass('email'),
-              text: email.text,
-              type: 'email',
-              id: email.id
-            };
-          })
+          data: emails
         });
       }
     }

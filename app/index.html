@@ -147,11 +147,23 @@
       index="[[config.elasticIndex]]"
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
-      results="{{phoneEmailResult}}"
-      last-error="{{phoneEmailError}}"
-      aggregations="{{buildArray(phoneEmailAgg)}}"
+      results="{{phoneResult}}"
+      last-error="{{phoneError}}"
+      aggregations="{{buildArray(phoneAgg)}}"
       filters="[[filterArray]]"
-      loading="{{phoneEmailLoading}}">
+      loading="{{phoneLoading}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      results="{{emailResult}}"
+      last-error="{{emailError}}"
+      aggregations="{{buildArray(emailAgg)}}"
+      filters="[[filterArray]]"
+      loading="{{emailLoading}}">
     </elastic-client-search>
 
     <elastic-client-search
@@ -282,6 +294,7 @@
       <paper-toolbar>
         <img class="bottom" src="images/dig-logo-original.png" alt="">
         <div class="bottom drawer-spacer"></div>
+
         <!-- Hide until we can support multiple search types.
         <div class="bottom v-divider"></div>
         <elastic-type-selector class="bottom white-input-container"
@@ -289,6 +302,7 @@
           elastic-types="{{esTypes}}">
         </elastic-type-selector>
         -->
+
         <div class="bottom v-divider"></div>
         <div class="bottom flex">
             <elastic-client-input class="white-input-container"
@@ -300,16 +314,31 @@
               autobuild="true">
             </elastic-client-input>
         </div>
-        <paper-icon-button class="bottom" icon="custom-icons:show-all" title="Show All Results for Selected Facets" on-tap="_showAll"></paper-icon-button>
+
+        <paper-icon-button
+          active="[[advancedSearch]]"
+          class="bottom toggle"
+          icon="custom-icons:advanced-search"
+          title="[[getAdvancedSearchTitle(advancedSearch)]]"
+          on-tap="toggleAdvancedSearch">
+        </paper-icon-button>
+
+        <paper-icon-button
+          class="bottom"
+          icon="custom-icons:show-all"
+          title="Show All Results for Selected Facets"
+          on-tap="showAll">
+        </paper-icon-button>
+
         <a class="bottom" href="." style="color: #ffffff;">
           <paper-icon-button icon="clear" title="Reset Page"></paper-icon-button>
         </a>
+        
+        <batch-image-search class="bottom" query-value="{{queryValue}}" memex-user=[[config.memexUser]] memex-password=[[config.memexPassword]] blur="[[blurImages]]"></batch-image-search>
+        
         <batch-phone class="bottom" query-value="{{queryValue}}"></batch-phone>
 
-        <batch-image-search class="bottom" query-value="{{queryValue}}" memex-user=[[config.memexUser]] memex-password=[[config.memexPassword]] blur="[[blurImages]]"></batch-image-search>
-
         <!-- Add a top margin to the user settings so it aligns vertically with the buttons in the elastic-client-input -->
-
         <load-user-info class="bottom"
           show-search
           client="[[esclient]]"
@@ -322,7 +351,7 @@
           es-request="{{esRequest}}"
           user-index="[[config.userIndex]]"
           user-type="[[config.userType]]"
-          enable-save-btn="[[enableSaveBtn(searchResults, searchError)]]"
+          enable-save-btn="[[enableSaveButton(searchResults, searchError)]]"
           show-save-btn>
         </load-user-info>
       </paper-toolbar>
@@ -468,62 +497,57 @@
                 </status-text>
               </iron-collapse>
 
-              <!-- Phone and email use a transform on the same aggregation set -->
-              <elastic-client-aggregation-builder
-                name="phoneEmailAgg"
-                field="mentions"
-                ejs-aggregation="{{phoneEmailAgg}}"
-                type="terms"
-                count="0"
-                order="{{phoneEmailSortOrder}}">
-              </elastic-client-aggregation-builder>
-
               <div id="phone" class="facet-header">
                 <span class="facet-toggle" title="Toggle Telephone Facet List" on-tap="toggleList">Telephone</span>
                 <iron-icon id="phone-icon-opened" class="facet-toggle" icon="icons:expand-less" title="Toggle Telephone Facet List" on-tap="toggleList"></iron-icon>
                 <iron-icon id="phone-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Telephone Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
-              <facets-transform
-                data-in="{{phoneEmailResult}}"
-                data-out="{{phoneResult}}"
-                limit="{{phoneCount}}"
-                transform-function="[[clientConfig.transforms.filterAggs.mentionsPhoneResults]]">
-              </facets-transform>
+              <elastic-client-aggregation-builder
+                name="phoneAgg"
+                field="mentionsPhone"
+                count="{{phoneCount}}"
+                ejs-aggregation="{{phoneAgg}}"
+                type="terms"
+                order="{{phoneSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-transform
+                data-in="{{phoneResult.aggregations.phoneAgg.phoneAgg.buckets}}"
+                data-out="{{phoneResultBuckets}}"
+                transform-function="[[clientConfig.transforms.phone.cleanPhoneBuckets]]">
+              </json-transform>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
                   <view-all-facets
                     title="Telephone"
-                    buckets="[[phoneResult.aggregations.phoneAgg.phoneAgg.buckets]]"
-                    current-max-facets="[[phoneFacetMax]]"
-                    loading="[[phoneEmailLoading]]"
-                    error="[[phoneEmailError]]"
+                    buckets="[[phoneResultBuckets]]"
+                    loading="[[phoneLoading]]"
+                    error="[[phoneError]]"
                     facet-selection="{{facetSelection.phone}}"
                     agg-count="{{phoneCount}}"
-                    paging="true"
-                    order-by="{{phoneEmailSortOrder}}">
+                    order-by="{{phoneSortOrder}}">
                   </view-all-facets>
                 </div>
                 <div class="flex self-end">
-                  <aggregation-sort facets="[[phoneFacets]]" order-by="{{phoneEmailSortOrder}}">
+                  <aggregation-sort facets="[[phoneFacets]]" order-by="{{phoneSortOrder}}">
                   </aggregation-sort>
                 </div>
               </div>
 
               <iron-collapse id="phone-list" class="facet-list" opened>
                 <checkbox-list-display
-                  buckets="[[phoneResult.aggregations.phoneAgg.phoneAgg.buckets]]"
+                  buckets="[[phoneResultBuckets]]"
                   facet-selection="{{facetSelection.phone}}"
                   facets="{{phoneFacets}}"
-                  show="{{phoneFacetMax}}"
                   category="Telephone">
                 </checkbox-list-display>
-                <elastic-error error="[[phoneEmailError]]" message="{{phoneEmailErrorMessage}}"></elastic-error>
+                <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[phoneFacets.length]]"
-                  error="[[phoneEmailErrorMessage]]"
-                  loading="[[phoneEmailLoading]]"
+                  error="[[phoneErrorMessage]]"
+                  loading="[[phoneLoading]]"
                   empty="No Facets">
                 </status-text>
               </iron-collapse>
@@ -534,46 +558,51 @@
                 <iron-icon id="email-icon-closed" class="facet-toggle" icon="icons:expand-more" title="Toggle Email Address Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
-              <facets-transform
-                data-in="{{phoneEmailResult}}"
-                data-out="{{emailResult}}"
-                limit="{{emailCount}}"
-                transform-function="[[clientConfig.transforms.filterAggs.mentionsEmailResults]]">
-              </facets-transform>
+              <elastic-client-aggregation-builder
+                name="emailAgg"
+                field="mentionsEmail"
+                count="{{emailCount}}"
+                ejs-aggregation="{{emailAgg}}"
+                type="terms"
+                order="{{emailSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-transform
+                data-in="{{emailResult.aggregations.emailAgg.emailAgg.buckets}}"
+                data-out="{{emailResultBuckets}}"
+                transform-function="[[clientConfig.transforms.email.cleanEmailBuckets]]">
+              </json-transform>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
                   <view-all-facets
                     title="Email Address"
-                    buckets="[[emailResult.aggregations.emailAgg.emailAgg.buckets]]"
-                    current-max-facets="[[emailFacetMax]]"
-                    loading="[[phoneEmailLoading]]"
-                    error="[[phoneEmailError]]"
+                    buckets="[[emailResultBuckets]]"
+                    loading="[[emailLoading]]"
+                    error="[[emailError]]"
                     facet-selection="{{facetSelection.email}}"
                     agg-count="{{emailCount}}"
-                    paging="true"
-                    order-by="{{phoneEmailSortOrder}}">
+                    order-by="{{emailSortOrder}}">
                   </view-all-facets>
                 </div>
                 <div class="flex self-end">
-                  <aggregation-sort facets="[[emailFacets]]" order-by="{{phoneEmailSortOrder}}">
+                  <aggregation-sort facets="[[emailFacets]]" order-by="{{emailSortOrder}}">
                   </aggregation-sort>
                 </div>
               </div>
 
               <iron-collapse id="email-list" class="facet-list" opened>
                 <checkbox-list-display
-                  buckets="[[emailResult.aggregations.emailAgg.emailAgg.buckets]]"
+                  buckets="[[emailResultBuckets]]"
                   facet-selection="{{facetSelection.email}}"
                   facets="{{emailFacets}}"
-                  show="{{emailFacetMax}}"
                   category="Email Address">
                 </checkbox-list-display>
-                <elastic-error error="[[phoneEmailError]]" message="{{phoneEmailErrorMessage}}"></elastic-error>
+                <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
                 <status-text
                   count="[[emailFacets.length]]"
-                  error="[[phoneEmailErrorMessage]]"
-                  loading="[[phoneEmailLoading]]"
+                  error="[[emailErrorMessage]]"
+                  loading="[[emailLoading]]"
                   empty="No Facets">
                 </status-text>
               </iron-collapse>
@@ -909,7 +938,7 @@
                 <checkbox-list-display
                   buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
                   facets="{{hairColorFacets}}"
-                  facet-selection="{{hairColorFacetSelection}}"
+                  facet-selection="{{facetSelection.hairColor}}"
                   category="Hair Color">
                 </checkbox-list-display>
                 <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
@@ -1055,12 +1084,24 @@
 
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
+      app.enableSaveButton = function(searchResults, searchError) {
+        return searchResults !== null && searchError === null;
+      };
+
+      app.getAdvancedSearchTitle = function(advancedSearch) {
+        return 'Click to ' + (advancedSearch ? 'Deactivate' : 'Activate') + ' Advanced Search Mode';
+      };
+
       app.getElasticTypes = function() {
         return ['webpage'];
       };
 
-      app._showAll = function() {
+      app.showAll = function() {
         app.set('queryValue', null);
+      };
+
+      app.toggleAdvancedSearch = function() {
+        document.querySelector('load-user-info')._toggleAdvancedSearch();
       };
 
       /**
@@ -1076,11 +1117,6 @@
           }
         }
       };
-
-      app.enableSaveBtn = function(searchResults, searchError) {
-        return searchResults !== null && searchError === null;
-      };
-
     })(document);
   </script>
 </body>

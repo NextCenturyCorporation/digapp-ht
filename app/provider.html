@@ -136,31 +136,46 @@
       transform-function="[[clientConfig.transforms.relatedEntities.offer]]">
     </json-transform>
 
-    <!-- Seller query -->
+    <!-- Mentions in Offers -->
 
-    <elastic-client-query-builder
-      type="term"
-      field="[[params.field]]"
-      values="[[providerDisplay.provider.sellers]]"
-      ejs-query="{{sellerQuery}}">
-    </elastic-client-query-builder>
+    <elastic-client-aggregation-builder
+      name="emails"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentionsEmail"
+      ejs-aggregation="{{emailMentionsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="phones"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentionsPhone"
+      ejs-aggregation="{{phoneMentionsAggregation}}">
+    </elastic-client-aggregation-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-type='["seller"]'
-      query="[[sellerQuery]]"
-      aggregations="[]"
-      filters="[]"
-      results="{{seller}}"
-      last-error="{{sellerError}}">
+      elastic-types='["offer"]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query="[[providerOffersQuery]]"
+      aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
+      filters="[[buildArray(locationFilter)]]"
+      sort-field="validFrom"
+      sort-order="desc"
+      results="{{offersMentions}}"
+      loading="{{mentionsLoading}}"
+      last-error="{{mentionsError}}">
     </elastic-client-search>
 
-    <json-transform
-      data-in="[[seller]]"
-      data-out="{{sellerObject}}"
-      transform-function="[[clientConfig.transforms.seller.seller]]">
-    </json-transform>
+    <json-combine
+      data-in1="[[providerDisplay.provider.id]]"
+      data-in2="[[offersMentions]]"
+      data-out="{{providerDisplay.offersMentions}}"
+      combine-function="[[clientConfig.transforms.offer.createMentions]]">
+    </json-combine>
 
     <!-- Display Content -->
     <div class="entity">
@@ -233,60 +248,37 @@
                 </section>
               </paper-material>
 
-              <!-- Seller -->
-              <template is="dom-if" if="{{sellerObject.communications.length}}">
-                <div class="h-divider"></div>
-
-                <paper-material>
-                  <section class="who">
-                    <div class="paper-font-title">Email/Phone Cluster</div>
-
-                    <template is="dom-if" if="[[sellerError]]">
-                      <elastic-error error="[[sellerError]]" message="{{sellerErrorMessage}}"></elastic-error>
-                      <div>[[sellerErrorMessage]]</div>
-                    </template>
-
-                    <!-- Hiding the link to the seller page until the data is better.
-                    <div class="who">
-                      <div class="paper-font-title">
-                        <single-record
-                          item="{{sellerObject}}"
-                          client="[[esclient]]"
-                          annotation-index="[[config.annotationIndex]]"
-                          annotation-type="[[config.annotationType]]"
-                          annotation-relevant="[[config.annotationRelevant]]"
-                          current-user="[[config.username]]"
-                          blur="[[blurImages]]">
-                        </single-record>
-                      </div>
-                    </div>
-                    -->
-
-                    <icon-label-grid
-                      icon-style-class-property="styleClass"
-                      data="[[sellerObject.communications]]">
-                    </icon-label-grid>
-                  </section>
-                </paper-material>
-              </template>
+              <!-- Mentions Section -->
 
               <div class="h-divider"></div>
 
-              <!-- People who look similar (not yet working) -->
-              <!--
               <paper-material>
-                <section>
-
-                  <div class="section-header">
-                   <div class="paper-font-title flex">People who look Similar</div>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
+                    <div>Emails & Phones in Ads for this Provider</div>
                   </div>
 
-                  <section class="photos">
-                  Display a single row of images and provide a way to expand to see more
-                  (similar images section)
-                  </section>
+                  <template is="dom-if" if="[[mentionsError]]">
+                    <elastic-error error="[[mentionsError]]" message="{{mentionsErrorMessage}}"></elastic-error>
+                    <div>[[mentionsErrorMessage]]</div>
+                  </template>
+
+                  <template is="dom-if" if="[[!providerDisplay.offersMentions.length]]">
+                    <template is="dom-if" if="[[mentionsLoading]]">
+                      <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
+                    </template>
+                    <template is="dom-if" if="[[!mentionsLoading]]">
+                      <div>None</div>
+                    </template>
+                  </template>
+
+                  <icon-label-grid
+                    icon-style-class-property="styleClass"
+                    data="[[providerDisplay.offersMentions]]">
+                  </icon-label-grid>
                 </section>
-              </paper-material> -->
+              </paper-material>
             </div>
 
             <div class="v-divider"></div>

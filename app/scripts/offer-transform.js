@@ -196,9 +196,10 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         for(var city in cityAggs) {
           var dates = offsetDates(cityAggs[city]);
 
+          var nameList = city.split(':');
           transformedData.push({
-            name: city.split(':')[0],
-            data: dates
+            name: nameList[0] + ', ' + nameList[1],
+            dates: dates
           });
         }
       }
@@ -207,6 +208,38 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         data: transformedData,
         timestamps: timestamps
       };
+    },
+
+    createMentions: function(ignoreId, data) {
+      var mentions = [];
+      if(data && data.aggregations) {
+        data.aggregations.phones.phones.buckets.forEach(function(bucket) {
+          if(ignoreId !== bucket.key) {
+            var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
+            if(text.indexOf('-') >= 0) {
+              // Remove country code.
+              text = text.substring(text.indexOf('-') + 1);
+            }
+            mentions.push({
+              icon: commonTransforms.getIronIcon('phone'),
+              link: commonTransforms.getLink(bucket.key, 'phone'),
+              styleClass: commonTransforms.getStyleClass('phone'),
+              text: text
+            });
+          }
+        });
+        data.aggregations.emails.emails.buckets.forEach(function(bucket) {
+          if(ignoreId !== bucket.key) {
+            mentions.push({
+              icon: commonTransforms.getIronIcon('email'),
+              link: commonTransforms.getLink(bucket.key, 'email'),
+              styleClass: commonTransforms.getStyleClass('email'),
+              text: decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1))
+            });
+          }
+        });
+      }
+      return mentions;
     }
   };
 })(_, commonTransforms, relatedEntityTransform);

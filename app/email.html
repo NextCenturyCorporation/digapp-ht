@@ -105,44 +105,11 @@
       transform-function="[[clientConfig.transforms.email.email]]">
     </json-transform>
 
-    <!-- Seller query -->
-
-    <elastic-client-query-builder
-      type="term"
-      field="[[params.field]]"
-      values="[[emailDisplay.email.sellerId]]"
-      ejs-query="{{sellerQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-type='["seller"]'
-      query="[[sellerQuery]]"
-      aggregations="[]"
-      filters="[]"
-      results="{{seller}}"
-      last-error="{{sellerError}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[seller]]"
-      data-out="{{sellerObject}}"
-      transform-function="[[clientConfig.transforms.seller.seller]]">
-    </json-transform>
-
-    <json-combine
-      data-in1="[[sellerObject.communications]]"
-      data-in2="[[emailDisplay.email.emailAddress]]"
-      data-out="{{otherCommunications}}"
-      combine-function="[[clientConfig.transforms.seller.removeItemFromCommunications]]">
-    </json-combine>
-
     <!-- Offer query -->
 
     <elastic-client-query-builder
       type="term"
-      field="mainEntityOfPage.mentions"
+      field="mainEntityOfPage.mentionsEmail"
       values="[[emailDisplay.email.id]]"
       ejs-query="{{emailOffersQuery}}">
     </elastic-client-query-builder>
@@ -176,10 +143,51 @@
       combine-function="[[clientConfig.transforms.offer.removeDescriptorFromOffers]]">
     </json-combine>
 
+    <!-- Mentions in Offers -->
+
+    <elastic-client-aggregation-builder
+      name="emails"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentionsEmail"
+      ejs-aggregation="{{emailMentionsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="phones"
+      type="terms"
+      count="0"
+      field="mainEntityOfPage.mentionsPhone"
+      ejs-aggregation="{{phoneMentionsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      page="{{pageNum}}"
+      page-size="{{pageSize}}"
+      query="[[emailOffersQuery]]"
+      aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
+      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      sort-field="validFrom"
+      sort-order="desc"
+      results="{{offersMentions}}"
+      loading="{{mentionsLoading}}"
+      last-error="{{mentionsError}}">
+    </elastic-client-search>
+
+    <json-combine
+      data-in1="[[emailDisplay.email.id]]"
+      data-in2="[[offersMentions]]"
+      data-out="{{emailDisplay.offersMentions}}"
+      combine-function="[[clientConfig.transforms.offer.createMentions]]">
+    </json-combine>
+
     <!-- Location timeline for bar chart and itinerary -->
 
     <location-timeline
-      field="mainEntityOfPage.mentions"
+      field="mainEntityOfPage.mentionsEmail"
       value="[[emailDisplay.email.id]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
@@ -279,7 +287,7 @@
                   </div>
 
                   <people-features
-                    query-field="mainEntityOfPage.mentions"
+                    query-field="mainEntityOfPage.mentionsEmail"
                     query-values="[[emailDisplay.email.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
@@ -290,42 +298,37 @@
                 </section>
               </paper-material>
 
-              <!-- Seller section -->
-              <template is="dom-if" if="[[otherCommunications.length]]">
-                <div class="h-divider"></div>
+              <!-- Mentions Section -->
 
-                <paper-material>
-                  <section class="who">
-                    <div class="paper-font-title">Email/Phone Cluster</div>
+              <div class="h-divider"></div>
 
-                    <template is="dom-if" if="[[sellerError]]">
-                      <elastic-error error="[[sellerError]]" message="{{sellerErrorMessage}}"></elastic-error>
-                      <div>[[sellerErrorMessage]]</div>
+              <paper-material>
+                <section class="who">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
+                    <div>Other Emails & Phones in Ads for [[emailDisplay.email.emailAddress]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[mentionsError]]">
+                    <elastic-error error="[[mentionsError]]" message="{{mentionsErrorMessage}}"></elastic-error>
+                    <div>[[mentionsErrorMessage]]</div>
+                  </template>
+
+                  <template is="dom-if" if="[[!emailDisplay.offersMentions.length]]">
+                    <template is="dom-if" if="[[mentionsLoading]]">
+                      <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
                     </template>
+                    <template is="dom-if" if="[[!mentionsLoading]]">
+                      <div>None</div>
+                    </template>
+                  </template>
 
-                    <!-- Hiding the link to the seller page until the data is better.
-                    <div class="who">
-                      <div class="paper-font-title">
-                        <single-record
-                          client="[[esclient]]"
-                          annotation-index="[[config.annotationIndex]]"
-                          annotation-type="[[config.annotationType]]"
-                          annotation-relevant="[[config.annotationRelevant]]"
-                          item="[[sellerObject]]"
-                          current-user="[[config.username]]"
-                          blur="[[blurImages]]">
-                        </single-record>
-                      </div>
-                    </div>
-                    -->
-
-                    <icon-label-grid
-                      icon-style-class-property="styleClass"
-                      data="[[otherCommunications]]">
-                    </icon-label-grid>
-                  </section>
-                </paper-material>
-              </template>
+                  <icon-label-grid
+                    icon-style-class-property="styleClass"
+                    data="[[emailDisplay.offersMentions]]">
+                  </icon-label-grid>
+                </section>
+              </paper-material>
 
               <div class="h-divider"></div>
 
@@ -342,7 +345,7 @@
                   </template>
 
                   <image-query-and-display
-                    image-query-field="isImagePartOf.mentions"
+                    image-query-field="isImagePartOf.mentionsEmail"
                     image-query-values="[[emailDisplay.email.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"

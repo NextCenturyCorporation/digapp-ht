@@ -362,21 +362,172 @@
       var output = clientConfig.config.transforms.offer.dropsTimeline(offerAgg);
       expect(output.data).to.be.an('Array');
       expect(output.data.length).to.equal(2);
-      expect(output.data[0].name).to.equal('Brooklyn');
-      expect(output.data[0].data).to.be.an('Array');
-      expect(output.data[0].data.length).to.equal(3);
-      expect(output.data[0].data[0]).to.be.a('Date');
-      expect(output.data[0].data[0].getTime()).to.equal(1444435200000);
-      expect(output.data[0].data[1]).to.be.a('Date');
-      expect(output.data[0].data[1].getTime()).to.equal(1444521600000);
-      expect(output.data[0].data[2]).to.be.a('Date');
-      expect(output.data[0].data[2].getTime()).to.equal(1444608000000);
-      expect(output.data[1].name).to.equal('Mumbai');
-      expect(output.data[1].data).to.be.an('Array');
-      expect(output.data[1].data.length).to.equal(1);
-      expect(output.data[1].data[0]).to.be.a('Date');
-      expect(output.data[1].data[0].getTime()).to.equal(1444608000000);
+      expect(output.data[0].name).to.equal('Brooklyn, New York');
+      expect(output.data[0].dates).to.be.an('Array');
+      expect(output.data[0].dates.length).to.equal(3);
+      expect(output.data[0].dates[0]).to.be.a('Date');
+      expect(output.data[0].dates[0].getTime()).to.equal(1444435200000);
+      expect(output.data[0].dates[1]).to.be.a('Date');
+      expect(output.data[0].dates[1].getTime()).to.equal(1444521600000);
+      expect(output.data[0].dates[2]).to.be.a('Date');
+      expect(output.data[0].dates[2].getTime()).to.equal(1444608000000);
+      expect(output.data[1].name).to.equal('Mumbai, State of Maharashtra');
+      expect(output.data[1].dates).to.be.an('Array');
+      expect(output.data[1].dates.length).to.equal(1);
+      expect(output.data[1].dates[0]).to.be.a('Date');
+      expect(output.data[1].dates[0].getTime()).to.equal(1444608000000);
       expect(output.timestamps).to.deep.equal([1444608000000, 1444521600000, 1444435200000, 1444608000000]);
+    });
+  });
+
+  suite('<client-config> offer tests for create mentions', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with create mentions transform', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer.createMentions).to.be.a('Function');
+    });
+
+    test('create mentions function given empty input returns correct array', function() {
+      var output = clientConfig.config.transforms.offer.createMentions('', {});
+      expect(output).to.be.an('Array');
+      expect(output).to.deep.equal([]);
+    });
+
+    test('create mentions function given emails returns correct array', function() {
+      var output = clientConfig.config.transforms.offer.createMentions('badId', {
+        aggregations: {
+          emails: {
+            emails: {
+              buckets: [{
+                key: 'http://email%40address.com'
+              }]
+            }
+          },
+          phones: {
+            phones: {
+              buckets: []
+            }
+          }
+        }
+      });
+
+      expect(output).to.be.an('Array');
+      expect(output.length).to.equal(1);
+      expect(output[0].text).to.equal('email@address.com');
+      expect(output[0].icon).is.a('String');
+      expect(output[0].link).is.a('String');
+      expect(output[0].styleClass).is.a('String');
+    });
+
+    test('create mentions function given phones returns correct array', function() {
+      var output = clientConfig.config.transforms.offer.createMentions('badId', {
+        aggregations: {
+          emails: {
+            emails: {
+              buckets: []
+            }
+          },
+          phones: {
+            phones: {
+              buckets: [{
+                key: 'http://1234567890',
+              }, {
+                key: 'http://1-9876543210',
+              }]
+            }
+          }
+        }
+      });
+
+      expect(output).to.be.an('Array');
+      expect(output.length).to.equal(2);
+      expect(output[0].text).to.equal('1234567890');
+      expect(output[0].icon).is.a('String');
+      expect(output[0].link).is.a('String');
+      expect(output[0].styleClass).is.a('String');
+      expect(output[1].text).to.equal('9876543210');
+      expect(output[1].icon).is.a('String');
+      expect(output[1].link).is.a('String');
+      expect(output[1].styleClass).is.a('String');
+    });
+
+    test('create mentions function given emails and phones returns correct array', function() {
+      var output = clientConfig.config.transforms.offer.createMentions('badId', {
+        aggregations: {
+          emails: {
+            emails: {
+              buckets: [{
+                key: 'http://email%40address.com'
+              }]
+            }
+          },
+          phones: {
+            phones: {
+              buckets: [{
+                key: 'http://1234567890',
+              }, {
+                key: 'http://1-9876543210',
+              }]
+            }
+          }
+        }
+      });
+
+      expect(output).to.be.an('Array');
+      expect(output.length).to.equal(3);
+      expect(output[0].text).to.equal('1234567890');
+      expect(output[0].icon).is.a('String');
+      expect(output[0].link).is.a('String');
+      expect(output[0].styleClass).is.a('String');
+      expect(output[1].text).to.equal('9876543210');
+      expect(output[1].icon).is.a('String');
+      expect(output[1].link).is.a('String');
+      expect(output[1].styleClass).is.a('String');
+      expect(output[2].text).to.equal('email@address.com');
+      expect(output[2].icon).is.a('String');
+      expect(output[2].link).is.a('String');
+      expect(output[2].styleClass).is.a('String');
+    });
+
+    test('create mentions function given available ID, emails and phones returns correct array', function() {
+      var output = clientConfig.config.transforms.offer.createMentions('http://1-9876543210', {
+        aggregations: {
+          emails: {
+            emails: {
+              buckets: [{
+                key: 'http://email%40address.com'
+              }]
+            }
+          },
+          phones: {
+            phones: {
+              buckets: [{
+                key: 'http://1234567890',
+              }, {
+                key: 'http://1-9876543210',
+              }]
+            }
+          }
+        }
+      });
+
+      expect(output).to.be.an('Array');
+      expect(output.length).to.equal(2);
+      expect(output[0].text).to.equal('1234567890');
+      expect(output[0].icon).is.a('String');
+      expect(output[0].link).is.a('String');
+      expect(output[0].styleClass).is.a('String');
+      expect(output[1].text).to.equal('email@address.com');
+      expect(output[1].icon).is.a('String');
+      expect(output[1].link).is.a('String');
+      expect(output[1].styleClass).is.a('String');
     });
   });
 </script>

@@ -10,6 +10,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 
+
 <dom-module id="send-search">
   <template>
     <style include="user-dialog-styles"></style>
@@ -17,16 +18,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       :host {
         display: block;
       }
+
+      paper-spinner {
+        padding-top: 10px;
+      }
     </style>
     <div class="layout horizontal">
       <div class="layout vertical right-space">
         <div class="name tall right-space">Send Saved Search to User</div>
       </div>
       <div class="layout vertical right-space">
-        <paper-input label="Enter Username" value="{{_userToSendQuery}}" no-label-float></paper-input>
+        <paper-input label="Enter Username" value="{{_userToSendQuery}}"
+          disabled="[[_isSendDisabled(disableSend, sendInProgress)]]" no-label-float>
+        </paper-input>
       </div>
       <div class="layout vertical">
-        <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}" click-listener="[[_createSendSearchListener()]]"></button-action>
+        <button-action title="Send this Search to User" text="Send" value="{{_checkForUser}}"
+          disabled="[[_isSendDisabled(disableSend, sendInProgress)]]" click-listener="[[_createSendSearchListener()]]">
+        </button-action>
       </div>
       <div class="layout vertical">
         <template is="dom-if" if="[[_querySentSuccessfully]]" restamp="true">
@@ -37,6 +46,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </template>
         <template is="dom-if" if="[[_queryAlreadySent]]" restamp="true">
           <paper-icon-button icon="error" title="Query has already been sent to user specified." noink></paper-icon-button>
+        </template>
+        <template is="dom-if" if="[[_sendingThisQuery]]" restamp="true">
+          <paper-spinner alt="Sending query..." active></paper-spinner>
         </template>
       </div>
     </div>
@@ -115,6 +127,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * Whether to enable sending a search on default.
+         */
+        disableSend: {
+          type: Boolean,
+          value: false
+        },
+        /**
+         * Indicates that a query is being sent and that other instances of send-search should be disabled.
+         */
+        sendInProgress: {
+          type: Boolean,
+          notify: true
+        },
+        /**
          * The query to use to find if user to send a query to exists.
          */
         _queryToSend: {
@@ -183,6 +209,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           notify: true,
           value: undefined
+        },
+
+        /**
+         * If multiple instances of send-search exist, verifies if this is the instance sending a search.
+         */
+        _sendingThisQuery: {
+          type: Boolean,
+          notify: true
         }
       },
       observers: [
@@ -190,13 +224,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       ],
 
       /**
-       * Updates _querySentSuccessfully when appropriate.
+       * Checks disableSend and sendInProgress to detemine whether user inputs are enabled or not.
+       */
+      _isSendDisabled: function(disableSend, sendInProgress) {
+        return disableSend || sendInProgress;
+      },
+
+      /**
+       * Updates sending related booleans when appropriate.
        */
       _checkIfQuerySent: function(_sentQueryUpdate) {
         if(_sentQueryUpdate && _sentQueryUpdate._version) {
-          this._querySentSuccessfully = true;
+          var self = this;
+          // default elasticsearch index refresh takes one second, so wait a second before
+          // indicating to the user that their query has been sent
+          setTimeout(function() {
+            self.sendInProgress = false;
+            self._sendingThisQuery = false;
+            self._querySentSuccessfully = true;
+          }, 1000);
         }
       },
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       /**
        * Creates and returns a listener to send the given saved search to another user.
        */
@@ -231,7 +280,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _transformSentUserSearchResult: function() {
         if(this._sentUserSearchResult) {
           if(this._sentUserSearchResult.hits.hits.length > 0 && this._queryToSend) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             this._noUserRecordFound = false;
             var receivedSearches = this._sentUserSearchResult.hits.hits[0]._source.receivedQueries;
 
@@ -244,18 +292,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               this._queryAlreadySent = true;
             } else {
               receivedSearches.push(this._queryToSend);
+              this._sendingThisQuery = true;
+              this.sendInProgress = true;
               this._set_sendUserUpdateBody({
                 doc: {
                   receivedQueries: receivedSearches
                 }
               });
             }
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
             this._noUserRecordFound = true;
           }
         }
       }
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     });
   })();
   </script>

@@ -132,6 +132,42 @@
           assert.isString(dataout.relatedOffers.data[0].details[1].text);
         });
       });
+
+      suite('<client-config> email tests: transform to clean email buckets', function() {
+        var clientConfig;
+
+        setup(function() {
+          clientConfig = fixture('client-config-fixture');
+        });
+
+        test('defines config object with cleanEmailBuckets transform', function() {
+          expect(clientConfig).to.exist;
+          expect(clientConfig.config).to.exist;
+          expect(clientConfig.config).to.be.an('Object');
+          expect(clientConfig.config.transforms.email.cleanEmailBuckets);
+        });
+
+        test('cleanEmailBuckets transform given an array of email buckets returns the cleaned buckets', function() {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          var output = clientConfig.config.transforms.email.cleanEmailBuckets([{
+            key: 'http://email1@address1.com',
+            doc_count: 1
+          }, {
+            key: 'http://email2%40address2.com',
+            doc_count: 2
+          }]);
+          expect(output).to.deep.equal([{
+            text: 'email1@address1.com',
+            key: 'http://email1@address1.com',
+            doc_count: 1
+          }, {
+            text: 'email2@address2.com',
+            key: 'http://email2%40address2.com',
+            doc_count: 2
+          }]);
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      });
     </script>
   </body>
 </html>
