@@ -57,7 +57,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(element.userRecordExists);
       assert.isFalse(element.sendingSearch);
       assert.isUndefined(element._saveOverIndex);
-      assert.isUndefined(element.emailAddress);
+      assert.equal(element.emailAddress, '');
       assert.isTrue(element.noEmailAddress);
       assert.deepEqual(element.receivedSearches, []);
       assert.deepEqual(element.searches, []);
@@ -79,14 +79,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(settingsDialog.opened);
     });
 
-    test('when userRecordExists and showSearch are true, advancedSearch and blurImages sections are visible', function() {
+    test('when userRecordExists and showSearch are true, various user preferences sections are visible', function() {
       assert.isNotNull(element.$$('div[title="Toggle Advanced Search"]'));
       assert.isNotNull(element.$$('div[title="Toggle Blur Images"]'));
+      assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
+      assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
+      assert.isTrue(element.$$('button-action[title="Save Email Address"]').disabled);
+      assert.isNotNull(element.$$('paper-dropdown-menu[label="Interval"]'));
     });
 
-    test('does not have search element if userRecordExists is undefined', function(done) {
+    test('does not have search element or other inputs if userRecordExists is undefined', function(done) {
       element.userRecordExists = undefined;
       flush(function() {
+        assert.isNull(element.$$('div[title="Toggle Blur Images"]'));
+        assert.isNull(element.$$('div[title="Toggle Advanced Search"]'));
+        assert.isNull(element.$$('paper-input[label="Enter Email Address"]'));
+        assert.isNull(element.$$('button-action[title="Save Email Address"]'));
+        assert.isNull(element.$$('paper-dropdown-menu[label="Interval"]'));
         var search = element.$$('.search');
         assert(!search);
         done();
@@ -125,8 +134,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert(search);
         assert.isNotNull(element.$$('div[title="Toggle Blur Images"]'));
         assert.equal(element.$$('div[title="Toggle Advanced Search"]').style.display, 'none');
+        assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
+        assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
+        assert.isTrue(element.$$('button-action[title="Save Email Address"]').disabled);
+        assert.isNotNull(element.$$('paper-dropdown-menu[label="Interval"]'));
         assert.isTrue(element.$$('paper-icon-button[title="Run Saved Search"]').disabled);
         assert.isTrue(element.$$('paper-icon-button[title="Delete Saved Search"]').disabled);
+        done();
+      });
+    });
+
+    test('save email button is disabled when an invalid email is entered', function(done) {
+      element.emailAddress = 'abc';
+      flush(function() {
+        assert.isTrue(element.$$('button-action[title="Save Email Address"]').disabled);
+        done();
+      });
+    });
+
+    test('save email button is enabled when a valid email is entered', function(done) {
+      element.emailAddress = 'abc@test.com';
+      flush(function() {
+        assert.isFalse(element.$$('button-action[title="Save Email Address"]').disabled);
         done();
       });
     });
@@ -401,20 +430,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(element.receivedSearches[0].open);
     });
 
-    test('_updateNotification updates the notification for the saved search', function() {
-      element.searches = [{
-        text: 'myText'
-      }];
+    test('_updateNotificationFrequency updates the notification interval', function() {
+      element.notificationFrequency = 'weekly';
 
-      var mockEvent = {
-        model: {
-          index: 0,
-          search: element.searches[0]
-        }
-      };
-
-      element._updateNotification(mockEvent);
-      // TODO
+      element._updateNotificationFrequency();
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        notificationFrequency: element.notificationFrequency
+      }});
     });
 
     test('_isFalse returns the correct values', function() {
