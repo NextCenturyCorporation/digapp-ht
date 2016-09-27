@@ -84,7 +84,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isNotNull(element.$$('div[title="Toggle Blur Images"]'));
       assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
       assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
-      assert.isTrue(element.$$('button-action[title="Save Email Address"]').disabled);
+      assert.isFalse(element.$$('button-action[title="Save Email Address"]').disabled);
       assert.isNotNull(element.$$('paper-dropdown-menu[label="Interval"]'));
     });
 
@@ -136,7 +136,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.equal(element.$$('div[title="Toggle Advanced Search"]').style.display, 'none');
         assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
         assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
-        assert.isTrue(element.$$('button-action[title="Save Email Address"]').disabled);
+        assert.isFalse(element.$$('button-action[title="Save Email Address"]').disabled);
         assert.isNotNull(element.$$('paper-dropdown-menu[label="Interval"]'));
         assert.isTrue(element.$$('paper-icon-button[title="Run Saved Search"]').disabled);
         assert.isTrue(element.$$('paper-icon-button[title="Delete Saved Search"]').disabled);
@@ -362,9 +362,45 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element.facets, {dateCreated: {}});
     });
 
-    test('_toggleSearchSettings opens the saved search', function() {
+    test('saved searches are collapsed on default', function(done) {
       element.searches = [{
-        open: false,
+        text: 'myText'
+      }];
+
+      flush(function() {
+        assert.isFalse(element._isOpened('expandSavedSearch', 0));
+        assert.isFalse(element.$$('#savedSearch_0').opened);
+        assert.isFalse(element.$$('#expandSavedSearch_0').open);
+        assert.equal(element._getModalIconTitle('expandSavedSearch', 0), 'Open Search Settings');
+        assert.equal(element.$$('#expandSavedSearch_0').title, 'Open Search Settings');
+        done();
+      });
+    });
+
+    test('_toggleSearchSettings opens the saved search', function(done) {
+      element.searches = [{
+        text: 'myText'
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+      flush(function() {
+        element._toggleSearchSettings(mockEvent);
+        assert.isTrue(element._isOpened('expandSavedSearch', 0));
+        assert.isTrue(element.$$('#savedSearch_0').opened);
+        assert.isTrue(element.$$('#expandSavedSearch_0').open);
+        assert.equal(element._getModalIconTitle('expandSavedSearch', 0), 'Close Search Settings');
+        assert.equal(element.$$('#expandSavedSearch_0').title, 'Close Search Settings');
+        done();
+      });
+    });
+
+    test('_toggleSearchSettings closes the saved search', function(done) {
+      element.searches = [{
         text: 'myText'
       }];
 
@@ -375,30 +411,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       };
 
-      element._toggleSearchSettings(mockEvent);
-      assert.isTrue(element.searches[0].open);
+      flush(function() {
+        element._toggleSearchSettings(mockEvent);
+        flush(function() {
+          element._toggleSearchSettings(mockEvent);
+          assert.isFalse(element._isOpened('expandSavedSearch', 0));
+          assert.isFalse(element.$$('#savedSearch_0').opened);
+          assert.isFalse(element.$$('#expandSavedSearch_0').open);
+          assert.equal(element._getModalIconTitle('expandSavedSearch', 0), 'Open Search Settings');
+          assert.equal(element.$$('#expandSavedSearch_0').title, 'Open Search Settings');
+          done();
+        });
+      });
     });
 
-    test('_toggleSearchSettings closes the saved search', function() {
-      element.searches = [{
-        open: true,
+    test('received searches are collapsed on default', function(done) {
+      element.receivedSearches = [{
         text: 'myText'
       }];
 
-      var mockEvent = {
-        model: {
-          index: 0,
-          search: element.searches[0]
-        }
-      };
-
-      element._toggleSearchSettings(mockEvent);
-      assert.isFalse(element.searches[0].open);
+      flush(function() {
+        assert.isFalse(element._isOpened('expandReceivedSearch', 0));
+        assert.isFalse(element.$$('#receivedSearch_0').opened);
+        assert.isFalse(element.$$('#expandReceivedSearch_0').open);
+        assert.equal(element._getModalIconTitle('expandReceivedSearch', 0), 'Open Search Settings');
+        assert.equal(element.$$('#expandReceivedSearch_0').title, 'Open Search Settings');
+        done();
+      });
     });
 
-    test('_toggleReceivedSearchSettings opens the saved search', function() {
+    test('_toggleReceivedSearchSettings opens the saved search', function(done) {
       element.receivedSearches = [{
-        open: false,
         text: 'myText'
       }];
 
@@ -409,13 +452,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       };
 
-      element._toggleReceivedSearchSettings(mockEvent);
-      assert.isTrue(element.receivedSearches[0].open);
+      flush(function() {
+        element._toggleReceivedSearchSettings(mockEvent);
+        assert.isTrue(element._isOpened('expandReceivedSearch', 0));
+        assert.isTrue(element.$$('#receivedSearch_0').opened);
+        assert.isTrue(element.$$('#expandReceivedSearch_0').open);
+        assert.equal(element._getModalIconTitle('expandReceivedSearch', 0), 'Close Search Settings');
+        assert.equal(element.$$('#expandReceivedSearch_0').title, 'Close Search Settings');
+        done();
+      });
     });
 
-    test('_toggleReceivedSearchSettings closes the saved search', function() {
+    test('_toggleReceivedSearchSettings closes the saved search', function(done) {
       element.receivedSearches = [{
-        open: true,
         text: 'myText'
       }];
 
@@ -426,8 +475,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       };
 
-      element._toggleReceivedSearchSettings(mockEvent);
-      assert.isFalse(element.receivedSearches[0].open);
+      flush(function() {
+        element._toggleReceivedSearchSettings(mockEvent);
+        flush(function() {
+          element._toggleReceivedSearchSettings(mockEvent);
+          assert.isFalse(element._isOpened('expandReceivedSearch', 0));
+          assert.isFalse(element.$$('#receivedSearch_0').opened);
+          assert.isFalse(element.$$('#expandReceivedSearch_0').open);
+          assert.equal(element._getModalIconTitle('expandReceivedSearch', 0), 'Open Search Settings');
+          assert.equal(element.$$('#expandReceivedSearch_0').title, 'Open Search Settings');
+          done();
+        });
+      });
     });
 
     test('_updateNotificationFrequency updates the notification interval', function() {
@@ -439,9 +498,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }});
     });
 
-    test('_isFalse returns the correct values', function() {
-      assert.isTrue(element._isFalse(false));
-      assert.isFalse(element._isFalse(true));
+    test('_toggleNotificationAlert updates search objects', function() {
+      element.searches = [{
+        text: 'myText',
+        sendNotificationEmail: true
+      }];
+
+      element._toggleNotificationAlert();
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        savedQueries: element.searches
+      }});
     });
 
     test('_openSettingsDialog opens the settings dialog', function() {

@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/breadbox-item/breadbox-item.html">
 <link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
@@ -18,6 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../lodash.html">
 <link rel="import" href="../dateformat.html">
@@ -90,9 +92,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <div class="layout horizontal">
             <span class="name tall right-space">Email Address for Notifications:</span>
             <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}"
-              no-label-float type="email" auto-validate>
+              no-label-float type="email" auto-validate invalid="{{_isEmailInvalid}}">
             </paper-input>
-            <button-action title="Save Email Address" text="Save" disabled="[[!_isEmailValid(emailAddress)]]"
+            <button-action title="Save Email Address" text="Save" disabled="[[_isEmailInvalid]]"
               click-listener="[[_createSaveEmailAddressListener()]]">
             </button-action>
           </div>
@@ -129,12 +131,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-repeat" items="[[searches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
-                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                  <modal-icon id$="[[_createElementId('expandSavedSearch', index)]]"
+                    title="[[_getModalIconTitle('expandSavedSearch', index)]]"
+                    openable ripple on-tap="_toggleSearchSettings">
+                  </modal-icon>
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
-                <iron-collapse opened="[[search.open]]">
+                <iron-collapse id$="[[_createElementId('savedSearch', index)]]">
                   <div class="layout horizontal search-settings">
                     <div class="layout vertical right-space">
                       <div class="name tall right-space">Created By</div>
@@ -144,15 +149,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       <div class="text tall right-space">[[search.createdBy]]</div>
                       <div class="text tall right-space">[[_getFormattedDate(search.createdAt)]]</div>
                     </div>
-                    <send-search
-                      search="[[search]]"
-                      client="[[client]]"
-                      current-user="[[username]]"
-                      user-index="[[userIndex]]"
-                      user-type="[[userType]]"
-                      disable-send="[[!showSearch]]"
-                      send-in-progress="{{sendingSearch}}">
-                    </send-search>
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Send Saved Search to User</div>
+                      <div class="name tall right-space">Enable Notification Alert</div>
+                    </div>
+
+                    <div class="layout vertical right-space">
+                      <send-search
+                        search="[[search]]"
+                        client="[[client]]"
+                        current-user="[[username]]"
+                        user-index="[[userIndex]]"
+                        user-type="[[userType]]"
+                        disable-send="[[!showSearch]]"
+                        send-in-progress="{{sendingSearch}}">
+                      </send-search>
+                      <paper-toggle-button class="text tall right-space"
+                        checked="{{search.sendNotificationEmail}}" on-change="_toggleNotificationAlert"
+                        disabled="[[!showSearch]]">
+                      </paper-toggle-button>
+                    </div>
                   </div>
                 </iron-collapse>
               </div>
@@ -166,12 +182,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-repeat" items="[[receivedSearches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
-                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleReceivedSearchSettings"></modal-icon>
+                  <modal-icon id$="[[_createElementId('expandReceivedSearch', index)]]" openable
+                    title="[[_getModalIconTitle('expandReceivedSearch', index)]]"
+                    ripple on-tap="_toggleReceivedSearchSettings">
+                  </modal-icon>
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
-                <iron-collapse opened="[[search.open]]">
+                <iron-collapse id$="[[_createElementId('receivedSearch', index)]]">
                   <div class="layout horizontal search-settings">
                     <div class="layout vertical right-space">
                       <div class="name tall right-space">Created By</div>
@@ -408,17 +427,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: function() {
             return undefined;
           }
+        },
+        /**
+         * Boolean to track if user input for email address is valid.
+         */
+        _isEmailInvalid: {
+          type: Boolean,
+          notify: true
         }
-
-      },
-
-      /**
-       * Checks if emailAddress entered is valid before enabling save button.
-       */
-      _isEmailValid: function(emailAddress) {
-        return emailAddress &&
-          this.$$('paper-input[label="Enter Email Address"]') &&
-          !this.$$('paper-input[label="Enter Email Address"]').invalid;
       },
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
 
@@ -468,6 +484,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             blurImages: self.blurImages
           }
         });
+      },
+
+      /**
+       * Toggles the search's notification enabled setting.
+       */
+      _toggleNotificationAlert: function() {
+        var self = this;
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self.searches
+          }
+        });
+      },
+
+      /**
+       * Create an element id using arguments given (used for creating ids for collapsible elements).
+       */
+      _createElementId: function(idPrefix, index) {
+        return idPrefix + '_' + index;
       },
 
       /**
@@ -570,8 +605,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Returns the title of the modal-icon for the given open setting.
        */
-      _getModalIconTitle: function(open) {
-        return (open ? 'Close' : 'Open') + ' Search Settings';
+      _getModalIconTitle: function(idPrefix, index) {
+        return (this._isOpened(idPrefix, index) ? 'Close' : 'Open') + ' Search Settings';
       },
 
       /**
@@ -605,14 +640,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Toggles the open setting of the given saved search.
        */
       _toggleSearchSettings: function(event) {
-        this.set('searches.' + event.model.index + '.open', !event.model.search.open);
+        var index = event.model.index;
+        var isOpened = !this.$$('#savedSearch_' + index).opened;
+
+        this.$$('#savedSearch_' + index).toggle();
+        this.$$('#expandSavedSearch_' + index).open = isOpened ? true : false;
+        this.$$('#expandSavedSearch_' + index).title = this._getModalIconTitle('expandSavedSearch', index);
       },
 
       /**
        * Toggles the open setting of the given received search.
        */
       _toggleReceivedSearchSettings: function(event) {
-        this.set('receivedSearches.' + event.model.index + '.open', !event.model.search.open);
+        var index = event.model.index;
+        var isOpened = !this.$$('#receivedSearch_' + index).opened;
+
+        this.$$('#receivedSearch_' + index).toggle();
+        this.$$('#expandReceivedSearch_' + index).open = isOpened ? true : false;
+        this.$$('#expandReceivedSearch_' + index).title = this._getModalIconTitle('expandReceivedSearch', index);
       },
 
       /**
@@ -621,11 +666,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _openSettingsDialog: function() {
         this.$$('#settingsDialog').open();
       },
+
       /**
-       * Returns whether the given value is false.
+       * Checks if specified element is opened.
        */
-      _isFalse: function(value) {
-        return !value;
+      _isOpened: function(idPrefix, index) {
+        if(this.$$('#' + idPrefix + '_' + index)) {
+          return this.$$('#' + idPrefix + '_' + index).open;
+        } else {
+          return false;
+        }
       },
       /**
        * Returns more readable string of createdAt date.
