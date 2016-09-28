@@ -41,7 +41,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         id: image.uri,
         icon: commonTransforms.getIronIcon('image'),
         link: commonTransforms.getLink(image.uri, 'image'),
-        source: image.url,
+        source: _.isArray(image.url) ? image.url[0] : image.url,
         styleClass: commonTransforms.getStyleClass('image')
       };
     });

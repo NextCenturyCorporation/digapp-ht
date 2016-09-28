@@ -15,12 +15,13 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       var images = [];
       if(data) {
         data.hits.hits.forEach(function(hit) {
-          var id = _.get(hit._source, 'uri');
+          var imageId = _.get(hit._source, 'uri', '');
+          var imageSource = _.get(hit._source, 'url', '');
           images.push({
-            id: id,
+            id: imageId,
             icon: commonTransforms.getIronIcon('image'),
-            link: commonTransforms.getLink(id, 'image'),
-            source: _.get(hit._source, 'url'),
+            link: commonTransforms.getLink(imageId, 'image'),
+            source: _.isArray(imageSource) ? imageSource[0] : imageSource,
             styleClass: commonTransforms.getStyleClass('image')
           });
         });
@@ -31,6 +32,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
         newData = data.hits.hits[0]._source;
+        newData.url = _.isArray(newData.url) ? newData.url[0] : newData.url;
 
         var adultService = {
           total: newData.isImagePartOf.length,
