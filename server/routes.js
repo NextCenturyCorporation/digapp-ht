@@ -16,7 +16,6 @@ var upload = multer({
 module.exports = function(app) {
 
     app.get('/config/?', function(req, res) {
-        console.log(config.memexImageCredentials);
         res.status(200).send({
             elasticConfig: JSON.parse(config.elasticConfig),
             elasticIndex: config.elasticIndex,
@@ -28,8 +27,7 @@ module.exports = function(app) {
             username: req.headers.user ? req.headers.user : 'mockUser',
             userIndex: config.userIndex,
             userType: config.userType,
-            memexUser: config.memexUser,
-            memexPassword: config.memexPassword
+            imageServiceAuth: config.imageServiceAuth
         });
     });
 
