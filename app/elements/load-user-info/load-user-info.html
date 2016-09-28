@@ -61,7 +61,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       es-request="{{esRequest}}"
       user-index="[[userIndex]]"
       user-type="[[userType]]"
-      user-record-exists="[[_userRecordExists]]">
+      user-record-exists="[[_userRecordExists]]"
+      has-notifications="[[_hasNotifications]]">
     </user-preferences>
 
     <!-- if no user record found, create it -->
@@ -78,6 +79,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
+    /* globals _ */
     'use strict';
 
     Polymer({
@@ -190,6 +192,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         blurImages: {
           type: Boolean,
           value: true,
+          notify: true
+        },
+
+        /**
+         * Whether or not there are unseen notifications.
+         */
+        _hasNotifications: {
+          type: Boolean,
+          value: false,
           notify: true
         },
 
@@ -315,6 +326,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Populates the properties in this user-preferences component using the given preferences object.
        */
       _populateUserPreferences: function(prefs) {
+        var self = this;
+
         if(prefs.advancedSearch !== undefined) {
           this.set('advancedSearch', prefs.advancedSearch);
         }
@@ -333,6 +346,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
 
         if(prefs.savedQueries) {
+          _.each(prefs.savedQueries, function(search) {
+            if(search.notificationHasRun === false) {
+              self.set('_hasNotifications', true);
+              return false;
+            }
+          });
           this.set('_searches', prefs.savedQueries);
         }
 
