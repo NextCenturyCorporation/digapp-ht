@@ -184,10 +184,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </div>
 
       </paper-dialog>
-      <paper-dialog id="noAuthDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <paper-dialog id="errorDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="layout vertical">
           <div class="layout horizontal">
-            <span class="bold tall flex">Image Service credentials not set - Contact Admin</span>
+            <span class="bold tall flex">{{errorMessage}}</span>
             <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
           </div>
       </div>
@@ -206,6 +206,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          * Memex username and Password
          */
         imageServiceAuth: {
+          type: String,
+          notify: true
+        },
+        imageServiceHost: {
           type: String,
           notify: true
         },
@@ -280,6 +284,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Boolean,
           notify: true
         },
+        errorMessage: {
+          type: String,
+          notify: true,
+          value: ''
+        },
 
         observers: [
           'userActivity(value)'
@@ -315,13 +324,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$$('#similarImageSearchDialog').close();
       },
 
-      makeHeaders: function(authInfo) {
-        var auth = JSON.parse(authInfo);
+      makeHeaders: function() {
+        var auth = JSON.parse(this.imageServiceAuth);
         if(!auth.user || !auth.password) {
+          this.errorMessage = 'Image Service credentials not set - Contact Admin';
           this.$$('#noAuthDialog').open();
           return false;
         }
         return 'Basic ' + btoa(auth.user + ':' + auth.password);
+      },
+
+      getHost: function() {
+        var hosts = JSON.parse(this.imageServiceHost);
+        if(!hosts.url || !hosts.base64) {
+          this.errorMessage = 'Image Service Hosts not set - Contact Admin';
+          this.$$('#errorDialog').open();
+          return false;
+        } 
+        return hosts[this.imageType];
       },
 
       _createSearchListener: function() {
@@ -334,15 +354,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 self.$.xhr.params.url = self._imageInput;
                 self.compareSourceImage = self._imageInput;
                 self.$.xhr.method = 'GET';
-                self.$.xhr.url = 'https://isi.memexproxy.com/ColumbiaUimgSearch.php';
+                //self.$.xhr.url = 'https://isi.memexproxy.com/ColumbiaUimgSearch.php';
               } else if(self.imageType === 'base64') {
                 self.$.xhr.contentType = 'application/x-www-form-urlencoded';
                 self.$.xhr.body = {data: self._base64Input};
                 self.$.xhr.method = 'POST';
-                self.$.xhr.url = 'https://isi.memexproxy.com/ESCORTS/cu_image_search/byB64_nocache';
+                //self.$.xhr.url = 'https://isi.memexproxy.com/ESCORTS/cu_image_search/byB64_nocache';
               }
-              self.$.xhr.headers.Authorization = self.makeHeaders(self.imageServiceAuth);
-              if(!self.$.xhr.headers.Authorization) {
+
+              self.$.xhr.url = self.getHost();
+              self.$.xhr.headers.Authorization = self.makeHeaders();
+              if(!self.$.xhr.headers.Authorization || !self.$.xhr.url) {
                 return false;
               }
               self.$.xhr.generateRequest();

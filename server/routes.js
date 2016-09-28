@@ -27,7 +27,8 @@ module.exports = function(app) {
             username: req.headers.user ? req.headers.user : 'mockUser',
             userIndex: config.userIndex,
             userType: config.userType,
-            imageServiceAuth: config.imageServiceAuth
+            imageServiceAuth: config.imageServiceAuth,
+            imageServiceHost: config.imageServiceHost
         });
     });
 
