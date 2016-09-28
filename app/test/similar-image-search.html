@@ -1,0 +1,153 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>similar-image-search</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/similar-image-search/similar-image-search.html">
+</head>
+<body>
+
+<test-fixture id="similar-image-search-fixture">
+  <template>
+    <similar-image-search></similar-image-search>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, expect, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('<similar-image-search> default tests', function() {
+    var component;
+
+    setup(function() {
+      component = fixture('similar-image-search-fixture');
+    });
+
+    test('_imageInput is blank by default', function() {
+      expect(component._imageInput).to.equal('');
+    });
+
+    test('_base64Input is blank by default', function() {
+      expect(component._base64Input).to.equal('');
+    });
+
+    test('does have expected elements', function() {
+      expect(component.$$('paper-icon-button')).to.exist;
+      expect(component.$$('paper-dialog')).to.exist;
+      expect(component.$$('paper-dialog').id).to.equal('similarImageSearchDialog');
+      expect(component.$$('file-upload')).to.exist;
+      expect(component.$$('file-upload').id).to.equal('fileUpload');
+    });
+
+    test('_createSearchListener.onClick does nothing if _imageInput or _base64Input is blank', function() {
+      component._imageInput = '';
+      component._base64Input = '';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.images).to.be.empty;
+    });
+
+    test('check image type to be url on image input', function() {
+      component._imageInput = 'http://test.url';
+      expect(component.userActivity).to.be.a('Function');
+      component.userActivity();
+      expect(component.imageType).to.equal('url');
+    });
+
+    test('check image type to be none on base64 input', function() {
+      component._base64Input = 'teststring';
+      expect(component.userActivity).to.be.a('Function');
+      component.userActivity();
+      expect(component.imageType).to.equal('');
+    });
+
+    test('check images and sha1 is set on processing response', function() {
+      var response = {
+                        images: [{similar_images: {
+                                  cached_image_urls: ['test1'],
+                                  sha1: ['test2']
+                                }
+                              }]
+                      };
+      expect(component.processResponse).to.be.a('Function');
+      component.processResponse(response);
+      expect(component.images).to.be.not.empty;
+      expect(component.images).to.eql(['test1']);
+      expect(component.sha1Images).to.be.not.empty;
+      expect(component.sha1Images).to.eql(['test2']);
+    });
+
+    test('_createSearchListener.onClick sets source image on _imageInput', function() {
+      component._imageInput = 'http://test.url';
+      component.$.xhr = {headers: {}, url: '', generateRequest: function() {}};
+      component.$.xhr.headers.Authorization = '';
+      component.imageServiceAuth = '{"user": "test", "password":"test"}';
+      component.imageServiceHost = '{"url":"test","base64":"test"}';
+      expect(component.userActivity).to.be.a('Function');
+      component.userActivity();
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.compareSourceImage).to.equal('http://test.url');
+      expect(component._base64Input).to.equal('');
+    });
+
+    test('_createClearListener.onClick clears all input', function() {
+      component._phoneInput = '1234567890';
+      var listener = component._createClearListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component._imageInput).to.equal('');
+      expect(component._base64Input).to.equal('');
+      expect(component.imageType).to.equal('');
+      expect(component.enableSearch).to.equal(true);
+    });
+
+    test('_handleUpload sets variables on _base64Input', function() {
+      component._handleUpload({
+        detail: {
+          xhr: {
+            response: '{"base64": "somebase64string","mimeType":"something"}'
+          }
+        }
+      });
+      expect(component.mimeType).to.equal('something');
+      expect(component.imageType).to.equal('base64');
+      expect(component.enableSearch).to.equal(false);
+      expect(component._base64Input).to.equal('data:something;base64,somebase64string');
+    });
+
+    test('_openDialog opens the dialog', function(done) {
+      var dialog = component.$$('#similarImageSearchDialog');
+      expect(dialog.style.display).to.equal('none');
+      component._openDialog();
+      flush(function() {
+        expect(dialog.style.display).to.equal('');
+        done();
+      });
+    });
+  });
+</script>
+</body>
+</html>
