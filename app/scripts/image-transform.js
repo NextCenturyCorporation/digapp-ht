@@ -28,7 +28,6 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       }
       return images;
     },
-
     image: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
