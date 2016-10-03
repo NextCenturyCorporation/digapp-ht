@@ -62,21 +62,18 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     };
 
     var savedQuery = savedQueries[0];
-    logger.info('Checking alert for search named ' + savedQuery.name + ':  ' + savedQuery.sendEmailNotification + ' number ' + updatedQueries.length);
 
     if(savedQuery.sendEmailNotification) {
       client.search({
         index: dataIndex,
         body: createSavedQueryBody(savedQuery)
       }).then(function(results) {
-        logger.info('Got results for search named ' + savedQuery.name);
         done(checkAndSaveAlert(savedQuery, results));
       }, function(error) {
         logger.error(error, 'Error running saved query');
         done(savedQuery);
       });
     } else {
-      logger.info('Skipping search named ' + savedQuery.name);
       done(savedQuery);
     }
   };
@@ -111,7 +108,6 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     };
 
     var user = users[0];
-    logger.info('Checking freq against ' + period + ':  ' + user._source.notificationFrequency + ' for user ' + user._source.username);
 
     if(user._source.notificationFrequency === period) {
       checkNextQuery(user._source.savedQueries, [], function(updatedQueries) {
