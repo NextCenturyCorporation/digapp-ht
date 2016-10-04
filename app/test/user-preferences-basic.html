@@ -62,9 +62,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element.receivedSearches, []);
       assert.deepEqual(element.searches, []);
       assert.isFalse(element.hasNotifications);
+      assert.isUndefined(element.notificationQuery);
+      assert.isUndefined(element.notificationQueryDate);
       assert.isUndefined(element._userUpdateBody);
       assert.isUndefined(element._updatedUser);
       assert.isUndefined(element._facetsToLoad);
+      assert.isUndefined(element._callFromRunSearch);
     });
 
     test('_getSettingsButtonClass returns correct class', function() {
@@ -310,12 +313,31 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isString(element._getModalIconTitle(true));
     });
 
-    test('_runSearch sets the search text from the saved search and closes the settings dialog', function() {
+    test('_resetNotificationQuery only resets notification properties if _callFromRunSearch is false', function() {
+      element.notificationQuery = true;
+      element.notificationQueryDate = new Date('October 3, 2016');
+      element._callFromRunSearch = true;
+
+      element._resetNotificationQuery();
+
+      assert.deepEqual(element.notificationQueryDate, new Date('October 3, 2016'));
+      assert.isTrue(element.notificationQuery);
+
+      element._callFromRunSearch = false;
+
+      element._resetNotificationQuery();
+      assert.isUndefined(element.notificationQueryDate);
+      assert.isFalse(element.notificationQuery);
+    });
+
+    test('_runSearch sets the search text from the saved search and notification variables (if needed) and closes the settings dialog', function() {
       element.searches = [{
         digUIState: {
           searchText: 'myText',
           facets: '{\"dateCreated\":{}}'
-        }
+        },
+        notificationHasRun: false,
+        notificationDate: new Date('October 3, 2016')
       }];
 
       var mockEvent = {
@@ -326,7 +348,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       element._runSearch(mockEvent);
+      assert.isTrue(element.notificationQuery);
+      assert.isDefined(element.searches[0].lastRunDate);
+      assert.isTrue(element.searches[0].notificationHasRun);
+      assert.deepEqual(element.notificationQueryDate, new Date('October 3, 2016'));
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        savedQueries: element.searches
+      }});
       assert.equal(element.searchText, 'myText');
+      assert.isTrue(element._callFromRunSearch);
       assert.deepEqual(element._facetsToLoad, {dateCreated: {}});
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
@@ -339,7 +369,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         digUIState: {
           searchText: 'myText',
           facets: '{\"dateCreated\":{}}'
-        }
+        },
+        notificationHasRun: true,
+        notificationDate: new Date('October 3, 2016')
       }];
 
       var mockEvent = {
@@ -352,6 +384,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element._runSearch(mockEvent);
       assert.equal(element.searchText, 'myText');
       assert.deepEqual(element.facets, {dateCreated: {}});
+      assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
       assert.isFalse(settingsDialog.opened);
@@ -371,6 +404,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element._fillOutFacets();
       assert.equal(element.searchText, 'myText');
       assert.deepEqual(element.facets, {dateCreated: {}});
+      assert.isFalse(element._callFromRunSearch);
+    });
+
+    test('_checkIfPendingNotifications updates hasNotifications property if needed', function() {
+      element.hasNotifications = true;
+      element.searches = [{
+        digUIState: {
+          searchText: 'myText',
+          facets: '{\"dateCreated\":{}}'
+        },
+        notificationHasRun: false,
+        notificationDate: new Date('October 3, 2016')
+      }];
+
+      element._checkIfPendingNotifications();
+      assert.isTrue(element.hasNotifications);
+      assert.isFalse(element._callFromRunSearch);
+
+      element.searches[0].notificationHasRun = true;
+      element._checkIfPendingNotifications();
+      assert.isFalse(element.hasNotifications);
+      assert.isFalse(element._callFromRunSearch);
     });
 
     test('saved searches are collapsed on default', function(done) {

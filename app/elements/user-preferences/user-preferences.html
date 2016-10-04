@@ -418,6 +418,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * Tracks whether or not a query with a notification is being viewed.
+         */
+        notificationQuery: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * If notification query is being viewed, the notification date associated with that query.
+         */
+        notificationQueryDate: {
+          type: Object,
+          notify: true
+        },
+
+        /**
          * Index to replace in searches if saving over existing search.
          */
         _saveOverIndex: {
@@ -456,8 +471,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _isEmailInvalid: {
           type: Boolean,
           notify: true
+        },
+        /**
+         * Tracks if query is being reloaded via _runSearch (if not, need to reset notification properties)
+         */
+        _callFromRunSearch: {
+          type: Boolean
         }
       },
+      observers: [
+        '_resetNotificationQuery(searchText, facets.*)'
+      ],
       _getSettingsButtonClass: function(hasNotifications) {
         return hasNotifications ? 'highlight-btn' : '';
       },
@@ -621,8 +645,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
       },
 
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
       /**
        * Returns the checkbox icon for the given setting.
        */
@@ -638,18 +660,68 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Runs the given saved search.
+       * Need to reset notification properties when searchText and facets are updated via something
+       * other than _runSearch.
+       */
+      _resetNotificationQuery: function() {
+        if(!this._callFromRunSearch) {
+          this.notificationQuery = false;
+          this.notificationQueryDate = undefined;
+        }
+      },
+
+      /**
+       * Runs the given saved search and updates necessary fields in elasticsearch.
        */
       _runSearch: function(event) {
-        this.$$('#settingsDialog').close();
         var self = this;
+        self.$$('#settingsDialog').close();
 
-        if(this.searchText !== event.model.search.digUIState.searchText) {
+        // update notification related fields if necessary
+        if(event.model.search.notificationHasRun === false) {
+          var search = _.clone(this.searches[event.model.index]);
+          search.lastRunDate = new Date();
+          search.notificationHasRun = true;
+          self.notificationQueryDate = new Date(event.model.search.notificationDate);
+          self.notificationQuery = true;
+          self.splice('searches', event.model.index, 1, search);
+          self._set_userUpdateBody({
+            doc: {
+              savedQueries: self.searches
+            }
+          });
+        }
+
+        self.set('_callFromRunSearch', true);
+
+        if(self.searchText !== event.model.search.digUIState.searchText) {
           self.set('searchText', event.model.search.digUIState.searchText);
           self.set('_facetsToLoad', JSON.parse(event.model.search.digUIState.facets));
         } else {
           self.set('facets', JSON.parse(event.model.search.digUIState.facets));
+          self._checkIfPendingNotifications();
         }
+      },
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Checks current list of searches to see if anymore notifications are pending.
+       */
+      _checkIfPendingNotifications: function() {
+        var self = this;
+        var pendingNotificationFound = false;
+        _.each(self.searches, function(search) {
+          if(search.notificationHasRun === false) {
+            pendingNotificationFound = true;
+            return false;
+          }
+        });
+
+        if(!pendingNotificationFound) {
+          this.hasNotifications = false;
+        }
+        self.set('_callFromRunSearch', false);
       },
 
       /**
@@ -660,6 +732,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(this._facetsToLoad && this.searchText) {
             this.set('facets', JSON.parse(JSON.stringify(this._facetsToLoad)));
             this._facetsToLoad = undefined;
+            this._checkIfPendingNotifications();
           }
         }
       },
