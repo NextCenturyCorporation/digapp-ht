@@ -324,14 +324,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true
         },
-        /**
-         * Boolean to track when associated elastic-client-search query has finished loading.
-         */
-        loading: {
-          type: Boolean,
-          notify: true,
-          observer: '_loadingDigState'
-        },
 
         /**
          * Whether advanced search is enabled.
@@ -431,13 +423,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true
         },
+
         /**
-         * Currently selected sort
+         * Whether or not all properties have been loaded/are ready for elastic-client-search.
          */
-        currentSort: {
-          type: Object,
+        processRequest: {
+          type: Boolean,
           notify: true
         },
+
         /**
          * Index to replace in searches if saving over existing search.
          */
@@ -460,17 +454,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
-        /**
-         * Where to store facets while waiting for query results to reload (fix for timing issues when loading
-         * both the searchText and facets).
-         */
-        _facetsToLoad: {
-          type: Object,
-          notify: true,
-          value: function() {
-            return undefined;
-          }
-        },
         /**
          * Boolean to track if user input for email address is valid.
          */
@@ -678,42 +661,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       /**
        * Runs the given saved search and updates necessary fields in elasticsearch.
-       *
-       * Sort, search text, and facets need to be updated incrementally to allow
-       * elastic-search-client to process all requests in order to avoid timing issues
-       * that could arise and display incorrect results to the user.
        */
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
+        this.set('processRequest', false);
 
         if(event.model.search.notificationHasRun === false) {
           // notification queries have to be sorted in descending order so that newest
           // results are first
-          //
-          // if updating sort order and a search has already been performed,
-          // wait for elastic-client-search to process that change
-          var waitForSortUpdate = false;
-
-          if(((!this.currentSort.order) || this.currentSort.order !== 'desc') && this.searchText) {
-            this.set('_digStateToLoad', JSON.parse(JSON.stringify(event.model.search.digUIState)));
-            waitForSortUpdate = true;
-          }
-
-          this._callFromRunSearch = true;
           this._setNotificationFlags(event.model.index);
-
-          if(!waitForSortUpdate) {
-            // if not necessary to wait for sort update, begin updating search text and facets
-            this._updateDigUIState(event.model.search);
-          }
-
         } else {
           // if not a notification query, reset notification flags and
           // begin updating search text and facets
           this._resetNotificationQuery();
-          this._callFromRunSearch = true;
-          this._updateDigUIState(event.model.search);
         }
+
+        this._callFromRunSearch = true;
+        this.set('searchText', event.model.search.digUIState.searchText);
+        this.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        this._checkIfPendingNotifications();
       },
 
       /**
@@ -737,36 +703,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
       },
 
-      /**
-       * Update search text and facets in the UI, wait to update when appropriate.
-       */
-      _updateDigUIState: function(search) {
-        if(this.searchText !== search.digUIState.searchText) {
-          this.set('searchText', search.digUIState.searchText);
-          this.set('_digStateToLoad', JSON.parse(JSON.stringify(search.digUIState)));
-        } else {
-          this.set('facets', JSON.parse(search.digUIState.facets));
-          this._checkIfPendingNotifications();
-        }
-      },
-
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      /**
-       * Wait to reload search text and/or facets until after initial sort change request (if notifications exist)
-       * or search string has been processed.
-       */
-      _loadingDigState: function() {
-        if(this.loading === false && this._digStateToLoad) {
-          if(this.searchText !== this._digStateToLoad.searchText) {
-            this.set('searchText', this._digStateToLoad.searchText);
-          } else {
-            this.set('facets', JSON.parse(this._digStateToLoad.facets));
-            this._digStateToLoad = undefined;
-            this._checkIfPendingNotifications();
-          }
-        }
-      },
 
       /**
        * Checks current list of searches to see if anymore notifications are pending.
@@ -774,6 +711,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _checkIfPendingNotifications: function() {
         var self = this;
         var pendingNotificationFound = false;
+
+        self.set('processRequest', true);
+
         _.each(self.searches, function(search) {
           if(search.notificationHasRun === false) {
             pendingNotificationFound = true;

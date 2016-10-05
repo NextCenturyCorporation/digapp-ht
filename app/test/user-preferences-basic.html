@@ -52,7 +52,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(element.blurImages);
       assert(!element.searchText);
       assert(!element.facets);
-      assert(!element.loading);
       assert.equal(element.userId, '1');
       assert.isTrue(element.userRecordExists);
       assert.isFalse(element.sendingSearch);
@@ -331,7 +330,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('_runSearch sets the search text from the saved search and notification variables (if needed) and closes the settings dialog', function() {
-      element.currentSort = {text: 'Newest', order: 'desc'};
       element.searches = [{
         digUIState: {
           searchText: 'myText',
@@ -357,85 +355,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         savedQueries: element.searches
       }});
       assert.equal(element.searchText, element.searches[0].digUIState.searchText);
-      assert.deepEqual(element._digStateToLoad, element.searches[0].digUIState);
-      assert.isTrue(element._callFromRunSearch);
+      assert.deepEqual(element.facets, {dateCreated: {}});
+      assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
       assert.isFalse(settingsDialog.opened);
     });
 
-    test('_runSearch sets the sort order to newest, _digStateToLoad, notification variables (if needed) and closes the settings dialog', function() {
+    test('_runSearch sets search variables and closes the settings dialog', function() {
       element.searchText = 'some other text';
-      element.currentSort = {text: 'Best Match'};
-      element.searches = [{
-        digUIState: {
-          searchText: 'myText',
-          facets: '{\"dateCreated\":{}}'
-        },
-        notificationHasRun: false,
-        notificationDate: new Date('October 3, 2016')
-      }];
-
-      var mockEvent = {
-        model: {
-          index: 0,
-          search: element.searches[0]
-        }
-      };
-
-      element._runSearch(mockEvent);
-      assert.isTrue(element.notificationQuery);
-      assert.isDefined(element.searches[0].lastRunDate);
-      assert.isTrue(element.searches[0].notificationHasRun);
-      assert.deepEqual(element.notificationQueryDate, new Date('October 3, 2016'));
-      assert.deepEqual(element._userUpdateBody, {doc: {
-        savedQueries: element.searches
-      }});
-      assert.notEqual(element.searchText, element.searches[0].digUIState.searchText);
-      assert.deepEqual(element._digStateToLoad, element.searches[0].digUIState);
-      assert.isTrue(element._callFromRunSearch);
-      var settingsDialog = element.$$('#settingsDialog');
-      assert(settingsDialog);
-      assert.isFalse(settingsDialog.opened);
-    });
-
-    test('_runSearch will not wait for a sort update if a search has not yet been performed', function() {
-      element.searchText = undefined;
-      element.currentSort = {text: 'Best Match'};
-      element.searches = [{
-        digUIState: {
-          searchText: 'myText',
-          facets: '{\"dateCreated\":{}}'
-        },
-        notificationHasRun: false,
-        notificationDate: new Date('October 3, 2016')
-      }];
-
-      var mockEvent = {
-        model: {
-          index: 0,
-          search: element.searches[0]
-        }
-      };
-
-      element._runSearch(mockEvent);
-      assert.isTrue(element.notificationQuery);
-      assert.isDefined(element.searches[0].lastRunDate);
-      assert.isTrue(element.searches[0].notificationHasRun);
-      assert.deepEqual(element.notificationQueryDate, new Date('October 3, 2016'));
-      assert.deepEqual(element._userUpdateBody, {doc: {
-        savedQueries: element.searches
-      }});
-      assert.equal(element.searchText, element.searches[0].digUIState.searchText);
-      assert.deepEqual(element._digStateToLoad, element.searches[0].digUIState);
-      assert.isTrue(element._callFromRunSearch);
-      var settingsDialog = element.$$('#settingsDialog');
-      assert(settingsDialog);
-      assert.isFalse(settingsDialog.opened);
-    });
-
-    test('_runSearch sets the facets from the saved search and closes the settings dialog', function() {
-      element.searchText = 'myText';
       element.searches = [{
         digUIState: {
           searchText: 'myText',
@@ -453,48 +381,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       element._runSearch(mockEvent);
-      assert.equal(element.searchText, 'myText');
+      assert.isFalse(element.notificationQuery);
+      assert.isUndefined(element.searches[0].lastRunDate);
+      assert.isTrue(element.searches[0].notificationHasRun);
+      assert.isUndefined(element.notificationQueryDate);
+      assert.isUndefined(element._userUpdateBody);
+      assert.equal(element.searchText, element.searches[0].digUIState.searchText);
       assert.deepEqual(element.facets, {dateCreated: {}});
       assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
       assert.isFalse(settingsDialog.opened);
-    });
-
-    test('_loadingDigState loads searchText (if needed) set in _digStateToLoad when finished loading previous request', function() {
-      element.searchText = 'some other text';
-      element._callFromRunSearch = true;
-      element.loading = false;
-      element._digStateToLoad = {searchText: 'myText', facets: '{\"dateCreated\":{}}'};
-      element.searches = [{
-        digUIState: {
-          searchText: 'myText',
-          facets: '{\"dateCreated\":{}}'
-        }
-      }];
-
-      element._loadingDigState();
-      assert.equal(element.searchText, 'myText');
-      assert.deepEqual(element._digStateToLoad, {searchText: 'myText', facets: '{\"dateCreated\":{}}'});
-      assert.notEqual(element.facets, {dateCreated: {}});
-      assert.isTrue(element._callFromRunSearch);
-    });
-
-    test('_loadingDigState loads facets (if needed) set in _digStateToLoad when finished loading previous request', function() {
-      element.searchText = 'myText';
-      element.loading = false;
-      element._digStateToLoad = {searchText: 'myText', facets: '{\"dateCreated\":{}}'};
-      element.searches = [{
-        digUIState: {
-          searchText: 'myText',
-          facets: '{\"dateCreated\":{}}'
-        }
-      }];
-
-      element._loadingDigState();
-      assert.equal(element.searchText, 'myText');
-      assert.deepEqual(element.facets, {dateCreated: {}});
-      assert.isFalse(element._callFromRunSearch);
     });
 
     test('_checkIfPendingNotifications updates hasNotifications property if needed', function() {
