@@ -40,102 +40,211 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       component = fixture('similar-image-search-fixture');
     });
 
-    test('_imageInput is blank by default', function() {
-      expect(component._imageInput).to.equal('');
-    });
-
-    test('_base64Input is blank by default', function() {
-      expect(component._base64Input).to.equal('');
+    test('properties are correct default values', function() {
+      expect(component.loading).to.be.false;
+      expect(component._imageResults).to.deep.equal([]);
+      expect(component._requestImage).to.equal('');
+      expect(component._uploadedImage).to.equal('');
+      expect(component._urlInput).to.equal('');
     });
 
     test('does have expected elements', function() {
       expect(component.$$('paper-icon-button')).to.exist;
-      expect(component.$$('paper-dialog')).to.exist;
-      expect(component.$$('paper-dialog').id).to.equal('similarImageSearchDialog');
+      expect(component.$$('#similarImageSearchDialog')).to.exist;
+      expect(component.$$('#errorDialog')).to.exist;
       expect(component.$$('file-upload')).to.exist;
       expect(component.$$('file-upload').id).to.equal('fileUpload');
+      expect(component.$$('iron-ajax')).to.exist;
+      expect(component.$$('iron-ajax').id).to.equal('xhr');
+      expect(component.$$('paginated-image-gallery')).to.exist;
     });
 
-    test('_createSearchListener.onClick does nothing if _imageInput or _base64Input is blank', function() {
-      component._imageInput = '';
-      component._base64Input = '';
-      var listener = component._createSearchListener();
+    test('_clearImageInputAndResults does clear input and results', function() {
+      component._imageResults = [{
+        link: 'link',
+        source: 'source'
+      }];
+      component._requestImage = 'test';
+      component._uploadedImage = 'test';
+      component._urlInput = 'test';
+      expect(component._clearImageInputAndResults).to.be.a('Function');
+      component._clearImageInputAndResults();
+      expect(component._imageResults).to.deep.equal([]);
+      expect(component._requestImage).to.equal('');
+      expect(component._uploadedImage).to.equal('');
+      expect(component._urlInput).to.equal('');
+    });
+
+    test('_getBlurStyleClass returns the correct values', function() {
+      expect(component._getBlurStyleClass).to.be.a('Function');
+      expect(component._getBlurStyleClass(true)).to.equal('small-blur');
+      expect(component._getBlurStyleClass(false)).to.equal('');
+    });
+
+    test('_getRequestAuth returns the correct values', function() {
+      expect(component._getRequestAuth).to.be.a('Function');
+      expect(component._getRequestAuth('')).to.equal('');
+      expect(component._getRequestAuth('{"user":"testUser"}')).to.equal('');
+      expect(component._getRequestAuth('{"password":"testPassword"}')).to.equal('');
+      expect(component._getRequestAuth('{"user":"testUser","password":"testPassword"}')).to.equal('Basic ' + btoa('testUser:testPassword'));
+    });
+
+    test('_getRequestHost returns the correct values', function() {
+      expect(component._getRequestHost).to.be.a('Function');
+      expect(component._getRequestHost('', '')).to.not.exist;
+      expect(component._getRequestHost('{"type":"http://type"}', 'unknownType')).not.exist;
+      expect(component._getRequestHost('{"uri":"http://uri"}', 'uri')).to.equal('http://uri');
+      expect(component._getRequestHost('{"base64":"http://base64"}', 'base64')).to.equal('http://base64');
+    });
+
+    test('_createSearchOnUploadListener.onClick does nothing if _uploadedImage is blank', function() {
+      var listener = component._createSearchOnUploadListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.images).to.be.empty;
+      expect(component.$$('#xhr').body).to.be.empty;
     });
 
-    test('check image type to be url on image input', function() {
-      component._imageInput = 'http://test.url';
-      expect(component.userActivity).to.be.a('Function');
-      component.userActivity();
-      expect(component.imageType).to.equal('url');
-    });
+    test('_createSearchOnUploadListener.onClick does set request properties', function(done) {
+      component._uploadedImage = 'testImage';
+      component.$.xhr = {
+        headers: {},
+        generateRequest: function() {
+          expect(component.$.xhr.body).to.be.an('Object');
+          expect(component.$.xhr.body.data).to.equal('testImage');
+          expect(component.$.xhr.contentType).to.equal('application/x-www-form-urlencoded');
+          expect(component.$.xhr.method).to.equal('POST');
+          expect(component.$.xhr.url).to.equal('testUploadHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          done();
+        }
+      };
 
-    test('check image type to be none on base64 input', function() {
-      component._base64Input = 'teststring';
-      expect(component.userActivity).to.be.a('Function');
-      component.userActivity();
-      expect(component.imageType).to.equal('');
-    });
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testUrlHost", "base64": "testUploadHost"}';
 
-    test('check images and sha1 is set on processing response', function() {
-      var response = {
-                        images: [{similar_images: {
-                                  cached_image_urls: ['test1'],
-                                  sha1: ['test2']
-                                }
-                              }]
-                      };
-      expect(component.processResponse).to.be.a('Function');
-      component.processResponse(response);
-      expect(component.images).to.be.not.empty;
-      expect(component.images).to.eql(['test1']);
-      expect(component.sha1Images).to.be.not.empty;
-      expect(component.sha1Images).to.eql(['test2']);
-    });
-
-    test('_createSearchListener.onClick sets source image on _imageInput', function() {
-      component._imageInput = 'http://test.url';
-      component.$.xhr = {headers: {}, url: '', generateRequest: function() {}};
-      component.$.xhr.headers.Authorization = '';
-      component.imageServiceAuth = '{"user": "test", "password":"test"}';
-      component.imageServiceHost = '{"url":"test","base64":"test"}';
-      expect(component.userActivity).to.be.a('Function');
-      component.userActivity();
-      var listener = component._createSearchListener();
+      var listener = component._createSearchOnUploadListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.compareSourceImage).to.equal('http://test.url');
-      expect(component._base64Input).to.equal('');
     });
 
-    test('_createClearListener.onClick clears all input', function() {
-      component._phoneInput = '1234567890';
+    test('_createSearchOnUrlListener.onClick does nothing if _urlInput is blank', function() {
+      var listener = component._createSearchOnUrlListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.$$('#xhr').body).to.be.empty;
+    });
+
+    test('_createSearchOnUrlListener.onClick does set request properties', function(done) {
+      component._urlInput = 'testImage';
+      component.$.xhr = {
+        params: {},
+        headers: {},
+        generateRequest: function() {
+          expect(component.$.xhr.params).to.be.an('Object');
+          expect(component.$.xhr.params.data).to.equal('testImage');
+          expect(component.$.xhr.method).to.equal('GET');
+          expect(component.$.xhr.url).to.equal('testUrlHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          done();
+        }
+      };
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testUrlHost", "base64": "testUploadHost"}';
+
+      var listener = component._createSearchOnUrlListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+    });
+
+    test('_createClearListener.onClick does clear input and results', function() {
+      component._imageResults = [{
+        link: 'link',
+        source: 'source'
+      }];
+      component._requestImage = 'test';
+      component._uploadedImage = 'test';
+      component._urlInput = 'test';
+
       var listener = component._createClearListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component._imageInput).to.equal('');
-      expect(component._base64Input).to.equal('');
-      expect(component.imageType).to.equal('');
-      expect(component.enableSearch).to.equal(true);
+
+      expect(component._imageResults).to.deep.equal([]);
+      expect(component._requestImage).to.equal('');
+      expect(component._uploadedImage).to.equal('');
+      expect(component._urlInput).to.equal('');
     });
 
-    test('_handleUpload sets variables on _base64Input', function() {
-      component._handleUpload({
+    test('_handleImageServiceResponse with images sets _imageResults', function() {
+      component.linkFunction = function(id) {
+        return 'http://' + id;
+      };
+      expect(component._handleImageServiceResponse).to.be.a('Function');
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      component._handleImageServiceResponse({
         detail: {
-          xhr: {
-            response: '{"base64": "somebase64string","mimeType":"something"}'
+          response: {
+            images: [{
+              similar_images: {
+                cached_image_urls: ['testUrl1', 'testUrl2'],
+                sha1: ['testId1', 'testId2']
+              }
+            }]
           }
         }
       });
-      expect(component.mimeType).to.equal('something');
-      expect(component.imageType).to.equal('base64');
-      expect(component.enableSearch).to.equal(false);
-      expect(component._base64Input).to.equal('data:something;base64,somebase64string');
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(component._imageResults).to.deep.equal([{
+        link: 'http://testId1',
+        source: 'testUrl1'
+      }, {
+        link: 'http://testId2',
+        source: 'testUrl2'
+      }]);
+    });
+
+    test('_handleImageServiceResponse with no images clears _imageResults', function() {
+      component._imageResults = [{
+        link: 'link',
+        source: 'source'
+      }];
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      component._handleImageServiceResponse({
+        detail: {
+          response: {
+            images: [{
+              similar_images: {
+                cached_image_urls: [],
+                sha1: []
+              }
+            }]
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(component._imageResults).to.deep.equal([]);
+    });
+
+    test('_handleUpload sets the correct values', function() {
+      component._handleUpload({
+        detail: {
+          xhr: {
+            response: '{"base64": "somebase64string", "mimeType": "something"}'
+          }
+        }
+      });
+      expect(component._uploadedImage).to.equal('data:something;base64,somebase64string');
+      expect(component._requestImage).to.equal('data:something;base64,somebase64string');
     });
 
     test('_openDialog opens the dialog', function(done) {
@@ -146,6 +255,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         expect(dialog.style.display).to.equal('');
         done();
       });
+    });
+
+    test('_showNoImagesText returns the correct values', function() {
+      expect(component._showNoImagesText).to.be.a('Function');
+      expect(component._showNoImagesText(0, false)).to.be.true;
+      expect(component._showNoImagesText(0, true)).to.be.false;
+      expect(component._showNoImagesText(1, false)).to.be.false;
+      expect(component._showNoImagesText(1, true)).to.be.false;
     });
   });
 </script>

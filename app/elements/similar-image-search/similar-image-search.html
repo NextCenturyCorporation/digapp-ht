@@ -11,187 +11,106 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/button-action/button-action.html">
 <link rel="import" href="../../bower_components/file-upload/file-upload.html">
+<link rel="import" href="../../bower_components/paginated-image-gallery/paginated-image-gallery.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
-<link rel="import" href="../../bower_components/image-thumbnail-with-link/image-thumbnail-with-link.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/image-thumbnail/image-thumbnail.html">
-<link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
 
 <dom-module id="similar-image-search">
   <template>
+    <style include="user-dialog-styles"></style>
+
     <style>
       :host {
         display: block;
       }
 
-      paper-dialog {
-        background-color: white;
-        border-radius: 5px;
-        margin: 50px;
-        overflow: auto;
-      }
-
-      #similarImageSearchDialog, #resultImages {
-        height: 100%;
-        width: 100%;
-      }
-
-      #similarImageSearchDialog > div , #resultImages > div {
-        min-height: 700px;
-        min-width: 900px;
-      }
-
-      #similarImageSearchDialog > div > *, #resultImages > div > * {
-        margin: 10px;
-      }
-
-      .bold {
-        color: var(--primary-text-color);
-        font-size: 20px;
-        font-weight: bold;
-      }
-
-      .name {
-        color: var(--secondary-text-color);
-        font-size: 14px;
-        line-height: 20px;
-        margin: 2px 0;
-        min-height: 20px;
-        text-transform: uppercase;
-      }
-
-      .text {
-        color: var(--primary-text-color);
-        font-size: 18px;
-        line-height: 24px;
-        min-height: 24px;
-      }
-
-      .simImages {
-        display: inline-block;
-      }
-
-      .right-space {
-        margin-right: 10px;
-      }
-
-      .tall {
-        line-height: 40px;
-        min-height: 40px;
-      }
-
-      .divider {
-        border: 1px solid #eee;
-      }
-
-      .imageShow {
-        margin: 10px;
-      }
-
-      /* Apply DIG Element button styling to the file upload button. */
-      file-upload ::content paper-button {
-        @apply(--shadow-elevation-4dp);
-        font-size: 14px;
-        line-height: 20px;
-        margin: 0;
-        padding: 5px 10px;
-      }
-
-      /* Apply DIG Element button styling to the file upload button. */
-      file-upload ::content paper-button:hover {
-        @apply(--shadow-elevation-8dp);
-      }
-
-      file-upload ::content #UploadBorder {
-        margin-left: 10px;
+      .padded {
+        /* Add padding to the query image so it matches the padding in the image results list. */
+        padding: 10px;
       }
     </style>
 
-  <paper-icon-button icon="image:compare" title="Upload or Enter Image URL" on-tap="_openDialog"></paper-icon-button>
+    <paper-icon-button icon="image:compare" title="Upload or Enter Image URL" on-tap="_openDialog"></paper-icon-button>
 
-   <paper-dialog id="similarImageSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
- 
-      <div class="layout vertical">
+    <paper-dialog id="similarImageSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="settings layout vertical">
         <div class="layout horizontal">
-          <span class="bold tall flex">Upload Image or Enter an URL</span>
+          <span class="bold tall flex">Upload an Image or Enter a URL</span>
           <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
         </div>
 
         <div class="divider"></div>
 
-        <span class="text">Please enter/paste image url in the text box below or upload your own image.</span>
+        <span class="text">Please enter or paste an image URL in the text box below or upload your own image.</span>
 
-        <div class="layout horizontal">
-          <span class="name right-space">Supported file types:</span>
-          <span class="text">All Image files (.jpg, .png or .jpeg etc.)</span>
+        <div class="layout horizontal paper-input-div">
+          <paper-input class="flex right-space" label="Enter or Paste Image URL" value="{{_urlInput}}" no-label-float></paper-input>
+          <button-action disabled="[[!_urlInput]]" text="Search on URL" click-listener="[[_createSearchOnUrlListener()]]"></button-action>
         </div>
-
-        <paper-textarea label="Enter or Paste Image Url" value="{{_imageInput}}" on-input="userActivity" no-label-float></paper-textarea>
 
         <file-upload accept="image/*" id="fileUpload" droppable="true" method="POST" raised="true" target="/uploadImage" on-success="_handleUpload" multi="false">Upload Image...</file-upload>
 
         <div class="layout horizontal">
-          <button-action class="right-space" disabled="{{enableSearch}}" text="Search" click-listener="[[_createSearchListener()]]"></button-action>
-
+          <button-action class="right-space" disabled="[[!_uploadedImage]]" text="Search on Upload" click-listener="[[_createSearchOnUploadListener()]]"></button-action>
           <button-action id="clearAll" class="right-space" text="Clear" click-listener="[[_createClearListener()]]"></button-action>
-          <loading-spinner show="[[loading]]" type="Similar Images"></loading-spinner>
         </div>
-        
-        <iron-ajax
-        id="xhr"
-        handle-as="json"
-        with-credentials="true"
-        loading="{{loading}}"
-        on-response="handleResponse"></iron-ajax>
 
+        <iron-ajax
+          id="xhr"
+          handle-as="json"
+          with-credentials="true"
+          loading="{{loading}}"
+          on-response="_handleImageServiceResponse">
+        </iron-ajax>
+
+        <div class="divider"></div>
+
+        <span class="bold">Your Image</span>
+
+        <template is="dom-if" if="[[!_requestImage]]">
+          <span class="text">None</span>
+        </template>
+
+        <template is="dom-if" if="[[_requestImage]]">
+          <image-thumbnail
+            class="padded"
+            source="[[_requestImage]]"
+            style-class="[[_getBlurStyleClass(blur)]]"
+            target="_blank"
+            text="open image">
+          </image-thumbnail>
+        </template>
+
+        <div class="divider"></div>
+
+        <span class="bold">Similar Image Results</span>
+
+        <template is="dom-if" if="[[_showNoImagesText(_imageResults.length, loading)]]">
+          <span class="text">None</span>
+        </template>
+
+        <paginated-image-gallery
+          blur="[[blur]]"
+          new-tab
+          loading="[[loading]]"
+          load-type="Similar Images"
+          image-items="[[_imageResults]]"
+          total-items="[[_.images.length]]">
+        </paginated-image-gallery>
       </div>
     </paper-dialog>
 
-    <paper-dialog id="resultImages" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-        <div class="layout vertical">
-          <div class="layout horizontal">
-            <span class="bold tall flex">Similar Images Result</span>
-            <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
-          </div>
-          <div class="divider"></div>
-          <div class="layout vertical">
-            <span class="bold tall flex">Compared Image</span>
-              <image-thumbnail
-              source="[[compareSourceImage]]"
-              style-class="[[getBlurStyleClass(blur)]]"
-              target="_blank"
-              class="simImages"
-              text="open image">
-            </image-thumbnail>
-          </div>
-          <div class="layout">
-            <div class="divider"></div>
-            <template is="dom-repeat" items="[[images]]" rendered-item-count="{{renderedCount}}">
-              <image-thumbnail-with-link
-                link="{{displayLink(index)}}"
-                source="[[item]]"
-                style-class="[[getBlurStyleClass(blur)]]"
-                target="_blank"
-                class="simImages"
-                text="open image">
-              </image-thumbnail-with-link>
-            </template>
-            <template is="dom-if" if="{{!renderedCount}}">
-              <span class="text">No Similar Images </span>
-            </template> 
-          </div>
-        </div>
-
-      </paper-dialog>
-      <paper-dialog id="errorDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+    <paper-dialog id="errorDialog" class="small" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="layout vertical">
-          <div class="layout horizontal">
-            <span class="bold tall flex">{{errorMessage}}</span>
-            <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
-          </div>
+        <div class="layout horizontal">
+          <span class="bold tall flex">Image service incorrectly configured.  Please contact an administrator.</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
       </div>
-      </paper-dialog>
+    </paper-dialog>
   </template>
 
   <script>
@@ -203,211 +122,189 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       properties: {
         /**
-         * Memex username and Password
+         * Blur class
+         */
+        blur: {
+          type: Boolean
+        },
+
+        /**
+         * Auth for the image service.
          */
         imageServiceAuth: {
-          type: String,
-          notify: true
+          type: String
         },
+
+        /**
+         * Host for the image service.
+         */
         imageServiceHost: {
-          type: String,
-          notify: true
+          type: String
         },
+
         /**
-         * Type of image, result images and sha1's from query
+         * A function that, given an image ID, returns a link for that image.
          */
-        imageType: {
-          type: String,
-          value: ''
+        linkFunction: {
+          type: Function
         },
-        images: {
-          type: Array,
-          value: function() { return []; }
-        },
-        sha1Images: {
-          type: Array,
-          value: function() { return []; }
-        },
+
         /**
-         * Rendered images count
-         */
-        renderedCount: {
-          type: Number,
-          value: 0
-        },
-        /**
-         * Enable or disable search button
-         */
-        enableSearch: {
-          type: Boolean,
-          notify: true,
-          value: true
-        },
-        /**
-         * Storing image source to display in result page
-         */
-        compareSourceImage: {
-          type: String,
-          notify: true,
-          value: ''
-        },
-        /**
-         * Whether the data is loading.
+         * Whether the search request is running.
         */
         loading: {
           type: Boolean,
           value: false,
           notify: true
         },
+
         /**
-         * Input for both url and image base64
+         * The list of images returned by the search request.
          */
-        _base64Input: {
-          type: String,
-          value: ''
-        },
-        _imageInput: {
-          type: String,
-          value: ''
-        },
-        /**
-         * Mime type of uploaded image
-         */
-        mimeType: {
-          type: String,
-          value: ''
-        },
-        /**
-         * Blur class
-         */
-        blur: {
-          type: Boolean,
-          notify: true
-        },
-        errorMessage: {
-          type: String,
+        _imageResults: {
+          type: Array,
           notify: true,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The uploaded image or URL input used by the search request.
+         */
+        _requestImage: {
+          type: String,
           value: ''
         },
 
-        observers: [
-          'userActivity(value)'
-        ],
-      },
+        /**
+         * The image uploaded by the user.
+         */
+        _uploadedImage: {
+          type: String,
+          value: ''
+        },
 
-      displayLink: function(index) {
-        var shaId = this.sha1Images[index];
-        var urlResp = '/image.html?value=http://dig.isi.edu/ht/data/' + shaId + '&field=_id';
-        return urlResp;
-      },
-
-      getBlurStyleClass: function(blur) {
-        return (blur ? 'small-blur' : '');
-      },
-
-      userActivity: function() {
-        if(this._imageInput) {
-          this.enableSearch = false;
-          this.imageType = 'url';
-        } else {
-          this.enableSearch = true;
-          this.imageType = '';
+        /**
+         * The image URL entered by the user.
+         */
+        _urlInput: {
+          type: String,
+          value: ''
         }
       },
 
-      processResponse: function(response) {
-        this.images = response.images[0].similar_images.cached_image_urls;
-        this.sha1Images = response.images[0].similar_images.sha1;
+      _clearImageInputAndResults: function() {
+        this.set('_imageResults', []);
+        this.set('_requestImage', '');
+        this.set('_uploadedImage', '');
+        this.set('_urlInput', '');
+        this.$$('#fileUpload').clear();
       },
 
-      handleResponse: function(event) {
-        var response = event.detail.response;
-        this.processResponse(response);
-        this.$.resultImages.open();
-        this.clearInput();
-        this.$$('#similarImageSearchDialog').close();
-      },
-
-      makeHeaders: function() {
-        var auth = JSON.parse(this.imageServiceAuth);
-        if(!auth.user || !auth.password) {
-          this.errorMessage = 'Image Service credentials not set - Contact Admin';
-          this.$$('#noAuthDialog').open();
-          return false;
-        }
-        return 'Basic ' + btoa(auth.user + ':' + auth.password);
-      },
-
-      getHost: function() {
-        var hosts = JSON.parse(this.imageServiceHost);
-        if(!hosts.url || !hosts.base64) {
-          this.errorMessage = 'Image Service Hosts not set - Contact Admin';
-          this.$$('#errorDialog').open();
-          return false;
-        }
-        return hosts[this.imageType];
-      },
-
-      _createSearchListener: function() {
+      _createSearchOnUploadListener: function() {
         var self = this;
         return {
           onClick: function() {
             self.$.xhr.params = {};
-            if(self._imageInput || self._base64Input) {
-              if(self.imageType === 'url') {
-                self.$.xhr.params.url = self._imageInput;
-                self.compareSourceImage = self._imageInput;
-                self.$.xhr.method = 'GET';
-                //self.$.xhr.url = 'https://isi.memexproxy.com/ColumbiaUimgSearch.php';
-              } else if(self.imageType === 'base64') {
-                self.$.xhr.contentType = 'application/x-www-form-urlencoded';
-                self.$.xhr.body = {data: self._base64Input};
-                self.$.xhr.method = 'POST';
-                //self.$.xhr.url = 'https://isi.memexproxy.com/ESCORTS/cu_image_search/byB64_nocache';
+            if(self._uploadedImage) {
+              self._requestImage = self._uploadedImage;
+              self.$.xhr.body = {
+                data: self._uploadedImage
+              };
+              self.$.xhr.contentType = 'application/x-www-form-urlencoded';
+              self.$.xhr.method = 'POST';
+              self.$.xhr.url = self._getRequestHost(self.imageServiceHost, 'base64');
+              self.$.xhr.headers.Authorization = self._getRequestAuth(self.imageServiceAuth);
+              if(self.$.xhr.headers.Authorization && self.$.xhr.url) {
+                self.$.xhr.generateRequest();
+              } else {
+                self.$$('#errorDialog').open();
               }
-
-              self.$.xhr.url = self.getHost();
-              self.$.xhr.headers.Authorization = self.makeHeaders();
-              if(!self.$.xhr.headers.Authorization || !self.$.xhr.url) {
-                return false;
-              }
-              self.$.xhr.generateRequest();
             }
           }
         };
       },
 
-      clearInput: function() {
+      _createSearchOnUrlListener: function() {
         var self = this;
-        self.set('_imageInput', '');
-        self.set('_base64Input', '');
-        self.set('imageType', '');
-        self.set('enableSearch',true);
-        self.$$('#fileUpload').clear();
+        return {
+          onClick: function() {
+            self.$.xhr.params = {};
+            if(self._urlInput) {
+              self._requestImage = self._urlInput;
+              self.$.xhr.params.data = self._urlInput;
+              self.$.xhr.method = 'GET';
+              self.$.xhr.url = self._getRequestHost(self.imageServiceHost, 'url');
+              self.$.xhr.headers.Authorization = self._getRequestAuth(self.imageServiceAuth);
+              if(self.$.xhr.headers.Authorization && self.$.xhr.url) {
+                self.$.xhr.generateRequest();
+              } else {
+                self.$$('#errorDialog').open();
+              }
+            }
+          }
+        };
       },
 
       _createClearListener: function() {
         var self = this;
         return {
           onClick: function() {
-            self.clearInput();
+            self._clearImageInputAndResults();
           }
         };
+      },
+
+      _getBlurStyleClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
+      _getRequestAuth: function(imageServiceAuth) {
+        var auth = imageServiceAuth ? JSON.parse(imageServiceAuth) : {};
+        if(!auth.user || !auth.password) {
+          return '';
+        }
+        return 'Basic ' + btoa(auth.user + ':' + auth.password);
+      },
+
+      _getRequestHost: function(imageServiceHost, type) {
+        var host = imageServiceHost ? JSON.parse(imageServiceHost) : {};
+        return host[type];
+      },
+
+      _handleImageServiceResponse: function(event) {
+        var self = this;
+        var response = event.detail.response;
+        if(response.images && response.images.length) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          var imageUrls = response.images[0].similar_images.cached_image_urls;
+          var imageIds = response.images[0].similar_images.sha1;
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+          self._imageResults = imageUrls.map(function(url, index) {
+            return {
+              link: ((self.linkFunction && index < imageIds.length) ? self.linkFunction(imageIds[index]) : ''),
+              source: url
+            };
+          });
+        }
       },
 
       _handleUpload: function(event) {
         if(event.detail && event.detail.xhr && event.detail.xhr.response) {
           var response = JSON.parse(event.detail.xhr.response);
-          this.mimeType = response.mimeType;
-          this._base64Input = 'data:' + this.mimeType + ';base64,' + response.base64;
-          this.compareSourceImage = this._base64Input;
-          this.imageType = 'base64';
-          this.enableSearch = false;
+          this._uploadedImage = 'data:' + response.mimeType + ';base64,' + response.base64;
+          this._requestImage = this._uploadedImage;
         }
       },
 
       _openDialog: function() {
         this.$$('#similarImageSearchDialog').open();
+      },
+
+      _showNoImagesText: function(numberOfImages, loading) {
+        return !numberOfImages && !loading;
       }
     });
   })();

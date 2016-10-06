@@ -28,6 +28,7 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       }
       return images;
     },
+
     image: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
@@ -60,6 +61,10 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
     imageTotal: function(data) {
       return (data && data.hits) ? data.hits.total : 0;
+    },
+
+    externalImageLink: function(id) {
+      return commonTransforms.getLink('http://dig.isi.edu/ht/data/' + id, 'image');
     }
   };
 })(_, relatedEntityTransform, commonTransforms);
