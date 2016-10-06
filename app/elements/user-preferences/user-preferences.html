@@ -159,7 +159,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               <div class="layout vertical search">
                 <div class="layout horizontal">
                   <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleReceivedSearchSettings"></modal-icon>
-                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
@@ -477,6 +477,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _copyReceivedSearch: function(search) {
         var searchCopy = JSON.parse(JSON.stringify(search));
         delete searchCopy.open;
+        searchCopy.lastRunDate = new Date();
         return searchCopy;
       },
 
@@ -521,8 +522,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
       },
 
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
       /**
        * Returns the checkbox icon for the given setting.
        */
@@ -541,6 +540,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Runs the given saved search.
        */
       _runSearch: function(event) {
+        this.$$('#settingsDialog').close();
+        var self = this;
+
+        var search = _.clone(self.searches[event.model.index]);
+        search.lastRunDate = new Date();
+        delete search.open;
+        self.splice('searches', event.model.index, 1, search);
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self.searches
+          }
+        });
+
+        if(this.searchText !== event.model.search.digUIState.searchText) {
+          self.set('searchText', event.model.search.digUIState.searchText);
+          self.set('_facetsToLoad', JSON.parse(event.model.search.digUIState.facets));
+        } else {
+          self.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        }
+      },
+
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Runs the given received search.
+       */
+      _runReceivedSearch: function(event) {
         this.$$('#settingsDialog').close();
         var self = this;
 
