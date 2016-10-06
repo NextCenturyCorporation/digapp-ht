@@ -217,7 +217,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element._createAddSearchListener(0).onClick();
       assert.equal(element.receivedSearches.length, 0);
       assert.equal(element.searches.length, 1);
-      assert.deepEqual(element.searches[0], {name: 'newsearch'});
+      assert.deepEqual(element.searches[0].name, 'newsearch');
+      assert.isDefined(element.searches[0].lastRunDate);
       assert.deepEqual(element._userUpdateBody, {doc: {
         savedQueries: element.searches,
         receivedQueries: element.receivedSearches
@@ -235,11 +236,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    test('_copyReceivedSearch returns a copy of a search without extraneous properties', function() {
-      var search1 = {name: 'search#1', open: true};
+    test('_copyReceivedSearch returns a copy of a search with a lastRunDate added', function() {
+      var search1 = {name: 'search#1'};
       var search2 = {name: 'search#2', somekey: 'hi'};
-      assert.deepEqual(element._copyReceivedSearch(search1), {name: 'search#1'});
-      assert.deepEqual(element._copyReceivedSearch(search2), {name: 'search#2', somekey: 'hi'});
+
+      var search1Copy = element._copyReceivedSearch(search1);
+      var search2Copy = element._copyReceivedSearch(search2);
+
+      assert.equal(search1Copy.name, 'search#1');
+      assert.isDefined(search1Copy.lastRunDate);
+      assert.equal(search2Copy.name, 'search#2');
+      assert.equal(search2Copy.somekey, 'hi');
+      assert.isDefined(search2Copy.lastRunDate);
     });
 
     test('_confirmReceivedSearch updates saved searches and received searches lists', function() {
@@ -255,7 +263,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element._confirmReceivedSearch(mockEvent);
       assert.equal(element.receivedSearches.length, 0);
       assert.equal(element.searches.length, 1);
-      assert.deepEqual(element.searches[0], {name: 'newsearch', data: 'old'});
+      assert.equal(element.searches[0].name, 'newsearch');
+      assert.equal(element.searches[0].data, 'old');
+      assert.isDefined(element.searches[0].lastRunDate);
       assert.deepEqual(element._userUpdateBody, {doc: {
         savedQueries: element.searches,
         receivedQueries: element.receivedSearches
@@ -382,16 +392,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       element._runSearch(mockEvent);
       assert.isFalse(element.notificationQuery);
-      assert.isUndefined(element.searches[0].lastRunDate);
+      assert.isDefined(element.searches[0].lastRunDate);
       assert.isTrue(element.searches[0].notificationHasRun);
       assert.isUndefined(element.notificationQueryDate);
-      assert.isUndefined(element._userUpdateBody);
+      assert.deepEqual(element._userUpdateBody, {doc: {
+        savedQueries: element.searches
+      }});
       assert.equal(element.searchText, element.searches[0].digUIState.searchText);
       assert.deepEqual(element.facets, {dateCreated: {}});
       assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
       assert.isFalse(settingsDialog.opened);
+    });
+
+    test('_runReceivedSearch runs a search from the received list', function() {
+      element.receivedSearches = [{
+        digUIState: {
+          searchText: 'search 2',
+          facets: '{\"dateCreated\":{}}'
+        }
+      }];
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.receivedSearches[0]
+        }
+      };
+      element._runReceivedSearch(mockEvent);
+      assert.isFalse(element.notificationQuery);
+      assert.isUndefined(element.notificationQueryDate);
+      assert.isUndefined(element.receivedSearches[0].lastRunDate);
+      assert.isUndefined(element._userUpdateBody);
+      assert.equal(element.searchText, element.receivedSearches[0].digUIState.searchText);
+      assert.deepEqual(element.facets, {dateCreated: {}});
     });
 
     test('_checkIfPendingNotifications updates hasNotifications property if needed', function() {

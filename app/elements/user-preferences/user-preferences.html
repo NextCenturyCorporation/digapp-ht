@@ -197,7 +197,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     title="[[_getModalIconTitle('expandReceivedSearch', index)]]"
                     ripple on-tap="_toggleReceivedSearchSettings">
                   </modal-icon>
-                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
@@ -573,11 +573,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Copy search and delete UI property 'open' when receiving a saved search
+       * Copy search and add lastRunDate when receiving a saved search
        */
       _copyReceivedSearch: function(search) {
         var searchCopy = JSON.parse(JSON.stringify(search));
-        delete searchCopy.open;
+        searchCopy.lastRunDate = new Date();
         return searchCopy;
       },
 
@@ -666,15 +666,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$$('#settingsDialog').close();
         this.set('processRequest', false);
 
-        if(event.model.search.notificationHasRun === false) {
-          // notification queries have to be sorted in descending order so that newest
-          // results are first
-          this._setNotificationFlags(event.model.index);
-        } else {
-          // if not a notification query, reset notification flags and
-          // begin updating search text and facets
+        // if not a notification query, reset notification flags
+        if(event.model.search.notificationHasRun) {
           this._resetNotificationQuery();
         }
+
+        this._setDateAndNotificationFlags(event.model.index);
 
         this._callFromRunSearch = true;
         this.set('searchText', event.model.search.digUIState.searchText);
@@ -683,18 +680,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
+       * Runs a search from the received searches list and updates necessary fields in elasticsearch.
+       */
+      _runReceivedSearch: function(event) {
+        this.$$('#settingsDialog').close();
+        this.set('processRequest', false);
+
+        // not a notification query, reset notification flags
+        this._resetNotificationQuery();
+
+        this._callFromRunSearch = true;
+        this.set('searchText', event.model.search.digUIState.searchText);
+        this.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        this.set('processRequest', true);
+        this.set('_callFromRunSearch', false);
+      },
+
+      /**
        * Update notification flags for an individual saved query and
        * set properties to indicate this is a notification query.
        */
-      _setNotificationFlags: function(index) {
+      _setDateAndNotificationFlags: function(index) {
         var self = this;
 
         var search = _.clone(self.searches[index]);
         search.lastRunDate = new Date();
-        search.notificationHasRun = true;
 
-        self.notificationQueryDate = new Date(search.notificationDate);
-        self.notificationQuery = true;
+        if(search.notificationHasRun === false) {
+          // notification queries have to be sorted in descending order so that newest
+          // results are first
+          search.notificationHasRun = true;
+          self.notificationQueryDate = new Date(search.notificationDate);
+          self.notificationQuery = true;
+        }
         self.splice('searches', index, 1, search);
         self._set_userUpdateBody({
           doc: {
