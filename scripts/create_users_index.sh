@@ -35,6 +35,9 @@ curl -XPUT localhost:9200/dig-users -d '
             },
             "digUIState": {
               "properties" :{
+                "searchType": {
+                  "type": "string"
+                },
                 "searchText": {
                   "type": "string"
                 },
@@ -45,6 +48,9 @@ curl -XPUT localhost:9200/dig-users -d '
             },
             "esState": {
               "properties" : {
+                "esType": {
+                  "type": "string"
+                },
                 "query": {
                   "type": "string"
                 },
