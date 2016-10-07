@@ -47,6 +47,8 @@ var all = {
     imageServiceAuth: process.env.IMAGE_SERVICE_AUTH|| '{"user": "", "password":""}',
     imageServiceHost: process.env.IMAGE_SERVICE_HOST|| '{"url":"","base64":""}',
     annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
+    cacheConfig: process.env.CACHE_CONFIG || '{"host": "http://localhost:9200"}',
+    cacheIndex: process.env.CACHE_INDEX || 'memex-domains',
     userIndex: process.env.USER_INDEX || 'dig-users',
     userType: process.env.USER_TYPE || 'user'
 };

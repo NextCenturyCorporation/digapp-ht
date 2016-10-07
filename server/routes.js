@@ -24,6 +24,8 @@ module.exports = function(app) {
             annotationIndex: config.annotationIndex,
             annotationType: config.annotationType,
             annotationRelevant: config.annotationRelevant,
+            cacheConfig: JSON.parse(config.cacheConfig),
+            cacheIndex: config.cacheIndex,
             username: req.headers.user ? req.headers.user : 'mockUser',
             userIndex: config.userIndex,
             userType: config.userType,

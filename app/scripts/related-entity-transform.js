@@ -88,12 +88,16 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         text: _.get(record, '_source.mainEntityOfPage.publisher.name', 'No Publisher')
       }],
       details: [{
-        name: 'url',
-        link: true,
-        text: _.get(record, '_source.mainEntityOfPage.url', 'None')
+        name: 'Url',
+        link: _.get(record, '_source.mainEntityOfPage.url', null),
+        text: _.get(record, '_source.mainEntityOfPage.url', 'Unavailable')
       }, {
-        name: 'description',
-        text: _.get(record, '_source.mainEntityOfPage.description', 'None')
+        name: 'Description',
+        text: _.get(record, '_source.mainEntityOfPage.description', 'Unavailable')
+      }, {
+        name: 'Cached Ad',
+        link: record._id ? commonTransforms.getLink(record._id.substring(record._id.lastIndexOf('/') + 1), 'cache') : null,
+        text: record._id ? 'Open' : 'Unavailable'
       }]
     };
 
@@ -207,12 +211,14 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         }
     */
 
+    var id = _.get(record, '_source.mainEntity.uri');
+
     var webpageObj = {
-      id: _.get(record, '_source.mainEntity.uri'),
+      id: id,
       type: 'offer',
       text: _.get(record, '_source.name[0]', 'No Title'),
       icon: commonTransforms.getIronIcon('offer'),
-      link: commonTransforms.getLink(_.get(record, '_source.mainEntity.uri'), 'offer'),
+      link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
       images: getImages(record, 'hasImagePart'),
       descriptors: [{
@@ -227,13 +233,17 @@ var relatedEntityTransform = (function(_, commonTransforms) {
         text: _.get(record, '_source.publisher.name', 'No Publisher')
       }],
       details: [{
-        name: 'url',
-        link: true,
-        text: _.get(record, '_source.url', 'None')
+        name: 'Url',
+        link: _.get(record, '_source.url', null),
+        text: _.get(record, '_source.url', 'Unavailable')
       }, {
-        name: 'description',
+        name: 'Description',
         highlightedText: _.get(record, 'highlight.description[0]'),
-        text: _.get(record, '_source.description', 'None')
+        text: _.get(record, '_source.description', 'Unavailable')
+      }, {
+        name: 'Cached Ad',
+        link: id ? commonTransforms.getLink(id.substring(id.lastIndexOf('/') + 1), 'cache') : null,
+        text: id ? 'Open' : 'Unavailable'
       }]
     };
 
