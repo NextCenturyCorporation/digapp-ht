@@ -174,8 +174,8 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         newData.icon = commonTransforms.getIronIcon('seller');
         newData.styleClass = commonTransforms.getStyleClass('seller');
         newData.link = commonTransforms.getLink(newData.id, 'seller');
-        newData.telephone = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
-        newData.emailAddress = commonTransforms.getClickableObjectArr(_.get(data.hits.hits[0]._source, 'email'), 'email');
+        newData.telephone = commonTransforms.getClickableObjects(_.get(data.hits.hits[0]._source, 'telephone'), 'phone');
+        newData.emailAddress = commonTransforms.getClickableObjects(_.get(data.hits.hits[0]._source, 'email'), 'email');
         newData.text = getSellerText(newData.telephone, newData.emailAddress);
         newData.communications = newData.telephone.concat(newData.emailAddress);
       }

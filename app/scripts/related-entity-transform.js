@@ -97,7 +97,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       }, {
         name: 'Cached Ad',
         link: record._id ? commonTransforms.getLink(record._id.substring(record._id.lastIndexOf('/') + 1), 'cache') : null,
-        text: record._id ? 'Click to Open' : 'Unavailable'
+        text: record._id ? 'Open' : 'Unavailable'
       }]
     };
 
@@ -243,7 +243,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       }, {
         name: 'Cached Ad',
         link: id ? commonTransforms.getLink(id.substring(id.lastIndexOf('/') + 1), 'cache') : null,
-        text: id ? 'Click to Open' : 'Unavailable'
+        text: id ? 'Open' : 'Unavailable'
       }]
     };
 
