@@ -24,9 +24,13 @@ module.exports = function(app) {
             annotationIndex: config.annotationIndex,
             annotationType: config.annotationType,
             annotationRelevant: config.annotationRelevant,
+            cacheConfig: JSON.parse(config.cacheConfig),
+            cacheIndex: config.cacheIndex,
             username: req.headers.user ? req.headers.user : 'mockUser',
             userIndex: config.userIndex,
-            userType: config.userType
+            userType: config.userType,
+            imageServiceAuth: config.imageServiceAuth,
+            imageServiceHost: config.imageServiceHost
         });
     });
 
@@ -34,6 +38,9 @@ module.exports = function(app) {
       res.status(200).send(req.files[0].buffer.toString());
     });
 
+    app.post('/uploadImage', upload.array('file'), function(req, res) {
+        res.status(200).send({mimeType: req.files[0].mimetype, base64: req.files[0].buffer.toString('base64')});
+    });
     // All undefined asset or api routes should return a 404
     app.route('/:url(api|auth|components|app|bower_components|assets)/*')
     .get(errors[404]);

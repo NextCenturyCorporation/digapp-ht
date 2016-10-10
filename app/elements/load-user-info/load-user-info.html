@@ -27,31 +27,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       user-result="{{_userSearchResult}}">
     </user-query>
 
-    <template is="dom-if" if="{{showSaveBtn}}">
-      <save-search
-        client="[[client]]"
-        username="[[username]]"
-        user-id="[[_userId]]"
-        existing-searches="{{_searches}}"
-        search-text="[[searchText]]"
-        facets="[[facets]]"
-        es-request="[[esRequest]]"
-        user-index="[[userIndex]]"
-        user-type="[[userType]]"
-        enable-save-btn="[[enableSaveBtn]]"
-        user-record-exists="[[_userRecordExists]]">
-      </save-search>
-    </template>
-
     <!-- User preferences dialog -->
     <user-preferences show-search="{{showSearch}}"
-      searches="{{_searches}}"
+      searches="{{searches}}"
       email-address="{{_emailAddress}}"
-      notification-frequency="{{_notificationFrequency}}"
       no-email-address="{{_noEmailAddress}}"
       received-searches="{{_receivedSearches}}"
       client="[[client]]"
-      user-id="[[_userId]]"
+      user-id="[[userId]]"
       username="[[username]]"
       advanced-search="{{advancedSearch}}"
       blur-images="{{blurImages}}"
@@ -60,7 +43,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       es-request="{{esRequest}}"
       user-index="[[userIndex]]"
       user-type="[[userType]]"
-      user-record-exists="[[_userRecordExists]]"
+      user-record-exists="[[userRecordExists]]"
       has-notifications="[[_hasNotifications]]"
       notification-query="{{notificationQuery}}"
       notification-query-date="{{notificationQueryDate}}"
@@ -146,24 +129,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Whether or not to show save search button.
-         */
-        showSaveBtn: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-
-        /**
-         * Whether or not to enable save search button.
-         */
-        enableSaveBtn: {
-          type: Boolean,
-          value: false,
-          notify: true
-        },
-
-        /**
          * Most recent request to elasticsearch.
          */
         esRequest: {
@@ -188,6 +153,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: true,
           notify: true
         },
+
+        /**
+         * The user's saved searches.
+         */
+        searches: {
+          type: Array,
+          notify: true
+        },
+
         /**
          * Whether or not there are unseen notifications.
          */
@@ -229,7 +203,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * Boolean variable to track if/when user record is created in elasticsearch.
          */
-        _userRecordExists: {
+        userRecordExists: {
           type: Boolean,
           value: undefined,
           notify: true
@@ -244,8 +218,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * _id from existing user record (used to make updates)
          */
-        _userId: {
-          type: String
+        userId: {
+          type: String,
+          notify: true
         },
         /**
          * Result from elastic-create.
@@ -279,7 +254,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       observers: [
-        '_createUserRecord(_userRecordExists, username, advancedSearch, blurImages)'
+        '_createUserRecord(userRecordExists, username, advancedSearch, blurImages)'
       ],
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -290,7 +265,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _createUserRecord: function() {
         var self = this;
 
-        if(this._userRecordExists === false) {
+        // Do not check for undefined.
+        if(this.userRecordExists === false) {
           this._set_userCreateBody({
             username: self.username,
             advancedSearch: self.advancedSearch,
@@ -318,8 +294,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _getUserId: function(userRecord) {
         if(userRecord && userRecord._id) {
-          this._userRecordExists = true;
-          this._userId = userRecord._id;
+          this.userRecordExists = true;
+          this.userId = userRecord._id;
         }
       },
       /**
@@ -333,7 +309,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this._populateUserPreferences(this._userSearchResult.hits.hits[0]._source);
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
-            this._userRecordExists = false;
+            this.userRecordExists = false;
           }
         }
       },
@@ -367,12 +343,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               return false;
             }
           });
-          this.set('_searches', prefs.savedQueries);
+          this.set('searches', prefs.savedQueries);
         }
 
         if(prefs.receivedQueries) {
           this.set('_receivedSearches', prefs.receivedQueries);
         }
+
       },
 
       /**

@@ -102,6 +102,7 @@
       aggregations="[]"
       filters="[[filterArray]]"
       sort="{{sort}}"
+      highlight="[[highlight]]"
       loading="{{loading}}"
       request-as-json="{{esRequest}}"
       properties-ready="{{processRequest}}">
@@ -318,56 +319,101 @@
 
         <div class="bottom v-divider"></div>
         <div class="bottom flex">
-            <elastic-client-input class="white-input-container"
-              field="_all"
-              value="{{queryValue}}"
-              query="{{ejsQuery}}"
-              label="Enter Keywords"
-              advanced="[[advancedSearch]]"
-              autobuild="true">
-            </elastic-client-input>
+          <elastic-client-input class="white-input-container"
+            field="_all"
+            value="{{queryValue}}"
+            query="{{ejsQuery}}"
+            label="Enter Keywords"
+            advanced="[[advancedSearch]]"
+            autobuild="true">
+          </elastic-client-input>
         </div>
-
-        <paper-icon-button
-          active="[[advancedSearch]]"
-          class="bottom toggle"
-          icon="custom-icons:advanced-search"
-          title="[[getAdvancedSearchTitle(advancedSearch)]]"
-          on-tap="toggleAdvancedSearch">
-        </paper-icon-button>
-
-        <paper-icon-button
-          class="bottom"
-          icon="custom-icons:show-all"
-          title="Show All Results for Selected Facets"
-          on-tap="showAll">
-        </paper-icon-button>
 
         <a class="bottom" href="." style="color: #ffffff;">
           <paper-icon-button icon="clear" title="Reset Page"></paper-icon-button>
         </a>
-
-        <batch-phone class="bottom" query-value="{{queryValue}}"></batch-phone>
 
         <load-user-info class="bottom"
           show-search
           client="[[esclient]]"
           loading="[[loading]]"
           username="[[config.username]]"
+          user-id="{{userId}}"
+          user-record-exists="{{userRecordExists}}"
           advanced-search="{{advancedSearch}}"
           blur-images="{{blurImages}}"
+          searches="{{userSearches}}"
           search-text="{{queryValue}}"
           facets="{{facetSelection}}"
           es-request="{{esRequest}}"
           user-index="[[config.userIndex]]"
           user-type="[[config.userType]]"
-          enable-save-btn="[[enableSaveButton(searchResults, searchError)]]"
           notification-query="{{notificationQuery}}"
           notification-query-date="{{notificationDate}}"
           current-sort="[[selectedSort]]"
-          process-request="{{processRequest}}"
-          show-save-btn>
+          process-request="{{processRequest}}">
         </load-user-info>
+
+        <save-search id="saveSearchDialog"
+          client="[[esclient]]"
+          username="[[config.username]]"
+          user-id="[[userId]]"
+          existing-searches="{{userSearches}}"
+          search-text="[[queryValue]]"
+          facets="[[facetSelection]]"
+          es-request="[[esRequest]]"
+          user-index="[[config.userIndex]]"
+          user-type="[[config.userType]]"
+          user-record-exists="[[userRecordExists]]">
+        </save-search>
+
+        <batch-phone id="batchPhoneSearchDialog" query-value="{{queryValue}}"></batch-phone>
+
+        <similar-image-search id="similarImageSearchDialog"
+          blur="[[blurImages]]"
+          query-value="[[queryValue]]"
+          image-service-auth="[[config.imageServiceAuth]]"
+          image-service-host="[[config.imageServiceHost]]"
+          link-function="[[clientConfig.transforms.image.externalImageLink]]">
+        </similar-image-search>
+
+        <search-help id="searchHelpDialog"></search-help>
+
+        <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="Open Menu for More Options" on-tap="toggleMenu"></paper-icon-button>
+
+        <iron-dropdown id="menuDropdown" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="80">
+          <div class="dropdown-content">
+            <paper-icon-item title="Show All Results for Selected Facets" on-tap="showAll">
+              <iron-icon icon="custom-icons:show-all" item-icon></iron-icon>
+              Show All Results
+            </paper-icon-item>
+
+            <paper-icon-item disabled="[[isSaveButtonDisabled(searchResults, searchError)]]" title="Save Search Keywords and Facets" on-tap="openSaveSearchDialog">
+              <iron-icon icon="save" item-icon></iron-icon>
+              Save Search
+            </paper-icon-item>
+
+            <paper-icon-item title="Upload or Enter Multiple Telephone Numbers" on-tap="openBatchPhoneSearchDialog">
+              <iron-icon icon="file-upload" item-icon></iron-icon>
+              Batch Telephone Search
+            </paper-icon-item>
+
+            <paper-icon-item title="Search on an Image URL or Uploaded Image" on-tap="openSimilarImageSearchDialog">
+              <iron-icon icon="image:compare" item-icon></iron-icon>
+              Similar Image Search
+            </paper-icon-item>
+
+            <paper-icon-item active="[[advancedSearch]]" class="toggle" title="[[getAdvancedSearchTitle(advancedSearch)]]" on-tap="toggleAdvancedSearch">
+              <iron-icon icon="custom-icons:advanced-search" item-icon></iron-icon>
+              Toggle Advanced Search Mode
+            </paper-icon-item>
+
+            <paper-icon-item title="Search Help" on-tap="openSearchHelpDialog">
+              <iron-icon icon="help" item-icon></iron-icon>
+              Search Help
+            </paper-icon-item>
+          </div>
+        </iron-dropdown>
       </paper-toolbar>
 
       <paper-drawer-panel drawer-width="320px">
@@ -1062,9 +1108,7 @@
                   type="Result"
                   records-list-title="{{recordsListTitle}}"
                   current-user="[[config.username]]"
-                  blur="[[blurImages]]"
-                  notification-query="{{notificationQuery}}"
-                  notification-query-date="{{notificationDate}}">
+                  blur="[[blurImages]]">
                 </records-list>
               </section>
             </paper-material>
@@ -1102,10 +1146,6 @@
 
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-      app.enableSaveButton = function(searchResults, searchError) {
-        return searchResults !== null && searchError === null;
-      };
-
       app.getAdvancedSearchTitle = function(advancedSearch) {
         return 'Click to ' + (advancedSearch ? 'Deactivate' : 'Activate') + ' Advanced Search Mode';
       };
@@ -1114,8 +1154,41 @@
         return ['webpage'];
       };
 
+      app.isSaveButtonDisabled = function(searchResults, searchError) {
+        return !(searchResults !== null && searchError === null);
+      };
+
+      app.openBatchPhoneSearchDialog = function() {
+        this.$.menuDropdown.close();
+        this.$.batchPhoneSearchDialog.open();
+      };
+
+      app.openSaveSearchDialog = function() {
+        this.$.menuDropdown.close();
+        this.$.saveSearchDialog.open();
+      };
+
+      app.openSearchHelpDialog = function() {
+        this.$.menuDropdown.close();
+        this.$.searchHelpDialog.open();
+      };
+
+      app.openSimilarImageSearchDialog = function() {
+        this.$.menuDropdown.close();
+        this.$.similarImageSearchDialog.open();
+      };
+
       app.showAll = function() {
+        this.$.menuDropdown.close();
         app.set('queryValue', null);
+      };
+
+      app.toggleMenu = function() {
+        if(this.$.menuDropdown.style.display === 'none') {
+          this.$.menuDropdown.open();
+        } else {
+          this.$.menuDropdown.close();
+        }
       };
 
       app.toggleAdvancedSearch = function() {

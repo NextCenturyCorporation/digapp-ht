@@ -1,0 +1,341 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/file-upload/file-upload.html">
+<link rel="import" href="../../bower_components/paginated-image-gallery/paginated-image-gallery.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../../bower_components/image-thumbnail/image-thumbnail.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+
+<dom-module id="similar-image-search">
+  <template>
+    <style include="user-dialog-styles"></style>
+
+    <style>
+      :host {
+        display: block;
+      }
+
+      .settings > .margin-top {
+        margin-top: 20px;
+      }
+
+      .settings > .padding {
+        /* Add padding to the query image so it matches the padding in the image results list. */
+        padding: 10px;
+      }
+
+      paginated-image-gallery {
+        --paginated-image-gallery-max-height: none;
+      }
+    </style>
+
+    <paper-dialog id="similarImageSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="settings layout vertical">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Upload an Image or Enter a URL</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <span class="text">Please enter or paste an image URL in the text box below or upload your own image.</span>
+
+        <div class="layout horizontal">
+          <span class="text right-space">Restrict search to near-duplicate results?</span>
+          <span class="text right-space">[[_yesOrNo(nearDuplicates)]]</span>
+          <paper-toggle-button checked="{{nearDuplicates}}" title="Restrict search to near-duplicate results"></paper-toggle-button>
+        </div>
+
+        <div class="layout horizontal">
+          <paper-input class="flex right-space" label="Enter or Paste Image URL" value="{{_urlInput}}" no-label-float></paper-input>
+          <button-action disabled="[[!_urlInput]]" text="Search on URL" click-listener="[[_createSearchOnUrlListener()]]"></button-action>
+        </div>
+
+        <file-upload accept="image/*" id="fileUpload" droppable="true" method="POST" raised="true" target="/uploadImage" on-success="_handleUpload" multi="false">Upload Image...</file-upload>
+
+        <div class="layout horizontal">
+          <button-action class="right-space" disabled="[[!_uploadedImage]]" text="Search on Upload" click-listener="[[_createSearchOnUploadListener()]]"></button-action>
+          <button-action id="clearAll" class="right-space" text="Clear" click-listener="[[_createClearListener()]]"></button-action>
+        </div>
+
+        <iron-ajax
+          id="xhr"
+          handle-as="json"
+          with-credentials="true"
+          loading="{{loading}}"
+          on-response="_handleImageServiceResponse">
+        </iron-ajax>
+
+        <div class="divider margin-top"></div>
+
+        <span class="bold tall">Your Image</span>
+
+        <template is="dom-if" if="[[!_requestImage]]">
+          <span class="text tall">None</span>
+        </template>
+
+        <template is="dom-if" if="[[_requestImage]]">
+          <image-thumbnail
+            class="padding"
+            source="[[_requestImage]]"
+            style-class="[[_getBlurStyleClass(blur)]]"
+            target="_blank"
+            text="open image">
+          </image-thumbnail>
+        </template>
+
+        <div class="divider"></div>
+
+        <span class="bold tall">Similar Image Results</span>
+
+        <template is="dom-if" if="[[_showNoImagesText(_imageResults.length, loading)]]">
+          <span class="text tall">None</span>
+        </template>
+
+        <paginated-image-gallery
+          blur="[[blur]]"
+          new-tab
+          loading="[[loading]]"
+          load-type="Similar Images"
+          image-items="[[_imageResults]]"
+          total-items="[[_.images.length]]">
+        </paginated-image-gallery>
+      </div>
+    </paper-dialog>
+
+    <paper-dialog id="errorDialog" class="small" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="layout vertical">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Image service incorrectly configured.  Please contact an administrator.</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'similar-image-search',
+
+      properties: {
+        /**
+         * Blur class
+         */
+        blur: {
+          type: Boolean
+        },
+
+        /**
+         * Auth for the image service.
+         */
+        imageServiceAuth: {
+          type: String
+        },
+
+        /**
+         * Host for the image service.
+         */
+        imageServiceHost: {
+          type: String
+        },
+
+        /**
+         * A function that, given an image ID, returns a link for that image.
+         */
+        linkFunction: {
+          type: Function
+        },
+
+        /**
+         * Whether the search request is running.
+        */
+        loading: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        nearDuplicates: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * The list of images returned by the search request.
+         */
+        _imageResults: {
+          type: Array,
+          notify: true,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The uploaded image or URL input used by the search request.
+         */
+        _requestImage: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The image uploaded by the user.
+         */
+        _uploadedImage: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The image URL entered by the user.
+         */
+        _urlInput: {
+          type: String,
+          value: ''
+        }
+      },
+
+      _clearImageInputAndResults: function() {
+        this.set('_imageResults', []);
+        this.set('_requestImage', '');
+        this.set('_uploadedImage', '');
+        this.set('_urlInput', '');
+        this.$$('#fileUpload').clear();
+      },
+
+      _createSearchOnUploadListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            self.$.xhr.body = {};
+            self.$.xhr.params = {};
+            if(self._uploadedImage) {
+              self._requestImage = self._uploadedImage;
+              self.$.xhr.body = {
+                data: self._uploadedImage
+              };
+              if(!self.nearDuplicates) {
+                self.$.xhr.body.options = '{"near_dup":0}';
+              }
+              self.$.xhr.contentType = 'application/x-www-form-urlencoded';
+              self.$.xhr.method = 'POST';
+              self._sendXhrRequest('base64');
+            }
+          }
+        };
+      },
+
+      _createSearchOnUrlListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            self.$.xhr.body = {};
+            self.$.xhr.params = {};
+            if(self._urlInput) {
+              self._requestImage = self._urlInput;
+              self.$.xhr.params.data = self._urlInput;
+              if(!self.nearDuplicates) {
+                self.$.xhr.params.options = '{"near_dup":0}';
+              }
+              self.$.xhr.method = 'GET';
+              self._sendXhrRequest('url');
+            }
+          }
+        };
+      },
+
+      _createClearListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            self._clearImageInputAndResults();
+          }
+        };
+      },
+
+      _getBlurStyleClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
+      _getRequestAuth: function(imageServiceAuth) {
+        var auth = imageServiceAuth ? JSON.parse(imageServiceAuth) : {};
+        if(!auth.user || !auth.password) {
+          return '';
+        }
+        return 'Basic ' + btoa(auth.user + ':' + auth.password);
+      },
+
+      _getRequestHost: function(imageServiceHost, type) {
+        var host = imageServiceHost ? JSON.parse(imageServiceHost) : {};
+        return host[type];
+      },
+
+      _handleImageServiceResponse: function(event) {
+        var self = this;
+        var response = event.detail.response;
+        if(response.images && response.images.length) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          var imageUrls = response.images[0].similar_images.cached_image_urls;
+          var imageIds = response.images[0].similar_images.sha1;
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+          self._imageResults = imageUrls.map(function(url, index) {
+            return {
+              link: ((self.linkFunction && index < imageIds.length) ? self.linkFunction(imageIds[index]) : ''),
+              source: url
+            };
+          });
+        }
+      },
+
+      _handleUpload: function(event) {
+        if(event.detail && event.detail.xhr && event.detail.xhr.response) {
+          var response = JSON.parse(event.detail.xhr.response);
+          this._uploadedImage = 'data:' + response.mimeType + ';base64,' + response.base64;
+          this._requestImage = this._uploadedImage;
+        }
+      },
+
+      _sendXhrRequest: function(type) {
+        this.set('_imageResults', []);
+        this.$.xhr.url = this._getRequestHost(this.imageServiceHost, type);
+        this.$.xhr.headers.Authorization = this._getRequestAuth(this.imageServiceAuth);
+        if(this.$.xhr.headers.Authorization && this.$.xhr.url) {
+          this.$.xhr.generateRequest();
+        } else {
+          this.$$('#errorDialog').open();
+        }
+      },
+
+      _showNoImagesText: function(numberOfImages, loading) {
+        return !numberOfImages && !loading;
+      },
+
+      _yesOrNo: function(value) {
+        return value ? 'Yes' : 'No';
+      },
+
+      open: function() {
+        this.$$('#similarImageSearchDialog').open();
+      }
+    });
+  })();
+  </script>
+</dom-module>

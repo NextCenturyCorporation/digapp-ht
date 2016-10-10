@@ -14,6 +14,7 @@ var commonTransforms = (function(_, dateFormat) {
    */
   function getIronIcon(type) {
     switch(type) {
+      case 'cache': return 'icons:cached';
       case 'date': return 'icons:date-range';
       case 'email': return 'communication:email';
       case 'image': return 'image:photo';
@@ -32,7 +33,7 @@ var commonTransforms = (function(_, dateFormat) {
    * Returns the link for the given ID and type.
    */
   function getLink(id, type) {
-    if(!id || !type) {
+    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller')) {
       return undefined;
     }
     return '/' + type + '.html?value=' + id + '&field=_id';
@@ -193,7 +194,7 @@ var commonTransforms = (function(_, dateFormat) {
       return arrayToReturn;
     },
 
-    getClickableObjectArr: function(records, type) {
+    getClickableObjects: function(records, type) {
       var result = [];
       if(records) {
         (_.isArray(records) ? records : [records]).forEach(function(record) {
@@ -203,7 +204,7 @@ var commonTransforms = (function(_, dateFormat) {
               type: type,
               text: type === 'email' ? decodeURIComponent(record.name) : record.name,
               icon: getIronIcon(type),
-              link: getLink(record.uri, type),
+              link: type === 'webpage' ? record.name : getLink(record.uri, type),
               styleClass: getStyleClass(type)
             };
             result.push(obj);

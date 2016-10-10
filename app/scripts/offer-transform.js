@@ -90,20 +90,15 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     return person;
   }
 
-  function getPrice(record) {
-    var result = '';
-    var prices = _.get(record, 'priceSpecification');
+  function getPrices(prices) {
     if(prices) {
-      var sep = '';
-      (_.isArray(prices) ? prices : [prices]).forEach(function(elem) {
-        var price = elem.name;
-        if(price !== '-per-min') {
-          result = result + sep + price;
-          sep = ', ';
-        }
+      return (_.isArray(prices) ? prices : [prices]).map(function(priceObject) {
+        return priceObject.name;
+      }).filter(function(price) {
+        return price !== '-per-min';
       });
     }
-    return result;
+    return [];
   }
 
   function parseOffer(record) {
@@ -116,16 +111,28 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     newData.address = commonTransforms.getAddress(record);
     newData.geolocation = getGeolocation(record);
     newData.person = getPerson(record);
-    newData.price = getPrice(record);
+    newData.prices = commonTransforms.getClickableObjects(getPrices(_.get(record, 'priceSpecification')).map(function(price) {
+      return {
+        name: price
+      };
+    }), 'money');
     newData.text = _.get(record, 'title', 'Title N/A');
     newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
     newData.body = _.get(record, 'mainEntityOfPage.description');
-    newData.emails = commonTransforms.getClickableObjectArr(_.get(record, 'seller.email'), 'email');
-    newData.phones = commonTransforms.getClickableObjectArr(_.get(record, 'seller.telephone'), 'phone');
+    newData.emails = commonTransforms.getClickableObjects(_.get(record, 'seller.email'), 'email');
+    newData.phones = commonTransforms.getClickableObjects(_.get(record, 'seller.telephone'), 'phone');
     newData.sellerId = _.get(record, 'seller.uri');
     newData.serviceId = _.get(record, 'itemOffered.uri');
     newData.webpageId = _.get(record, 'mainEntityOfPage.uri');
     newData.webpageUrl = _.get(record, 'mainEntityOfPage.url');
+    newData.webpages = commonTransforms.getClickableObjects({
+      uri: _.get(record, 'mainEntityOfPage.uri'),
+      name: _.get(record, 'mainEntityOfPage.url')
+    }, 'webpage');
+    newData.cache = commonTransforms.getClickableObjects({
+      uri: newData.id ? newData.id.substring(newData.id.lastIndexOf('/') + 1) : '',
+      name: 'Cached Ad'
+    }, 'cache');
 
     return newData;
   }
