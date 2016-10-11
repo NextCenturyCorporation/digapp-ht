@@ -93,7 +93,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     }).map(function(query) {
       return query.name;
     });
-    if(sendAlertEmailCallback && savedQueryNames.length) {
+    if(sendAlertEmailCallback && user._source.emailAddress && savedQueryNames.length) {
       sendAlertEmailCallback(user._source.emailAddress, savedQueryNames, function(error, response) {
         if(error) {
           logger.error(error);
