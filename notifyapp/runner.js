@@ -9,11 +9,13 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
 
   var createSavedQueryBody = function(savedQuery) {
     var savedQueryBody = {
-      filter: JSON.parse(savedQuery.esState.filter),
       query: JSON.parse(savedQuery.esState.query),
       size: 1,
       sort: {}
     };
+    if(savedQuery.filter) {
+      savedQuery.filter = JSON.parse(savedQuery.esState.filter);
+    }
     savedQueryBody.sort[dateField] = {
       order: 'desc'
     };
@@ -68,9 +70,10 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     var savedQuery = savedQueries[0];
 
     // Check if we need to run the saved query.
-    if(savedQuery.sendEmailNotification && savedQuery.esType === 'webpage') {
+    if(savedQuery.sendEmailNotification) {
       client.search({
         index: dataIndex,
+        type: ['webpage'],
         body: createSavedQueryBody(savedQuery)
       }).then(function(results) {
         // Check the results of the saved query for new items.
