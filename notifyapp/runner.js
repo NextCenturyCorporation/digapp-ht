@@ -22,10 +22,12 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
 
   var checkAndSaveAlert = function(savedQuery, results) {
     if(results.hits.hits.length) {
+      // Check the date of the newest item and compare it with the date on which the saved query was last run.
       var resultDate = new Date(results.hits.hits[0]._source[dateField]);
       var lastDate = new Date(savedQuery.lastRunDate);
       if(resultDate.getTime() > lastDate.getTime()) {
-        savedQuery.notificationHasRun = true;
+        // Update the notification date so the app knows to show an alert.
+        savedQuery.notificationHasRun = false;
         savedQuery.notificationDate = new Date();
       }
     }
@@ -33,6 +35,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var updateUser = function(user, savedQueries, callback) {
+    // Update the saved queries for the user in the database.
     client.update({
       index: userIndex,
       type: userType,
@@ -57,17 +60,20 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     }
 
     var done = function(savedQuery) {
+      // Add the saved query to the updated query list.  Then check the next saved query.
       updatedQueries.push(savedQuery);
       checkNextQuery(savedQueries.slice(1), updatedQueries, callback);
     };
 
     var savedQuery = savedQueries[0];
 
-    if(savedQuery.sendEmailNotification) {
+    // Check if we need to run the saved query.
+    if(savedQuery.sendEmailNotification && savedQuery.esType === 'webpage') {
       client.search({
         index: dataIndex,
         body: createSavedQueryBody(savedQuery)
       }).then(function(results) {
+        // Check the results of the saved query for new items.
         done(checkAndSaveAlert(savedQuery, results));
       }, function(error) {
         logger.error(error, 'Error running saved query');
@@ -80,7 +86,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
 
   var sendAlertEmailIfNeeded = function(user, updatedQueries, callback) {
     var savedQueryNames = updatedQueries.filter(function(query) {
-      return query.notificationHasRun;
+      return query.sendEmailNotification && !query.notificationHasRun;
     }).map(function(query) {
       return query.name;
     });
@@ -102,6 +108,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     }
 
     var done = function(updatedQueries) {
+      // Send an alert email to the user if needed.  Then check the saved queries for the next user.
       sendAlertEmailIfNeeded(users[0], updatedQueries || [], function() {
         checkAndSaveNextUser(users.slice(1), period);
       });
@@ -109,6 +116,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
 
     var user = users[0];
 
+    // Check if we need to run the saved queries for the user.
     if(user._source.notificationFrequency === period) {
       checkNextQuery(user._source.savedQueries, [], function(updatedQueries) {
         updateUser(user, updatedQueries, done);
@@ -120,6 +128,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
 
   var checkUsers = function(period) {
     return function() {
+      // Get the list of all users.
       client.search({
         index: userIndex,
         type: userType,
@@ -133,7 +142,6 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   return {
-    checkUsersHourly: checkUsers('hourly'),
     checkUsersDaily: checkUsers('daily'),
     checkUsersWeekly: checkUsers('weekly')
   };

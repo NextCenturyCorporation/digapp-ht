@@ -37,7 +37,7 @@ var client = new Client(logger, ES_AUTH, ES_HOST, ES_PORT, ES_PROTOCOL);
 
 logger.info('Client created.');
 
-var runner = Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, mailer.sendAlertEmail);
+var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, mailer.sendAlertEmail);
 
 logger.info('Runner created.');
 
