@@ -60,6 +60,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           color: var(--primary-text-color);
         };
       }
+
+      .hidden {
+        visibility: hidden;
+      }
+
     </style>
 
     <paper-material class$="layout horizontal flex head [[getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
@@ -94,6 +99,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </div>
         </template>
       </div>
+
+      <template is="dom-if" if="[[notificationQueryDate]]" restamp="true">
+        <div class$="[[getNewIconDivClass(item, notificationQuery)]] layout vertical center-justified">
+          <iron-icon icon="av:fiber-new"></iron-icon>
+        </div>
+      </template>
 
       <template is="dom-if" if="[[showAnnotation(item)]]">
         <annotate-record class="layout vertical center-justified"
@@ -154,6 +165,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   <script>
   (function() {
     'use strict';
+    /* globals _ */
 
     Polymer({
       is: 'single-record',
@@ -271,6 +283,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         error: {
           type: Object
+        },
+
+        /**
+         * Tracks whether or not a query with a notification is being viewed.
+         */
+        notificationQuery: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * If notification query is being viewed, the notification date associated with that query.
+         */
+        notificationQueryDate: {
+          type: Object,
+          notify: true
         }
       },
 
@@ -279,6 +306,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           'updateImageSrcFromPropertyImages(images.splices)',
           'updateShowDetails(item.details)'
       ],
+
+      getNewIconDivClass: function(item, notificationQuery) {
+        var self = this;
+        if(notificationQuery) {
+          return _.some(item.descriptors, function(descriptor) {
+            return descriptor.type === 'date' && (new Date(descriptor.text) > self.notificationQueryDate);
+          }) ? '' : 'hidden';
+        }
+        return 'hidden';
+      },
 
       getBlurStyleClass: function(blur) {
         return (blur ? 'small-blur' : '');

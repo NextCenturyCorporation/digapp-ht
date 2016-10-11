@@ -11,6 +11,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/breadbox-item/breadbox-item.html">
 <link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
@@ -18,6 +19,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../lodash.html">
 <link rel="import" href="../dateformat.html">
@@ -25,7 +27,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <dom-module id="user-preferences">
   <template>
     <style include="user-dialog-styles"></style>
-
     <style>
       :host {
         display: inline-block;
@@ -54,9 +55,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       modal-icon {
         align-items: inherit;
       }
-    </style>
 
-    <paper-icon-button id="settingsButton" icon="settings" title="Open User Settings" on-tap="_openSettingsDialog"></paper-icon-button>
+      .highlight-btn {
+        background-color: var(--text-primary-color);
+        border-radius: 5px;
+        color: var(--dark-primary-color);
+      }
+    </style>
+    <paper-icon-button
+      id="settingsButton"
+      class$="[[_getSettingsButtonClass(hasNotifications)]]"
+      icon="settings"
+      title$="[[_getSettingsButtonText(hasNotifications)]]"
+      on-tap="_openSettingsDialog">
+    </paper-icon-button>
 
     <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="settings layout vertical">
@@ -70,35 +82,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         <template is="dom-if" if="{{userRecordExists}}" restamp="true">
           <div class="layout horizontal">
             <div class="start-justified flex">
-              <span class="name right-space">Logged in as:</span>
+              <span class="name tall right-space">Logged in as:</span>
               <span class="text">[[username]]</span>
             </div>
             <div class="end-justified">
-              <span class="name right-space">DIG Version:</span>
+              <span class="name tall right-space">DIG Version:</span>
               <span class="text">DIG_VERSION</span>
             </div>
           </div>
 
-          <!-- Don't show email address and interval fields until notifications are working
           <div class="layout horizontal">
             <span class="name tall right-space">Email Address for Notifications:</span>
-            <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}" no-label-float></paper-input>
-            <button-action class="inline" title="Save Email Address" text="Save" disabled="[[!emailAddress]]" click-listener="[[_createSaveEmailAddressListener()]]"></button-action>
+            <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}"
+              no-label-float type="email" auto-validate invalid="{{_isEmailInvalid}}">
+            </paper-input>
+            <button-action class="inline" title="Save Email Address" text="Save" disabled="[[_disableEmailSave(emailAddress, _isEmailInvalid)]]"
+              click-listener="[[_createSaveEmailAddressListener()]]">
+            </button-action>
           </div>
           <div class="layout horizontal pointer">
             <span class="name tall right-space">Automatically Run Searches:</span>
-            <paper-dropdown-menu disabled="[[noEmailAddress]]" label="Interval" no-label-float on-iron-select="_updateNotification">
-              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{search.frequency}}">
+            <paper-dropdown-menu label="Interval" no-label-float on-iron-select="_updateNotificationFrequency">
+              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{notificationFrequency}}">
                 <paper-item value="never">Never</paper-item>
-                <paper-item value="hourly">Every Hour</paper-item>
                 <paper-item value="daily">Every Day</paper-item>
                 <paper-item value="weekly">Every Week</paper-item>
               </paper-listbox>
             </paper-dropdown-menu>
-            <template is="dom-if" if="[[noEmailAddress]]">
-              <paper-icon-button icon="error" title="Please enter your email address above before setting a notification interval." noink></paper-icon-button>
-            </template>
-          </div>-->
+          </div>
 
           <div class="divider"></div>
 
@@ -121,12 +132,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-repeat" items="[[searches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
-                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleSearchSettings"></modal-icon>
+                  <modal-icon id$="[[_createElementId('expandSavedSearch', index)]]"
+                    title="[[_getModalIconTitle('expandSavedSearch', index)]]"
+                    openable ripple on-tap="_toggleSearchSettings">
+                  </modal-icon>
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
-                <iron-collapse opened="[[search.open]]">
+                <iron-collapse id$="[[_createElementId('savedSearch', index)]]">
                   <div class="layout horizontal search-settings">
                     <div class="layout vertical right-space">
                       <div class="name tall right-space">Created By</div>
@@ -136,15 +150,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                       <div class="text tall right-space">[[search.createdBy]]</div>
                       <div class="text tall right-space">[[_getFormattedDate(search.createdAt)]]</div>
                     </div>
-                    <send-search
-                      search="[[search]]"
-                      client="[[client]]"
-                      current-user="[[username]]"
-                      user-index="[[userIndex]]"
-                      user-type="[[userType]]"
-                      disable-send="[[!showSearch]]"
-                      send-in-progress="{{sendingSearch}}">
-                    </send-search>
+                    <div class="layout vertical right-space">
+                      <div class="name tall right-space">Send Saved Search to User</div>
+                      <div class="name tall right-space">Enable Notification Alert</div>
+                    </div>
+
+                    <div class="layout vertical right-space">
+                      <send-search
+                        search="[[search]]"
+                        client="[[client]]"
+                        current-user="[[username]]"
+                        user-index="[[userIndex]]"
+                        user-type="[[userType]]"
+                        disable-send="[[!showSearch]]"
+                        send-in-progress="{{sendingSearch}}">
+                      </send-search>
+                      <paper-toggle-button class="text tall right-space"
+                        checked="{{search.sendEmailNotification}}" on-change="_toggleNotificationAlert"
+                        disabled="[[_disableNotificationToggle(showSearch, notificationFrequency)]]">
+                      </paper-toggle-button>
+                    </div>
                   </div>
                 </iron-collapse>
               </div>
@@ -158,12 +183,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             <template is="dom-repeat" items="[[receivedSearches]]" as="search">
               <div class="layout vertical search">
                 <div class="layout horizontal">
-                  <modal-icon openable open="[[!_isFalse(search.open)]]" ripple title="[[_getModalIconTitle(search.open)]]" on-tap="_toggleReceivedSearchSettings"></modal-icon>
+                  <modal-icon id$="[[_createElementId('expandReceivedSearch', index)]]" openable
+                    title="[[_getModalIconTitle('expandReceivedSearch', index)]]"
+                    ripple on-tap="_toggleReceivedSearchSettings">
+                  </modal-icon>
                   <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
-                <iron-collapse opened="[[search.open]]">
+                <iron-collapse id$="[[_createElementId('receivedSearch', index)]]">
                   <div class="layout horizontal search-settings">
                     <div class="layout vertical right-space">
                       <div class="name tall right-space">Created By</div>
@@ -285,14 +313,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true
         },
-        /**
-         * Boolean to track when associated elastic-client-search query has finished loading.
-         */
-        loading: {
-          type: Boolean,
-          notify: true,
-          observer: '_fillOutFacets'
-        },
 
         /**
          * Whether advanced search is enabled.
@@ -311,6 +331,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: true,
           notify: true
         },
+
+        /**
+         * Whether or not there are unseen notifications.
+         */
+        hasNotifications: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
         /**
          * _id from existing user record (used to make updates)
          */
@@ -328,11 +358,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Index to replace in searches if saving over existing search.
+         * The notification frequency set for this user.
          */
-        _saveOverIndex: {
-          type: Number
+        notificationFrequency: {
+          type: String,
+          value: 'never',
+          notify: true
         },
+
         /**
          * The email address of this user.
          */
@@ -368,6 +401,36 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * Tracks whether or not a query with a notification is being viewed.
+         */
+        notificationQuery: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * If notification query is being viewed, the notification date associated with that query.
+         */
+        notificationQueryDate: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * Whether or not all properties have been loaded/are ready for elastic-client-search.
+         */
+        processRequest: {
+          type: Boolean,
+          notify: true
+        },
+
+        /**
+         * Index to replace in searches if saving over existing search.
+         */
+        _saveOverIndex: {
+          type: Number
+        },
+
+        /**
          * Document info to pass into the elastic-update component
          */
         _userUpdateBody: {
@@ -383,17 +446,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Where to store facets while waiting for query results to reload (fix for timing issues when loading
-         * both the searchText and facets).
+         * Boolean to track if user input for email address is valid.
          */
-        _facetsToLoad: {
-          type: Object,
-          notify: true,
-          value: function() {
-            return undefined;
-          }
+        _isEmailInvalid: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * Tracks if query is being reloaded via _runSearch (if not, need to reset notification properties)
+         */
+        _callFromRunSearch: {
+          type: Boolean
         }
-
+      },
+      observers: [
+        '_resetNotificationQuery(searchText, facets.*)'
+      ],
+      _getSettingsButtonClass: function(hasNotifications) {
+        return hasNotifications ? 'highlight-btn' : '';
+      },
+      _getSettingsButtonText: function(hasNotifications) {
+        return hasNotifications ? 'Notifications Pending' : 'Open User Settings';
       },
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
 
@@ -446,6 +519,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
+       * Toggles the search's notification enabled setting.
+       */
+      _toggleNotificationAlert: function() {
+        var self = this;
+        self._set_userUpdateBody({
+          doc: {
+            savedQueries: self.searches
+          }
+        });
+      },
+
+      /**
+       * Create an element id using arguments given (used for creating ids for collapsible elements).
+       */
+      _createElementId: function(idPrefix, index) {
+        return idPrefix + '_' + index;
+      },
+
+      /**
        * Creates and returns a listener to add a new search from the list of receivedSearches.
        */
       _createAddSearchListener: function(index) {
@@ -472,11 +564,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Copy search and delete UI property 'open' when receiving a saved search
+       * Copy search and add lastRunDate when receiving a saved search
        */
       _copyReceivedSearch: function(search) {
         var searchCopy = JSON.parse(JSON.stringify(search));
-        delete searchCopy.open;
         searchCopy.lastRunDate = new Date();
         return searchCopy;
       },
@@ -523,6 +614,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
+       * Updates the notification setting of the given saved search.
+       */
+      _updateNotificationFrequency: function() {
+        var self = this;
+        self._set_userUpdateBody({
+          doc: {
+            notificationFrequency: self.notificationFrequency
+          }
+        });
+      },
+
+      /**
        * Returns the checkbox icon for the given setting.
        */
       _getCheckboxIconToShow: function(setting) {
@@ -532,84 +635,129 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Returns the title of the modal-icon for the given open setting.
        */
-      _getModalIconTitle: function(open) {
-        return (open ? 'Close' : 'Open') + ' Search Settings';
+      _getModalIconTitle: function(idPrefix, index) {
+        return (this._isOpened(idPrefix, index) ? 'Close' : 'Open') + ' Search Settings';
       },
 
       /**
-       * Runs the given saved search.
+       * Need to reset notification properties when searchText and facets are updated via something
+       * other than _runSearch.
+       */
+      _resetNotificationQuery: function() {
+        if(!this._callFromRunSearch) {
+          this.notificationQuery = false;
+          this.notificationQueryDate = undefined;
+        }
+      },
+
+      /**
+       * Runs the given saved search and updates necessary fields in elasticsearch.
        */
       _runSearch: function(event) {
         this.$$('#settingsDialog').close();
+        this.set('processRequest', false);
+
+        // if not a notification query, reset notification flags
+        if(event.model.search.notificationHasRun) {
+          this._resetNotificationQuery();
+        }
+
+        this._setDateAndNotificationFlags(event.model.index);
+
+        this._callFromRunSearch = true;
+        this.set('searchText', event.model.search.digUIState.searchText);
+        this.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        this._checkIfPendingNotifications();
+      },
+
+      /**
+       * Runs a search from the received searches list and updates necessary fields in elasticsearch.
+       */
+      _runReceivedSearch: function(event) {
+        this.$$('#settingsDialog').close();
+        this.set('processRequest', false);
+
+        // not a notification query, reset notification flags
+        this._resetNotificationQuery();
+
+        this._callFromRunSearch = true;
+        this.set('searchText', event.model.search.digUIState.searchText);
+        this.set('facets', JSON.parse(event.model.search.digUIState.facets));
+        this.set('processRequest', true);
+        this.set('_callFromRunSearch', false);
+      },
+
+      /**
+       * Update notification flags for an individual saved query and
+       * set properties to indicate this is a notification query.
+       */
+      _setDateAndNotificationFlags: function(index) {
         var self = this;
 
-        var search = _.clone(self.searches[event.model.index]);
+        var search = _.clone(self.searches[index]);
         search.lastRunDate = new Date();
-        delete search.open;
-        self.splice('searches', event.model.index, 1, search);
+
+        if(search.notificationHasRun === false) {
+          // notification queries have to be sorted in descending order so that newest
+          // results are first
+          search.notificationHasRun = true;
+          self.notificationQueryDate = new Date(search.notificationDate);
+          self.notificationQuery = true;
+        }
+        self.splice('searches', index, 1, search);
         self._set_userUpdateBody({
           doc: {
             savedQueries: self.searches
           }
         });
-
-        if(this.searchText !== event.model.search.digUIState.searchText) {
-          self.set('searchText', event.model.search.digUIState.searchText);
-          self.set('_facetsToLoad', JSON.parse(event.model.search.digUIState.facets));
-        } else {
-          self.set('facets', JSON.parse(event.model.search.digUIState.facets));
-        }
       },
 
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
-       * Runs the given received search.
+       * Checks current list of searches to see if anymore notifications are pending.
        */
-      _runReceivedSearch: function(event) {
-        this.$$('#settingsDialog').close();
+      _checkIfPendingNotifications: function() {
         var self = this;
+        var pendingNotificationFound = false;
 
-        if(this.searchText !== event.model.search.digUIState.searchText) {
-          self.set('searchText', event.model.search.digUIState.searchText);
-          self.set('_facetsToLoad', JSON.parse(event.model.search.digUIState.facets));
-        } else {
-          self.set('facets', JSON.parse(event.model.search.digUIState.facets));
-        }
-      },
+        self.set('processRequest', true);
 
-      /**
-       * Wait to reload facets until after initial search string has been processed.
-       */
-      _fillOutFacets: function() {
-        if(this.loading === false) {
-          if(this._facetsToLoad && this.searchText) {
-            this.set('facets', JSON.parse(JSON.stringify(this._facetsToLoad)));
-            this._facetsToLoad = undefined;
+        _.each(self.searches, function(search) {
+          if(search.notificationHasRun === false) {
+            pendingNotificationFound = true;
+            return false;
           }
+        });
+
+        if(!pendingNotificationFound) {
+          this.hasNotifications = false;
         }
+        self.set('_callFromRunSearch', false);
       },
 
       /**
        * Toggles the open setting of the given saved search.
        */
       _toggleSearchSettings: function(event) {
-        this.set('searches.' + event.model.index + '.open', !event.model.search.open);
+        var index = event.model.index;
+        var isOpened = !this.$$('#savedSearch_' + index).opened;
+
+        this.$$('#savedSearch_' + index).toggle();
+        this.$$('#expandSavedSearch_' + index).open = isOpened ? true : false;
+        this.$$('#expandSavedSearch_' + index).title = this._getModalIconTitle('expandSavedSearch', index);
       },
 
       /**
        * Toggles the open setting of the given received search.
        */
       _toggleReceivedSearchSettings: function(event) {
-        this.set('receivedSearches.' + event.model.index + '.open', !event.model.search.open);
-      },
+        var index = event.model.index;
+        var isOpened = !this.$$('#receivedSearch_' + index).opened;
 
-      /**
-       * Updates the notification setting of the given saved search.
-       */
-      _updateNotification: function(event) {
-        console.log('Notify ' + event.model.search.name + ' index ' + event.model.index + ' interval ' + event.model.search.frequency);
-        // TODO Update the notification interval for the search in the user's data.
+        this.$$('#receivedSearch_' + index).toggle();
+        this.$$('#expandReceivedSearch_' + index).open = isOpened ? true : false;
+        this.$$('#expandReceivedSearch_' + index).title = this._getModalIconTitle('expandReceivedSearch', index);
       },
 
       /**
@@ -618,11 +766,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _openSettingsDialog: function() {
         this.$$('#settingsDialog').open();
       },
+
       /**
-       * Returns whether the given value is false.
+       * Checks if specified element is opened.
        */
-      _isFalse: function(value) {
-        return !value;
+      _isOpened: function(idPrefix, index) {
+        if(this.$$('#' + idPrefix + '_' + index)) {
+          return this.$$('#' + idPrefix + '_' + index).open;
+        } else {
+          return false;
+        }
       },
       /**
        * Returns more readable string of createdAt date.
@@ -631,6 +784,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         if(date) {
           return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
         }
+      },
+      /**
+       * Disable notification toggle when showSearch is false or notificationFrequency hasn't been set.
+       */
+      _disableNotificationToggle: function(showSearch, notificationFrequency) {
+        return (!showSearch) || (notificationFrequency === 'never');
+      },
+      /**
+       * Disable button to save emails if email input is empty or invalid.
+       */
+      _disableEmailSave: function(emailAddress, _isEmailInvalid) {
+        return (!emailAddress) || _isEmailInvalid;
       }
     });
   })();

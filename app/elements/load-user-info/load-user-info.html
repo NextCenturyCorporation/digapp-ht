@@ -35,7 +35,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       received-searches="{{_receivedSearches}}"
       client="[[client]]"
       user-id="[[userId]]"
-      loading="[[loading]]"
       username="[[username]]"
       advanced-search="{{advancedSearch}}"
       blur-images="{{blurImages}}"
@@ -44,7 +43,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       es-request="{{esRequest}}"
       user-index="[[userIndex]]"
       user-type="[[userType]]"
-      user-record-exists="[[userRecordExists]]">
+      user-record-exists="[[userRecordExists]]"
+      notification-frequency="[[_notificationFrequency]]"
+      has-notifications="[[_hasNotifications]]"
+      notification-query="{{notificationQuery}}"
+      notification-query-date="{{notificationQueryDate}}"
+      process-request="{{processRequest}}">
     </user-preferences>
 
     <!-- if no user record found, create it -->
@@ -61,6 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   <script>
   (function() {
+    /* globals _ */
     'use strict';
 
     Polymer({
@@ -133,14 +138,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Boolean to track when associated elastic-client-search query has finished loading.
-         */
-        loading: {
-          type: Boolean,
-          notify: true
-        },
-
-        /**
          * Whether advanced search is enabled.
          */
         advancedSearch: {
@@ -167,6 +164,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * Whether or not there are unseen notifications.
+         */
+        _hasNotifications: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+
+        /**
          * The email address of this user.
          */
         _emailAddress: {
@@ -179,6 +185,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _noEmailAddress: {
           type: Boolean,
           value: true
+        },
+
+        /**
+         * The notification frequency set for this user.
+         */
+        _notificationFrequency: {
+          type: String,
+          notify: true
         },
 
         /**
@@ -217,6 +231,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: Object,
           notify: true,
           observer: '_getUserId'
+        },
+        /**
+         * Tracks whether or not a query with a notification is being viewed.
+         */
+        notificationQuery: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * If notification query is being viewed, the notification date associated with that query.
+         */
+        notificationQueryDate: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * Whether or not all properties have been loaded/are ready for elastic-client-search.
+         */
+        processRequest: {
+          type: Boolean,
+          notify: true
         }
       },
       observers: [
@@ -283,6 +319,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Populates the properties in this user-preferences component using the given preferences object.
        */
       _populateUserPreferences: function(prefs) {
+        var self = this;
+
         if(prefs.advancedSearch !== undefined) {
           this.set('advancedSearch', prefs.advancedSearch);
         }
@@ -296,7 +334,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.set('_noEmailAddress', false);
         }
 
+        if(prefs.notificationFrequency) {
+          this.set('_notificationFrequency', prefs.notificationFrequency);
+        }
+
         if(prefs.savedQueries) {
+          _.each(prefs.savedQueries, function(search) {
+            if(search.notificationHasRun === false) {
+              self.set('_hasNotifications', true);
+              return false;
+            }
+          });
           this.set('searches', prefs.savedQueries);
         }
 

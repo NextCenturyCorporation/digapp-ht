@@ -102,29 +102,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isUndefined(element._userIdToSendQuery);
       assert.isUndefined(element._sendUserUpdateBody);
       assert.deepEqual(element._queryToSend, element.search);
-      assert.isUndefined(element._queryToSend.open);
       assert.equal(element._userToSendQuery, element._checkForUser);
     });
 
     test('_createSendSearchListener.onClick does nothing if _userToSendQuery matches username', function() {
-      element.searches = [{
+      element.search = {
         name: 'myText',
-        open: true,
         _userToSendQuery: 'testUser'
-      }];
-      element._createSendSearchListener(0).onClick();
+      };
+      element._createSendSearchListener().onClick();
       assert.isUndefined(element._queryToSend);
       assert.isUndefined(element._checkForUser);
     });
 
     test('_createSendSearchListener.onClick does nothing if no _userToSendQuery specified', function() {
-      element.searches = [{
-        name: 'myText',
-        open: true
-      }];
-      element._createSendSearchListener(0).onClick();
+      element.search = {
+        name: 'myText'
+      };
+      element._createSendSearchListener().onClick();
       assert.isUndefined(element._queryToSend);
       assert.isUndefined(element._checkForUser);
+    });
+
+    test('_createSendSearchListener.onClick deletes notification related fields before query is sent', function() {
+      element.search = {
+        name: 'myText',
+        lastRunDate: new Date(),
+        notificationDate: new Date(),
+        notificationHasRun: false,
+        sendEmailNotification: true
+      };
+      element._userToSendQuery = 'someUser';
+      element._createSendSearchListener(0).onClick();
+      assert.deepEqual(element._queryToSend, {name: 'myText'});
     });
 
     test('_transformSentUserSearchResult if no results found', function() {
