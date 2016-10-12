@@ -11,7 +11,7 @@ module.exports = function Mailer(logger, mailerEmailAddress, digSupportEmailAddr
       to: toEmailAddress,
       subject: 'DIG Alert on ' + (savedQueryNames.length === 1 ? savedQueryNames[0] : savedQueryNames.length + ' of Your Saved Queries'),
       text: 'DIG has new results available for your following saved queries:\n\n' + savedQueryNames.join('\n') +
-        (digUrl ? ('\n\nClick this link to open DIG and run your queries:  ' + digUrl) : '') +
+        (digUrl ? ('\n\nRun your queries in the DIG application here:  ' + digUrl) : '') +
         '\n\nThanks!\n'
     }, function(error, info) {
       if(error) {
