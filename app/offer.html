@@ -83,7 +83,7 @@
 
     <elastic-client-query-builder
       type="term"
-      field="[[params.field]]"
+      fields="[[params.field]]"
       values="[[params.value]]"
       ejs-query="{{offerQuery}}">
     </elastic-client-query-builder>
@@ -105,32 +105,6 @@
       transform-function="[[clientConfig.transforms.offer.offer]]">
     </json-transform>
 
-    <!-- Seller query -->
-
-    <elastic-client-query-builder
-      type="term"
-      field="[[params.field]]"
-      values="[[offerDisplay.sellerId]]"
-      ejs-query="{{sellerQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["seller"]'
-      query="[[sellerQuery]]"
-      aggregations="[]"
-      filters="[]"
-      results="{{seller}}"
-      last-error="{{sellerError}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[seller]]"
-      data-out="{{sellerObject}}"
-      transform-function="[[clientConfig.transforms.seller.seller]]">
-    </json-transform>
-
     <!-- Webpage revisions query -->
 
     <elastic-client-aggregation-builder
@@ -144,7 +118,7 @@
 
     <elastic-client-query-builder
       type="term"
-      field="url.raw"
+      fields='"url.raw"'
       values="[[offerDisplay.webpageUrl]]"
       ejs-query="{{webpageRevisionsQuery}}">
     </elastic-client-query-builder>
@@ -186,7 +160,7 @@
     <elastic-client-query-builder
       filtered
       type="term"
-      field="mainEntityOfPage.url.raw"
+      fields='"mainEntityOfPage.url.raw"'
       values="[[offerDisplay.webpageUrl]]"
       ejs-filter="[[offerRevisionsFilter]]"
       ejs-query="{{offerRevisionsQuery}}">
@@ -200,7 +174,7 @@
       aggregations="[]"
       filters="[]"
       results="{{offersWithSameUrlES}}"
-      page="{{pageNum}}"
+      page="{{revisionsPage}}"
       loading="{{offersWithSameUrlLoading}}"
       last-error="{{offersWithSameUrlError}}">
     </elastic-client-search>
@@ -251,6 +225,35 @@
       transform-function="[[clientConfig.transforms.offer.dropsTimeline]]">
     </json-transform>
 
+    <!-- More Ads Like This -->
+
+    <elastic-client-query-builder
+      type="mlt"
+      mlt-config='{"minTermFreq":1,"minDocFreq":1,"maxQueryTerms":25}'
+      fields='["mainEntityOfPage.description", "mainEntityOfPage.name"]'
+      values="[[buildMoreLikeThisValue(offerDisplay.name, offerDisplay.body)]]"
+      ejs-query="{{similarOfferQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      query="[[similarOfferQuery]]"
+      aggregations="[]"
+      filters="[]"
+      results="{{similarOfferResults}}"
+      page="{{similarOfferPage}}"
+      loading="{{similarOfferLoading}}"
+      last-error="{{similarOfferError}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[similarOfferResults]]"
+      data-out="{{offerDisplay.similarOffer}}"
+      transform-function="[[clientConfig.transforms.relatedEntities.offer]]">
+    </json-transform>
+
     <!-- Display Content -->
     <div class="entity">
       <paper-header-panel class="flex" mode="waterfall-tall">
@@ -263,7 +266,7 @@
             <iron-icon class="iron-icon-huge entity-offer-font" icon="maps:local-offer"></iron-icon>
             <section>
               <div class="paper-font-display1">
-                Ad: <span>[[offerDisplay.text]]</span>
+                Ad: <span>[[offerDisplay.name]]</span>
               </div>
               <div class="paper-font-subhead layout horizontal">
                 <span>Posted</span>
@@ -523,32 +526,88 @@
                   <section class="who">
                     <div class="paper-font-title">Email/Phone Cluster</div>
 
-                    <template is="dom-if" if="[[sellerError]]">
-                      <elastic-error error="[[sellerError]]" message="{{sellerErrorMessage}}"></elastic-error>
-                      <div>[[sellerErrorMessage]]</div>
+                    <template is="dom-if" if="[[webpageRevisionsError]]">
+                      <elastic-error error="[[webpageRevisionsError]]" message="{{communicationsErrorMessage}}"></elastic-error>
+                      <div>[[communicationsErrorMessage]]</div>
                     </template>
-
-                    <!-- Hiding the link to the seller page until the data is better.
-                    <div class="who">
-                      <single-record
-                        client="[[esclient]]"
-                        annotation-index="[[config.annotationIndex]]"
-                        annotation-type="[[config.annotationType]]"
-                        annotation-relevant="[[config.annotationRelevant]]"
-                        item="[[sellerObject]]"
-                        current-user="[[config.username]]"
-                        blur="[[blurImages]]">
-                      </single-record>
-                    </div>
-                    -->
 
                     <icon-label-grid
                       icon-style-class-property="styleClass"
-                      data="[[sellerObject.communications]]">
+                      data="[[webpageDisplay.communications]]">
                     </icon-label-grid>
                   </section>
                 </paper-material>
               </template>
+
+
+              <!-- Revisions Timeline -->
+              <template is="dom-if" if="[[webpageRevisions.length]]">
+                <div class="h-divider"></div>
+
+                <paper-material>
+                  <section class="when">
+                    <template is="dom-if" if="[[!webpageRevisions.length]]">
+                      <div class="paper-font-title layout horizontal start center">
+                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                        <div>No Revisions</div>
+                      </div>
+                    </template>
+
+                    <template is="dom-if" if="[[webpageRevisions.length]]">
+                      <div class="paper-font-title layout horizontal start center">
+                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                        <div>[[revisionsTitle]]</div>
+                      </div>
+                    </template>
+
+                    <template is="dom-if" if="[[webpageRevisionsError]]">
+                      <elastic-error error="[[webpageRevisionsError]]" message="{{webpageRevisionsErrorMessage}}"></elastic-error>
+                      <div>[[webpageRevisionsErrorMessage]]</div>
+                    </template>
+
+                    <zoomable-bar-chart
+                      data="[[webpageRevisions]]"
+                      default-bar-name="Revisions"
+                      height="300"
+                      source="Revisions"
+                      bar-chart-title="{{revisionsTitle}}"
+                      loading="{{webpageRevisionsLoading}}">
+                    </zoomable-bar-chart>
+                  </section>
+                </paper-material>
+              </template>
+
+              <div class="h-divider"></div>
+
+              <!-- All Revisions - Offers -->
+              <paper-material>
+                <section>
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
+                    <div>{{revisionsTitle}}</div>
+                  </div>
+
+                  <template is="dom-if" if="[[offersWithSameUrlError]]">
+                    <elastic-error error="[[offersWithSameUrlError]]" message="{{offersWithSameUrlErrorMessage}}"></elastic-error>
+                    <div>[[offersWithSameUrlErrorMessage]]</div>
+                  </template>
+
+                  <records-list
+                    client="[[esclient]]"
+                    annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    annotation-relevant="[[config.annotationRelevant]]"
+                    query-results="[[offersWithSameUrl.data]]"
+                    total-results="[[offersWithSameUrl.count]]"
+                    page="{{revisionsPage}}"
+                    loading="[[offersWithSameUrlLoading]]"
+                    type="Revision"
+                    records-list-title="{{revisionsTitle}}"
+                    current-user="[[config.username]]"
+                    blur="[[blurImages]]">
+                  </records-list>
+                </section>
+              </paper-material>
             </div>
 
             <div class="v-divider"></div>
@@ -584,74 +643,37 @@
                   </section>
               </paper-material>
 
-              <!-- Revisions Timeline -->
               <div class="h-divider"></div>
 
+              <!-- More Ads Like This Ad -->
               <paper-material>
-                <section class="when">
-                  <template is="dom-if" if="[[!webpageRevisions.length]]">
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                      <div>No Revisions</div>
-                    </div>
+                <section>
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
+                    <div>{{similarOfferTitle}}</div>
+                  </div>
+
+                  <template is="dom-if" if="[[similarOfferError]]">
+                    <elastic-error error="[[similarOfferError]]" message="{{similarOfferErrorMessage}}"></elastic-error>
+                    <div>[[similarOfferErrorMessage]]</div>
                   </template>
 
-                  <template is="dom-if" if="[[webpageRevisions.length]]">
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                      <div>[[revisionsTitle]]</div>
-                    </div>
-                  </template>
-
-                  <template is="dom-if" if="[[webpageRevisionsError]]">
-                    <elastic-error error="[[webpageRevisionsError]]" message="{{webpageRevisionsErrorMessage}}"></elastic-error>
-                    <div>[[webpageRevisionsErrorMessage]]</div>
-                  </template>
-
-                  <zoomable-bar-chart
-                    data="[[webpageRevisions]]"
-                    default-bar-name="Revisions"
-                    height="300"
-                    source="Revisions"
-                    bar-chart-title="{{revisionsTitle}}"
-                    loading="{{webpageRevisionsLoading}}">
-                  </zoomable-bar-chart>
+                  <records-list
+                    client="[[esclient]]"
+                    annotation-index="[[config.annotationIndex]]"
+                    annotation-type="[[config.annotationType]]"
+                    annotation-relevant="[[config.annotationRelevant]]"
+                    query-results="[[offerDisplay.similarOffer.data]]"
+                    total-results="[[offerDisplay.similarOffer.count]]"
+                    page="{{similarOfferPage}}"
+                    loading="[[similarOfferLoading]]"
+                    type="Similar Ad"
+                    records-list-title="{{similarOfferTitle}}"
+                    current-user="[[config.username]]"
+                    blur="[[blurImages]]">
+                  </records-list>
                 </section>
               </paper-material>
-
-              <!-- All Revisions - Offers -->
-              <template is="dom-if" if="{{offersWithSameUrl.data.length}}">
-                <div class="h-divider"></div>
-
-                <paper-material>
-                  <section>
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                      <div>{{recordsListTitle}}</div>
-                    </div>
-
-                    <template is="dom-if" if="[[offersWithSameUrlError]]">
-                      <elastic-error error="[[offersWithSameUrlError]]" message="{{offersWithSameUrlErrorMessage}}"></elastic-error>
-                      <div>[[offersWithSameUrlErrorMessage]]</div>
-                    </template>
-
-                    <records-list
-                      client="[[esclient]]"
-                      annotation-index="[[config.annotationIndex]]"
-                      annotation-type="[[config.annotationType]]"
-                      annotation-relevant="[[config.annotationRelevant]]"
-                      query-results="[[offersWithSameUrl.data]]"
-                      total-results="[[offersWithSameUrl.count]]"
-                      page="{{pageNum}}"
-                      loading="[[offersWithSameUrlLoading]]"
-                      type="Revision"
-                      records-list-title="{{recordsListTitle}}"
-                      current-user="[[config.username]]"
-                      blur="[[blurImages]]">
-                    </records-list>
-                  </section>
-                </paper-material>
-              </template>
             </div>
 
           </div>
@@ -671,6 +693,10 @@
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+
+    app.buildMoreLikeThisValue = function(name, body) {
+      return name + ' ' + body;
+    };
   })(document);
   </script>
 </body>

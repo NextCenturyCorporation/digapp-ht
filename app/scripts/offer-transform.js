@@ -116,7 +116,7 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         name: price
       };
     }), 'money');
-    newData.text = _.get(record, 'title', 'Title N/A');
+    newData.name = _.get(record, 'title', 'Title N/A');
     newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
     newData.body = _.get(record, 'mainEntityOfPage.description');
     newData.emails = commonTransforms.getClickableObjects(_.get(record, 'seller.email'), 'email');
