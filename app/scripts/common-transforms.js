@@ -247,7 +247,7 @@ var commonTransforms = (function(_, dateFormat) {
 
     offerLocationData: function(data) {
       return {
-        offerLocation: (data && data.hits.hits.length) ? getGeoFromKeys(data.aggregations.city.city.buckets) : []
+        offerLocation: (data && data.aggregations) ? getGeoFromKeys(data.aggregations.city.city.buckets) : []
       };
     },
 
