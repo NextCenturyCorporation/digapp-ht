@@ -251,22 +251,6 @@ var commonTransforms = (function(_, dateFormat) {
       };
     },
 
-    getSellerId: function(record) {
-      var sellerId = '';
-      if(record.owner) {
-
-        if(_.isArray(record.owner)) {
-          //phone will have one seller
-          sellerId = record.owner[0].uri;
-        } else {
-          sellerId = record.owner;
-        }
-
-      }
-
-      return sellerId;
-    },
-
     getMentions: function(mentions, type) {
       var output = [];
       (_.isArray(mentions) ? mentions : [mentions]).forEach(function(uri) {

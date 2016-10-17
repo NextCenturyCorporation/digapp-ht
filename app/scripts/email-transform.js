@@ -19,7 +19,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
     var email = {};
     email.id = _.get(record, 'uri');
     email.emailAddress = decodeURIComponent(_.get(record, 'name'));
-    email.sellerId = commonTransforms.getSellerId(record);
     email.icon = commonTransforms.getIronIcon('email');
     email.styleClass = commonTransforms.getStyleClass('email');
     return email;
