@@ -102,7 +102,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           </div>
           <div class="layout horizontal pointer">
             <span class="name tall right-space">Automatically Run Searches:</span>
-            <paper-dropdown-menu label="Interval" no-label-float on-iron-select="_updateNotificationFrequency">
+            <paper-dropdown-menu label="Interval" no-label-float>
               <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{notificationFrequency}}">
                 <paper-item value="never">Never</paper-item>
                 <paper-item value="daily">Every Day</paper-item>
@@ -362,8 +362,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
          */
         notificationFrequency: {
           type: String,
-          value: 'never',
-          notify: true
+          notify: true,
+          observer: '_updateNotificationFrequency'
         },
 
         /**
@@ -616,7 +616,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Updates the notification setting of the given saved search.
        */
-      _updateNotificationFrequency: function() {
+      _updateNotificationFrequency: function(newValue, oldValue) {
+        // if notificationFrequency property is simply being initialized, don't update user record in database
+        if(oldValue === undefined) {
+          return;
+        }
         var self = this;
         self._set_userUpdateBody({
           doc: {
