@@ -101,18 +101,52 @@ var commonTransforms = (function(_, dateFormat) {
     /**
         Get people aggregation info:
 
-        "features": [
+        "name": [
             {"key": "Emily", "count": 14},
             {"key": "Erin", "count": 12},
             {"key": "Jane", "count": 3}
         ]
     */
-    peopleFeatures: function(data) {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    peopleFeaturesName: function(data) {
       return {
-        features: (data && data.aggregations) ? transformBuckets(data.aggregations.people_features.people_features.buckets, 'key') : []
+        name: (data && data.aggregations) ? transformBuckets(data.aggregations.name.name.buckets, 'key') : []
       };
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    },
+
+    peopleFeaturesAge: function(data) {
+      return {
+        age: (data && data.aggregations) ? transformBuckets(data.aggregations.age.age.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesEthnicity: function(data) {
+      return {
+        ethnicity: (data && data.aggregations) ? transformBuckets(data.aggregations.ethnicity.ethnicity.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesEyeColor: function(data) {
+      return {
+        eyeColor: (data && data.aggregations) ? transformBuckets(data.aggregations.eyeColor.eyeColor.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesHairColor: function(data) {
+      return {
+        hairColor: (data && data.aggregations) ? transformBuckets(data.aggregations.hairColor.hairColor.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesHeight: function(data) {
+      return {
+        height: (data && data.aggregations) ? transformBuckets(data.aggregations.height.height.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesWeight: function(data) {
+      return {
+        weight: (data && data.aggregations) ? transformBuckets(data.aggregations.weight.weight.buckets, 'key') : []
+      };
     },
 
     /**
@@ -247,7 +281,7 @@ var commonTransforms = (function(_, dateFormat) {
 
     offerLocationData: function(data) {
       return {
-        offerLocation: (data && data.hits.hits.length) ? getGeoFromKeys(data.aggregations.city.city.buckets) : []
+        location: (data && data.hits.hits.length) ? getGeoFromKeys(data.aggregations.location.location.buckets) : []
       };
     },
 

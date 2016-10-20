@@ -38,12 +38,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true,
           readOnly: true
+        },
+        /**
+         * Whether this component is used on the search or entity page
+         */
+        pageType: {
+          type: String,
+          value: 'search'
         }
       },
       observers: [
         '_rebuildFilterArray(facetSelection.*)'
       ],
-      _getFilterField: function(group) {
+      _getEntityPageFilterField: function(group) {
+        var field;
+        switch(group) {
+          case 'location': field = 'availableAtOrFrom.address.key';
+            break;
+          case 'name': field = 'itemOffered.name.raw';
+            break;
+          case 'age': field = 'itemOffered.age';
+            break;
+          case 'ethnicity': field = 'itemOffered.ethnicity';
+            break;
+          case 'height': field = 'itemOffered.height';
+            break;
+          case 'weight': field = 'itemOffered.weight';
+            break;
+          case 'hairColor': field = 'itemOffered.hairColor';
+            break;
+          case 'eyeColor': field = 'itemOffered.eyeColor';
+            break;
+        }
+        return field;
+      },
+      _getSearchPageFilterField: function(group) {
         var field;
         switch(group) {
           case 'country': field = 'mainEntity.availableAtOrFrom.address.addressCountry';
@@ -113,19 +142,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var arrayFilters = [];
 
         _.each(_.keys(me.facetSelection), function(group) {
-
-          var field = me._getFilterField(group);
-          if(group === 'dateCreated') {
-            var rangeFilter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
-            if(rangeFilter) {
-              arrayFilters.push(rangeFilter);
-            }
+          var field = (me.pageType === 'entity' ? me._getEntityPageFilterField(group) : me._getSearchPageFilterField(group));
+          var filter;
+          if(me.pageType === 'entity') {
+            filter = me._buildTermsFilter(me.facetSelection[group], field, group);
+          } else if(group === 'dateCreated') {
+            filter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
           } else {
             var filters = me._buildTermFilterArray(me.facetSelection[group], field);
-            var filter = me._buildAndOrFilter(filters, group);
-            if(filter) {
-              arrayFilters.push(filter);
-            }
+            filter = me._buildAndOrFilter(filters, group);
+          }
+          if(filter) {
+            arrayFilters.push(filter);
           }
         });
 
@@ -143,6 +171,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
           filter.name(this._getAggName(group));
         }
+
         return filter;
       },
       _buildTermFilterArray: function(facetGroup, field) {
@@ -155,6 +184,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
 
         return filters;
+      },
+      _buildTermsFilter: function(facetGroup, field, group) {
+        return _.isEmpty(facetGroup) ? undefined : ejs.TermsFilter(field, facetGroup).name(group);
       },
       _buildDateRangeEjsFilter: function(facetGroup, field) {
         if(!field || _.isEqual(facetGroup, {})) {

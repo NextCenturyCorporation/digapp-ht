@@ -1,0 +1,342 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../behaviors.html">
+<link rel="import" href="../uuid.html">
+
+<dom-module id="filter-state-manager">
+  <template>
+    <style include="user-dialog-styles"></style>
+
+    <style>
+      paper-dialog > div > * {
+        margin: 5px;
+      }
+    </style>
+
+    <elastic-client-query-builder
+      type="term"
+      fields='"id"'
+      values="[[filterId]]"
+      ejs-query="{{_filterIdQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
+      client="[[client]]"
+      index="[[filterStatesIndex]]"
+      elastic-types="[]"
+      query="[[_filterIdQuery]]"
+      aggregations="[]"
+      filters="[]"
+      results="{{_filterIdResults}}">
+    </elastic-client-search>
+
+    <elastic-create
+      client="[[client]]"
+      index="[[filterStatesIndex]]"
+      elastic-type="[[filterStatesType]]"
+      body="[[_creationBody]]"
+      results="{{_creationResults}}">
+    </elastic-create>
+
+    <elastic-client-query-builder
+      type="term"
+      fields='"state"'
+      values="[[_filterString]]"
+      ejs-query="{{_filterStringQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
+      client="[[client]]"
+      index="[[filterStatesIndex]]"
+      elastic-types="[]"
+      query="[[_filterStringQuery]]"
+      aggregations="[]"
+      filters="[]"
+      results="{{_filterStringResults}}">
+    </elastic-client-search>
+
+    <create-filter-array
+      facet-selection="[[filterCollection]]"
+      filter-array="{{filterList}}"
+      page-type="[[pageType]]">
+    </create-filter-array>
+
+    <paper-icon-button icon="link" title="Generate Link to This Page" on-tap="generateLink"></paper-icon-button>
+
+    <paper-dialog modal id="linkDialog" class="small" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="layout vertical">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Page Link</span>
+          <paper-icon-button icon="clear" title="Close" dialog-confirm></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="flex">[[_link]]</div>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    /* globals DigBehaviors, uuid */
+    Polymer({
+      is: 'filter-state-manager',
+
+      behaviors: [DigBehaviors.BrowserBehavior],
+
+      properties: {
+        /**
+         * The elasticsearch client.
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The object with properties for lists of strings to filter.
+         */
+        filterCollection: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * The ID for the filter state.
+         */
+        filterId: {
+          type: String
+        },
+
+        /**
+         * The list of the ejs filter objects.
+         */
+        filterList: {
+          type: Array,
+          notify: true
+        },
+
+        /**
+         * The name of the filter states elasticsearch index.
+         */
+        filterStatesIndex: {
+          type: String
+        },
+
+        /**
+         * The name of the filter states elasticsearch type.
+         */
+        filterStatesType: {
+          type: String
+        },
+
+        /**
+         * Whether this component is used on the search or entity page.
+         */
+        pageType: {
+          type: String,
+          value: 'entity'
+        },
+
+        /**
+         * The request body for creation of new filter states.
+         */
+        _creationBody: {
+          type: Object
+        },
+
+        /**
+         * The results from the requests for creation of new filter states.
+         */
+        _creationResults: {
+          type: Object
+        },
+
+        /**
+         * The ejs query object for the filter ID query.
+         */
+        _filterIdQuery: {
+          type: Object
+        },
+
+        /**
+         * The results from the filter ID query.
+         */
+        _filterIdResults: {
+          type: Object,
+          observer: '_handleFilterIdResults'
+        },
+
+        /**
+         * The stringified filter state for the filter string query.
+         */
+        _filterString: {
+          type: String
+        },
+
+        /**
+         * The ejs query object for the filter string query.
+         */
+        _filterStringQuery: {
+          type: Object
+        },
+
+        /**
+         * The results from the filter string query.
+         */
+        _filterStringResults: {
+          type: Object,
+          observer: '_updateOrCreateId'
+        },
+
+        /**
+         * The page link shown in the dialog.
+         */
+        _link: {
+          type: String
+        },
+
+        /**
+         * Whether the filter ID query was run to validate the uniqueness of the ID (rather than getting the filter state for that ID).
+         */
+        _validateId: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      /**
+       * Generate a link for the filter state by getting an existing, matching ID or creating a new one.
+       */
+      generateLink: function() {
+        this._filterString = this._createFilterString(this.filterCollection, this.pageType);
+      },
+
+      /**
+       * Creates and returns the stringified filter state for the given filter collection object.
+       */
+      _createFilterString: function(filterCollection, pageType) {
+        if(pageType === 'entity') {
+          return JSON.stringify({
+            location: filterCollection.location || [],
+            name: filterCollection.name || [],
+            age: filterCollection.age || [],
+            ethnicity: filterCollection.ethnicity || [],
+            eyeColor: filterCollection.eyeColor || [],
+            hairColor: filterCollection.hairColor || [],
+            height: filterCollection.height || [],
+            weight: filterCollection.weigh || []
+          });
+        } else if(pageType === 'search') {
+          // TODO:  Add support for the search page.
+          return JSON.stringify({});
+        }
+        return JSON.stringify({});
+      },
+
+      /**
+       * Creates and returns a new unique ID.
+       */
+      _generateId: function() {
+        return uuid.v4();
+      },
+
+      /**
+       * Handles the results from the filter ID query:  either creating a new filter state or the updating the filters using the results.
+       */
+      _handleFilterIdResults: function() {
+        if(this._filterIdQuery === undefined) {
+          return;
+        }
+        if(this._filterIdResults && this._filterIdResults.hits.hits.length) {
+          // If the query was triggered to validate a new ID and that ID is already in use, generate a new ID to trigger another query.
+          if(this._validateId) {
+            this.filterId = this._generateId();
+          } else {
+            var state = JSON.parse(this._filterIdResults.hits.hits[0]._source.state);
+            if(this.pageType === 'entity') {
+              this.set('filterCollection', {
+                location: state.location || [],
+                name: state.name || [],
+                age: state.age || [],
+                ethnicity: state.ethnicity || [],
+                eyeColor: state.eyeColor || [],
+                hairColor: state.hairColor || [],
+                height: state.height || [],
+                weight: state.weight || []
+              });
+            } else if(this.pageType === 'search') {
+              // TODO:  Add support for the search page.
+              this.set('filterCollection', {});
+            }
+          }
+        } else if(this._validateId) {
+          this._validateId = false;
+          this._populateCreationBody(this.filterId, this.filterCollection, this.pageType);
+        }
+      },
+
+      /**
+       * Sets the body of the filter state creation request using the given filter ID and collection object, updates the browser URL, and shows the dialog with the page link.
+       */
+      _populateCreationBody: function(filterId, filterCollection, pageType) {
+        this._creationBody = {
+          id: filterId,
+          state: this._createFilterString(filterCollection, pageType)
+        };
+        this._updateUrlAndShowDialog(filterId);
+      },
+
+      /**
+       * Updates the filter ID using the results from the filter ID query or creates a new ID if needed.
+       */
+      _updateOrCreateId: function() {
+        if(this._filterStringQuery === undefined) {
+          return;
+        }
+        if(this._filterStringResults && this._filterStringResults.hits.hits.length) {
+          // Do not set this.filterId here because that will trigger another query.
+          var filterId = this._filterStringResults.hits.hits[0]._source.id;
+          this._updateUrlAndShowDialog(filterId);
+        } else {
+          this._validateId = true;
+          this.filterId = this._generateId();
+        }
+      },
+
+      /**
+       * Updates the browser URL with the filter state ID and shows the dialog with the page link (including the filter state ID).
+       */
+      _updateUrlAndShowDialog: function(id) {
+        // Overwrite any existing state parameter.
+        var parameters = this.getUrlParameters(window.location.search);
+        parameters.state = id;
+        this._link = window.location.protocol + '//' + window.location.host + window.location.pathname + '?' + Object.keys(parameters).map(function(key) {
+          return key + '=' + parameters[key];
+        }).join('&');
+        // Need this validation for the unit tests (unsure why)...
+        if(this.$$('#linkDialog').open) {
+          this.$$('#linkDialog').open();
+        }
+        // Update the browser URL without reloading the page.
+        window.history.pushState({}, '', this._link);
+      }
+    });
+  })();
+  </script>
+</dom-module>

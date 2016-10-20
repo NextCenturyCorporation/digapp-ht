@@ -11,10 +11,12 @@ DigBehaviors.BrowserBehavior = {
    */
   getUrlParameters: function(parameterInput) {
     var parameters = {};
-    (parameterInput ? parameterInput.split('&') : []).forEach(function(parameter) {
-      var parameterSplit = parameter.split('=');
-      parameters[parameterSplit[0]] = (parameterSplit.length > 1 ? parameterSplit[1] : true);
-    });
+    if(parameterInput && parameterInput !== '?') {
+      (parameterInput.indexOf('?') === 0 ? parameterInput.slice(1) : parameterInput).split('&').forEach(function(parameter) {
+        var parameterSplit = parameter.split('=');
+        parameters[parameterSplit[0]] = (parameterSplit.length > 1 ? parameterSplit[1] : true);
+      });
+    }
     return parameters;
   }
 };

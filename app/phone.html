@@ -122,7 +122,7 @@
       page-size="{{pageSize}}"
       query="[[phoneOffersQuery]]"
       aggregations="[]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{phoneOffers}}"
@@ -169,7 +169,7 @@
       page-size="{{pageSize}}"
       query="[[phoneOffersQuery]]"
       aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{offersMentions}}"
@@ -191,7 +191,7 @@
       value="[[phoneDisplay.telephone.id]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       transforms="[[clientConfig.transforms]]"
       count="[[phoneDisplay.phoneOffers.relatedOffers.count]]"
       interval="{{locationTimelineInterval}}"
@@ -224,6 +224,16 @@
               </div>
             </section>
           </div>
+
+          <filter-state-manager
+            client="[[esclient]]"
+            filter-states-index="[[config.filterStatesIndex]]"
+            filter-states-type="[[config.filterStatesType]]"
+            filter-collection="{{filterCollection}}"
+            filter-list="{{filterList}}"
+            filter-id="[[params.state]]">
+          </filter-state-manager>
+
           <annotate-record client="[[esclient]]"
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
@@ -232,6 +242,7 @@
             item-type="telephone number"
             current-user="[[config.username]]">
           </annotate-record>
+
           <load-user-info
             client="[[esclient]]"
             loading="[[loading]]"
@@ -293,8 +304,14 @@
                     query-values="[[phoneDisplay.telephone.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
-                    consumed-filters="[[buildArray(locationFilter)]]"
-                    produced-filters="{{peopleFilters}}"
+                    filter-list="[[filterList]]"
+                    selected-name="{{filterCollection.name}}"
+                    selected-age="{{filterCollection.age}}"
+                    selected-ethnicity="{{filterCollection.ethnicity}}"
+                    selected-eye-color="{{filterCollection.eyeColor}}"
+                    selected-hair-color="{{filterCollection.hairColor}}"
+                    selected-height="{{filterCollection.height}}"
+                    selected-weight="{{filterCollection.weight}}"
                     transforms="[[clientConfig.transforms]]">
                   </people-features>
                 </section>
@@ -400,16 +417,16 @@
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[phoneDisplay.offerLocation.offerLocation.length]] Locations</div>
+                    <div>[[phoneDisplay.offerLocation.location.length]] Locations</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[phoneDisplay.offerLocation.offerLocation.length]]">
+                <template is="dom-if" if="[[phoneDisplay.offerLocation.location.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
                       text-property="longName"
-                      data="{{phoneDisplay.offerLocation.offerLocation}}">
+                      data="{{phoneDisplay.offerLocation.location}}">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -422,19 +439,19 @@
                   </template>
 
                   <feature-query-and-display
-                    aggregation-name="city"
+                    aggregation-name="location"
                     aggregation-field="availableAtOrFrom.address.key"
                     filter-field="availableAtOrFrom.address.key"
-                    produced-filter="{{locationFilter}}"
+                    selected="{{filterCollection.location}}"
                     query="[[phoneOffersQuery]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{locationError}}"
-                    consumed-filters="[[buildArray(peopleFilters)]]"
+                    filter-list="[[filterList]]"
                     transform="[[clientConfig.transforms.common.offerLocationData]]"
                     transform-results="{{phoneDisplay.offerLocation}}"
-                    transform-property="offerLocation"
+                    transform-property="location"
                     data-id-property="key"
                     data-text-property="name"
                     feature-title="Offers per City">
@@ -492,7 +509,18 @@
     /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+    app.filterCollection = {
+      location: [],
+      name: [],
+      age: [],
+      ethnicity: [],
+      eyeColor: [],
+      hairColor: [],
+      height: [],
+      weight: []
+    };
+
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 

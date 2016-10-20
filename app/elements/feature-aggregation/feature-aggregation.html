@@ -68,27 +68,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="chart-wrapper">
       <div class="chart-title">[[chartTitle]]</div>
 
-      <template is="dom-if" if="[[showNoDataText(combinedItems.length, loading)]]">
+      <template is="dom-if" if="[[_showNoDataText(_combinedItems.length, loading)]]">
         <div class="chart-label">None</div>
       </template>
 
-      <div class$="chart-items [[doesOverflow(combinedItems.length, limit)]] [[isSmall(small)]]">
-        <template id="barList" is="dom-repeat" items="[[shownItems]]">
+      <div class$="chart-items [[_doesOverflow(_combinedItems.length, limit)]] [[_isSmall(small)]]">
+        <template id="barList" is="dom-repeat" items="[[_shownItems]]">
           <horizontal-bar
-            name="[[getProperty(item, textProperty)]]"
-            count="[[getProperty(item, countProperty)]]"
+            name="[[_getProperty(item, textProperty)]]"
+            count="[[_getProperty(item, countProperty)]]"
             width="[[item.width]]"
             selected="{{item.selected}}"
-            toggle-listener="[[createToggleListener(item)]]">
+            toggle-listener="[[_createToggleListener(item)]]">
           </horizontal-bar>
         </template>
       </div>
 
       <loading-spinner show="[[loading]]"></loading-spinner>
 
-      <template is="dom-if" if="[[showMore]]">
+      <template is="dom-if" if="[[_showMore]]">
         <div class="show-more">
-          <button-action text="Show More" click-listener="[[createShowMoreListener()]]"></button-action>
+          <button-action text="Show More" click-listener="[[_createShowMoreListener()]]"></button-action>
         </div>
       </template>
     </div>
@@ -168,38 +168,39 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The values on which to filter.
+         * The selected string IDs on which to filter.
          */
-        filterValues: {
+        selectedIds: {
           type: Array,
           notify: true,
-          computed: 'computeFilterValues(selectedItems)'
-        },
-
-        /**
-         * The selected items on which to filter.
-         */
-        selectedItems: {
-          type: Array,
           value: function() {
             return [];
           }
         },
 
         /**
+         * The list of items that are now selected or have previously been selected.  Computed from the 'items' and 'selectedIds'.  Required
+         * in case the list of items does not contain an item for a selected ID due to a new filter created by another component.
+         */
+        _selectedItems: {
+          type: Array,
+          computed: '_computeSelectedItems(selectedIds)'
+        },
+
+        /**
          * The combined list of selected items and input items for this component.
          */
-        combinedItems: {
+        _combinedItems: {
           type: Array,
           notify: true,
-          computed: 'computeCombinedItems(items, selectedItems)',
-          observer: 'updateShownItems'
+          computed: '_computeCombinedItems(items, selectedIds)',
+          observer: '_updateShownItems'
         },
 
         /**
          * The shown items for this component.
          */
-        shownItems: {
+        _shownItems: {
           type: Array,
           notify: true
         },
@@ -207,7 +208,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         /**
          * Whether this component has more items to show.
          */
-        showMore: {
+        _showMore: {
           type: Boolean,
           value: false
         }
@@ -216,7 +217,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Returns the width of the bar for the given item in CSS syntax.
        */
-      computeWidth: function(count, maxCount) {
+      _computeWidth: function(count, maxCount) {
         // This returns bar widths relative to the highest count item, assuming it's first.
         // Could also sum up all counts and do widths relative to the total.
         // Will return a minimum of 1 as the width if the count is greater than 0.
@@ -227,18 +228,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'width' properties for the items.
        */
-      computeCombinedItems: function() {
+      _computeCombinedItems: function() {
+        if(!this.items.length && !this._selectedItems.length) {
+          return [];
+        }
+
         var self = this;
         var combinedItems = [];
 
         // Ensure that the count for each selected item is up-to-date based on the new input items.
-        this.selectedItems.forEach(function(selectedItem) {
-          var index = self.items.map(function(item) {
-            return self.getProperty(item, self.idProperty);
-          }).indexOf(self.getProperty(selectedItem, self.idProperty));
+        this.selectedIds.forEach(function(selectedId) {
+          // This item should never be undefined!
+          var item = self._findItem(selectedId);
 
           // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
-          var clonedItem = _.cloneDeep((index < 0 ? selectedItem : self.items[index]));
+          var clonedItem = _.cloneDeep(item);
           clonedItem.selected = true;
           combinedItems.push(clonedItem);
         });
@@ -252,17 +256,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
         combinedItems.forEach(function(item) {
-          item.width = self.computeWidth(item[self.countProperty], maxCount);
+          item.width = self._computeWidth(item[self.countProperty], maxCount);
         });
 
         this.items.forEach(function(item) {
-          var index = self.filterValues.indexOf(self.getProperty(item, self.idProperty));
+          var index = self.selectedIds.indexOf(self._getProperty(item, self.idProperty));
           if(index < 0) {
             // Ensure that this component does not affect the input items by creating a copy.
             var clonedItem = _.cloneDeep(item);
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
-            clonedItem.width = self.computeWidth(clonedItem[self.countProperty], maxCount);
+            clonedItem.width = self._computeWidth(clonedItem[self.countProperty], maxCount);
             combinedItems.push(clonedItem);
           }
         });
@@ -271,26 +275,38 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Returns the values to use for the filter taken from the selected items.
+       * Returns the list of all items that are now selected or have previously been selected using the lists of items and selected IDs.
        */
-      computeFilterValues: function() {
+      _computeSelectedItems: function() {
+        var selectedItems = this._selectedItems || [];
         var self = this;
-        return this.selectedItems.map(function(item) {
-          return self.getProperty(item, self.idProperty);
+        this.selectedIds.forEach(function(selectedId) {
+          var index = _.findIndex(selectedItems, function(selectedItem) {
+            return selectedId === self._getProperty(selectedItem, self.idProperty);
+          });
+          if(index < 0) {
+            index = _.findIndex(self.items, function(item) {
+              return selectedId === self._getProperty(item, self.idProperty);
+            });
+            if(index >= 0) {
+              selectedItems.push(self.items[index]);
+            }
+          }
         });
+        return selectedItems;
       },
 
       /**
        * Returns a listener that shows the full list of items on clicking the Show More button.
        */
-      createShowMoreListener: function() {
+      _createShowMoreListener: function() {
         var self = this;
         return {
           onClick: function() {
-            for(var i = self.limit; i < self.combinedItems.length; ++i) {
-              self.push('shownItems', self.combinedItems[i]);
+            for(var i = self.limit; i < self._combinedItems.length; ++i) {
+              self.push('_shownItems', self._combinedItems[i]);
             }
-            self.set('showMore', false);
+            self.set('_showMore', false);
             self.$.barList.render();
           }
         };
@@ -299,29 +315,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Returns a listener that recreates the list of selected items on toggling a horizontal-bar checkbox.
        */
-      createToggleListener: function() {
+      _createToggleListener: function() {
         var self = this;
 
         return {
           onToggle: function() {
             var change = false;
-            var filters = [];
-            self.shownItems.forEach(function(item) {
-              var index = self.selectedItems.map(function(selectedItem) {
-                return self.getProperty(selectedItem, self.idProperty);
-              }).indexOf(self.getProperty(item, self.idProperty));
-
+            var selectedIds = [];
+            self._shownItems.forEach(function(item) {
+              var index = self.selectedIds.indexOf(self._getProperty(item, self.idProperty));
               if(item.selected) {
                 change = change || (index < 0);
-                filters.push(item);
+                selectedIds.push(self._getProperty(item, self.idProperty));
               } else if(index >= 0) {
                 change = true;
-                self.splice('selectedItems', index, 1);
+                self.splice('selectedIds', index, 1);
               }
             });
 
             if(change) {
-              self.set('selectedItems', filters);
+              self.set('selectedIds', selectedIds);
             }
           }
         };
@@ -330,43 +343,60 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Returns whether this component has items that may overflow its list (requiring a scrollbar).
        */
-      doesOverflow: function(length, limit) {
+      _doesOverflow: function(length, limit) {
         // Overflow causes a scrollbar to be displayed when the bottom checkbox in the list is checked because of the
         // ripple effect so only add overflow if needed because there are more than the limit of items.
         return length > limit ? 'overflow' : '';
       },
 
+      _findItem: function(id) {
+        var self = this;
+        var index = _.findIndex(this.items, function(item) {
+          return id === self._getProperty(item, self.idProperty);
+        });
+
+        if(index >= 0) {
+          return this.items[index];
+        }
+
+        index = _.findIndex(this._selectedItems, function(selectedItem) {
+          return id === self._getProperty(selectedItem, self.idProperty);
+        });
+
+        return (index >= 0 ? this._selectedItems[index] : undefined);
+      },
+
       /**
        * Returns the value of the given item.
        */
-      getProperty: function(item, property, defaultValue) {
+      _getProperty: function(item, property, defaultValue) {
         return item[property] || defaultValue;
       },
 
       /**
        * Returns whether this component is marked as small.
        */
-      isSmall: function(small) {
+      _isSmall: function(small) {
         return small ? 'small' : '';
       },
 
       /**
        * Returns whether this component should show its 'no data' text.
        */
-      showNoDataText: function(length, loading) {
+      _showNoDataText: function(length, loading) {
         return !length && !loading;
       },
 
       /**
        * Updates the list of display items using the combined list of selected items and input items and the limit.
        */
-      updateShownItems: function() {
-        this.set('shownItems', []);
-        var limit = (this.limit > 0 ? Math.min(this.combinedItems.length, this.limit) : this.combinedItems.length);
+      _updateShownItems: function() {
+        this.set('_shownItems', []);
+        var limit = (this.limit > 0 ? Math.min(this._combinedItems.length, this.limit) : this._combinedItems.length);
         for(var i = 0; i < limit; ++i) {
-          this.push('shownItems', this.combinedItems[i]);
+          this.push('_shownItems', this._combinedItems[i]);
         }
-        this.set('showMore', (this.combinedItems.length > this.limit));
+        this.set('_showMore', (this._combinedItems.length > this.limit));
       }
     });
   })();
