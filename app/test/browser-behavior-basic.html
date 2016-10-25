@@ -54,6 +54,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       component = fixture('browser-behavior-fixture');
     });
 
+    test('generateLinkWithStateParameter returns the correct link', function() {
+      expect(component.generateLinkWithStateParameter({
+        protocol: 'http:',
+        host: 'localhost:8080',
+        pathname: '/index.html',
+        search: ''
+      })).to.equal('http://localhost:8080/index.html');
+      expect(component.generateLinkWithStateParameter({
+        protocol: 'http:',
+        host: 'localhost:8080',
+        pathname: '/index.html',
+        search: ''
+      }, 'myState')).to.equal('http://localhost:8080/index.html?state=myState');
+      expect(component.generateLinkWithStateParameter({
+        protocol: 'http:',
+        host: 'localhost:8080',
+        pathname: '/index.html',
+        search: '?field=myField'
+      }, 'myState')).to.equal('http://localhost:8080/index.html?field=myField&state=myState');
+      expect(component.generateLinkWithStateParameter({
+        protocol: 'http:',
+        host: 'localhost:8080',
+        pathname: '/index.html',
+        search: 'state=myState'
+      })).to.equal('http://localhost:8080/index.html');
+    });
+
     test('getUrlParameters returns the correct parameters', function() {
       expect(component.getUrlParameters('')).to.deep.equal({});
       expect(component.getUrlParameters('?')).to.deep.equal({});
@@ -69,6 +96,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
       expect(component.getUrlParameters('?value')).to.deep.equal({
         value: true
+      });
+    });
+
+    test('removeStateParameter removes the state parameter', function(done) {
+      component.removeStateParameter({
+        pushState: function(a, b, link) {
+          expect(link).to.equal('http://localhost:8080/index.html');
+          done();
+        }
+      }, {
+        protocol: 'http:',
+        host: 'localhost:8080',
+        pathname: '/index.html',
+        search: 'state=myState'
       });
     });
   });
