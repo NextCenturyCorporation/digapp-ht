@@ -108,11 +108,6 @@
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
-    <create-filter-array
-      facet-selection="[[facetSelection]]"
-      filter-array="{{filterArray}}">
-    </create-filter-array>
-
     <json-transform
       data-in="{{searchResults}}"
       data-out="{{records}}"
@@ -285,7 +280,7 @@
     </dig-logger>
 
     <search-logger
-      query-value="[[queryValue]]"
+      query-value="[[facetSelection.searchText]]"
       age-facet-selection="[[facetSelection.age]]"
       city-facet-selection="[[facetSelection.city]]"
       country-facet-selection="[[facetSelection.country]]"
@@ -321,7 +316,7 @@
         <div class="bottom flex">
           <elastic-client-input class="white-input-container"
             field="_all"
-            value="{{queryValue}}"
+            value="{{facetSelection.searchText}}"
             query="{{ejsQuery}}"
             label="Enter Keywords"
             advanced="[[advancedSearch]]"
@@ -343,7 +338,6 @@
           advanced-search="{{advancedSearch}}"
           blur-images="{{blurImages}}"
           searches="{{userSearches}}"
-          search-text="{{queryValue}}"
           facets="{{facetSelection}}"
           es-request="{{esRequest}}"
           user-index="[[config.userIndex]]"
@@ -359,7 +353,6 @@
           username="[[config.username]]"
           user-id="[[userId]]"
           existing-searches="{{userSearches}}"
-          search-text="[[queryValue]]"
           facets="[[facetSelection]]"
           es-request="[[esRequest]]"
           user-index="[[config.userIndex]]"
@@ -367,11 +360,11 @@
           user-record-exists="[[userRecordExists]]">
         </save-search>
 
-        <batch-phone id="batchPhoneSearchDialog" query-value="{{queryValue}}"></batch-phone>
+        <batch-phone id="batchPhoneSearchDialog" query-value="{{facetSelection.searchText}}"></batch-phone>
 
         <similar-image-search id="similarImageSearchDialog"
           blur="[[blurImages]]"
-          query-value="[[queryValue]]"
+          query-value="[[facetSelection.searchText]]"
           image-service-auth="[[config.imageServiceAuth]]"
           image-service-host="[[config.imageServiceHost]]"
           link-function="[[clientConfig.transforms.image.externalImageLink]]">
@@ -379,18 +372,34 @@
 
         <search-help id="searchHelpDialog"></search-help>
 
+        <filter-state-manager id="filterStateManager"
+          client="[[esclient]]"
+          filter-states-index="[[config.filterStatesIndex]]"
+          filter-states-type="[[config.filterStatesType]]"
+          filter-collection="{{facetSelection}}"
+          filter-list="{{filterArray}}"
+          filter-id="[[params.state]]"
+          page-type="search"
+          process-request="{{processRequest}}">
+        </filter-state-manager>
+
         <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="Open Menu for More Options" on-tap="toggleMenu"></paper-icon-button>
 
         <iron-dropdown id="menuDropdown" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="80">
           <div class="dropdown-content">
-            <paper-icon-item title="Show All Results for Selected Facets" on-tap="showAll">
+            <paper-icon-item title="Show All Results for the Selected Facets" on-tap="showAll">
               <iron-icon icon="custom-icons:show-all" item-icon></iron-icon>
               Show All Results
             </paper-icon-item>
 
-            <paper-icon-item disabled="[[isSaveButtonDisabled(searchResults, searchError)]]" title="Save Search Keywords and Facets" on-tap="openSaveSearchDialog">
+            <paper-icon-item disabled="[[isSaveButtonDisabled(searchResults, searchError)]]" title="Save the Search Keywords and Selected Facets" on-tap="openSaveSearchDialog">
               <iron-icon icon="save" item-icon></iron-icon>
               Save Search
+            </paper-icon-item>
+
+            <paper-icon-item disabled="[[noKeywordsOrFacets(facetSelection.*)]]" title="Generate a Link for this Page with the Search Keywords and Selected Facets" on-tap="generateLink">
+              <iron-icon icon="link" item-icon></iron-icon>
+              Generate Link
             </paper-icon-item>
 
             <paper-icon-item title="Upload or Enter Multiple Telephone Numbers" on-tap="openBatchPhoneSearchDialog">
@@ -1133,10 +1142,11 @@
   </template>
 
   <script src="behaviors/array-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
 
   <script>
     (function(document) {
-      /* globals DigBehaviors */
+      /* globals _, DigBehaviors */
       var app = document.querySelector('#app');
 
       app.facetListsExpanded = true;
@@ -1151,13 +1161,21 @@
         name: {},
         age: {},
         ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
         height: {},
         weight: {},
-        hairColor: {},
-        eyeColor: {}
+        searchText: ''
       };
 
+      app.params =  DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+
+      app.generateLink = function() {
+        this.$.menuDropdown.close();
+        this.$.filterStateManager.generateLink();
+      };
 
       app.getAdvancedSearchTitle = function(advancedSearch) {
         return 'Click to ' + (advancedSearch ? 'Deactivate' : 'Activate') + ' Advanced Search Mode';
@@ -1169,6 +1187,12 @@
 
       app.isSaveButtonDisabled = function(searchResults, searchError) {
         return !(searchResults !== null && searchError === null);
+      };
+
+      app.noKeywordsOrFacets = function() {
+        return _.keys(app.facetSelection).every(function(key) {
+          return _.isEmpty(app.facetSelection[key]);
+        });
       };
 
       app.openBatchPhoneSearchDialog = function() {
@@ -1193,7 +1217,7 @@
 
       app.showAll = function() {
         this.$.menuDropdown.close();
-        app.set('queryValue', null);
+        app.set('facetSelection.searchText', null);
       };
 
       app.toggleMenu = function() {

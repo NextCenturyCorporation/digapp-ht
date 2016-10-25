@@ -74,8 +74,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       page-type="[[pageType]]">
     </create-filter-array>
 
-    <paper-icon-button icon="link" title="Generate Link to This Page" on-tap="generateLink"></paper-icon-button>
-
     <paper-dialog modal id="linkDialog" class="small" entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="layout vertical">
         <div class="layout horizontal">
@@ -151,6 +149,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         pageType: {
           type: String,
           value: 'entity'
+        },
+
+        /**
+         * Whether or not all properties have been loaded/are ready for elastic-client-search.
+         */
+        processRequest: {
+          type: Boolean,
+          notify: true
         },
 
         /**
@@ -240,11 +246,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             eyeColor: filterCollection.eyeColor || [],
             hairColor: filterCollection.hairColor || [],
             height: filterCollection.height || [],
-            weight: filterCollection.weigh || []
+            weight: filterCollection.weight || []
           });
         } else if(pageType === 'search') {
-          // TODO:  Add support for the search page.
-          return JSON.stringify({});
+          return JSON.stringify({
+            dateCreated: filterCollection.dateCreated || {},
+            country: filterCollection.country || {},
+            city: filterCollection.city || {},
+            phone: filterCollection.phone || {},
+            email: filterCollection.email || {},
+            website: filterCollection.website || {},
+            name: filterCollection.name || {},
+            age: filterCollection.age || {},
+            ethnicity: filterCollection.ethnicity || {},
+            eyeColor: filterCollection.eyeColor || {},
+            hairColor: filterCollection.hairColor || {},
+            height: filterCollection.height || {},
+            weight: filterCollection.weight || {},
+            searchText: filterCollection.searchText || ''
+          });
         }
         return JSON.stringify({});
       },
@@ -268,22 +288,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(this._validateId) {
             this.filterId = this._generateId();
           } else {
-            var state = JSON.parse(this._filterIdResults.hits.hits[0]._source.state);
-            if(this.pageType === 'entity') {
-              this.set('filterCollection', {
-                location: state.location || [],
-                name: state.name || [],
-                age: state.age || [],
-                ethnicity: state.ethnicity || [],
-                eyeColor: state.eyeColor || [],
-                hairColor: state.hairColor || [],
-                height: state.height || [],
-                weight: state.weight || []
-              });
-            } else if(this.pageType === 'search') {
-              // TODO:  Add support for the search page.
-              this.set('filterCollection', {});
-            }
+            this._updateFilterCollection(this._filterIdResults.hits.hits[0]._source.state, this.pageType);
           }
         } else if(this._validateId) {
           this._validateId = false;
@@ -300,6 +305,44 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           state: this._createFilterString(filterCollection, pageType)
         };
         this._updateUrlAndShowDialog(filterId);
+      },
+
+      /**
+       * Sets the filter collection to a new object using the given filter state.
+       */
+      _updateFilterCollection: function(filterString, pageType) {
+        var state = JSON.parse(filterString);
+        this.set('processRequest', false);
+        if(pageType === 'entity') {
+          this.set('filterCollection', {
+            location: state.location || [],
+            name: state.name || [],
+            age: state.age || [],
+            ethnicity: state.ethnicity || [],
+            eyeColor: state.eyeColor || [],
+            hairColor: state.hairColor || [],
+            height: state.height || [],
+            weight: state.weight || []
+          });
+        } else if(pageType === 'search') {
+          this.set('filterCollection', {
+            dateCreated: state.dateCreated || {},
+            country: state.country || {},
+            city: state.city || {},
+            phone: state.phone || {},
+            email: state.email || {},
+            website: state.website || {},
+            name: state.name || {},
+            age: state.age || {},
+            ethnicity: state.ethnicity || {},
+            eyeColor: state.eyeColor || {},
+            hairColor: state.hairColor || {},
+            height: state.height || {},
+            weight: state.weight || {},
+            searchText: state.searchText || ''
+          });
+        }
+        this.set('processRequest', true);
       },
 
       /**
