@@ -38,10 +38,7 @@ curl -XPUT localhost:9200/dig-users -d '
                 "searchType": {
                   "type": "string"
                 },
-                "searchText": {
-                  "type": "string"
-                },
-                "facets": {
+                "searchParameters": {
                   "type": "string"
                 }
               }
@@ -94,10 +91,7 @@ curl -XPUT localhost:9200/dig-users -d '
                 "searchType": {
                   "type": "string"
                 },
-                "searchText": {
-                  "type": "string"
-                },
-                "facets": {
+                "searchParameters": {
                   "type": "string"
                 }
               }
