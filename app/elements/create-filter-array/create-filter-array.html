@@ -100,7 +100,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           case 'dateCreated':
             return 'dateCreated';
         }
-        // Remember:  do not include the searchText property in the filters!
+        // Remember to ignore the text property from the search parameters and not include it in the filters!
         return undefined;
       },
       _getAggName: function(group) {
@@ -155,7 +155,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         });
 
-        this._setFilterArray(arrayFilters);
+        // Only update the filter array if any of its elements have changed in order to avoid extra observer events.
+        var difference = arrayFilters.length !== this.filterArray.length || arrayFilters.some(function(filter, index) {
+          return !_.isEqual(filter.toJSON(), me.filterArray[index].toJSON());
+        });
+        if(difference) {
+          this._setFilterArray(arrayFilters);
+        }
       },
       _buildAndOrFilter: function(filters, group) {
         var filter;
