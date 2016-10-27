@@ -106,11 +106,6 @@
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
-    <create-filter-array
-      facet-selection="[[facetSelection]]"
-      filter-array="{{filterArray}}">
-    </create-filter-array>
-
     <json-transform
       data-in="{{searchResults}}"
       data-out="{{records}}"
@@ -283,20 +278,20 @@
     </dig-logger>
 
     <search-logger
-      query-value="[[queryValue]]"
-      age-facet-selection="[[facetSelection.age]]"
-      city-facet-selection="[[facetSelection.city]]"
-      country-facet-selection="[[facetSelection.country]]"
-      date-facet-selection="[[facetSelection.dateCreated]]"
-      email-facet-selection="[[facetSelection.email]]"
-      ethnicity-facet-selection="[[facetSelection.ethnicity]]"
-      eye-facet-selection="[[facetSelection.eyeColor]]"
-      hair-facet-selection="[[facetSelection.hairColor]]"
-      height-facet-selection="[[facetSelection.height]]"
-      name-facet-selection="[[facetSelection.name]]"
-      phone-facet-selection="[[facetSelection.phone]]"
-      publisher-facet-selection="[[facetSelection.website]]"
-      weight-facet-selection="[[facetSelection.weight]]"
+      query-value="[[searchParameters.text]]"
+      age-facet-selection="[[searchParameters.age]]"
+      city-facet-selection="[[searchParameters.city]]"
+      country-facet-selection="[[searchParameters.country]]"
+      date-facet-selection="[[searchParameters.dateCreated]]"
+      email-facet-selection="[[searchParameters.email]]"
+      ethnicity-facet-selection="[[searchParameters.ethnicity]]"
+      eye-facet-selection="[[searchParameters.eyeColor]]"
+      hair-facet-selection="[[searchParameters.hairColor]]"
+      height-facet-selection="[[searchParameters.height]]"
+      name-facet-selection="[[searchParameters.name]]"
+      phone-facet-selection="[[searchParameters.phone]]"
+      publisher-facet-selection="[[searchParameters.website]]"
+      weight-facet-selection="[[searchParameters.weight]]"
       log-message="{{logMessage}}">
     </search-logger>
 
@@ -319,7 +314,7 @@
         <div class="bottom flex">
           <elastic-client-input class="white-input-container"
             field="_all"
-            value="{{queryValue}}"
+            value="{{searchParameters.text}}"
             query="{{ejsQuery}}"
             label="Enter Keywords"
             advanced="[[advancedSearch]]"
@@ -341,8 +336,7 @@
           advanced-search="{{advancedSearch}}"
           blur-images="{{blurImages}}"
           searches="{{userSearches}}"
-          search-text="{{queryValue}}"
-          facets="{{facetSelection}}"
+          search-parameters="{{searchParameters}}"
           es-request="{{esRequest}}"
           user-index="[[config.userIndex]]"
           user-type="[[config.userType]]"
@@ -357,19 +351,18 @@
           username="[[config.username]]"
           user-id="[[userId]]"
           existing-searches="{{userSearches}}"
-          search-text="[[queryValue]]"
-          facets="[[facetSelection]]"
+          search-parameters="[[searchParameters]]"
           es-request="[[esRequest]]"
           user-index="[[config.userIndex]]"
           user-type="[[config.userType]]"
           user-record-exists="[[userRecordExists]]">
         </save-search>
 
-        <batch-phone id="batchPhoneSearchDialog" query-value="{{queryValue}}"></batch-phone>
+        <batch-phone id="batchPhoneSearchDialog" query-value="{{searchParameters.text}}"></batch-phone>
 
         <similar-image-search id="similarImageSearchDialog"
           blur="[[blurImages]]"
-          query-value="[[queryValue]]"
+          query-value="[[searchParameters.text]]"
           image-service-auth="[[config.imageServiceAuth]]"
           image-service-host="[[config.imageServiceHost]]"
           link-function="[[clientConfig.transforms.image.externalImageLink]]">
@@ -377,18 +370,34 @@
 
         <search-help id="searchHelpDialog"></search-help>
 
+        <filter-state-manager id="filterStateManager"
+          client="[[esclient]]"
+          filter-states-index="[[config.filterStatesIndex]]"
+          filter-states-type="[[config.filterStatesType]]"
+          filter-collection="{{searchParameters}}"
+          filter-list="{{filterArray}}"
+          filter-id="[[params.state]]"
+          page-type="search"
+          process-request="{{processRequest}}">
+        </filter-state-manager>
+
         <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="Open Menu for More Options" on-tap="toggleMenu"></paper-icon-button>
 
         <iron-dropdown id="menuDropdown" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="80">
           <div class="dropdown-content">
-            <paper-icon-item title="Show All Results for Selected Facets" on-tap="showAll">
+            <paper-icon-item title="Show All Results for the Selected Facets" on-tap="showAll">
               <iron-icon icon="custom-icons:show-all" item-icon></iron-icon>
               Show All Results
             </paper-icon-item>
 
-            <paper-icon-item disabled="[[isSaveButtonDisabled(searchResults, searchError)]]" title="Save Search Keywords and Facets" on-tap="openSaveSearchDialog">
+            <paper-icon-item disabled="[[isSaveButtonDisabled(searchResults, searchError)]]" title="Save the Search Keywords and Selected Facets" on-tap="openSaveSearchDialog">
               <iron-icon icon="save" item-icon></iron-icon>
               Save Search
+            </paper-icon-item>
+
+            <paper-icon-item disabled="[[noSearchParameters(searchParameters.*)]]" title="Generate a Link for this Page with the Search Keywords and Selected Facets" on-tap="generateLink">
+              <iron-icon icon="link" item-icon></iron-icon>
+              Generate Link
             </paper-icon-item>
 
             <paper-icon-item title="Upload or Enter Multiple Telephone Numbers" on-tap="openBatchPhoneSearchDialog">
@@ -427,19 +436,19 @@
               <elastic-sort input-string="{{offerSortString}}" sort="{{sort}}"></elastic-sort>
 
               <div class="h-divider"></div>
-              <selected-facets-display facet-selection="{{facetSelection.dateCreated}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.country}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.city}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.phone}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.email}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.website}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.name}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.age}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.ethnicity}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.height}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.weight}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.hairColor}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{facetSelection.eyeColor}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.dateCreated}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.country}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.city}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.phone}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.email}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.website}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.name}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.age}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.ethnicity}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.height}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.weight}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.hairColor}}"></selected-facets-display>
+              <selected-facets-display facet-selection="{{searchParameters.eyeColor}}"></selected-facets-display>
 
               <div class="facet-header">
                 <span class="facet-toggle" on-tap="toggleAllFacetLists">
@@ -458,7 +467,7 @@
 
               <iron-collapse id="date-list" class="facet-list" opened>
                 <date-range-display
-                  facet-selection="{{facetSelection.dateCreated}}">
+                  facet-selection="{{searchParameters.dateCreated}}">
                 </date-range-display>
               </iron-collapse>
 
@@ -484,7 +493,7 @@
                     buckets="[[countryResult.aggregations.countryAgg.countryAgg.buckets]]"
                     loading="[[countryLoading]]"
                     error="[[countryError]]"
-                    facet-selection="{{facetSelection.country}}"
+                    facet-selection="{{searchParameters.country}}"
                     agg-count="{{countryCount}}"
                     order-by="{{countrySortOrder}}">
                   </view-all-facets>
@@ -498,7 +507,7 @@
               <iron-collapse id="country-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[countryResult.aggregations.countryAgg.countryAgg.buckets]]"
-                  facet-selection="{{facetSelection.country}}"
+                  facet-selection="{{searchParameters.country}}"
                   facets="{{countryFacets}}"
                   category="Country">
                 </checkbox-list-display>
@@ -539,7 +548,7 @@
                     buckets="[[cityAndStateResult.aggregations.cityAgg.cityAgg.buckets]]"
                     loading="[[cityLoading]]"
                     error="[[cityError]]"
-                    facet-selection="{{facetSelection.city}}"
+                    facet-selection="{{searchParameters.city}}"
                     agg-count="{{cityCount}}"
                     order-by="{{citySortOrder}}">
                   </view-all-facets>
@@ -553,7 +562,7 @@
               <iron-collapse id="city-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[cityAndStateResult.aggregations.cityAgg.cityAgg.buckets]]"
-                  facet-selection="{{facetSelection.city}}"
+                  facet-selection="{{searchParameters.city}}"
                   facets="{{cityFacets}}"
                   category="City">
                 </checkbox-list-display>
@@ -594,7 +603,7 @@
                     buckets="[[phoneResultBuckets]]"
                     loading="[[phoneLoading]]"
                     error="[[phoneError]]"
-                    facet-selection="{{facetSelection.phone}}"
+                    facet-selection="{{searchParameters.phone}}"
                     agg-count="{{phoneCount}}"
                     order-by="{{phoneSortOrder}}">
                   </view-all-facets>
@@ -608,7 +617,7 @@
               <iron-collapse id="phone-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[phoneResultBuckets]]"
-                  facet-selection="{{facetSelection.phone}}"
+                  facet-selection="{{searchParameters.phone}}"
                   facets="{{phoneFacets}}"
                   category="Telephone">
                 </checkbox-list-display>
@@ -649,7 +658,7 @@
                     buckets="[[emailResultBuckets]]"
                     loading="[[emailLoading]]"
                     error="[[emailError]]"
-                    facet-selection="{{facetSelection.email}}"
+                    facet-selection="{{searchParameters.email}}"
                     agg-count="{{emailCount}}"
                     order-by="{{emailSortOrder}}">
                   </view-all-facets>
@@ -663,7 +672,7 @@
               <iron-collapse id="email-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[emailResultBuckets]]"
-                  facet-selection="{{facetSelection.email}}"
+                  facet-selection="{{searchParameters.email}}"
                   facets="{{emailFacets}}"
                   category="Email Address">
                 </checkbox-list-display>
@@ -698,7 +707,7 @@
                     buckets="[[publisherResult.aggregations.publisherAgg.publisherAgg.buckets]]"
                     loading="[[publisherLoading]]"
                     error="[[publisherError]]"
-                    facet-selection="{{facetSelection.website}}"
+                    facet-selection="{{searchParameters.website}}"
                     agg-count="{{publisherCount}}"
                     order-by="{{publisherSortOrder}}">
                   </view-all-facets>
@@ -712,7 +721,7 @@
               <iron-collapse id="website-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[publisherResult.aggregations.publisherAgg.publisherAgg.buckets]]"
-                  facet-selection="{{facetSelection.website}}"
+                  facet-selection="{{searchParameters.website}}"
                   facets="{{publisherFacets}}"
                   category="Website">
                 </checkbox-list-display>
@@ -747,7 +756,7 @@
                     buckets="[[nameResult.aggregations.nameAgg.nameAgg.buckets]]"
                     loading="[[nameLoading]]"
                     error="[[nameError]]"
-                    facet-selection="{{facetSelection.name}}"
+                    facet-selection="{{searchParameters.name}}"
                     agg-count="{{nameCount}}"
                     order-by="{{nameSortOrder}}">
                   </view-all-facets>
@@ -761,7 +770,7 @@
               <iron-collapse id="name-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[nameResult.aggregations.nameAgg.nameAgg.buckets]]"
-                  facet-selection="{{facetSelection.name}}"
+                  facet-selection="{{searchParameters.name}}"
                   facets="{{nameFacets}}"
                   category="Name">
                 </checkbox-list-display>
@@ -796,7 +805,7 @@
                     buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
                     loading="[[ageLoading]]"
                     error="[[ageError]]"
-                    facet-selection="{{facetSelection.age}}"
+                    facet-selection="{{searchParameters.age}}"
                     agg-count="{{ageCount}}"
                     order-by="{{ageSortOrder}}">
                   </view-all-facets>
@@ -810,7 +819,7 @@
               <iron-collapse id="age-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
-                  facet-selection="{{facetSelection.age}}"
+                  facet-selection="{{searchParameters.age}}"
                   facets="{{ageFacets}}"
                   category="Age">
                 </checkbox-list-display>
@@ -845,7 +854,7 @@
                     buckets="[[ethnicityResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
                     loading="[[ethnicityLoading]]"
                     error="[[ethnicityError]]"
-                    facet-selection="{{facetSelection.ethnicity}}"
+                    facet-selection="{{searchParameters.ethnicity}}"
                     agg-count="{{ethnicityCount}}"
                     order-by="{{ethnicitySortOrder}}">
                   </view-all-facets>
@@ -859,7 +868,7 @@
               <iron-collapse id="ethnicity-list" class="facet-list" opened>
                 <checkbox-list-display
                   buckets="[[ethnicityResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
-                  facet-selection="{{facetSelection.ethnicity}}"
+                  facet-selection="{{searchParameters.ethnicity}}"
                   facets="{{ethnicityFacets}}"
                   category="Ethnicity">
                 </checkbox-list-display>
@@ -894,7 +903,7 @@
                     buckets="[[heightResult.aggregations.heightAgg.heightAgg.buckets]]"
                     loading="[[heightLoading]]"
                     error="[[heightError]]"
-                    facet-selection="{{facetSelection.height}}"
+                    facet-selection="{{searchParameters.height}}"
                     agg-count="{{heightCount}}"
                     order-by="{{heightSortOrder}}">
                   </view-all-facets>
@@ -909,7 +918,7 @@
                 <checkbox-list-display
                   buckets="[[heightResult.aggregations.heightAgg.heightAgg.buckets]]"
                   facets="{{heightFacets}}"
-                  facet-selection="{{facetSelection.height}}"
+                  facet-selection="{{searchParameters.height}}"
                   category="Height (cm)">
                 </checkbox-list-display>
                 <elastic-error error="[[heightError]]" message="{{heightErrorMessage}}"></elastic-error>
@@ -943,7 +952,7 @@
                     buckets="[[weightResult.aggregations.weightAgg.weightAgg.buckets]]"
                     loading="[[weightLoading]]"
                     error="[[weightError]]"
-                    facet-selection="{{facetSelection.weight}}"
+                    facet-selection="{{searchParameters.weight}}"
                     agg-count="{{weightCount}}"
                     order-by="{{weightSortOrder}}">
                   </view-all-facets>
@@ -958,7 +967,7 @@
                 <checkbox-list-display
                   buckets="[[weightResult.aggregations.weightAgg.weightAgg.buckets]]"
                   facets="{{weightFacets}}"
-                  facet-selection="{{facetSelection.weight}}"
+                  facet-selection="{{searchParameters.weight}}"
                   category="Weight (kg)">
                 </checkbox-list-display>
                 <elastic-error error="[[weightError]]" message="{{weightErrorMessage}}"></elastic-error>
@@ -992,7 +1001,7 @@
                     buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
                     loading="[[hairColorLoading]]"
                     error="[[hairColorError]]"
-                    facet-selection="{{facetSelection.hairColor}}"
+                    facet-selection="{{searchParameters.hairColor}}"
                     agg-count="{{hairColorCount}}"
                     order-by="{{hairColorSortOrder}}">
                   </view-all-facets>
@@ -1007,7 +1016,7 @@
                 <checkbox-list-display
                   buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
                   facets="{{hairColorFacets}}"
-                  facet-selection="{{facetSelection.hairColor}}"
+                  facet-selection="{{searchParameters.hairColor}}"
                   category="Hair Color">
                 </checkbox-list-display>
                 <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
@@ -1041,7 +1050,7 @@
                     buckets="[[eyeColorResult.aggregations.eyeColorAgg.eyeColorAgg.buckets]]"
                     loading="[[eyeColorLoading]]"
                     error="[[eyeColorError]]"
-                    facet-selection="{{facetSelection.eyeColor}}"
+                    facet-selection="{{searchParameters.eyeColor}}"
                     filter="{{eyeColorFilter}}"
                     agg-count="{{eyeColorCount}}"
                     order-by="{{eyeColorSortOrder}}">
@@ -1057,7 +1066,7 @@
                 <checkbox-list-display
                   buckets="[[eyeColorResult.aggregations.eyeColorAgg.eyeColorAgg.buckets]]"
                   facets="{{eyeColorFacets}}"
-                  facet-selection="{{facetSelection.eyeColor}}"
+                  facet-selection="{{searchParameters.eyeColor}}"
                   category="Eye Color">
                 </checkbox-list-display>
                 <elastic-error error="[[eyeColorError]]" message="{{eyeColorErrorMessage}}"></elastic-error>
@@ -1121,15 +1130,16 @@
   </template>
 
   <script src="behaviors/array-behavior.js"></script>
+  <script src="behaviors/browser-behavior.js"></script>
 
   <script>
     (function(document) {
-      /* globals DigBehaviors */
+      /* globals _, DigBehaviors */
       var app = document.querySelector('#app');
 
       app.facetListsExpanded = true;
 
-      app.facetSelection = {
+      app.searchParameters = {
         dateCreated: {},
         country: {},
         city: {},
@@ -1139,13 +1149,23 @@
         name: {},
         age: {},
         ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
         height: {},
         weight: {},
-        hairColor: {},
-        eyeColor: {}
+        text: ''
       };
 
+      app.params =  DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+      DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
+
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+
+      app.generateLink = function() {
+        this.$.menuDropdown.close();
+        this.$.filterStateManager.generateLink();
+      };
 
       app.getAdvancedSearchTitle = function(advancedSearch) {
         return 'Click to ' + (advancedSearch ? 'Deactivate' : 'Activate') + ' Advanced Search Mode';
@@ -1157,6 +1177,12 @@
 
       app.isSaveButtonDisabled = function(searchResults, searchError) {
         return !(searchResults !== null && searchError === null);
+      };
+
+      app.noSearchParameters = function() {
+        return _.keys(app.searchParameters).every(function(key) {
+          return _.isEmpty(app.searchParameters[key]);
+        });
       };
 
       app.openBatchPhoneSearchDialog = function() {
@@ -1181,7 +1207,7 @@
 
       app.showAll = function() {
         this.$.menuDropdown.close();
-        app.set('queryValue', null);
+        app.set('searchParameters.text', null);
       };
 
       app.toggleMenu = function() {

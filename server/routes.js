@@ -27,6 +27,8 @@ module.exports = function(app) {
             cacheConfig: JSON.parse(config.cacheConfig),
             cacheIndex: config.cacheIndex,
             username: req.headers.user ? req.headers.user : 'mockUser',
+            filterStatesIndex: config.filterStatesIndex,
+            filterStatesType: config.filterStatesType,
             userIndex: config.userIndex,
             userType: config.userType,
             imageServiceAuth: config.imageServiceAuth,

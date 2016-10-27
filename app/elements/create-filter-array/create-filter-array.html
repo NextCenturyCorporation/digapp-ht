@@ -38,72 +38,99 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           notify: true,
           readOnly: true
+        },
+        /**
+         * Whether this component is used on the search or entity page
+         */
+        pageType: {
+          type: String,
+          value: 'search'
         }
       },
       observers: [
         '_rebuildFilterArray(facetSelection.*)'
       ],
-      _getFilterField: function(group) {
-        var field;
+      _getEntityPageFilterField: function(group) {
         switch(group) {
-          case 'country': field = 'mainEntity.availableAtOrFrom.address.addressCountry';
-            break;
-          case 'city': field = 'mainEntity.availableAtOrFrom.address.key';
-            break;
-          case 'phone': field = 'mentionsPhone';
-            break;
-          case 'email': field = 'mentionsEmail';
-            break;
-          case 'website': field = 'publisher.name.raw';
-            break;
-          case 'name': field = 'mainEntity.itemOffered.name.raw';
-            break;
-          case 'age': field = 'mainEntity.itemOffered.age';
-            break;
-          case 'ethnicity': field = 'mainEntity.itemOffered.ethnicity';
-            break;
-          case 'height': field = 'mainEntity.itemOffered.height';
-            break;
-          case 'weight': field = 'mainEntity.itemOffered.weight';
-            break;
-          case 'hairColor': field = 'mainEntity.itemOffered.hairColor';
-            break;
-          case 'eyeColor': field = 'mainEntity.itemOffered.eyeColor';
-            break;
-          case 'dateCreated': field = 'dateCreated';
-            break;
+          case 'location':
+            return 'availableAtOrFrom.address.key';
+          case 'name':
+            return 'itemOffered.name.raw';
+          case 'age':
+            return 'itemOffered.age';
+          case 'ethnicity':
+            return 'itemOffered.ethnicity';
+          case 'height':
+            return 'itemOffered.height';
+          case 'weight':
+            return 'itemOffered.weight';
+          case 'hairColor':
+            return 'itemOffered.hairColor';
+          case 'eyeColor':
+            return 'itemOffered.eyeColor';
         }
-        return field;
+        return undefined;
+      },
+      _getSearchPageFilterField: function(group) {
+        switch(group) {
+          case 'country':
+            return 'mainEntity.availableAtOrFrom.address.addressCountry';
+          case 'city':
+            return 'mainEntity.availableAtOrFrom.address.key';
+          case 'phone':
+            return 'mentionsPhone';
+          case 'email':
+            return 'mentionsEmail';
+          case 'website':
+            return 'publisher.name.raw';
+          case 'name':
+            return 'mainEntity.itemOffered.name.raw';
+          case 'age':
+            return 'mainEntity.itemOffered.age';
+          case 'ethnicity':
+            return 'mainEntity.itemOffered.ethnicity';
+          case 'height':
+            return 'mainEntity.itemOffered.height';
+          case 'weight':
+            return 'mainEntity.itemOffered.weight';
+          case 'hairColor':
+            return 'mainEntity.itemOffered.hairColor';
+          case 'eyeColor':
+            return 'mainEntity.itemOffered.eyeColor';
+          case 'dateCreated':
+            return 'dateCreated';
+        }
+        // Remember to ignore the text property from the search parameters and not include it in the filters!
+        return undefined;
       },
       _getAggName: function(group) {
-        var aggName;
         switch(group) {
-          case 'country': aggName = 'countryAgg';
-            break;
-          case 'city': aggName = 'cityAgg';
-            break;
-          case 'phone': aggName = 'phoneEmailAgg';
-            break;
-          case 'email': aggName = 'phoneEmailAgg';
-            break;
-          case 'website': aggName = 'publisherAgg';
-            break;
-          case 'name': aggName = 'nameAgg';
-            break;
-          case 'age': aggName = 'ageAgg';
-            break;
-          case 'ethnicity': aggName = 'ethnicityAgg';
-            break;
-          case 'height': aggName = 'heightAgg';
-            break;
-          case 'weight': aggName = 'weightAgg';
-            break;
-          case 'hairColor': aggName = 'hairColorAgg';
-            break;
-          case 'eyeColor': aggName = 'eyeColorAgg';
-            break;
+          case 'country':
+            return 'countryAgg';
+          case 'city':
+            return 'cityAgg';
+          case 'phone':
+            return 'phoneAgg';
+          case 'email':
+            return 'emailAgg';
+          case 'website':
+            return 'publisherAgg';
+          case 'name':
+            return 'nameAgg';
+          case 'age':
+            return 'ageAgg';
+          case 'ethnicity':
+            return 'ethnicityAgg';
+          case 'height':
+            return 'heightAgg';
+          case 'weight':
+            return 'weightAgg';
+          case 'hairColor':
+            return 'hairColorAgg';
+          case 'eyeColor':
+            return 'eyeColorAgg';
         }
-        return aggName;
+        return undefined;
       },
       _getCombinationType: function() {
         return 'or';
@@ -113,23 +140,28 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var arrayFilters = [];
 
         _.each(_.keys(me.facetSelection), function(group) {
-
-          var field = me._getFilterField(group);
-          if(group === 'dateCreated') {
-            var rangeFilter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
-            if(rangeFilter) {
-              arrayFilters.push(rangeFilter);
-            }
-          } else {
+          var field = (me.pageType === 'entity' ? me._getEntityPageFilterField(group) : me._getSearchPageFilterField(group));
+          var filter;
+          if(me.pageType === 'entity') {
+            filter = me._buildTermsFilter(me.facetSelection[group], field, group);
+          } else if(group === 'dateCreated') {
+            filter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
+          } else if(field) {
             var filters = me._buildTermFilterArray(me.facetSelection[group], field);
-            var filter = me._buildAndOrFilter(filters, group);
-            if(filter) {
-              arrayFilters.push(filter);
-            }
+            filter = me._buildAndOrFilter(filters, group);
+          }
+          if(filter) {
+            arrayFilters.push(filter);
           }
         });
 
-        this._setFilterArray(arrayFilters);
+        // Only update the filter array if any of its elements have changed in order to avoid extra observer events.
+        var difference = arrayFilters.length !== this.filterArray.length || arrayFilters.some(function(filter, index) {
+          return !_.isEqual(filter.toJSON(), me.filterArray[index].toJSON());
+        });
+        if(difference) {
+          this._setFilterArray(arrayFilters);
+        }
       },
       _buildAndOrFilter: function(filters, group) {
         var filter;
@@ -143,6 +175,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
           filter.name(this._getAggName(group));
         }
+
         return filter;
       },
       _buildTermFilterArray: function(facetGroup, field) {
@@ -155,6 +188,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         });
 
         return filters;
+      },
+      _buildTermsFilter: function(facetGroup, field, group) {
+        return _.isEmpty(facetGroup) ? undefined : ejs.TermsFilter(field, facetGroup).name(group);
       },
       _buildDateRangeEjsFilter: function(facetGroup, field) {
         if(!field || _.isEqual(facetGroup, {})) {

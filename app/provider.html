@@ -123,12 +123,13 @@
       page-size="{{pageSize}}"
       query="[[providerOffersQuery]]"
       aggregations="[]"
-      filters="[[buildArray(locationFilter)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{providerOffers}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
+      properties-ready="{{processRequest}}"
       source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
     </elastic-client-search>
 
@@ -165,12 +166,13 @@
       page-size="0"
       query="[[providerOffersQuery]]"
       aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
-      filters="[[buildArray(locationFilter)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{offersMentions}}"
       loading="{{mentionsLoading}}"
-      last-error="{{mentionsError}}">
+      last-error="{{mentionsError}}"
+      properties-ready="{{processRequest}}">
     </elastic-client-search>
 
     <json-combine
@@ -196,6 +198,20 @@
               </div>
             </section>
           </div>
+
+          <filter-state-manager id="filterStateManager"
+            client="[[esclient]]"
+            filter-states-index="[[config.filterStatesIndex]]"
+            filter-states-type="[[config.filterStatesType]]"
+            filter-collection="{{filterCollection}}"
+            filter-list="{{filterList}}"
+            filter-id="[[params.state]]"
+            process-request="{{processRequest}}">
+          </filter-state-manager>
+
+          <paper-icon-button icon="link" title="Generate a Link for this Page with the Selected Filters" on-tap="generateLink">
+          </paper-icon-button>
+
           <annotate-record client="[[esclient]]"
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
@@ -204,6 +220,7 @@
             item-type="provider"
             current-user="[[config.username]]">
           </annotate-record>
+
           <load-user-info
             client="[[esclient]]"
             loading="[[loading]]"
@@ -295,16 +312,16 @@
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[providerDisplay.offerLocation.offerLocation.length]] Locations</div>
+                    <div>[[providerDisplay.offerLocation.location.length]] Locations</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[providerDisplay.offerLocation.offerLocation.length]]">
+                <template is="dom-if" if="[[providerDisplay.offerLocation.location.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
                       text-property="longName"
-                      data="{{providerDisplay.offerLocation.offerLocation}}">
+                      data="{{providerDisplay.offerLocation.location}}">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -317,19 +334,19 @@
                   </template>
 
                   <feature-query-and-display
-                    aggregation-name="city"
+                    aggregation-name="location"
                     aggregation-field="availableAtOrFrom.address.key"
                     filter-field="availableAtOrFrom.address.key"
-                    produced-filter="{{locationFilter}}"
+                    selected="{{filterCollection.location}}"
                     query="[[providerOffersQuery]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{locationError}}"
-                    consumed-filters="[]"
+                    filter-list="[[filterList]]"
                     transform="[[clientConfig.transforms.common.offerLocationData]]"
                     transform-results="{{providerDisplay.offerLocation}}"
-                    transform-property="offerLocation"
+                    transform-property="location"
                     data-id-property="key"
                     data-text-property="name"
                     feature-title="Offers per City">
@@ -385,11 +402,28 @@
     /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+    app.filterCollection = {
+      location: [],
+      name: [],
+      age: [],
+      ethnicity: [],
+      eyeColor: [],
+      hairColor: [],
+      height: [],
+      weight: []
+    };
+
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+    DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
     app.providerDisplay = {};
+
+    app.generateLink = function() {
+      this.$.filterStateManager.generateLink();
+    };
   })(document);
   </script>
 </body>

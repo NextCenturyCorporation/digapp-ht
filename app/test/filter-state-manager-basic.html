@@ -1,0 +1,438 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>filter-state-manager</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+  <link rel="import" href="../elements/filter-state-manager/filter-state-manager.html">
+</head>
+<body>
+
+<test-fixture id="filter-state-manager-fixture">
+  <template>
+    <filter-state-manager></filter-state-manager>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, setup, fixture, test, expect */
+  /* jshint -W030 */
+  suite('filter-state-manager tests', function() {
+    var component;
+
+    setup(function() {
+      component = fixture('filter-state-manager-fixture');
+    });
+
+    test('default properties are set correctly', function() {
+      expect(component.client).to.not.exist;
+      expect(component.filterCollection).to.not.exist;
+      expect(component.filterId).to.not.exist;
+      expect(component.filterList).to.not.exist;
+      expect(component.filterStatesIndex).to.not.exist;
+      expect(component.filterStatesType).to.not.exist;
+      expect(component.pageType).to.equal('entity');
+      expect(component._creationBody).to.not.exist;
+      expect(component._creationResults).to.not.exist;
+      expect(component._filterIdQuery).to.not.exist;
+      expect(component._filterIdResults).to.not.exist;
+      expect(component._filterString).to.not.exist;
+      expect(component._filterStringQuery).to.not.exist;
+      expect(component._filterStringResults).to.not.exist;
+      expect(component._link).to.not.exist;
+      expect(component._validateId).to.be.false;
+    });
+
+    test('does have expected components', function() {
+      expect(component.$$('paper-icon-button')).to.exist;
+      expect(component.$$('paper-dialog')).to.exist;
+      expect(component.$$('paper-dialog').id).to.equal('linkDialog');
+    });
+
+    test('_createFilterString with entity page type returns entity page JSON strings', function() {
+      expect(component._createFilterString({}, 'entity')).to.deep.equal('{\"location\":[],\"name\":[],\"age\":[],\"ethnicity\":[],\"eyeColor\":[],\"hairColor\":[],\"height\":[],\"weight\":[]}');
+
+      expect(component._createFilterString({
+        location: ['location1', 'location2'],
+        name: ['name1', 'name2'],
+        age: ['age1', 'age2'],
+        ethnicity: ['ethnicity1', 'ethnicity2'],
+        eyeColor: ['eyeColor1', 'eyeColor2'],
+        hairColor: ['hairColor1', 'hairColor2'],
+        height: ['height1', 'height2'],
+        weight: ['weight1', 'weight2']
+      }, 'entity')).to.deep.equal('{\"location\":[\"location1\",\"location2\"],\"name\":[\"name1\",\"name2\"],\"age\":[\"age1\",\"age2\"],\"ethnicity\":[\"ethnicity1\",\"ethnicity2\"],\"eyeColor\":[\"eyeColor1\",\"eyeColor2\"],\"hairColor\":[\"hairColor1\",\"hairColor2\"],\"height\":[\"height1\",\"height2\"],\"weight\":[\"weight1\",\"weight2\"]}');
+    });
+
+    test('_createFilterString with search page type returns search page JSON strings', function() {
+      expect(component._createFilterString({}, 'search')).to.deep.equal('{\"dateCreated\":{},\"country\":{},\"city\":{},\"phone\":{},\"email\":{},\"website\":{},\"name\":{},\"age\":{},\"ethnicity\":{},\"eyeColor\":{},\"hairColor\":{},\"height\":{},\"weight\":{},\"text\":\"\"}');
+
+      expect(component._createFilterString({
+        dateCreated: {
+          value: 'dateCreated1'
+        },
+        country: {
+          value: 'country1'
+        },
+        city: {
+          value: 'city1'
+        },
+        phone: {
+          value: 'phone1'
+        },
+        email: {
+          value: 'email1'
+        },
+        website: {
+          value: 'website1'
+        },
+        name: {
+          value: 'name1'
+        },
+        age: {
+          value: 'age1'
+        },
+        ethnicity: {
+          value: 'ethnicity1'
+        },
+        eyeColor: {
+          value: 'eyeColor1'
+        },
+        hairColor: {
+          value: 'hairColor1'
+        },
+        height: {
+          value: 'height1'
+        },
+        weight: {
+          value: 'weight1'
+        },
+        text: 'my search text'
+      }, 'search')).to.deep.equal('{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"text\":\"my search text\"}');
+    });
+
+    test('_generateId returns strings', function() {
+      expect(component._generateId()).to.be.a('String');
+    });
+
+    test('_populateCreationBody with entity page type sets _creationBody and _link', function() {
+      component._populateCreationBody('id1', {
+        location: ['location1', 'location2'],
+        name: ['name1', 'name2'],
+        age: ['age1', 'age2'],
+        ethnicity: ['ethnicity1', 'ethnicity2'],
+        eyeColor: ['eyeColor1', 'eyeColor2'],
+        hairColor: ['hairColor1', 'hairColor2'],
+        height: ['height1', 'height2'],
+        weight: ['weight1', 'weight2']
+      }, 'entity');
+      expect(component._creationBody).to.deep.equal({
+        id: 'id1',
+        state: '{\"location\":[\"location1\",\"location2\"],\"name\":[\"name1\",\"name2\"],\"age\":[\"age1\",\"age2\"],\"ethnicity\":[\"ethnicity1\",\"ethnicity2\"],\"eyeColor\":[\"eyeColor1\",\"eyeColor2\"],\"hairColor\":[\"hairColor1\",\"hairColor2\"],\"height\":[\"height1\",\"height2\"],\"weight\":[\"weight1\",\"weight2\"]}'
+      });
+      expect(component._link).to.equal('http://localhost:2000/components/digapp-ht/app/test/filter-state-manager-basic.html?state=id1');
+    });
+
+    test('_populateCreationBody with search page type sets _creationBody and _link', function() {
+      component._populateCreationBody('id1', {
+        dateCreated: {
+          value: 'dateCreated1'
+        },
+        country: {
+          value: 'country1'
+        },
+        city: {
+          value: 'city1'
+        },
+        phone: {
+          value: 'phone1'
+        },
+        email: {
+          value: 'email1'
+        },
+        website: {
+          value: 'website1'
+        },
+        name: {
+          value: 'name1'
+        },
+        age: {
+          value: 'age1'
+        },
+        ethnicity: {
+          value: 'ethnicity1'
+        },
+        eyeColor: {
+          value: 'eyeColor1'
+        },
+        hairColor: {
+          value: 'hairColor1'
+        },
+        height: {
+          value: 'height1'
+        },
+        weight: {
+          value: 'weight1'
+        },
+        text: 'my search text'
+      }, 'search');
+      expect(component._creationBody).to.deep.equal({
+        id: 'id1',
+        state: '{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"text\":\"my search text\"}'
+      });
+      expect(component._link).to.equal('http://localhost:2000/components/digapp-ht/app/test/filter-state-manager-basic.html?state=id1');
+    });
+
+    test('_populateCreationBody sets _creationBody and _link using defaults if state is empty', function() {
+      component._populateCreationBody('id1', {}, 'entity');
+      expect(component._creationBody).to.deep.equal({
+        id: 'id1',
+        state: '{\"location\":[],\"name\":[],\"age\":[],\"ethnicity\":[],\"eyeColor\":[],\"hairColor\":[],\"height\":[],\"weight\":[]}'
+      });
+      expect(component._link).to.equal('http://localhost:2000/components/digapp-ht/app/test/filter-state-manager-basic.html?state=id1');
+    });
+
+    test('_updateFilterCollection with entity page type sets filterCollection', function() {
+      component._updateFilterCollection('{}', 'entity');
+      expect(component.filterCollection).to.deep.equal({
+        location: [],
+        name: [],
+        age: [],
+        ethnicity: [],
+        eyeColor: [],
+        hairColor: [],
+        height: [],
+        weight: []
+      });
+
+      component.filterCollection = {};
+
+      component._updateFilterCollection('{\"location\":[\"location1\",\"location2\"],\"name\":[\"name1\",\"name2\"],\"age\":[\"age1\",\"age2\"],\"ethnicity\":[\"ethnicity1\",\"ethnicity2\"],\"eyeColor\":[\"eyeColor1\",\"eyeColor2\"],\"hairColor\":[\"hairColor1\",\"hairColor2\"],\"height\":[\"height1\",\"height2\"],\"weight\":[\"weight1\",\"weight2\"]}', 'entity');
+      expect(component.filterCollection).to.deep.equal({
+        location: ['location1', 'location2'],
+        name: ['name1', 'name2'],
+        age: ['age1', 'age2'],
+        ethnicity: ['ethnicity1', 'ethnicity2'],
+        eyeColor: ['eyeColor1', 'eyeColor2'],
+        hairColor: ['hairColor1', 'hairColor2'],
+        height: ['height1', 'height2'],
+        weight: ['weight1', 'weight2']
+      });
+    });
+
+    test('_updateFilterCollection with search page type sets filterCollection', function() {
+      component._updateFilterCollection('{}', 'search');
+      expect(component.filterCollection).to.deep.equal({
+        dateCreated: {},
+        country: {},
+        city: {},
+        phone: {},
+        email: {},
+        website: {},
+        name: {},
+        age: {},
+        ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
+        height: {},
+        weight: {},
+        text: ''
+      });
+
+      component.filterCollection = {};
+
+      component._updateFilterCollection('{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"text\":\"my search text\"}', 'search');
+      expect(component.filterCollection).to.deep.equal({
+        dateCreated: {
+          value: 'dateCreated1'
+        },
+        country: {
+          value: 'country1'
+        },
+        city: {
+          value: 'city1'
+        },
+        phone: {
+          value: 'phone1'
+        },
+        email: {
+          value: 'email1'
+        },
+        website: {
+          value: 'website1'
+        },
+        name: {
+          value: 'name1'
+        },
+        age: {
+          value: 'age1'
+        },
+        ethnicity: {
+          value: 'ethnicity1'
+        },
+        eyeColor: {
+          value: 'eyeColor1'
+        },
+        hairColor: {
+          value: 'hairColor1'
+        },
+        height: {
+          value: 'height1'
+        },
+        weight: {
+          value: 'weight1'
+        },
+        text: 'my search text'
+      });
+    });
+
+    test('_updateUrlAndShowDialog sets _link', function() {
+      component._updateUrlAndShowDialog('id1');
+      expect(component._link).to.equal('http://localhost:2000/components/digapp-ht/app/test/filter-state-manager-basic.html?state=id1');
+    });
+
+    test('generateLink sets _filterString', function() {
+      component.filterCollection = {
+        location: ['location1', 'location2'],
+        name: ['name1', 'name2'],
+        age: ['age1', 'age2'],
+        ethnicity: ['ethnicity1', 'ethnicity2'],
+        eyeColor: ['eyeColor1', 'eyeColor2'],
+        hairColor: ['hairColor1', 'hairColor2'],
+        height: ['height1', 'height2'],
+        weight: ['weight1', 'weight2']
+      };
+      component.generateLink();
+      expect(component._filterString).to.equal('{\"location\":[\"location1\",\"location2\"],\"name\":[\"name1\",\"name2\"],\"age\":[\"age1\",\"age2\"],\"ethnicity\":[\"ethnicity1\",\"ethnicity2\"],\"eyeColor\":[\"eyeColor1\",\"eyeColor2\"],\"hairColor\":[\"hairColor1\",\"hairColor2\"],\"height\":[\"height1\",\"height2\"],\"weight\":[\"weight1\",\"weight2\"]}');
+    });
+
+    test('setting _filterIdQuery sets _creationBody, _link, and _validateId if _validateId is true and hits is empty', function() {
+      component.filterId = 'id1';
+      component.filterCollection = {};
+      component._validateId = true;
+      component._filterIdQuery = {};
+      component._filterIdResults = {
+        hits: {
+          hits: []
+        }
+      };
+
+      expect(component._validateId).to.be.false;
+      expect(component._creationBody).to.deep.equal({
+        id: 'id1',
+        state: '{\"location\":[],\"name\":[],\"age\":[],\"ethnicity\":[],\"eyeColor\":[],\"hairColor\":[],\"height\":[],\"weight\":[]}'
+      });
+      expect(component._link).to.equal('http://localhost:2000/components/digapp-ht/app/test/filter-state-manager-basic.html?state=id1');
+    });
+
+    test('setting _filterIdQuery and _filterIdResults sets filterId if _validateId is true', function() {
+      component.filterId = 'id1';
+      component._validateId = true;
+      component._filterIdQuery = {};
+      component._filterIdResults = {
+        hits: {
+          hits: [{
+            _source: {
+              state: '{}'
+            }
+          }]
+        }
+      };
+
+      expect(component.filterId).to.not.equal('id1');
+      expect(component.filterId).to.be.a('String');
+      expect(component._validateId).to.be.true;
+    });
+
+    test('setting _filterIdQuery and _filterIdResults sets filterCollection if _validateId is false', function() {
+      component._filterIdQuery = {};
+      component._filterIdResults = {
+        hits: {
+          hits: [{
+            _source: {
+              state: '{\"location\":[\"location1\",\"location2\"],\"name\":[\"name1\",\"name2\"],\"age\":[\"age1\",\"age2\"],\"ethnicity\":[\"ethnicity1\",\"ethnicity2\"],\"eyeColor\":[\"eyeColor1\",\"eyeColor2\"],\"hairColor\":[\"hairColor1\",\"hairColor2\"],\"height\":[\"height1\",\"height2\"],\"weight\":[\"weight1\",\"weight2\"]}'
+            }
+          }]
+        }
+      };
+      expect(component.filterCollection).to.deep.equal({
+        location: ['location1', 'location2'],
+        name: ['name1', 'name2'],
+        age: ['age1', 'age2'],
+        ethnicity: ['ethnicity1', 'ethnicity2'],
+        eyeColor: ['eyeColor1', 'eyeColor2'],
+        hairColor: ['hairColor1', 'hairColor2'],
+        height: ['height1', 'height2'],
+        weight: ['weight1', 'weight2']
+      });
+    });
+
+    test('setting _filterIdQuery and _filterIdResults sets filterCollection using defaults if _validateId is false and state is empty', function() {
+      component._filterIdQuery = {};
+      component._filterIdResults = {
+        hits: {
+          hits: [{
+            _source: {
+              state: '{}'
+            }
+          }]
+        }
+      };
+      expect(component.filterCollection).to.deep.equal({
+        location: [],
+        name: [],
+        age: [],
+        ethnicity: [],
+        eyeColor: [],
+        hairColor: [],
+        height: [],
+        weight: []
+      });
+    });
+
+    test('setting _filterStringQuery and _filterStringResults sets filterId and _validateId if hits is empty', function() {
+      component._filterStringQuery = {};
+      component._filterStringResults = {
+        hits: {
+          hits: []
+        }
+      };
+
+      expect(component.filterId).to.be.a('String');
+      expect(component._validateId).to.be.true;
+    });
+
+    test('setting _filterStringQuery and _filterStringResults sets _link', function() {
+      component._filterStringQuery = {};
+      component._filterStringResults = {
+        hits: {
+          hits: [{
+            _source: {
+              id: 'id1'
+            }
+          }]
+        }
+      };
+
+      expect(component._link).to.equal('http://localhost:2000/components/digapp-ht/app/test/filter-state-manager-basic.html?state=id1');
+      expect(component.filterId).to.not.exist;
+      expect(component._validateId).to.be.false;
+    });
+  });
+</script>
+</body>
+</html>

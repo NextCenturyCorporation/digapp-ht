@@ -44,6 +44,8 @@ var all = {
     elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
+    filterStatesIndex: process.env.FILTER_STATES_INDEX || 'dig-filter-states',
+    filterStatesType: process.env.FILTER_STATES_TYPE || 'item',
     imageServiceAuth: process.env.IMAGE_SERVICE_AUTH|| '{"user": "", "password":""}',
     imageServiceHost: process.env.IMAGE_SERVICE_HOST|| '{"url":"","base64":""}',
     annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',

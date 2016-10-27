@@ -122,12 +122,13 @@
       page-size="{{pageSize}}"
       query="[[imageOffersQuery]]"
       aggregations="[]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{imageOffers}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
+      properties-ready="{{processRequest}}"
       source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
     </elastic-client-search>
 
@@ -164,12 +165,13 @@
       page-size="0"
       query="[[imageOffersQuery]]"
       aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{offersMentions}}"
       loading="{{mentionsLoading}}"
-      last-error="{{mentionsError}}">
+      last-error="{{mentionsError}}"
+      properties-ready="{{processRequest}}">
     </elastic-client-search>
 
     <json-combine
@@ -186,7 +188,7 @@
       value="[[imageDisplay.uri]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       transforms="[[clientConfig.transforms]]"
       count="[[imageDisplay.imageOffers.relatedOffers.count]]"
       interval="{{locationTimelineInterval}}"
@@ -212,6 +214,20 @@
               </div>
             </section>
           </div>
+
+          <filter-state-manager id="filterStateManager"
+            client="[[esclient]]"
+            filter-states-index="[[config.filterStatesIndex]]"
+            filter-states-type="[[config.filterStatesType]]"
+            filter-collection="{{filterCollection}}"
+            filter-list="{{filterList}}"
+            filter-id="[[params.state]]"
+            process-request="{{processRequest}}">
+          </filter-state-manager>
+
+          <paper-icon-button icon="link" title="Generate a Link for this Page with the Selected Filters" on-tap="generateLink">
+          </paper-icon-button>
+
           <annotate-record client="[[esclient]]"
             annotation-index="[[config.annotationIndex]]"
             annotation-type="[[config.annotationType]]"
@@ -220,6 +236,7 @@
             item-type="image"
             current-user="[[config.username]]">
           </annotate-record>
+
           <load-user-info
             client="[[esclient]]"
             loading="[[loading]]"
@@ -288,8 +305,14 @@
                     query-values="[[imageDisplay.adultService.array]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
-                    consumed-filters="[[buildArray(locationFilter)]]"
-                    produced-filters="{{peopleFilters}}"
+                    filter-list="[[filterList]]"
+                    selected-name="{{filterCollection.name}}"
+                    selected-age="{{filterCollection.age}}"
+                    selected-ethnicity="{{filterCollection.ethnicity}}"
+                    selected-eye-color="{{filterCollection.eyeColor}}"
+                    selected-hair-color="{{filterCollection.hairColor}}"
+                    selected-height="{{filterCollection.height}}"
+                    selected-weight="{{filterCollection.weight}}"
                     transforms="[[clientConfig.transforms]]">
                   </people-features>
                 </section>
@@ -398,16 +421,16 @@
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[imageDisplay.offerLocation.offerLocation.length]] Locations</div>
+                    <div>[[imageDisplay.offerLocation.location.length]] Locations</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[imageDisplay.offerLocation.offerLocation.length]]">
+                <template is="dom-if" if="[[imageDisplay.offerLocation.location.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
                       text-property="longName"
-                      data="{{imageDisplay.offerLocation.offerLocation}}">
+                      data="{{imageDisplay.offerLocation.location}}">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -420,19 +443,19 @@
                   </template>
 
                   <feature-query-and-display
-                    aggregation-name="city"
+                    aggregation-name="location"
                     aggregation-field="availableAtOrFrom.address.key"
                     filter-field="availableAtOrFrom.address.key"
-                    produced-filter="{{locationFilter}}"
+                    selected="{{filterCollection.location}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{locationError}}"
-                    consumed-filters="[[buildArray(peopleFilters)]]"
+                    filter-list="[[filterList]]"
                     transform="[[clientConfig.transforms.common.offerLocationData]]"
                     transform-results="{{imageDisplay.offerLocation}}"
-                    transform-property="offerLocation"
+                    transform-property="location"
                     data-id-property="key"
                     data-text-property="name"
                     feature-title="Offers per City">
@@ -489,7 +512,20 @@
     /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+    app.filterCollection = {
+      location: [],
+      name: [],
+      age: [],
+      ethnicity: [],
+      eyeColor: [],
+      hairColor: [],
+      height: [],
+      weight: []
+    };
+
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+    DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
@@ -498,6 +534,10 @@
     };
 
     app.imageDisplay = {};
+
+    app.generateLink = function() {
+      this.$.filterStateManager.generateLink();
+    };
   })(document);
   </script>
 </body>

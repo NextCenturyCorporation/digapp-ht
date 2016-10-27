@@ -49,10 +49,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <div class="layout horizontal">
       <div class="name tall right-space">Search Text</div>
       <div class="text tall right-space search-text">
-        <template is="dom-if" if="[[search.digUIState.searchText]]">
-          [[search.digUIState.searchText]]
+        <template is="dom-if" if="[[_getSearchText(search.digUIState.searchParameters)]]">
+          [[_getSearchText(search.digUIState.searchParameters)]]
         </template>
-        <template is="dom-if" if="[[!search.digUIState.searchText]]">
+        <template is="dom-if" if="[[!_getSearchText(search.digUIState.searchParameters)]]">
           None
         </template>
       </div>
@@ -64,12 +64,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
       <template is="dom-if" if="{{!_hasNoFacets}}">
         <div class="wrap facets">
-          <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.facets)]]" as="facetGroupName">
-            <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.facets, facetGroupName)]]" as="key">
-              <template is="dom-if" if="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'enabled')]]">
+          <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.searchParameters)]]" as="facetGroupName">
+            <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.searchParameters, facetGroupName)]]" as="key">
+              <template is="dom-if" if="[[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'enabled')]]">
                 <breadbox-item
-                  text="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]"
-                  title$="[[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.facets, facetGroupName, key, 'text')]]">
+                  text="[[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'text')]]"
+                  title$="[[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'text')]]">
                 </breadbox-item>
               </template>
             </template>
@@ -113,13 +113,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _isFacetSelectionEmpty: function(search) {
         var isEmpty = true;
-        if(search && search.digUIState && search.digUIState.facets) {
-          var facets = search.digUIState.facets;
+        if(search && search.digUIState && search.digUIState.searchParameters) {
+          var searchParameters = search.digUIState.searchParameters;
 
-          var facetSelection = JSON.parse(facets);
-          _.each(_.keys(facetSelection), function(key) {
-            _.each(_.keys(facetSelection[key]), function(subkey) {
-              if(facetSelection[key][subkey].enabled === true) {
+          var searchParametersObject = JSON.parse(searchParameters);
+          _.each(_.keys(searchParametersObject), function(key) {
+            _.each(_.keys(searchParametersObject[key]), function(subkey) {
+              if(searchParametersObject[key][subkey].enabled === true) {
                 isEmpty = false;
                 return false;
               }
@@ -136,24 +136,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       /**
        * Get all the facet selection groups.
        */
-      _getFacetGroups: function(facets) {
-        return _.keys(JSON.parse(facets));
+      _getFacetGroups: function(searchParameters) {
+        return _.keys(JSON.parse(searchParameters));
       },
+
       /**
        * Get the selected facets from the facet group.
        */
-      _getFacetGroupKeys: function(facets, facetGroupName) {
-        var facetsAsObject = JSON.parse(facets);
-        return _.keys(facetsAsObject[facetGroupName]);
+      _getFacetGroupKeys: function(searchParameters, facetGroupName) {
+        var searchParametersObject = JSON.parse(searchParameters);
+        return _.keys(searchParametersObject[facetGroupName]);
       },
+
       /**
        * Get the property of a selected facet.
        */
-      _getFacetProperty: function(facets, facetGroupName, key, prop) {
-        var facetsAsObject = JSON.parse(facets);
-        if(facetsAsObject && facetsAsObject[facetGroupName] && facetsAsObject[facetGroupName][key]) {
-          return facetsAsObject[facetGroupName][key][prop];
+      _getFacetProperty: function(searchParameters, facetGroupName, key, prop) {
+        var searchParametersObject = JSON.parse(searchParameters);
+        if(searchParametersObject && searchParametersObject[facetGroupName] && searchParametersObject[facetGroupName][key]) {
+          return searchParametersObject[facetGroupName][key][prop];
         }
+      },
+
+      /**
+       * Returns the text property in the given search parameters.
+       */
+      _getSearchText: function(searchParameters) {
+        var searchParametersObject = JSON.parse(searchParameters) || {};
+        return searchParametersObject.text || '';
       }
     });
   })();

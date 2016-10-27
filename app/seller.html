@@ -122,12 +122,13 @@
       page-size="{{pageSize}}"
       query="[[sellerOffersQuery]]"
       aggregations="[]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
       results="{{sellerOffers}}"
       loading="{{offersLoading}}"
-      last-error="{{offersError}}">
+      last-error="{{offersError}}"
+      properties-ready="{{processRequest}}">
     </elastic-client-search>
 
     <json-transform
@@ -143,7 +144,7 @@
       value="[[sellerDisplay.seller.id]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      filters="[[buildArray(locationFilter, peopleFilters)]]"
+      filters="[[filterList]]"
       transforms="[[clientConfig.transforms]]"
       count="[[sellerDisplay.sellerOffers.relatedOffers.count]]"
       interval="{{locationTimelineInterval}}"
@@ -169,6 +170,20 @@
               </div>
             </section>
           </div>
+
+          <filter-state-manager id="filterStateManager"
+            client="[[esclient]]"
+            filter-states-index="[[config.filterStatesIndex]]"
+            filter-states-type="[[config.filterStatesType]]"
+            filter-collection="{{filterCollection}}"
+            filter-list="{{filterList}}"
+            filter-id="[[params.state]]"
+            process-request="{{processRequest}}">
+          </filter-state-manager>
+
+          <paper-icon-button icon="link" title="Generate a Link for this Page with the Selected Filters" on-tap="generateLink">
+          </paper-icon-button>
+
           <load-user-info
             client="[[esclient]]"
             loading="[[loading]]"
@@ -240,8 +255,14 @@
                     query-values="[[sellerDisplay.seller.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
-                    consumed-filters="[[buildArray(locationFilter)]]"
-                    produced-filters="{{peopleFilters}}"
+                    filter-list="[[filterList]]"
+                    selected-name="{{filterCollection.name}}"
+                    selected-age="{{filterCollection.age}}"
+                    selected-ethnicity="{{filterCollection.ethnicity}}"
+                    selected-eye-color="{{filterCollection.eyeColor}}"
+                    selected-hair-color="{{filterCollection.hairColor}}"
+                    selected-height="{{filterCollection.height}}"
+                    selected-weight="{{filterCollection.weight}}"
                     transforms="[[clientConfig.transforms]]">
                   </people-features>
                 </section>
@@ -318,16 +339,16 @@
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
                     <!-- Likely to be only one location for seller for now until entity resolution is done -->
-                    <div>[[sellerDisplay.offerLocation.offerLocation.length]] Locations</div>
+                    <div>[[sellerDisplay.offerLocation.location.length]] Locations</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[sellerDisplay.offerLocation.offerLocation.length]]">
+                <template is="dom-if" if="[[sellerDisplay.offerLocation.location.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
                       text-property="longName"
-                      data="{{sellerDisplay.offerLocation.offerLocation}}">
+                      data="{{sellerDisplay.offerLocation.location}}">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -340,19 +361,19 @@
                   </template>
 
                   <feature-query-and-display
-                    aggregation-name="city"
+                    aggregation-name="location"
                     aggregation-field="availableAtOrFrom.address.key"
                     filter-field="availableAtOrFrom.address.key"
-                    produced-filter="{{locationFilter}}"
+                    selected="{{filterCollection.location}}"
                     query="[[sellerOffersQuery]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{locationError}}"
-                    consumed-filters="[[buildArray(peopleFilters)]]"
+                    filter-list="[[filterList]]"
                     transform="[[clientConfig.transforms.common.offerLocationData]]"
                     transform-results="{{sellerDisplay.offerLocation}}"
-                    transform-property="offerLocation"
+                    transform-property="location"
                     data-id-property="key"
                     data-text-property="name"
                     feature-title="Offers per City">
@@ -401,7 +422,6 @@
     </div>
   </template>
 
-  <script src="behaviors/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
 
   <script>
@@ -409,11 +429,26 @@
     /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search.slice(1, window.location.search.length));
+    app.filterCollection = {
+      location: [],
+      name: [],
+      age: [],
+      ethnicity: [],
+      eyeColor: [],
+      hairColor: [],
+      height: [],
+      weight: []
+    };
 
-    app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+    app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+    DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.sellerDisplay = {};
+
+    app.generateLink = function() {
+      this.$.filterStateManager.generateLink();
+    };
   })(document);
   </script>
 </body>
