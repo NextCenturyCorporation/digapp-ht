@@ -109,7 +109,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
 
         dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
           sum += locationBucket.doc_count;
-          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', '));
+          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', ') + ' (' + locationBucket.doc_count + ')');
           return {
             name: locationBucket.key.split(':').slice(0, 3).join(', '),
             icon: commonTransforms.getIronIcon('location'),
@@ -121,7 +121,9 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         });
 
         if(sum < bucket.doc_count) {
+          subtitle.push('Unknown Locations (' + (bucket.doc_count - sum) + ')');
           dateBucket.locations.push({
+            name: 'Unknown Location',
             icon: commonTransforms.getIronIcon('location'),
             styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
