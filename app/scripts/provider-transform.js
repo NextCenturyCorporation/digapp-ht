@@ -29,16 +29,6 @@ var providerTransform = (function(_, commonTransforms) {
       text += (text ? ', ' : '') + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
     }
     person.text = text;
-    person.sellers = [];
-    var offers = _.get(record, 'offers');
-    if(offers) {
-      (_.isArray(offers) ? offers : [offers]).forEach(function(offer) {
-        var seller = _.get(offer, 'seller');
-        if(seller) {
-          person.sellers.push(_.get(seller, 'uri'));
-        }
-      });
-    }
     return person;
   }
 
