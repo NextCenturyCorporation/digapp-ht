@@ -123,7 +123,7 @@ var sellerTransform = (function(_, relatedEntityTransform, commonTransforms) {
         if(sum < bucket.doc_count) {
           subtitle.push('Unknown Locations (' + (bucket.doc_count - sum) + ')');
           dateBucket.locations.push({
-            name: 'Unknown Location',
+            name: 'Unknown Location(s)',
             icon: commonTransforms.getIronIcon('location'),
             styleClass: commonTransforms.getStyleClass('location'),
             type: 'location',
