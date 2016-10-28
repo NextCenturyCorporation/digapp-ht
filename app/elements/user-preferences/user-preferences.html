@@ -394,18 +394,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * Tracks whether or not a query with a notification is being viewed.
-         */
-        notificationQuery: {
-          type: Boolean,
-          notify: true
-        },
-        /**
-         * If notification query is being viewed, the notification date associated with that query.
+         * Whether a notification query is being viewed and the notification date associated with that query.
          */
         notificationQueryDate: {
           type: Object,
           notify: true
+        },
+
+        /**
+         * The setting for the sort in the searchParameters to sort by the newest results.
+         */
+        sortNewest: {
+          type: String,
+          value: ''
         },
 
         /**
@@ -642,9 +643,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _resetNotificationQuery: function() {
         if(!this._callFromRunSearch) {
-          this.notificationQuery = false;
-          this.notificationQueryDate = undefined;
+          this.notificationQueryDate = null;
         }
+      },
+
+      /**
+       * Creates and returns a new object for the searchParameters using the given digUIState.
+       */
+      _createSearchParameters: function(digUIState) {
+        var state = JSON.parse(digUIState.searchParameters);
+        return {
+          dateCreated: state.dateCreated || {},
+          country: state.country || {},
+          city: state.city || {},
+          phone: state.phone || {},
+          email: state.email || {},
+          website: state.website || {},
+          name: state.name || {},
+          age: state.age || {},
+          ethnicity: state.ethnicity || {},
+          eyeColor: state.eyeColor || {},
+          hairColor: state.hairColor || {},
+          height: state.height || {},
+          weight: state.weight || {},
+          sort: this.sortNewest,
+          text: state.text || ''
+        };
       },
 
       /**
@@ -662,7 +686,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._setDateAndNotificationFlags(event.model.index);
 
         this._callFromRunSearch = true;
-        this.set('searchParameters', JSON.parse(event.model.search.digUIState.searchParameters));
+        this.set('searchParameters', this._createSearchParameters(event.model.search.digUIState));
         this._checkIfPendingNotifications();
       },
 
@@ -677,7 +701,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this._resetNotificationQuery();
 
         this._callFromRunSearch = true;
-        this.set('searchParameters', JSON.parse(event.model.search.digUIState.searchParameters));
+        this.set('searchParameters', this._createSearchParameters(event.model.search.digUIState));
         this.set('processRequest', true);
         this.set('_callFromRunSearch', false);
       },
@@ -697,7 +721,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           // results are first
           search.notificationHasRun = true;
           self.notificationQueryDate = new Date(search.notificationDate);
-          self.notificationQuery = true;
         }
         self.splice('searches', index, 1, search);
         self._set_userUpdateBody({

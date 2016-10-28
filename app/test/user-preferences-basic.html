@@ -60,7 +60,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element.receivedSearches, []);
       assert.deepEqual(element.searches, []);
       assert.isFalse(element.hasNotifications);
-      assert.isUndefined(element.notificationQuery);
+      assert.equal(element.sortNewest, '');
       assert.isUndefined(element.notificationQueryDate);
       assert.isUndefined(element._userUpdateBody);
       assert.isUndefined(element._updatedUser);
@@ -320,26 +320,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('_resetNotificationQuery only resets notification properties if _callFromRunSearch is false', function() {
-      element.notificationQuery = true;
       element.notificationQueryDate = new Date('October 3, 2016');
       element._callFromRunSearch = true;
 
       element._resetNotificationQuery();
 
       assert.deepEqual(element.notificationQueryDate, new Date('October 3, 2016'));
-      assert.isTrue(element.notificationQuery);
 
       element._callFromRunSearch = false;
 
       element._resetNotificationQuery();
-      assert.isUndefined(element.notificationQueryDate);
-      assert.isFalse(element.notificationQuery);
+      assert.equal(element.notificationQueryDate, null);
     });
 
     test('_runSearch sets the search text from the saved search and notification variables (if needed) and closes the settings dialog', function() {
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"dateCreated\":{}}'
+          searchParameters: '{\"text\":\"my search text\"}'
         },
         notificationHasRun: false,
         notificationDate: new Date('October 3, 2016')
@@ -353,14 +350,29 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       element._runSearch(mockEvent);
-      assert.isTrue(element.notificationQuery);
       assert.isDefined(element.searches[0].lastRunDate);
       assert.isTrue(element.searches[0].notificationHasRun);
       assert.deepEqual(element.notificationQueryDate, new Date('October 3, 2016'));
       assert.deepEqual(element._userUpdateBody, {doc: {
         savedQueries: element.searches
       }});
-      assert.deepEqual(element.searchParameters, {dateCreated: {}});
+      assert.deepEqual(element.searchParameters, {
+        dateCreated: {},
+        country: {},
+        city: {},
+        phone: {},
+        email: {},
+        website: {},
+        name: {},
+        age: {},
+        ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
+        height: {},
+        weight: {},
+        sort: '',
+        text: 'my search text'
+      });
       assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
@@ -370,7 +382,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('_runSearch sets search variables and closes the settings dialog', function() {
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"dateCreated\":{}}'
+          searchParameters: '{\"text\":\"my search text\"}'
         },
         notificationHasRun: true,
         notificationDate: new Date('October 3, 2016')
@@ -384,24 +396,134 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       };
 
       element._runSearch(mockEvent);
-      assert.isFalse(element.notificationQuery);
       assert.isDefined(element.searches[0].lastRunDate);
       assert.isTrue(element.searches[0].notificationHasRun);
-      assert.isUndefined(element.notificationQueryDate);
+      assert.equal(element.notificationQueryDate, null);
       assert.deepEqual(element._userUpdateBody, {doc: {
         savedQueries: element.searches
       }});
-      assert.deepEqual(element.searchParameters, {dateCreated: {}});
+      assert.deepEqual(element.searchParameters, {
+        dateCreated: {},
+        country: {},
+        city: {},
+        phone: {},
+        email: {},
+        website: {},
+        name: {},
+        age: {},
+        ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
+        height: {},
+        weight: {},
+        sort: '',
+        text: 'my search text'
+      });
       assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
       assert(settingsDialog);
       assert.isFalse(settingsDialog.opened);
     });
 
+    test('_runSearch sets all search parameters except sort', function() {
+      element.searches = [{
+        digUIState: {
+          searchParameters: '{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"sort\":\"mySort\",\"text\":\"my search text\"}'
+        }
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._runSearch(mockEvent);
+      assert.deepEqual(element.searchParameters, {
+        dateCreated: {
+          value: 'dateCreated1'
+        },
+        country: {
+          value: 'country1'
+        },
+        city: {
+          value: 'city1'
+        },
+        phone: {
+          value: 'phone1'
+        },
+        email: {
+          value: 'email1'
+        },
+        website: {
+          value: 'website1'
+        },
+        name: {
+          value: 'name1'
+        },
+        age: {
+          value: 'age1'
+        },
+        ethnicity: {
+          value: 'ethnicity1'
+        },
+        eyeColor: {
+          value: 'eyeColor1'
+        },
+        hairColor: {
+          value: 'hairColor1'
+        },
+        height: {
+          value: 'height1'
+        },
+        weight: {
+          value: 'weight1'
+        },
+        sort: '',
+        text: 'my search text'
+      });
+    });
+
+    test('_runSearch sets sort search parameter to sortNewest', function() {
+      element.sortNewest = 'sortNewest';
+      element.searches = [{
+        digUIState: {
+          searchParameters: '{\"sort\":\"mySort\",\"text\":\"my search text\"}'
+        }
+      }];
+
+      var mockEvent = {
+        model: {
+          index: 0,
+          search: element.searches[0]
+        }
+      };
+
+      element._runSearch(mockEvent);
+      assert.deepEqual(element.searchParameters, {
+        dateCreated: {},
+        country: {},
+        city: {},
+        phone: {},
+        email: {},
+        website: {},
+        name: {},
+        age: {},
+        ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
+        height: {},
+        weight: {},
+        sort: 'sortNewest',
+        text: 'my search text'
+      });
+    });
+
     test('_runReceivedSearch runs a search from the received list', function() {
       element.receivedSearches = [{
         digUIState: {
-          searchParameters: '{\"dateCreated\":{}}'
+          searchParameters: '{\"text\":\"my search text\"}'
         }
       }];
       var mockEvent = {
@@ -411,18 +533,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       };
       element._runReceivedSearch(mockEvent);
-      assert.isFalse(element.notificationQuery);
-      assert.isUndefined(element.notificationQueryDate);
+      assert.equal(element.notificationQueryDate, null);
       assert.isUndefined(element.receivedSearches[0].lastRunDate);
       assert.isUndefined(element._userUpdateBody);
-      assert.deepEqual(element.searchParameters, {dateCreated: {}});
+      assert.deepEqual(element.searchParameters, {
+        dateCreated: {},
+        country: {},
+        city: {},
+        phone: {},
+        email: {},
+        website: {},
+        name: {},
+        age: {},
+        ethnicity: {},
+        eyeColor: {},
+        hairColor: {},
+        height: {},
+        weight: {},
+        sort: '',
+        text: 'my search text'
+      });
     });
 
     test('_checkIfPendingNotifications updates hasNotifications property if needed', function() {
       element.hasNotifications = true;
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"dateCreated\":{}}'
+          searchParameters: '{\"text\":\"my search text\"}'
         },
         notificationHasRun: false,
         notificationDate: new Date('October 3, 2016')
