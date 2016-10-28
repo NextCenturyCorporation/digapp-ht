@@ -182,6 +182,44 @@
       combine-function="[[clientConfig.transforms.offer.createMentions]]">
     </json-combine>
 
+    <elastic-client-aggregation-builder
+      name="dates"
+      type="date_histogram"
+      interval="day"
+      count="0"
+      field="validFrom"
+      ejs-aggregation="{{datesAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="locations"
+      type="terms"
+      count="0"
+      order="_term"
+      direction="asc"
+      field="availableAtOrFrom.address.key"
+      nested-aggregations="[[buildArray(datesAggregation)]]"
+      ejs-aggregation="{{locationsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types='["offer"]'
+      query="[[providerOffersQuery]]"
+      aggregations="[[buildArray(locationsAggregation)]]"
+      filters="[[filterList]]"
+      results="{{dropsQueryResults}}"
+      loading="{{dropsLoading}}"
+      last-error="{{dropsError}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[dropsQueryResults]]"
+      data-out="{{dropsResults}}"
+      transform-function="[[clientConfig.transforms.offer.dropsTimeline]]">
+    </json-transform>
+
     <!-- Display Content -->
     <div class="entity">
       <paper-header-panel class="flex" mode="waterfall-tall">
@@ -298,6 +336,16 @@
                     icon-style-class-property="styleClass"
                     data="[[providerDisplay.offersMentions]]">
                   </icon-label-grid>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <paper-material>
+                <!-- Event drops timeline -->
+                <section class="who flex-auto">
+                  <div class="paper-font-title">Location Timeline</div>
+                  <drops-timeline payload="{{dropsResults}}"></drops-timeline>
                 </section>
               </paper-material>
             </div>
