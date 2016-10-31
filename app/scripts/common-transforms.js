@@ -208,7 +208,7 @@ var commonTransforms = (function(_, dateFormat) {
       address.formattedAddress = formattedAddress.join('');
 
       if(_.isEmpty(address.formattedAddress)) {
-        address.formattedAddress = 'Address N/A';
+        address.formattedAddress = 'No Address';
       }
 
       return address;
