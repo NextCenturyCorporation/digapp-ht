@@ -206,8 +206,9 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
           var dates = offsetDates(cityAggs[city]);
 
           var nameList = city.split(':');
+          var combineCityStateNames = nameList[0] + ', ' + nameList[1];
           transformedData.push({
-            name: nameList[0] + ', ' + nameList[1],
+            name: (combineCityStateNames.length <= 24) ? combineCityStateNames : nameList[0],
             dates: dates
           });
         }
