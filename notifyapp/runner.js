@@ -89,7 +89,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
 
   var sendAlertEmailIfNeeded = function(user, updatedQueries, callback) {
     var savedQueryNames = updatedQueries.filter(function(query) {
-      return query.sendEmailNotification && !query.notificationHasRun;
+      return query.sendEmailNotification && (query.notificationHasRun === false);
     }).map(function(query) {
       return query.name;
     });
