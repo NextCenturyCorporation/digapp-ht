@@ -137,7 +137,9 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
         type: userType,
         body: {}
       }).then(function(users) {
+        logger.info('Checking ' + users.hits.hits.length + ' users for period ' + period);
         checkAndSaveNextUser(users.hits.hits, period);
+        logger.info('Done checking ' + users.hits.hits.length + ' users for period ' + period);
       }, function(error) {
         logger.error(error, 'Error getting users');
       });

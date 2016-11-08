@@ -9,7 +9,7 @@ var Scheduler = require('./scheduler.js');
 var LOG_NAME = process.env.LOG_NAME || 'DIG Alerts App';
 var LOG_PATH = process.env.LOG_PATH || '/var/log/dig_alerts_app.log';
 
-var MAILER_EMAIL_ADDRESS = process.env.MAILER_EMAIL_ADDRESS || 'digapp@nextcentury.com';
+var MAILER_EMAIL_ADDRESS = process.env.MAILER_EMAIL_ADDRESS || 'dig@nextcentury.com';
 var DIG_SUPPORT_EMAIL_ADDRESS = process.env.DIG_SUPPORT_EMAIL_ADDRESS;
 var DIG_URL = process.env.DIG_URL;
 
@@ -27,25 +27,31 @@ var logger = new Logger(LOG_NAME, LOG_PATH);
 
 logger.info('Logger created.');
 
-var mailer = new Mailer(logger, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL);
+//var mailer = new Mailer(logger, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL);
 
-logger.info('Mailer created.  Sending a support email...');
+//logger.info('Mailer created.  Sending a support email...');
 
-mailer.sendSupportEmail();
+//mailer.sendSupportEmail();
 
 var client = new Client(logger, ES_AUTH, ES_HOST, ES_PORT, ES_PROTOCOL);
 
 logger.info('Client created.');
 
-var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, mailer.sendAlertEmail);
+var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, function(a, b, callback) {
+  callback();
+});
+
+//var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, mailer.sendAlertEmail);
 
 logger.info('Runner created.');
 
 var scheduler = new Scheduler(logger);
 
-logger.info('Scheduler created.  Adding jobs...');
+logger.info('Scheduler created.  Starting jobs...');
+
+runner.checkUsersDaily();
 
 scheduler.runDaily(runner.checkUsersDaily);
 scheduler.runWeekly(runner.checkUsersWeekly);
-scheduler.runDaily(mailer.sendSupportEmail);
+//scheduler.runDaily(mailer.sendSupportEmail);
 
