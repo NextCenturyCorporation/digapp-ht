@@ -29,6 +29,8 @@ module.exports = function(app) {
             username: req.headers.user ? req.headers.user : 'mockUser',
             filterStatesIndex: config.filterStatesIndex,
             filterStatesType: config.filterStatesType,
+            logIndex: config.logIndex,
+            logType: config.logType,
             userIndex: config.userIndex,
             userType: config.userType,
             imageServiceAuth: config.imageServiceAuth,
