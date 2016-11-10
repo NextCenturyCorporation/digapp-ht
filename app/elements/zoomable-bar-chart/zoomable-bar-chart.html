@@ -333,9 +333,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var yOverview = d3.scale.linear().range([overviewHeight, 0]);
 
           // rendering for the x and y axes
-          var xAxis = d3.svg.axis().scale(x).orient('bottom').tickFormat(d3.time.format('%b %d'));
+          var xAxis = d3.svg.axis().scale(x).orient('bottom');
           var yAxis = d3.svg.axis().scale(y).orient('left').tickFormat(d3.format('.0f'));
-          var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom').tickFormat(d3.time.format('%b %d'));
+          var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom');
 
           var svg = d3.select(document.createElement('div')).append('svg');
 
@@ -365,7 +365,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.dateObject; }));
-          this.setXAxisTicks(xAxis, x.domain());
+          this.setXAxisTicks(xAxis, x.domain(), xAxisOverview);
           var xAxisMax = _.max(_.map(data, function(item) {
             return x(item.dateObject);
           }));
@@ -379,7 +379,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             var xDomain = x.domain();
             var intervalText = self.createIntervalText();
             // TODO Combine with use of dateFormat in commonTransforms.getDate().
-            return intervalText + dateFormat(xDomain[0], 'mmm d, yyyy', true) + ' to ' + intervalText + dateFormat(xDomain[1], 'mmm d, yyyy', true);
+            return 'Showing ' + intervalText + dateFormat(xDomain[0], 'mmm d, yyyy', true) + ' to ' + intervalText + dateFormat(xDomain[1], 'mmm d, yyyy', true);
           };
 
           info.text(createExtentText());
@@ -472,7 +472,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var onBrushed = function() {
             // update the main chart's x axis data range
             x.domain(brush.empty() ? xOverview.domain() : brush.extent());
-            self.setXAxisTicks(xAxis, x.domain());
+            self.setXAxisTicks(xAxis, x.domain(), xAxisOverview);
 
             info.text(createExtentText());
 
@@ -538,11 +538,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         },
 
-        setXAxisTicks: function(xAxis, xDomain) {
-          var minInterval = this.interval && this.interval === 'week' ? d3.time.week : d3.time.day;
-          var xDiff = (((((xDomain[1] - xDomain[0]) / 1000) / 60) / 60) / 24);
-          var xInterval = (xDiff > 730 ? d3.time.year : (xDiff > 90 ? d3.time.month : (xDiff > 15 ? d3.time.week : minInterval)));
+        setXAxisTicks: function(xAxis, xDomain, xAxisOverview) {
+          var xDiffInDays = (((((xDomain[1] - xDomain[0]) / 1000) / 60) / 60) / 24);
+
+          var xInterval = (xDiffInDays > 15 ? d3.time.week : d3.time.day);
+          var timeFormat = '%b %e';
+          if(xDiffInDays > 550) {
+            xInterval = d3.time.year;
+            timeFormat = '%b %Y';
+          } else if(xDiffInDays > 90 || this.interval === 'week') {
+            xInterval = d3.time.month;
+            timeFormat = '%b';
+          }
+
+          xAxis.tickFormat(d3.time.format(timeFormat));
+          xAxisOverview.tickFormat(d3.time.format(timeFormat));
           xAxis.ticks(xInterval, 1);
+          xAxisOverview.ticks(xInterval, 1);
         },
 
         getYAxisTickValues: function(yAxisMax) {
