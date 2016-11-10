@@ -251,12 +251,12 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
     createExportData: function(results) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephones', 'email addresses', 'images', 'description']];
+      var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];
       results.forEach(function(result) {
         var images = result.images.map(function(image) {
           return image.text;
         }).join('; ');
-        data.push([result.url, linkPrefix + result.link, result.text, result.date, result.publisher, result.locations, result.phones, result.emails, images, result.description.replace(/\n/g, '')]);
+        data.push([result.url, linkPrefix + result.link, result.text, result.date, result.publisher, result.locations, result.phones, result.emails, images, result.description.replace(/\n/g, ' ')]);
       });
       return data;
     }
