@@ -110,85 +110,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return offerObj;
   }
 
-  function getPhoneSummary(record) {
-    /**
-        build phone summary object:
-        {
-            "id": "http://someuri",
-            "type": "phone",
-            "text": "1234567890", // phone number
-            "link": "/phone.html?value=http://someuri&field=_id",
-            "descriptors": []
-        }
-    */
-    var phoneObj = {
-      id: record._id,
-      type: record._type,
-      text: _.get(record, '_source.name', 'Phone N/A'),
-      icon: commonTransforms.getIronIcon('phone'),
-      link: commonTransforms.getLink(record._id, 'phone'),
-      styleClass: commonTransforms.getStyleClass('phone'),
-      descriptors: []
-    };
-    return phoneObj;
-  }
-
-  function getEmailSummary(record) {
-    /**
-        build email summary object:
-        {
-            "id": "http://someuri",
-            "type": "email",
-            "text": "abc@xyz.com", // email address
-            "link": "/email.html?value=http://someuri&field=_id",
-            "descriptors": []
-        }
-    */
-    var emailObj = {
-      id: record._id,
-      type: record._type,
-      text: decodeURIComponent(_.get(record, '_source.name', 'Email N/A')),
-      icon: commonTransforms.getIronIcon('email'),
-      link: commonTransforms.getLink(record._id, 'email'),
-      styleClass: commonTransforms.getStyleClass('email'),
-      descriptors: []
-    };
-    return emailObj;
-  }
-
-  function getSellerSummary(record) {
-    /**
-        build seller summary object:
-        {
-            "id": "http://someuri",
-            "type": "seller",
-            "text": "1234567890", // phone number associated with seller
-            "link": "/seller.html?value=http://someuri&field=_id",
-            "descriptors": []
-        }
-    */
-
-    var sellerObj = {
-      id: record._id,
-      type: record._type,
-      icon: commonTransforms.getIronIcon('seller'),
-      link: commonTransforms.getLink(record._id, 'seller'),
-      styleClass: commonTransforms.getStyleClass('seller'),
-      descriptors: []
-    };
-
-    var phoneField = _.get(record, '_source.telephone');
-    if(_.isArray(phoneField)) {
-      if(phoneField.length > 0) {
-        sellerObj.text = _.get(record, '_source.telephone[0].name', 'Phone N/A');
-      }
-    } else {
-      sellerObj.text = _.get(record, '_source.telephone.name', 'Phone N/A');
-    }
-
-    return sellerObj;
-  }
-
   function getWebpageSummary(record) {
     /*  build webpage summary object:
         {
@@ -257,66 +178,6 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return webpageObj;
   }
 
-  function getServiceSummary(record) {
-    /*
-        build service/provider summary object:
-        {
-            "id": "http://someuri",
-            "type": "provider",
-            "text": "Emily", // person name
-            "link": "/provider.html?value=http://someuri&field=_id",
-            "descriptors": [{type: 'age', text: 'Age: 20'}], // array of age
-            "details": [{
-                "name": "height",
-                "text": 64
-            }, {
-                "name": "weight",
-                "text": 115
-            }, {
-                "name": "ethnicity",
-                "text": "white"
-            }]
-        }
-    */
-    var serviceObj = {
-      id: record._id,
-      type: 'provider', // hardcode 'provider' value for now
-      text: _.get(record, '_source.name', 'Name N/A'),
-      icon: commonTransforms.getIronIcon('provider'),
-      link: commonTransforms.getLink(record._id, 'provider'),
-      styleClass: commonTransforms.getStyleClass('provider'),
-      descriptors: [{
-        type: 'age',
-        text: 'Age: ' + _.get(record, '_source.age', 'N/A')
-      }],
-      details: []
-    };
-
-    var height = _.get(record, '_source.height');
-    if(height) {
-      serviceObj.details.push({
-        name: 'height',
-        text: _.isArray(height) ? height.join(', ') : height
-      });
-    }
-    var weight = _.get(record, '_source.weight');
-    if(weight) {
-      serviceObj.details.push({
-        name: 'weight',
-        text: _.isArray(weight) ? weight.join(', ') : weight
-      });
-    }
-    var ethnicity = _.get(record, '_source.ethnicity');
-    if(ethnicity) {
-      serviceObj.details.push({
-        name: 'ethnicity',
-        text: _.isArray(ethnicity) ? ethnicity.join(', ') : ethnicity
-      });
-    }
-
-    return serviceObj;
-  }
-
   return {
     // expected data is from an elasticsearch query
     offer: function(data) {
@@ -329,70 +190,12 @@ var relatedEntityTransform = (function(_, commonTransforms) {
       }
       return newObj;
     },
-    phone: function(data) {
-      var newObj = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          newObj.data.push(getPhoneSummary(record));
-        });
-        newObj.count = data.hits.total;
-      }
-      return newObj;
-    },
-    email: function(data) {
-      var newObj = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          newObj.data.push(getEmailSummary(record));
-        });
-        newObj.count = data.hits.total;
-      }
-      return newObj;
-    },
-    seller: function(data) {
-      var newObj = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          newObj.data.push(getSellerSummary(record));
-        });
-        newObj.count = data.hits.total;
-      }
-      return newObj;
-    },
-    service: function(data) {
-      var newObj = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          newObj.data.push(getServiceSummary(record));
-        });
-        newObj.count = data.hits.total;
-      }
-      return newObj;
-    },
     webpage: function(data) {
       var newObj = {data: [], count: 0};
       if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
           var webpageSummary = getWebpageSummary(record);
           newObj.data.push(webpageSummary);
-        });
-        newObj.count = data.hits.total;
-      }
-      return newObj;
-    },
-    // transform for combined sets of results not separated by type
-    combinedResults: function(data) {
-      var newObj = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          switch(record._type) {
-            case 'email': newObj.data.push(getEmailSummary(record)); break;
-            case 'adultservice': newObj.data.push(getServiceSummary(record)); break;
-            case 'phone': newObj.data.push(getPhoneSummary(record)); break;
-            case 'offer': newObj.data.push(getOfferSummary(record)); break;
-            case 'seller': newObj.data.push(getSellerSummary(record)); break;
-            case 'webpage': newObj.data.push(getWebpageSummary(record)); break;
-          }
         });
         newObj.count = data.hits.total;
       }

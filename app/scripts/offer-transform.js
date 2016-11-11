@@ -9,6 +9,39 @@
 /* note lodash should be defined in parent scope, as well as commonTransforms */
 var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
 
+  /** build address object:
+  "address": {
+      "locality": "Los Angeles",
+      "region": "California",
+      "formattedAddress": 'Los Angeles, California'
+  }
+  */
+  function getAddress(record) {
+    var address = {};
+    address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
+    address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
+
+    var formattedAddress = [];
+    if(address.locality) {
+      formattedAddress.push(address.locality);
+    }
+
+    if(address.region) {
+      if(formattedAddress.length > 0) {
+        formattedAddress.push(', ');
+      }
+      formattedAddress.push(address.region);
+    }
+
+    address.formattedAddress = formattedAddress.join('');
+
+    if(_.isEmpty(address.formattedAddress)) {
+      address.formattedAddress = 'No Address';
+    }
+
+    return address;
+  }
+
   function getGeolocation(record) {
     /** build geolocation array object:
     "geolocation": [{
@@ -108,7 +141,7 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     newData.icon = commonTransforms.getIronIcon('offer');
     newData.styleClass = commonTransforms.getStyleClass('offer');
     newData.date = _.get(record, 'validFrom');
-    newData.address = commonTransforms.getAddress(record);
+    newData.address = getAddress(record);
     newData.geolocation = getGeolocation(record);
     newData.person = getPerson(record);
     newData.prices = commonTransforms.getClickableObjects(getPrices(_.get(record, 'priceSpecification')).map(function(price) {
@@ -137,7 +170,7 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     return newData;
   }
 
-  var offsetDates = function(dates) {
+  function offsetDates(dates) {
     var sorted = _.sortBy(dates);
     for(var i = 1; i < sorted.length; i++) {
       if(sorted[i] === sorted[i - 1]) {
@@ -146,7 +179,146 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     }
 
     return sorted;
-  };
+  }
+
+  function createLocationTimelineNotes(bucket) {
+    var notes = [];
+
+    if(bucket.publishers) {
+      notes.push({
+        name: 'Websites',
+        data: _.map(bucket.publishers.buckets, function(publisher) {
+          return {
+            icon: commonTransforms.getIronIcon('webpage'),
+            styleClass: commonTransforms.getStyleClass('webpage'),
+            text: publisher.key,
+            type: 'webpage'
+          };
+        })
+      });
+    }
+
+    if(bucket.phones) {
+      var phones = commonTransforms.getMentions(_.map(bucket.phones.buckets, function(phone) {
+        return phone.key;
+      }), 'phone');
+      if(phones.length) {
+        notes.push({
+          name: 'Telephone Numbers',
+          data: phones
+        });
+      }
+    }
+
+    if(bucket.emails) {
+      var emails = commonTransforms.getMentions(_.map(bucket.emails.buckets, function(email) {
+        return email.key;
+      }), 'email');
+      if(emails.length) {
+        notes.push({
+          name: 'Email Addresses',
+          data: emails
+        });
+      }
+    }
+
+    return notes;
+  }
+
+  /**
+   * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
+   * and notes for each location.
+   * [{
+   *     date: 1455657767,
+   *     subtitle: "Mountain View, CA",
+   *     locations: [{
+   *         name: "Mountain View, CA, USA",
+   *         type: "location",
+   *         count: 12,
+   *         notes: [{
+   *             name: "Email Address",
+   *             data: [{
+   *                 id: "http://email/abc@xyz.com",
+   *                 link: "/email.html?value=http://email/abc@xyz.com&field=_id",
+   *                 text: "abc@xyz.com",
+   *                 type: "email"
+   *             }]
+   *         }, {
+   *             name: "Telephone Number",
+   *             data: [{
+   *                 id: "http://phone/1234567890",
+   *                 link: "/phone.html?value=http://phone/1234567890&field=_id",
+   *                 text: "1234567890",
+   *                 type: "phone"
+   *             }, {
+   *                 id: "http://phone/0987654321",
+   *                 link: "/phone.html?value=http://phone/0987654321&field=_id",
+   *                 text: "0987654321",
+   *                 type: "phone"
+   *             }]
+   *         }, {
+   *             name: "Website",
+   *             data: [{
+   *                 text: "google.com",
+   *                 type: "webpage"
+   *             }]
+   *         }]
+   *     }]
+   * }]
+   */
+  function createLocationTimeline(buckets) {
+    var timeline = _.reduce(buckets, function(timeline, bucket) {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      if(bucket.doc_count) {
+        var dateBucket = {
+          date: commonTransforms.getDate(bucket.key),
+          icon: commonTransforms.getIronIcon('date'),
+          styleClass: commonTransforms.getStyleClass('date')
+        };
+
+        var sum = 0;
+        var subtitle = [];
+
+        dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
+          sum += locationBucket.doc_count;
+          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', ') + ' (' + locationBucket.doc_count + ')');
+          return {
+            name: locationBucket.key.split(':').slice(0, 3).join(', '),
+            icon: commonTransforms.getIronIcon('location'),
+            styleClass: commonTransforms.getStyleClass('location'),
+            type: 'location',
+            count: locationBucket.doc_count,
+            notes: createLocationTimelineNotes(locationBucket)
+          };
+        });
+
+        if(sum < bucket.doc_count) {
+          subtitle.push('Unknown Locations (' + (bucket.doc_count - sum) + ')');
+          dateBucket.locations.push({
+            name: 'Unknown Location(s)',
+            icon: commonTransforms.getIronIcon('location'),
+            styleClass: commonTransforms.getStyleClass('location'),
+            type: 'location',
+            count: bucket.doc_count - sum,
+            notes: []
+          });
+        }
+
+        dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
+        timeline.push(dateBucket);
+      }
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      return timeline;
+    }, []);
+
+    // Sort newest first.
+    timeline.sort(function(a, b) {
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
+    return timeline;
+  }
 
   return {
     // expected data is from an elasticsearch
@@ -171,6 +343,35 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
         });
         return offer;
       });
+    },
+
+    removeNoteFromLocationTimeline: function(noteItemId, timeline) {
+      return timeline.map(function(date) {
+        date.locations = date.locations.map(function(location) {
+          location.notes = location.notes.map(function(note) {
+            var previousLength = note.data.length;
+            note.data = note.data.filter(function(item) {
+              return item.id !== noteItemId;
+            });
+            if(note.data.length < previousLength) {
+              note.name = 'Other ' + note.name;
+            }
+            return note;
+          });
+          // Remove any notes that no longer have any data.
+          location.notes = location.notes.filter(function(note) {
+            return note.data.length;
+          });
+          return location;
+        });
+        return date;
+      });
+    },
+
+    locationTimeline: function(data) {
+      return {
+        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.dates.dates.buckets) : undefined
+      };
     },
 
     dropsTimeline: function(data) {
