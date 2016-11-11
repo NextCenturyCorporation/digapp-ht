@@ -170,10 +170,6 @@ var offerTransform = (function(_, commonTransforms) {
     return newData;
   }
 
-  function getOfferSummary(record) {
-    return commonTransforms.getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
-  }
-
   function offsetDates(dates) {
     var sorted = _.sortBy(dates);
     for(var i = 1; i < sorted.length; i++) {
@@ -324,6 +320,26 @@ var offerTransform = (function(_, commonTransforms) {
     return timeline;
   }
 
+  /**
+  * Changes the key/value names of buckets given from an aggregation
+  * to names preferred by the user.
+  */
+  function transformBuckets(buckets, keyName, alternateKey) {
+    return _.map(buckets, function(bucket) {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var obj = {
+        count: bucket.doc_count
+      };
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      if(alternateKey) {
+        obj[keyName] = bucket[alternateKey];
+      } else {
+        obj[keyName] = bucket.key;
+      }
+      return obj;
+    });
+  }
+
   return {
     // expected data is from an elasticsearch
     offer: function(data) {
@@ -340,7 +356,8 @@ var offerTransform = (function(_, commonTransforms) {
       var newObj = {data: [], count: 0};
       if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
-          newObj.data.push(getOfferSummary(record));
+          var offerObject = commonTransforms.getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
+          newObj.data.push(offerObject);
         });
         newObj.count = data.hits.total;
       }
@@ -386,7 +403,6 @@ var offerTransform = (function(_, commonTransforms) {
     },
 
     dropsTimeline: function(data) {
-
       var timestamps = [];
       var transformedData = [];
 
@@ -459,6 +475,76 @@ var offerTransform = (function(_, commonTransforms) {
         });
       }
       return mentions;
+    },
+
+    peopleFeaturesName: function(data) {
+      return {
+        name: (data && data.aggregations) ? transformBuckets(data.aggregations.name.name.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesAge: function(data) {
+      return {
+        age: (data && data.aggregations) ? transformBuckets(data.aggregations.age.age.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesEthnicity: function(data) {
+      return {
+        ethnicity: (data && data.aggregations) ? transformBuckets(data.aggregations.ethnicity.ethnicity.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesEyeColor: function(data) {
+      return {
+        eyeColor: (data && data.aggregations) ? transformBuckets(data.aggregations.eyeColor.eyeColor.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesHairColor: function(data) {
+      return {
+        hairColor: (data && data.aggregations) ? transformBuckets(data.aggregations.hairColor.hairColor.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesHeight: function(data) {
+      return {
+        height: (data && data.aggregations) ? transformBuckets(data.aggregations.height.height.buckets, 'key') : []
+      };
+    },
+
+    peopleFeaturesWeight: function(data) {
+      return {
+        weight: (data && data.aggregations) ? transformBuckets(data.aggregations.weight.weight.buckets, 'key') : []
+      };
+    },
+
+    offerLocations: function(data) {
+      if(!data || !data.aggregations) {
+        return {
+          location: []
+        };
+      }
+
+      var locations = [];
+      _.each(data.aggregations.location.location.buckets, function(locationBucket) {
+        var locationData = locationBucket.key.split(':');
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        var location = {
+          key: locationBucket.key,
+          count: locationBucket.doc_count,
+          longitude: locationData[3],
+          latitude: locationData[4],
+          name: locationData[0] + ', ' + locationData[1],
+          longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2] + ' (' + locationBucket.doc_count + ')'
+        };
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        locations.push(location);
+      });
+
+      return {
+        location: locations
+      };
     },
 
     createExportData: function(results) {

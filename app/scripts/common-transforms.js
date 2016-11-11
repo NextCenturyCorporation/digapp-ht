@@ -160,106 +160,11 @@ var commonTransforms = (function(_, moment) {
     return 'entity-' + type + '-font';
   }
 
-  function getGeoFromKeys(record) {
-    var geos = [];
-    _.each(record, function(key) {
-      var geoData = key.key.split(':');
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var geo = {
-        key: key.key,
-        count: key.doc_count,
-        longitude: geoData[3],
-        latitude: geoData[4],
-        name: geoData[0] + ', ' + geoData[1],
-        longName: geoData[0] + ', ' + geoData[1] + ', ' + geoData[2] + ' (' + key.doc_count + ')'
-      };
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      geos.push(geo);
-    });
-    return geos;
-  }
-
   /**
   * Changes the key/value names of buckets given from an aggregation
   * to names preferred by the user.
   */
-  function transformBuckets(buckets, keyName, alternateKey) {
-    buckets = _.map(buckets, function(bucket) {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var obj = {
-        count: bucket.doc_count
-      };
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      if(alternateKey) {
-        obj[keyName] = bucket[alternateKey];
-      } else {
-        obj[keyName] = bucket.key;
-      }
-      return obj;
-    });
-    return buckets;
-  }
-
   return {
-    /**
-    * Changes the key/value names of buckets given from an aggregation
-    * to names preferred by the user.
-    */
-    transformBuckets: function(buckets, keyName, alternateKey) {
-      return transformBuckets(buckets, keyName, alternateKey);
-    },
-
-    /**
-        Get people aggregation info:
-
-        "name": [
-            {"key": "Emily", "count": 14},
-            {"key": "Erin", "count": 12},
-            {"key": "Jane", "count": 3}
-        ]
-    */
-    peopleFeaturesName: function(data) {
-      return {
-        name: (data && data.aggregations) ? transformBuckets(data.aggregations.name.name.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesAge: function(data) {
-      return {
-        age: (data && data.aggregations) ? transformBuckets(data.aggregations.age.age.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesEthnicity: function(data) {
-      return {
-        ethnicity: (data && data.aggregations) ? transformBuckets(data.aggregations.ethnicity.ethnicity.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesEyeColor: function(data) {
-      return {
-        eyeColor: (data && data.aggregations) ? transformBuckets(data.aggregations.eyeColor.eyeColor.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesHairColor: function(data) {
-      return {
-        hairColor: (data && data.aggregations) ? transformBuckets(data.aggregations.hairColor.hairColor.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesHeight: function(data) {
-      return {
-        height: (data && data.aggregations) ? transformBuckets(data.aggregations.height.height.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesWeight: function(data) {
-      return {
-        weight: (data && data.aggregations) ? transformBuckets(data.aggregations.weight.weight.buckets, 'key') : []
-      };
-    },
-
     getClickableObjects: function(records, type) {
       var result = [];
       if(records) {
@@ -309,12 +214,6 @@ var commonTransforms = (function(_, moment) {
      */
     getStyleClass: function(type) {
       return getStyleClass(type);
-    },
-
-    offerLocationData: function(data) {
-      return {
-        location: (data && data.aggregations) ? getGeoFromKeys(data.aggregations.location.location.buckets) : []
-      };
     },
 
     getMentions: function(mentions, type) {
