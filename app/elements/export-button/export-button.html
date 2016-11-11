@@ -1,0 +1,105 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="export-button">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      a[is=csv-download] {
+        color: inherit;
+        font-size: 20px;
+        font-weight: 500;
+        text-decoration: none;
+      }
+
+      a[is=csv-download]:hover span {
+        text-decoration: underline;
+      }
+    </style>
+
+    <template is="dom-if" if="[[data.length]]">
+      <a is="csv-download" data="[[_exportData]]" download="[[filename]]">
+        <span>[[_getLabel(data.length, type)]]</span>
+        <paper-icon-button icon="file-download" title="[[_getLabel(data.length, type)]]"></paper-icon-button>
+      </a>
+    </template>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'export-button',
+
+      properties: {
+        /**
+         * The data to transform and export.
+         */
+        data: {
+          type: Array
+        },
+
+        /**
+         * The name of the exported file.
+         */
+        filename: {
+          type: String,
+          value: 'data.csv'
+        },
+
+        /**
+         * The function to transform the input data into export data.
+         */
+        transformFunction: {
+          type: Function
+        },
+
+        /**
+         * The type of data being exported.
+         */
+        type: {
+          type: String,
+          value: 'Result'
+        },
+
+        /**
+         * The export data for the csv-download component.
+         */
+        _exportData: {
+          type: Array,
+          // Use computed rather than a json-transform component because we must observe changes on data.length rather than data itself.
+          computed: '_computeExportData(data.length, transformFunction)'
+        }
+      },
+
+      /**
+       * Computes the export data using the input data and the transform function.
+       */
+      _computeExportData: function() {
+        return this.transformFunction(this.data);
+      },
+
+      /**
+       * Returns the label for the export button.
+       */
+      _getLabel: function(length, type) {
+        return 'Export ' + length + ' ' + type + (length === 1 ? '' : 's');
+      }
+    });
+  })();
+  </script>
+</dom-module>
