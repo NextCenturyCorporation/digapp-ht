@@ -8,32 +8,19 @@
 
 /* note lodash should be defined in parent scope, as should commonTransforms */
 var emailTransform = (function(_, commonTransforms) {
-
-  /** build email object:
-      'email': {
-          'id': 'http://someuri/1234567890'
-          'emailAddress': 'abc@xyz.com'
-      }
-  */
-  function getEmail(record) {
-    var email = {};
-    email.id = _.get(record, 'uri');
-    email.emailAddress = decodeURIComponent(_.get(record, 'name'));
-    email.icon = commonTransforms.getIronIcon('email');
-    email.styleClass = commonTransforms.getStyleClass('email');
-    return email;
-  }
-
   return {
     // expected data is from an elasticsearch
     email: function(data) {
-      var newData = {};
+      var email = {};
 
       if(data && data.hits.hits.length > 0) {
-        newData = getEmail(data.hits.hits[0]._source);
+        email.id = _.get(data.hits.hits[0], '_source.uri');
+        email.emailAddress = decodeURIComponent(_.get(data.hits.hits[0], '_source.name'));
+        email.icon = commonTransforms.getIronIcon('email');
+        email.styleClass = commonTransforms.getStyleClass('email');
       }
 
-      return newData;
+      return email;
     },
 
     cleanEmailBuckets: function(buckets) {

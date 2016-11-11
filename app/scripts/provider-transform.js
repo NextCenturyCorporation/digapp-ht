@@ -8,40 +8,33 @@
 
 /* note lodash should be defined in parent scope */
 var providerTransform = (function(_, commonTransforms) {
-
-  function getProvider(record) {
-    var person = {};
-    person.id = _.get(record, 'uri');
-    person.type = 'provider';
-    person.icon = commonTransforms.getIronIcon('provider');
-    person.styleClass = commonTransforms.getStyleClass('provider');
-    person.name = _.get(record, 'name', 'Name N/A');
-    person.ethnicities = _.get(record, 'ethnicity');
-    person.height = _.get(record, 'height');
-    person.weight = _.get(record, 'weight');
-    person.ages = _.get(record, 'age');
-
-    var text = (person.name !== 'Name N/A') ? person.name : '';
-    if(person.ages) {
-      text += (text ? ', ' : '') + (_.isArray(person.ages) ? person.ages[0] : person.ages);
-    }
-    if(person.ethnicities) {
-      text += (text ? ', ' : '') + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
-    }
-    person.text = text;
-    return person;
-  }
-
   return {
     // expected data is from an elasticsearch
     provider: function(data) {
-      var newData = {};
+      var person = {};
 
       if(data && data.hits.hits.length > 0) {
-        newData = getProvider(data.hits.hits[0]._source);
+        person.id = _.get(data.hits.hits[0], '_source.uri');
+        person.type = 'provider';
+        person.icon = commonTransforms.getIronIcon('provider');
+        person.styleClass = commonTransforms.getStyleClass('provider');
+        person.name = _.get(data.hits.hits[0], '_source.name', 'No Name');
+        person.ethnicities = _.get(data.hits.hits[0], '_source.ethnicity');
+        person.height = _.get(data.hits.hits[0], '_source.height');
+        person.weight = _.get(data.hits.hits[0], '_source.weight');
+        person.ages = _.get(data.hits.hits[0], '_source.age');
+
+        var text = (person.name !== 'No Name') ? person.name : '';
+        if(person.ages) {
+          text += (text ? ', ' : '') + (_.isArray(person.ages) ? person.ages[0] : person.ages);
+        }
+        if(person.ethnicities) {
+          text += (text ? ', ' : '') + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
+        }
+        person.text = text;
       }
 
-      return newData;
+      return person;
     }
   };
 })(_, commonTransforms);

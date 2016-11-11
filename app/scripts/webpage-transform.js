@@ -8,14 +8,6 @@
 
 /* note lodash should be defined in parent scope, as well as commonTransforms */
 var webpageTransform = (function(_, commonTransforms) {
-
-  function getWebpageSummary(record) {
-    var object = commonTransforms.getOfferObject(record, '_source', '_source.mainEntity.uri', '_source.dateCreated', '_source.mainEntity');
-    object.highlightedText = _.get(record, 'highlight.name[0]');
-    object.details[1].highlightedText = _.get(record, 'highlight.description[0]');
-    return object;
-  }
-
   return {
     // expected data is from an elasticsearch
     webpage: function(data) {
@@ -38,8 +30,10 @@ var webpageTransform = (function(_, commonTransforms) {
       var newObj = {data: [], count: 0};
       if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
-          var webpageSummary = getWebpageSummary(record);
-          newObj.data.push(webpageSummary);
+          var webpageObject = commonTransforms.getOfferObject(record, '_source', '_source.mainEntity.uri', '_source.dateCreated', '_source.mainEntity');
+          webpageObject.highlightedText = _.get(record, 'highlight.name[0]');
+          webpageObject.details[1].highlightedText = _.get(record, 'highlight.description[0]');
+          newObj.data.push(webpageObject);
         });
         newObj.count = data.hits.total;
       }

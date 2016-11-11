@@ -8,27 +8,8 @@
 
 /* note lodash should be defined in parent scope, as should commonTransforms */
 var imageTransform = (function(_, commonTransforms) {
-
   return {
     // expected data is from an elasticsearch
-    images: function(data) {
-      var images = [];
-      if(data) {
-        data.hits.hits.forEach(function(hit) {
-          var imageId = _.get(hit._source, 'uri', '');
-          var imageSource = _.get(hit._source, 'url', '');
-          images.push({
-            id: imageId,
-            icon: commonTransforms.getIronIcon('image'),
-            link: commonTransforms.getLink(imageId, 'image'),
-            source: _.isArray(imageSource) ? imageSource[0] : imageSource,
-            styleClass: commonTransforms.getStyleClass('image')
-          });
-        });
-      }
-      return images;
-    },
-
     image: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
@@ -51,6 +32,24 @@ var imageTransform = (function(_, commonTransforms) {
       }
       newData.id = newData.uri;
       return newData;
+    },
+
+    images: function(data) {
+      var images = [];
+      if(data) {
+        data.hits.hits.forEach(function(hit) {
+          var imageId = _.get(hit._source, 'uri', '');
+          var imageSource = _.get(hit._source, 'url', '');
+          images.push({
+            id: imageId,
+            icon: commonTransforms.getIronIcon('image'),
+            link: commonTransforms.getLink(imageId, 'image'),
+            source: _.isArray(imageSource) ? imageSource[0] : imageSource,
+            styleClass: commonTransforms.getStyleClass('image')
+          });
+        });
+      }
+      return images;
     },
 
     imageTotal: function(data) {

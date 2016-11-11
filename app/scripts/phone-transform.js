@@ -8,33 +8,19 @@
 
 /* note lodash should be defined in parent scope, as should commonTransforms */
 var phoneTransform = (function(_, commonTransforms) {
-
-  function getPhone(record) {
-    /** build phone object:
-    'phone': {
-        'id': 'http://someuri/1234567890'
-        'telephoneNumber': '1234567890',
-        'type': 'cell',
-        'origin': 'Washington DC'
-    }
-    */
-    var phone = {};
-    phone.id = _.get(record, 'uri');
-    phone.telephoneNumber = _.get(record, 'name');
-    phone.icon = commonTransforms.getIronIcon('phone');
-    phone.styleClass = commonTransforms.getStyleClass('phone');
-    return phone;
-  }
-
   return {
     // expected data is from an elasticsearch
     phone: function(data) {
-      var newData = {};
+      var phone = {};
+
       if(data && data.hits.hits.length > 0) {
-        newData = getPhone(data.hits.hits[0]._source);
+        phone.id = _.get(data.hits.hits[0], '_source.uri');
+        phone.telephoneNumber = _.get(data.hits.hits[0], '_source.name');
+        phone.icon = commonTransforms.getIronIcon('phone');
+        phone.styleClass = commonTransforms.getStyleClass('phone');
       }
 
-      return newData;
+      return phone;
     },
 
     cleanPhoneBuckets: function(buckets) {
