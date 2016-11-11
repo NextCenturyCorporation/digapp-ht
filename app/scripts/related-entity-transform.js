@@ -11,7 +11,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
    */
   function getAddresses(record, path) {
     var addresses = [];
-    var addressesFromData = _.get(record, '_source.' + path, []);
+    var addressesFromData = _.get(record, path, []);
 
     (_.isArray(addressesFromData) ? addressesFromData : [addressesFromData]).forEach(function(addressFromData) {
       var locality = _.get(addressFromData, 'addressLocality');
@@ -35,7 +35,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
    * Returns the list of image objects from the given record using the given path from its _source.
    */
   function getImages(record, path) {
-    var images = _.get(record, '_source.' + path, []);
+    var images = _.get(record, path, []);
     return (_.isArray(images) ? images : [images]).map(function(image) {
       return {
         id: image.uri,
@@ -47,39 +47,21 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     });
   }
 
-  function getOfferSummary(record) {
-    /**  build offer summary record:
-        {
-            "id": "http://someuri",
-            "type": "offer",
-            "text": "*Hello World -- google.com", // title of offer
-            "link": "/offer.html?value=http://someuri&field=_id",
-            "descriptors": [{type: 'date', text: 'July 1, 2016'}], // array of date, phone, email
-            "details": [{
-                "name": "description",
-                "text": "This is the description."
-            }, {
-                "name": "address",
-                "text": "Los Angeles"
-            }, {
-                "name": "publisher",
-                "text": "google.com."
-            }]
-        }
-    */
+  function getOfferObject(record, mainPath, idPath, datePath, locationPath) {
+    var id = _.get(record, idPath);
 
     var offerObj = {
-      id: record._id,
-      url: _.get(record, '_source.mainEntityOfPage.url', 'Unavailable'),
-      date: commonTransforms.getDate(_.get(record, '_source.validFrom')) || 'No Date',
-      publisher: _.get(record, '_source.mainEntityOfPage.publisher.name', 'No Publisher'),
-      description: _.get(record, '_source.mainEntityOfPage.description', ''),
+      id: id,
+      url: _.get(record, mainPath + '.url', 'Unavailable'),
+      date: commonTransforms.getDate(_.get(record, datePath)) || 'No Date',
+      publisher: _.get(record, mainPath + '.publisher.name', 'No Publisher'),
+      description: _.get(record, mainPath + '.description', 'No Description'),
       type: 'offer',
-      text: _.get(record, '_source.mainEntityOfPage.name', 'No Title'),
+      text: _.get(record, mainPath + '.name', 'No Title'),
       icon: commonTransforms.getIronIcon('offer'),
-      link: commonTransforms.getLink(record._id, 'offer'),
+      link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      images: getImages(record, 'mainEntityOfPage.hasImagePart'),
+      images: getImages(record, mainPath + '.hasImagePart'),
       descriptors: [],
       details: []
     };
@@ -101,7 +83,7 @@ var relatedEntityTransform = (function(_, commonTransforms) {
 
     offerObj.details.push({
       name: 'Url',
-      link: _.get(record, '_source.mainEntityOfPage.url', null),
+      link: _.get(record, mainPath + '.url', null),
       text: offerObj.url
     });
     offerObj.details.push({
@@ -110,23 +92,23 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     });
     offerObj.details.push({
       name: 'Cached Ad',
-      link: record._id ? commonTransforms.getLink(record._id.substring(record._id.lastIndexOf('/') + 1), 'cache') : null,
-      text: record._id ? 'Open' : 'Unavailable'
+      link: id ? commonTransforms.getLink(id.substring(id.lastIndexOf('/') + 1), 'cache') : null,
+      text: id ? 'Open' : 'Unavailable'
     });
 
-    var locations = getAddresses(record, 'availableAtOrFrom.address');
+    var locations = getAddresses(record, locationPath + '.availableAtOrFrom.address');
     offerObj.descriptors = offerObj.descriptors.concat(locations);
     offerObj.locations = locations.map(function(location) {
       return location.text;
     }).join('; ');
 
-    var phones = commonTransforms.getMentions(_.get(record, '_source.mainEntityOfPage.mentionsPhone', []), 'phone');
+    var phones = commonTransforms.getMentions(_.get(record, mainPath + '.mentionsPhone', []), 'phone');
     offerObj.descriptors = offerObj.descriptors.concat(phones);
     offerObj.phones = phones.map(function(phone) {
       return phone.text;
     }).join('; ');
 
-    var emails = commonTransforms.getMentions(_.get(record, '_source.mainEntityOfPage.mentionsEmail', []), 'email');
+    var emails = commonTransforms.getMentions(_.get(record, mainPath + '.mentionsEmail', []), 'email');
     offerObj.descriptors = offerObj.descriptors.concat(emails);
     offerObj.emails = emails.map(function(email) {
       return email.text;
@@ -135,96 +117,15 @@ var relatedEntityTransform = (function(_, commonTransforms) {
     return offerObj;
   }
 
+  function getOfferSummary(record) {
+    return getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
+  }
+
   function getWebpageSummary(record) {
-    /*  build webpage summary object:
-        {
-            "id": "http://someuri",
-            "type": "webpage",
-            "text": "*Hello World -- google.com", // title of webpage
-            "link": "/offer.html?value=http://someuri&field=_id",
-            "descriptors": [{type: 'webpage', text: 'something'}], // array of publisher, date, phone, email
-            "details": [{
-                "name": "url",
-                "text": "http://someurlhere.com",
-                "link": true
-            }, {
-                "name": "body",
-                "text": "description text here"
-            }, {
-                "name": "addresses",
-                "text": ["Los Angeles"]
-            }]
-        }
-    */
-
-    var id = _.get(record, '_source.mainEntity.uri');
-
-    var webpageObj = {
-      id: id,
-      url: _.get(record, '_source.url', 'Unavailable'),
-      date: commonTransforms.getDate(_.get(record, '_source.dateCreated')) || 'No Date',
-      publisher: _.get(record, '_source.publisher.name', 'No Publisher'),
-      description: _.get(record, '_source.description', ''),
-      type: 'offer',
-      text: _.get(record, '_source.name[0]', 'No Title'),
-      icon: commonTransforms.getIronIcon('offer'),
-      link: commonTransforms.getLink(id, 'offer'),
-      styleClass: commonTransforms.getStyleClass('offer'),
-      images: getImages(record, 'hasImagePart'),
-      descriptors: [],
-      details: []
-    };
-
-    webpageObj.text = _.isArray(webpageObj.text) ? webpageObj.text.join('; ') : webpageObj.text;
-    webpageObj.highlightedText = _.get(record, 'highlight.name[0]');
-
-    webpageObj.descriptors.push({
-      icon: commonTransforms.getIronIcon('date'),
-      styleClass: commonTransforms.getStyleClass('date'),
-      type: 'date',
-      text: webpageObj.date
-    });
-    webpageObj.descriptors.push({
-      icon: commonTransforms.getIronIcon('webpage'),
-      styleClass: commonTransforms.getStyleClass('webpage'),
-      type: 'webpage',
-      text: webpageObj.publisher
-    });
-    webpageObj.details.push({
-      name: 'Url',
-      link: _.get(record, '_source.url', null),
-      text: webpageObj.url
-    });
-    webpageObj.details.push({
-      name: 'Description',
-      highlightedText: _.get(record, 'highlight.description[0]'),
-      text: webpageObj.description
-    });
-    webpageObj.details.push({
-      name: 'Cached Ad',
-      link: id ? commonTransforms.getLink(id.substring(id.lastIndexOf('/') + 1), 'cache') : null,
-      text: id ? 'Open' : 'Unavailable'
-    });
-
-    var locations = getAddresses(record, 'mainEntity.availableAtOrFrom.address');
-    webpageObj.descriptors = webpageObj.descriptors.concat(locations);
-    webpageObj.locations = locations.map(function(location) {
-      return location.text;
-    }).join('; ');
-
-    var phones = commonTransforms.getMentions(_.get(record, '_source.mentionsPhone', []), 'phone');
-    webpageObj.descriptors = webpageObj.descriptors.concat(phones);
-    webpageObj.phones = phones.map(function(phone) {
-      return phone.text;
-    }).join('; ');
-
-    var emails = commonTransforms.getMentions(_.get(record, '_source.mentionsEmail', []), 'email');
-    webpageObj.descriptors = webpageObj.descriptors.concat(emails);
-    webpageObj.emails = emails.map(function(email) {
-      return email.text;
-    }).join('; ');
-
-    return webpageObj;
+    var object = getOfferObject(record, '_source', '_source.mainEntity.uri', '_source.dateCreated', '_source.mainEntity');
+    object.highlightedText = _.get(record, 'highlight.name[0]');
+    object.details[1].highlightedText = _.get(record, 'highlight.description[0]');
+    return object;
   }
 
   return {
