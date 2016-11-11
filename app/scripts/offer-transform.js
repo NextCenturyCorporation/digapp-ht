@@ -2,12 +2,12 @@
  * transform elastic search offer query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms, relatedEntityTransform */
+/* globals _, commonTransforms */
 /* exported offerTransform */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope, as well as commonTransforms */
-var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
+var offerTransform = (function(_, commonTransforms) {
 
   /** build address object:
   "address": {
@@ -168,6 +168,10 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
     }, 'cache');
 
     return newData;
+  }
+
+  function getOfferSummary(record) {
+    return commonTransforms.getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
   }
 
   function offsetDates(dates) {
@@ -332,8 +336,15 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
       return newData;
     },
 
-    revisions: function(data) {
-      return relatedEntityTransform.offer(data);
+    offers: function(data) {
+      var newObj = {data: [], count: 0};
+      if(data && data.hits.hits.length > 0) {
+        _.each(data.hits.hits, function(record) {
+          newObj.data.push(getOfferSummary(record));
+        });
+        newObj.count = data.hits.total;
+      }
+      return newObj;
     },
 
     removeDescriptorFromOffers: function(descriptorId, offers) {
@@ -462,4 +473,4 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
       return data;
     }
   };
-})(_, commonTransforms, relatedEntityTransform);
+})(_, commonTransforms);

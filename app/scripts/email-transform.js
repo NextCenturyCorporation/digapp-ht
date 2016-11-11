@@ -2,12 +2,12 @@
  * transform elastic search email query to display format.  See data-model.json
  */
 
-/* globals _, relatedEntityTransform, commonTransforms */
+/* globals _, commonTransforms */
 /* exported emailTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
-var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
+/* note lodash should be defined in parent scope, as should commonTransforms */
+var emailTransform = (function(_, commonTransforms) {
 
   /** build email object:
       'email': {
@@ -36,12 +36,6 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return newData;
     },
 
-    emailOffersData: function(data) {
-      var newData = {};
-      newData.relatedOffers = relatedEntityTransform.offer(data);
-      return newData;
-    },
-
     cleanEmailBuckets: function(buckets) {
       return _.map(buckets, function(bucket) {
         return {
@@ -54,4 +48,4 @@ var emailTransform = (function(_, relatedEntityTransform, commonTransforms) {
       });
     }
   };
-})(_, relatedEntityTransform, commonTransforms);
+})(_, commonTransforms);

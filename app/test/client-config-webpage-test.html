@@ -187,6 +187,159 @@
       assert.equal(dataOut.length, 0);
     });
   });
+
+  suite('<client-config> webpage tests for webpages transform function', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with webpages transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.webpage).to.be.an('Object');
+      expect(clientConfig.config.transforms.webpage.webpages).to.be.an('Function');
+    });
+
+    test('defines correct offer array from webpage result', function() {
+      var output = clientConfig.config.transforms.webpage.webpages(webpageResult);
+      assert.equal(output.count, 1);
+      assert.isString(output.data[0].id);
+      assert.equal(output.data[0].type, 'offer');
+      assert.isString(output.data[0].text);
+      assert.equal(output.data[0].icon, 'maps:local-offer');
+      assert.isString(output.data[0].link);
+      assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.deepEqual(output.data[0].descriptors, [{
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        text: 'Oct 30, 2015',
+        type: 'date'
+      }, {
+        icon: 'av:web',
+        styleClass: 'entity-webpage-font',
+        text: 'google.com',
+        type: 'webpage'
+      }, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Ogden, Utah, United States',
+        type: 'location'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/phone/1-0987654321',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-0987654321&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '0987654321',
+        type: 'phone'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1112223333&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '1112223333',
+        type: 'phone'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        icon: 'communication:email',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        styleClass: 'entity-email-font',
+        text: 'abc@xyz.com',
+        type: 'email'
+      }]);
+      assert.isArray(output.data[0].details);
+      assert.equal(output.data[0].details.length, 3);
+      assert.equal(output.data[0].details[0].name, 'Url');
+      assert.isString(output.data[0].details[0].link);
+      assert.isString(output.data[0].details[0].text);
+      assert.equal(output.data[0].details[1].name, 'Description');
+      assert.isString(output.data[0].details[1].text);
+      assert.equal(output.data[0].details[2].name, 'Cached Ad');
+      assert.isString(output.data[0].details[2].link);
+      assert.isString(output.data[0].details[2].text);
+      assert.deepEqual(output.data[0].images, [{
+        id: 'http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8&field=_id',
+        source: 'http://url1',
+        styleClass: 'entity-image-font'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F&field=_id',
+        source: 'http://url2',
+        styleClass: 'entity-image-font'
+      }]);
+    });
+
+    test('getAddressArray works if the address is not an array', function() {
+      var record = {
+        _source: {
+          mainEntity: {
+            availableAtOrFrom: {
+              address: {
+                addressLocality: 'testLocality',
+                addressRegion: 'testRegion',
+                addressCountry: 'testCountry'
+              }
+            }
+          }
+        }
+      };
+
+      var result = clientConfig.config.transforms.webpage.webpages({
+        hits: {
+          hits: [record]
+        }
+      });
+
+      assert.isArray(result.data);
+      assert.equal(result.data.length, 1);
+      assert.isObject(result.data[0]);
+      assert.isArray(result.data[0].descriptors);
+      assert.equal(result.data[0].descriptors.length, 3);
+      assert.equal(result.data[0].descriptors[2].type, 'location');
+      assert.equal(result.data[0].descriptors[2].text, 'testLocality, testRegion, testCountry');
+    });
+
+    test('defines correct webpage array from sparse data', function() {
+      var output = clientConfig.config.transforms.webpage.webpages({hits: {hits: [{_id: 'http://id', _type: 'webpage'}], total: 1}});
+      assert.equal(output.count, 1);
+      assert.isUndefined(output.data[0].id);
+      assert.equal(output.data[0].type, 'offer');
+      assert.equal(output.data[0].text, 'No Title');
+      assert.equal(output.data[0].icon, 'maps:local-offer');
+      assert.isUndefined(output.data[0].link);
+      assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.deepEqual(output.data[0].descriptors, [{
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        text: 'No Date',
+        type: 'date'
+      }, {
+        icon: 'av:web',
+        styleClass: 'entity-webpage-font',
+        text: 'No Publisher',
+        type: 'webpage'
+      }]);
+      assert.deepEqual(output.data[0].details, [{
+        name: 'Url',
+        link: null,
+        text: 'Unavailable'
+      }, {
+        highlightedText: undefined,
+        name: 'Description',
+        text: 'No Description'
+      }, {
+        name: 'Cached Ad',
+        link: null,
+        text: 'Unavailable'
+      }]);
+      assert.deepEqual(output.data[0].images, []);
+    });
+  });
 </script>
 </body>
 </html>

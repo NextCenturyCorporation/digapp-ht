@@ -2,12 +2,12 @@
  * transform elastic search phone query to display format.  See data-model.json
  */
 
-/* globals _, relatedEntityTransform, commonTransforms */
+/* globals _, commonTransforms */
 /* exported phoneTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
-var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
+/* note lodash should be defined in parent scope, as should commonTransforms */
+var phoneTransform = (function(_, commonTransforms) {
 
   function getTelephone(record) {
     /** build telephone object:
@@ -37,12 +37,6 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return newData;
     },
 
-    phoneOffersData: function(data) {
-      var newData = {};
-      newData.relatedOffers = relatedEntityTransform.offer(data);
-      return newData;
-    },
-
     cleanPhoneBuckets: function(buckets) {
       return _.map(buckets, function(bucket) {
         var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
@@ -59,5 +53,5 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
       });
     }
   };
-})(_, relatedEntityTransform, commonTransforms);
+})(_, commonTransforms);
 

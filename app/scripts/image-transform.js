@@ -2,12 +2,12 @@
  * transform elastic search image query to display format.  See data-model.json
  */
 
-/* globals _, relatedEntityTransform, commonTransforms */
+/* globals _, commonTransforms */
 /* exported imageTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
-var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
+/* note lodash should be defined in parent scope, as should commonTransforms */
+var imageTransform = (function(_, commonTransforms) {
 
   return {
     // expected data is from an elasticsearch
@@ -53,12 +53,6 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return newData;
     },
 
-    imageOffersData: function(data) {
-      var newData = {};
-      newData.relatedOffers = relatedEntityTransform.offer(data);
-      return newData;
-    },
-
     imageTotal: function(data) {
       return (data && data.hits) ? data.hits.total : 0;
     },
@@ -67,5 +61,5 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return commonTransforms.getLink('http://dig.isi.edu/ht/data/' + id, 'image');
     }
   };
-})(_, relatedEntityTransform, commonTransforms);
+})(_, commonTransforms);
 
