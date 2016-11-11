@@ -9,29 +9,29 @@
 /* note lodash should be defined in parent scope, as should commonTransforms */
 var phoneTransform = (function(_, commonTransforms) {
 
-  function getTelephone(record) {
-    /** build telephone object:
-    'telephone': {
+  function getPhone(record) {
+    /** build phone object:
+    'phone': {
         'id': 'http://someuri/1234567890'
-        'number': '1234567890',
+        'telephoneNumber': '1234567890',
         'type': 'cell',
         'origin': 'Washington DC'
     }
     */
-    var telephone = {};
-    telephone.id = _.get(record, 'uri');
-    telephone.number = _.get(record, 'name');
-    telephone.icon = commonTransforms.getIronIcon('phone');
-    telephone.styleClass = commonTransforms.getStyleClass('phone');
-    return telephone;
+    var phone = {};
+    phone.id = _.get(record, 'uri');
+    phone.telephoneNumber = _.get(record, 'name');
+    phone.icon = commonTransforms.getIronIcon('phone');
+    phone.styleClass = commonTransforms.getStyleClass('phone');
+    return phone;
   }
 
   return {
     // expected data is from an elasticsearch
-    telephone: function(data) {
+    phone: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
-        newData = getTelephone(data.hits.hits[0]._source);
+        newData = getPhone(data.hits.hits[0]._source);
       }
 
       return newData;
