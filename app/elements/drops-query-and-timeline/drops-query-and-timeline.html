@@ -1,0 +1,197 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../behaviors.html">
+<link rel="import" href="../drops-timeline/drops-timeline.html">
+
+<dom-module id="drops-query-and-timeline">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <elastic-client-aggregation-builder
+      name="[[dateHistName]]"
+      type="date_histogram"
+      interval="[[dateInterval]]"
+      field="[[dateHistField]]"
+      ejs-aggregation="{{datesAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-aggregation-builder
+      name="[[locationAggName]]"
+      type="terms"
+      count="0"
+      order="_term"
+      direction="asc"
+      field="[[locationAggField]]"
+      nested-aggregations="[[buildArray(datesAggregation)]]"
+      ejs-aggregation="{{locationsAggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <!-- set page size/hits to zero since we only need aggregation here -->
+    <elastic-client-search
+      client="[[client]]"
+      page-size="0"
+      index="[[index]]"
+      elastic-types="[[indexTypes]]"
+      query="[[dropsQuery]]"
+      aggregations="[[buildArray(locationsAggregation)]]"
+      filters="[[filterList]]"
+      results="{{dropsQueryResults}}"
+      loading="{{dropsLoading}}"
+      last-error="{{dropsError}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[dropsQueryResults]]"
+      data-out="{{dropsResultsTransformed}}"
+      transform-function="[[transform]]">
+    </json-transform>
+
+    <div class="paper-font-title">[[title]]</div>
+    <drops-timeline payload="{{dropsResultsTransformed}}">
+    </drops-timeline> 
+
+  </template>
+  <script>
+  (function() {
+    /* globals DigBehaviors */
+    'use strict';
+
+    Polymer({
+      is: 'drops-query-and-timeline',
+
+      behaviors: [DigBehaviors.ArrayBehavior],
+
+      properties: {
+        /**
+         * The elasticsearch client.
+         */
+        client: {
+          type: Object
+        },
+        /**
+         * The elasticsearch index to query.
+         */
+        index: {
+          type: String
+        },
+        /**
+         * The elasticsearch index types to query.
+         */
+        indexTypes: {
+          type: Array
+        },
+        /**
+         * Name for date histogram aggregation query.
+         */
+        dateHistName: {
+          type: String
+        },
+        /**
+         * Field to query against for date histogram aggregation.
+         */
+        dateHistField: {
+          type: String
+        },
+        /**
+         * Interval used for date histogram query. Defaults to 'day'.
+         */
+        dateInterval: {
+          type: String,
+          value: 'day'
+        },
+        /**
+         * Result of date histogram aggregation query.
+         */
+        datesAggregation: {
+          type: Object
+        },
+        /**
+         * Name for location aggregation query.
+         */
+        locationAggName: {
+          type: String
+        },
+        /**
+         * Field to query against for location aggregation query.
+         */
+        locationAggField: {
+          type: String
+        },
+        /**
+         * Result of location aggregation query.
+         */
+        locationsAggregation: {
+          type: Object
+        },
+        /**
+         * The list of elasticjs filters used in the drops timeline query run by this component.
+         */
+        filterList: {
+          type: Array,
+          notify: true
+        },
+        /**
+         * Query to get the data to be used for the drops timeline.
+         */
+        dropsQuery: {
+          type: String,
+          notify: true
+        },
+        /**
+         * Title to display above drops timeline.
+         */
+        title: {
+          type: String,
+          notify: true
+        },
+        /**
+         * The transform for the drops timeline query results.
+         */
+        transform: {
+          type: Object
+        },
+        /**
+         * Whether the drops query run by this component is loading.
+         */
+        dropsLoading: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * Error returned by drops query (if any).
+         */
+        dropsError: {
+          type: Object
+        },
+        /**
+         * Results of drops timeline query.
+         */
+        dropsQueryResults: {
+          type: Object
+        },
+        /**
+         * Results of drops timeline query after processed through transform function.
+         */
+        dropsResultsTransformed: {
+          type: Object
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>
