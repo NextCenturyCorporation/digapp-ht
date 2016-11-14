@@ -99,8 +99,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return 'mainEntity.itemOffered.eyeColor';
           case 'dateCreated':
             return 'dateCreated';
+          case 'hasImage':
+            return 'hasImagePart.url';
         }
-        // Remember to ignore the text property from the search parameters and not include it in the filters!
+        // Remember to ignore other properties (like the text) from the search parameters so they are not included in the filters!
         return undefined;
       },
       _getAggName: function(group) {
@@ -145,7 +147,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           if(me.pageType === 'entity') {
             filter = me._buildTermsFilter(me.facetSelection[group], field, group);
           } else if(group === 'dateCreated') {
-            filter = me._buildDateRangeEjsFilter(me.facetSelection[group], field);
+            filter = me._buildDateRangeEjsFilter(me.facetSelection.dateCreated, field);
+          } else if(group === 'hasImage') {
+            filter = me.facetSelection.hasImage.Yes && me.facetSelection.hasImage.Yes.enabled ? me._buildExistsFilter(field) : undefined;
           } else if(field) {
             var filters = me._buildTermFilterArray(me.facetSelection[group], field);
             filter = me._buildAndOrFilter(filters, group);
@@ -210,6 +214,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           }
         });
         return filter;
+      },
+      _buildExistsFilter: function(field) {
+        return ejs.ExistsFilter(field);
       }
     });
   })();
