@@ -1,9 +1,10 @@
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-styles/paper-styles-classes.html">
-<script src="../../bower_components/d3/d3.min.js" charset="utf-8"></script>
-<script src="../../bower_components/eventDrops/src/eventDrops.js"></script>
+<link rel="import" href="../d3.html">
+<link rel="import" href="../eventdrops.html">
+<link rel="import" href="../../styles/chart-styles.html">
 
 <dom-module id="drops-timeline">
+  <style include="chart-styles"></style>
   <style>
     :host {
       display: block;
@@ -37,7 +38,7 @@
 
         properties: {
           payload: {
-            type: Array,
+            type: Object,
             notify: true,
             observer: '_createChart',
             value: function() {
@@ -48,7 +49,7 @@
 
         listeners: {
           // Delete the chart on resize because the chart won't shrink and the width of the chart may make the columns on the page uneven.
-          'iron-resize': '_deleteChart'
+          'iron-resize': '_redrawChart'
         },
 
         _createChart: function() {
@@ -66,12 +67,31 @@
           };
         },
 
-        _deleteChart: function() {
+        _redrawChart: function() {
           d3.select('#timeline svg').remove();
+          this._createChart();
         },
 
         _drawChart: function() {
-          var color = d3.scale.category20();
+          var color = d3.scale.ordinal().range([
+            this.getComputedStyleValue('--chart-blue'),
+            this.getComputedStyleValue('--chart-orange'),
+            this.getComputedStyleValue('--chart-green'),
+            this.getComputedStyleValue('--chart-red'),
+            this.getComputedStyleValue('--chart-purple'),
+            this.getComputedStyleValue('--chart-yellow'),
+            this.getComputedStyleValue('--chart-indigo'),
+            this.getComputedStyleValue('--chart-cyan'),
+            this.getComputedStyleValue('--chart-deep-orange'),
+            this.getComputedStyleValue('--chart-lime'),
+            this.getComputedStyleValue('--chart-pink'),
+            this.getComputedStyleValue('--chart-deep-purple'),
+            this.getComputedStyleValue('--chart-amber'),
+            this.getComputedStyleValue('--chart-teal'),
+            this.getComputedStyleValue('--chart-light-green'),
+            this.getComputedStyleValue('--chart-light-blue')
+          ]);
+
           var endTime = this._getEndTime();
           var startTime = this._getStartTime();
 
@@ -82,8 +102,8 @@
           // Measure the width of the labels in the data to find a good width for the label column in the chart.
           var textPixelWidth = 100;
           this.payload.data.forEach(function(item) {
-            var text = d3.select('#timeline').append('text').text(item.name + ' (' + item.dates.length + ')');
-            textPixelWidth = text[0][0] ? Math.max(textPixelWidth, text[0][0].offsetWidth) : textPixelWidth;
+            var text = d3.select('#timeline').append('text').text(item.name + ' (' + _.sumBy(item.dates, function(o) { return o.count;}) + ')');
+            textPixelWidth = (text[0][0] ? Math.max(textPixelWidth, text[0][0].offsetWidth) : textPixelWidth);
           });
           // Clean up the temporary text elements we created to measure.
           d3.selectAll('#timeline text').remove();

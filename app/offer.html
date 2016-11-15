@@ -189,48 +189,6 @@
      transform-function="[[clientConfig.transforms.offer.revisions]]"
      ></json-transform>
 
-    <!-- Get daily phone+locations data for event drops viz-->
-
-    <elastic-client-aggregation-builder
-      name="dates"
-      type="date_histogram"
-      interval="day"
-      count="0"
-      field="validFrom"
-      ejs-aggregation="{{datesAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="locations"
-      type="terms"
-      count="0"
-      order="_term"
-      direction="asc"
-      field="availableAtOrFrom.address.key"
-      nested-aggregations="[[buildArray(datesAggregation)]]"
-      ejs-aggregation="{{locationsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <!-- set page size/hits to zero since we only need aggregation here -->
-    <elastic-client-search
-      client="[[esclient]]"
-      page-size="0"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      query="[[offerQuery]]"
-      aggregations="[[buildArray(locationsAggregation)]]"
-      filters="[]"
-      results="{{dropsQueryResults}}"
-      loading="{{dropsLoading}}"
-      last-error="{{dropsError}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[dropsQueryResults]]"
-      data-out="{{dropsResults}}"
-      transform-function="[[clientConfig.transforms.offer.dropsTimeline]]">
-    </json-transform>
-
     <!-- More Ads Like This -->
 
     <elastic-client-query-builder
@@ -665,8 +623,18 @@
                 <paper-material>
                   <!-- Event drops timeline -->
                   <section class="who flex-auto">
-                    <div class="paper-font-title">Location Timeline</div>
-                    <drops-timeline payload="[[dropsResults]]"></drops-timeline>
+                    <drops-query-and-timeline
+                      client="[[esclient]]"
+                      index="[[config.elasticIndex]]"
+                      date-hist-name="dates"
+                      date-hist-field="validFrom"
+                      location-agg-name="locations"
+                      location-agg-field="availableAtOrFrom.address.key"
+                      index-types='["offer"]'
+                      drops-query="[[offerQuery]]"
+                      filter-list='[]'
+                      transform="[[clientConfig.transforms.offer.dropsTimeline]]">
+                    </drops-query-and-timeline>
                   </section>
                 </paper-material>
               </template>
