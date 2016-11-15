@@ -254,7 +254,7 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
       var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];
       results.forEach(function(result) {
         var images = result.images.map(function(image) {
-          return image.text;
+          return image.source;
         }).join('; ');
         data.push([result.url, linkPrefix + result.link, result.text, result.date, result.publisher, result.locations, result.phones, result.emails, images, result.description.replace(/\n/g, ' ')]);
       });
