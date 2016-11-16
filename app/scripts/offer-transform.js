@@ -138,7 +138,7 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
   }
 
   var offsetDates = function(dates) {
-    var sorted = _.sortBy(dates);
+    var sorted = _.sortBy(dates, [function(o) { return o.date; }]);
     for(var i = 1; i < sorted.length; i++) {
       if(sorted[i] === sorted[i - 1]) {
         sorted[i] = new Date(sorted[i].getTime() + 300);
@@ -192,10 +192,12 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
           }
 
           locationBucket.dates.buckets.forEach(function(dateBucket) {
-            if(dateBucket.key) {
-              cityAggs[city].push(new Date(dateBucket.key));
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            if(dateBucket.key && dateBucket.doc_count > 0) {
+              cityAggs[city].push({date: new Date(dateBucket.key), count: dateBucket.doc_count});
               timestamps.push(dateBucket.key);
             }
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           });
         });
 
@@ -204,8 +206,9 @@ var offerTransform = (function(_, commonTransforms, relatedEntityTransform) {
           var dates = offsetDates(cityAggs[city]);
 
           var nameList = city.split(':');
+          var combineCityStateNames = nameList[0] + ', ' + nameList[1];
           transformedData.push({
-            name: nameList[0] + ', ' + nameList[1],
+            name: (combineCityStateNames.length <= 24) ? combineCityStateNames : nameList[0],
             dates: dates
           });
         }

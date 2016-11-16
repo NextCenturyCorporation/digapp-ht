@@ -40,8 +40,8 @@ DigBehaviors.BrowserBehavior = {
    * Removes the state parameter from the browser URL using the given window.history and window.location objects.
    */
   removeStateParameter: function(history, location) {
-    var link = this.generateLinkWithStateParameter(location);
+    //var link = this.generateLinkWithStateParameter(location);
     // Update the browser URL without reloading the page.
-    history.pushState({}, '', link);
+    //history.pushState({}, '', link);
   }
 };

@@ -11,37 +11,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel='import' href='../../bower_components/polymer/polymer.html'>
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
-<link rel='import' href='../dateformat.html'>
-
-<script src='../../bower_components/d3/d3.min.js' charset='utf-8'></script>
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
+<link rel="import" href="../../styles/chart-styles.html">
+<link rel="import" href="../d3.html">
 
 <dom-module id='zoomable-bar-chart'>
   <template>
     <style include="iron-flex iron-flex-alignment"></style>
+    <style include="chart-styles"></style>
 
     <style>
       :host {
         display: block;
         --bar-chart-axis: var(--secondary-text-color);
         --bar-chart-text: var(--main-text-color);
-        --bar-chart-amber: var(--amber);
-        --bar-chart-black: var(--dark-primary-color);
-        --bar-chart-blue: var(--blue);
-        --bar-chart-cyan: var(--cyan);
-        --bar-chart-deep-orange: var(--deep-orange);
-        --bar-chart-deep-purple: var(--deep-purple);
-        --bar-chart-green: var(--green);
-        --bar-chart-grey: var(--grey);
-        --bar-chart-indigo: var(--indigo);
-        --bar-chart-light-blue: var(--light-blue);
-        --bar-chart-light-green: var(--light-green);
-        --bar-chart-lime: var(--lime);
-        --bar-chart-orange: var(--orange);
-        --bar-chart-pink: var(--pink);
-        --bar-chart-purple: var(--purple);
-        --bar-chart-red: var(--red);
-        --bar-chart-teal: var(--teal);
-        --bar-chart-yellow: var(--yellow);
       }
 
       #barChart {
@@ -84,7 +67,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     (function() {
       'use strict';
 
-      /* globals _, d3, dateFormat */
+      /* globals _, d3, moment */
       Polymer({
         is: 'zoomable-bar-chart',
 
@@ -305,25 +288,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var overviewHeight = this.height - marginTopOverview - marginBottomOverview;
 
           // some colors to use for the bars
-          var overviewColor = this.getComputedStyleValue('--bar-chart-black');
-          var otherGroupColor = this.getComputedStyleValue('--bar-chart-grey');
+          var overviewColor = this.getComputedStyleValue('--chart-black');
+          var otherGroupColor = this.getComputedStyleValue('--chart-grey');
           var color = d3.scale.ordinal().range([
-            this.getComputedStyleValue('--bar-chart-blue'),
-            this.getComputedStyleValue('--bar-chart-orange'),
-            this.getComputedStyleValue('--bar-chart-green'),
-            this.getComputedStyleValue('--bar-chart-red'),
-            this.getComputedStyleValue('--bar-chart-purple'),
-            this.getComputedStyleValue('--bar-chart-yellow'),
-            this.getComputedStyleValue('--bar-chart-indigo'),
-            this.getComputedStyleValue('--bar-chart-cyan'),
-            this.getComputedStyleValue('--bar-chart-deep-orange'),
-            this.getComputedStyleValue('--bar-chart-lime'),
-            this.getComputedStyleValue('--bar-chart-pink'),
-            this.getComputedStyleValue('--bar-chart-deep-purple'),
-            this.getComputedStyleValue('--bar-chart-amber'),
-            this.getComputedStyleValue('--bar-chart-teal'),
-            this.getComputedStyleValue('--bar-chart-light-green'),
-            this.getComputedStyleValue('--bar-chart-light-blue'),
+            this.getComputedStyleValue('--chart-blue'),
+            this.getComputedStyleValue('--chart-orange'),
+            this.getComputedStyleValue('--chart-green'),
+            this.getComputedStyleValue('--chart-red'),
+            this.getComputedStyleValue('--chart-purple'),
+            this.getComputedStyleValue('--chart-yellow'),
+            this.getComputedStyleValue('--chart-indigo'),
+            this.getComputedStyleValue('--chart-cyan'),
+            this.getComputedStyleValue('--chart-deep-orange'),
+            this.getComputedStyleValue('--chart-lime'),
+            this.getComputedStyleValue('--chart-pink'),
+            this.getComputedStyleValue('--chart-deep-purple'),
+            this.getComputedStyleValue('--chart-amber'),
+            this.getComputedStyleValue('--chart-teal'),
+            this.getComputedStyleValue('--chart-light-green'),
+            this.getComputedStyleValue('--chart-light-blue')
           ]);
 
           // mathematical scales for the x and y axes
@@ -333,9 +316,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var yOverview = d3.scale.linear().range([overviewHeight, 0]);
 
           // rendering for the x and y axes
-          var xAxis = d3.svg.axis().scale(x).orient('bottom').tickFormat(d3.time.format('%b %d'));
+          var xAxis = d3.svg.axis().scale(x).orient('bottom');
           var yAxis = d3.svg.axis().scale(y).orient('left').tickFormat(d3.format('.0f'));
-          var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom').tickFormat(d3.time.format('%b %d'));
+          var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom');
 
           var svg = d3.select(document.createElement('div')).append('svg');
 
@@ -365,7 +348,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
           // data ranges for the x and y axes
           x.domain(d3.extent(data, function(d) { return d.dateObject; }));
-          this.setXAxisTicks(xAxis, x.domain());
+          this.setXAxisTicks(xAxis, x.domain(), xAxisOverview);
           var xAxisMax = _.max(_.map(data, function(item) {
             return x(item.dateObject);
           }));
@@ -378,8 +361,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var createExtentText = function() {
             var xDomain = x.domain();
             var intervalText = self.createIntervalText();
-            // TODO Combine with use of dateFormat in commonTransforms.getDate().
-            return intervalText + dateFormat(xDomain[0], 'mmm d, yyyy', true) + ' to ' + intervalText + dateFormat(xDomain[1], 'mmm d, yyyy', true);
+            // TODO Combine with use of moment in commonTransforms.getDate().
+            return 'Showing ' + intervalText + moment.utc(new Date(xDomain[0])).format('MMM D, YYYY') + ' to ' + intervalText +
+              moment.utc(new Date(xDomain[1])).format('MMM D, YYYY');
           };
 
           info.text(createExtentText());
@@ -472,7 +456,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           var onBrushed = function() {
             // update the main chart's x axis data range
             x.domain(brush.empty() ? xOverview.domain() : brush.extent());
-            self.setXAxisTicks(xAxis, x.domain());
+            self.setXAxisTicks(xAxis, x.domain(), xAxisOverview);
 
             info.text(createExtentText());
 
@@ -538,11 +522,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           });
         },
 
-        setXAxisTicks: function(xAxis, xDomain) {
-          var minInterval = this.interval && this.interval === 'week' ? d3.time.week : d3.time.day;
-          var xDiff = (((((xDomain[1] - xDomain[0]) / 1000) / 60) / 60) / 24);
-          var xInterval = (xDiff > 730 ? d3.time.year : (xDiff > 90 ? d3.time.month : (xDiff > 15 ? d3.time.week : minInterval)));
+        setXAxisTicks: function(xAxis, xDomain, xAxisOverview) {
+          var xDiffInDays = (((((xDomain[1] - xDomain[0]) / 1000) / 60) / 60) / 24);
+
+          var xInterval = (xDiffInDays > 15 ? d3.time.week : d3.time.day);
+          var timeFormat = '%b %e';
+          if(xDiffInDays > 550) {
+            xInterval = d3.time.year;
+            timeFormat = '%b %Y';
+          } else if(xDiffInDays > 90 || this.interval === 'week') {
+            xInterval = d3.time.month;
+            timeFormat = '%b';
+          }
+
+          xAxis.tickFormat(d3.time.format(timeFormat));
+          xAxisOverview.tickFormat(d3.time.format(timeFormat));
           xAxis.ticks(xInterval, 1);
+          xAxisOverview.ticks(xInterval, 1);
         },
 
         getYAxisTickValues: function(yAxisMax) {

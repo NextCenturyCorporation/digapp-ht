@@ -9,11 +9,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 
 <script src="../../scripts/google-analytics.js"></script>
 
 <dom-module id="dig-logger">
   <template>
+    <elastic-create
+      client="[[esClient]]"
+      index="[[esIndex]]"
+      elastic-type="[[esType]]"
+      body="[[_esLogBody]]">
+    </elastic-create>
+
+    <elastic-create
+      client="[[esClient]]"
+      index="[[esIndex]]"
+      elastic-type="[[esType]]"
+      body="[[_esLoginBody]]">
+    </elastic-create>
   </template>
 
   <script>
@@ -24,6 +38,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'dig-logger',
 
       properties: {
+        esClient: {
+          type: Object
+        },
+        esIndex: {
+          type: String
+        },
+        esType: {
+          type: String
+        },
         supertype: {
           type: String,
           value: 'supertype'
@@ -32,22 +55,53 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String,
           value: 'subtype'
         },
+        username: {
+          type: String,
+          observer: 'login'
+        },
         value: {
           type: String,
           observer: 'log'
         },
-        username: {
-          type: String
+        _esLogBody: {
+          type: Object
+        },
+        _esLoginBody: {
+          type: Object
         }
       },
 
-      /* jshint ignore:start */
+      login: function() {
+        /* jshint ignore:start */
+        ga('set', 'dimension1', window.btoa(this.username));
+        ga('set', 'userId', window.btoa(this.username));
+        ga('send', 'pageview');
+        /* jshint ignore:end */
+
+        this.set('_esLoginBody', {
+          user: this.username,
+          type: 'PageView',
+          host: window.location.origin,
+          date: new Date(),
+          data: ''
+        });
+      },
+
       log: function(value) {
+        /* jshint ignore:start */
         ga('set', 'dimension1', window.btoa(this.username));
         ga('set', 'userId', window.btoa(this.username));
         ga('send', 'event', this.supertype, this.subtype, value);
+        /* jshint ignore:end */
+
+        this.set('_esLogBody', {
+          user: this.username,
+          type: this.supertype + '-' + this.subtype,
+          host: window.location.origin,
+          date: new Date(),
+          data: value
+        });
       }
-      /* jshint ignore:end */
     });
   })();
   </script>

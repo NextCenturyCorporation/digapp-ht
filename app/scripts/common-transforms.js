@@ -2,12 +2,12 @@
  * Common transform functions used.
  */
 
-/* globals _, dateFormat */
+/* globals _, moment */
 /* exported commonTransforms */
 /* jshint camelcase:false */
 
 /* note lodash should be defined in parent scope */
-var commonTransforms = (function(_, dateFormat) {
+var commonTransforms = (function(_, moment) {
 
   /**
    * Returns the iron icon for the given type.
@@ -254,7 +254,7 @@ var commonTransforms = (function(_, dateFormat) {
      */
     getDate: function(date) {
       if(date) {
-        return dateFormat(new Date(date), 'mmm d, yyyy', true);
+        return moment.utc(new Date(date)).format('MMM D, YYYY');
       }
     },
 
@@ -308,4 +308,4 @@ var commonTransforms = (function(_, dateFormat) {
       return output;
     }
   };
-})(_, dateFormat);
+})(_, moment);

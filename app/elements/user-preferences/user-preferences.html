@@ -15,6 +15,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
@@ -22,7 +23,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../lodash.html">
-<link rel="import" href="../dateformat.html">
 
 <dom-module id="user-preferences">
   <template>
@@ -57,9 +57,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }
 
       .highlight-btn {
-        background-color: var(--text-primary-color);
+        background-color: yellowgreen;
         border-radius: 5px;
-        color: var(--dark-primary-color);
       }
     </style>
     <paper-icon-button
@@ -144,7 +143,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                     title="[[_getModalIconTitle('expandSavedSearch', index)]]"
                     openable ripple on-tap="_toggleSearchSettings">
                   </modal-icon>
-                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                  <paper-icon-button class$="[[_getRunButtonClass(search.notificationHasRun)]]" icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch" disabled="[[!showSearch]]"></paper-icon-button>
                   <search-info-display search="[[search]]"></search-info-display>
                 </div>
@@ -257,7 +256,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
   <script>
   (function() {
-    /* globals _, dateFormat */
+    /* globals _, moment */
     'use strict';
 
     Polymer({
@@ -467,6 +466,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       observers: [
         '_resetNotificationQuery(searchParameters.*)'
       ],
+      _getRunButtonClass: function(notificationHasRun) {
+        return notificationHasRun === false ? 'highlight-btn' : '';
+      },
       _getSettingsButtonClass: function(hasNotifications) {
         return hasNotifications ? 'highlight-btn' : '';
       },
@@ -677,6 +679,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           hairColor: state.hairColor || {},
           height: state.height || {},
           weight: state.weight || {},
+          hasImage: state.hasImage || {},
           // Always sort by newest.
           sort: this.sortNewest,
           // Set the text to null rather than an empty string or else the search won't trigger.
@@ -727,14 +730,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var self = this;
 
         var search = _.clone(self.searches[index]);
-        search.lastRunDate = new Date();
 
         if(search.notificationHasRun === false) {
           // notification queries have to be sorted in descending order so that newest
           // results are first
           search.notificationHasRun = true;
-          self.notificationQueryDate = new Date(search.notificationDate);
+          self.notificationQueryDate = new Date(search.lastRunDate);
         }
+
+        search.lastRunDate = new Date();
         self.splice('searches', index, 1, search);
         self._set_userUpdateBody({
           doc: {
@@ -813,7 +817,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _getFormattedDate: function(date) {
         if(date) {
-          return dateFormat(new Date(date), 'mmmm dd, yyyy', true);
+          return moment.utc(new Date(date)).format('MMMM DD, YYYY');
         }
       },
       /**
