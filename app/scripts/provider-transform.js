@@ -2,11 +2,9 @@
  * transform elastic search webpage query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
 /* exported providerTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
 var providerTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
@@ -37,4 +35,4 @@ var providerTransform = (function(_, commonTransforms) {
       return person;
     }
   };
-})(_, commonTransforms);
+});

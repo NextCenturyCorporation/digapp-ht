@@ -1,8 +1,6 @@
-/* globals _ */
 /* exported cacheTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
 var cacheTransform = (function(_) {
   return {
     ad: function(data) {
@@ -18,5 +16,5 @@ var cacheTransform = (function(_) {
       };
     }
   };
-})(_);
+});
 

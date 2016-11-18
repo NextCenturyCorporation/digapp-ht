@@ -2,11 +2,9 @@
  * transform elastic search phone query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
 /* exported phoneTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should commonTransforms */
 var phoneTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
@@ -39,5 +37,5 @@ var phoneTransform = (function(_, commonTransforms) {
       });
     }
   };
-})(_, commonTransforms);
+});
 

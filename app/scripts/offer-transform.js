@@ -2,11 +2,9 @@
  * transform elastic search offer query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
 /* exported offerTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as well as commonTransforms */
 var offerTransform = (function(_, commonTransforms) {
 
   function getPerson(record) {
@@ -624,4 +622,4 @@ var offerTransform = (function(_, commonTransforms) {
       return data;
     }
   };
-})(_, commonTransforms);
+});

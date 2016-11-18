@@ -2,11 +2,9 @@
  * Common transform functions used.
  */
 
-/* globals _, moment */
 /* exported commonTransforms */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
 var commonTransforms = (function(_, moment) {
 
   /**
@@ -84,4 +82,4 @@ var commonTransforms = (function(_, moment) {
       return getStyleClass(type);
     }
   };
-})(_, moment);
+});

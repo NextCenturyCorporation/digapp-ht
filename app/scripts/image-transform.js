@@ -2,11 +2,9 @@
  * transform elastic search image query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
 /* exported imageTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should commonTransforms */
 var imageTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
@@ -60,5 +58,4 @@ var imageTransform = (function(_, commonTransforms) {
       return commonTransforms.getLink('http://dig.isi.edu/ht/data/' + id, 'image');
     }
   };
-})(_, commonTransforms);
-
+});

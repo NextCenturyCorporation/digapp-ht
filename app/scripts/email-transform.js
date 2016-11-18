@@ -2,11 +2,9 @@
  * transform elastic search email query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
 /* exported emailTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should commonTransforms */
 var emailTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
@@ -35,4 +33,4 @@ var emailTransform = (function(_, commonTransforms) {
       });
     }
   };
-})(_, commonTransforms);
+});
