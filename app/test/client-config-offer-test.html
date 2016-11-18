@@ -27,210 +27,304 @@
   /* globals suite, test, expect, setup, fixture, offerResult, offerAgg, peopleAgg, assert */
   /* jshint -W030 */
   suite('<client-config> offer tests', function() {
-    var myEl;
-    var dataOut;
+    var clientConfig;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
-      var offerTransform = myEl.config.transforms.offer.offer;
-      dataOut = offerTransform(offerResult);
+      clientConfig = fixture('client-config-fixture');
     });
 
     test('defines config object with offer transform function', function() {
-      expect(myEl).to.exist;
-      expect(myEl.config).to.be.an('Object');
-      expect(myEl.config.transforms).to.be.an('Object');
-      expect(myEl.config.transforms.offer).to.be.an('Object');
-      expect(myEl.config.transforms.offer.offer).to.be.a('Function');
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer.offer).to.be.a('Function');
     });
 
-    test('defines offer data', function() {
-      expect(offerResult).to.exist;
-      assert.equal(offerResult.hits.total, 1);
+    test('defines offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.equal(output.id, 'http://dig.isi.edu/ht/data/offer/9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954');
+      assert.equal(output.type, 'offer');
+      assert.equal(output.icon, 'maps:local-offer');
+      assert.equal(output.link, '/offer.html?value=http://dig.isi.edu/ht/data/offer/9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954&field=_id');
+      assert.equal(output.styleClass, 'entity-offer-font');
+      assert.equal(output.url, 'http://google.com');
+      assert.equal(output.name, 'This is the title');
+      assert.equal(output.date, 'Oct 17, 2015');
+      assert.equal(output.publisher, 'google.com');
+      assert.equal(output.description, 'This is the description.');
+      assert.equal(output.location, 'West Palm Beach, Florida, United States');
     });
 
-    test('defines id string', function() {
-      assert.isString(dataOut.id);
+    test('defines image array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.images, [{
+        id: 'http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8&field=_id',
+        source: 'http://url1',
+        styleClass: 'entity-image-font',
+      }, {
+        id: 'http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F&field=_id',
+        source: 'http://url2',
+        styleClass: 'entity-image-font',
+      }]);
     });
 
-    test('defines date string', function() {
-      assert.isString(dataOut.date);
-      assert.equal(dataOut.date, '2015-10-17T18:59:32');
+    test('defines location array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.locations, [{
+        latitude: '26.71534',
+        longitude: '-80.05337',
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'West Palm Beach, Florida, United States',
+        type: 'location'
+      }]);
     });
 
-    test('defines address data', function() {
-      assert.isObject(dataOut.address);
-      assert.equal(dataOut.address.locality, 'West Palm Beach');
-      assert.equal(dataOut.address.region, 'Florida');
-      assert.equal(dataOut.address.formattedAddress, 'West Palm Beach, Florida');
+    test('defines person in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.person, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/04683C829AF807EC2E2E634FC9F7352FE1CB071C',
+        names: [],
+        ages: ['24'],
+        ethnicities: ['indian'],
+        hairColors: [],
+        eyeColors: [],
+        heights: ['157'],
+        weights: ['49'],
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/04683C829AF807EC2E2E634FC9F7352FE1CB071C&field=_id',
+        styleClass: 'entity-provider-font',
+        text: '24, indian',
+        type: 'provider'
+      });
     });
 
-    test('defines geolocation data', function() {
-      assert.isArray(dataOut.geolocation);
-      assert.equal(dataOut.geolocation.length, 1);
-      assert.equal(dataOut.geolocation[0].latitude, '26.71534');
-      assert.equal(dataOut.geolocation[0].longitude, '-80.05337');
+    test('defines price array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.prices, [{
+        icon: 'editor:attach-money',
+        styleClass: 'entity-money-font',
+        text: '300-per-60min',
+        type: 'money'
+      }, {
+        icon: 'editor:attach-money',
+        styleClass: 'entity-money-font',
+        text: '400-per-60min',
+        type: 'money'
+      }]);
     });
 
-    test('defines person data', function() {
-      assert.isObject(dataOut.person);
-      assert.isString(dataOut.person.id);
-      assert.equal(dataOut.person.type, 'provider');
-      assert.deepEqual(dataOut.person.names, []);
-      assert.deepEqual(dataOut.person.ages, ['24']);
-      assert.deepEqual(dataOut.person.ethnicities, ['indian']);
-      assert.deepEqual(dataOut.person.hairColors, []);
-      assert.deepEqual(dataOut.person.eyeColors, []);
-      assert.deepEqual(dataOut.person.heights, ['157']);
-      assert.deepEqual(dataOut.person.weights, ['49']);
-      assert.equal(dataOut.person.text, '24, indian');
-      assert.equal(dataOut.person.icon, 'icons:account-circle');
-      assert.isString(dataOut.person.link);
-      assert.equal(dataOut.person.styleClass, 'entity-provider-font');
-      assert.isTrue(dataOut.person.show);
+    test('defines phone array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.phones, [{
+        id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
+        type: 'phone',
+        text: '1234567890',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1234567890&field=_id',
+        icon: 'communication:phone',
+        styleClass: 'entity-phone-font'
+      }]);
     });
 
-    test('defines prices array', function() {
-      assert.isArray(dataOut.prices);
-      assert.equal(dataOut.prices.length, 2);
-      assert.equal(dataOut.prices[0].icon, 'editor:attach-money');
-      assert.isUndefined(dataOut.prices[0].link);
-      assert.equal(dataOut.prices[0].styleClass, 'entity-money-font');
-      assert.equal(dataOut.prices[0].text, '300-per-60min');
-      assert.equal(dataOut.prices[0].type, 'money');
-      assert.equal(dataOut.prices[1].icon, 'editor:attach-money');
-      assert.isUndefined(dataOut.prices[1].link);
-      assert.equal(dataOut.prices[1].styleClass, 'entity-money-font');
-      assert.equal(dataOut.prices[1].text, '400-per-60min');
-      assert.equal(dataOut.prices[1].type, 'money');
+    test('defines email array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.emails, [{
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        type: 'email',
+        text: 'abc@xyz.com',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        icon: 'communication:email',
+        styleClass: 'entity-email-font'
+      }]);
     });
 
-    test('defines name string', function() {
-      assert.isArray(dataOut.name);
-      assert.equal(dataOut.name[0], 'This is the title');
+    test('defines webpage array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.webpages, [{
+        id: 'http://dig.isi.edu/ht/data/webpage/9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954',
+        icon: 'av:web',
+        link: 'http://google.com',
+        styleClass: 'entity-webpage-font',
+        text: 'http://google.com',
+        type: 'webpage'
+      }]);
     });
 
-    test('defines body string', function() {
-      assert.isString(dataOut.body);
-      assert.equal(dataOut.body, 'description');
+    test('defines cache array in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.caches, [{
+        id: '9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954',
+        icon: 'icons:cached',
+        link: '/cache.html?value=9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954&field=_id',
+        styleClass: 'entity-cache-font',
+        text: 'Cached Ad',
+        type: 'cache'
+      }]);
     });
 
-    test('defines publisher string', function() {
-      assert.isString(dataOut.publisher);
-      assert.equal(dataOut.publisher, 'google.com');
+    test('defines descriptors in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.descriptors, [{
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        text: 'Oct 17, 2015',
+        type: 'date'
+      }, {
+        icon: 'av:web',
+        styleClass: 'entity-webpage-font',
+        text: 'google.com',
+        type: 'webpage'
+      }, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'West Palm Beach, Florida, United States',
+        type: 'location'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1234567890&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '1234567890',
+        type: 'phone',
+      }, {
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        icon: 'communication:email',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        styleClass: 'entity-email-font',
+        text: 'abc@xyz.com',
+        type: 'email'
+      }]);
     });
 
-    test('defines an array of phone numbers', function() {
-      assert.isArray(dataOut.phones);
-      assert.equal(dataOut.phones.length, 1);
-      assert.isString(dataOut.phones[0].id);
-      assert.equal(dataOut.phones[0].type, 'phone');
-      assert.equal(dataOut.phones[0].text, '1234567890');
-      assert.equal(dataOut.phones[0].icon, 'communication:phone');
-      assert.isString(dataOut.phones[0].link);
-      assert.equal(dataOut.phones[0].styleClass, 'entity-phone-font');
-    });
-
-    test('defines an array of emails', function() {
-      assert.isArray(dataOut.emails);
-      assert.equal(dataOut.emails.length, 1);
-      assert.isString(dataOut.emails[0].id);
-      assert.equal(dataOut.emails[0].type, 'email');
-      assert.equal(dataOut.emails[0].text, 'abc@xyz.com');
-      assert.equal(dataOut.emails[0].icon, 'communication:email');
-      assert.isString(dataOut.emails[0].link);
-      assert.equal(dataOut.emails[0].styleClass, 'entity-email-font');
-    });
-
-    test('defines id strings for related entities', function() {
-      assert.isString(dataOut.sellerId);
-      assert.isString(dataOut.serviceId);
-      assert.isString(dataOut.webpageId);
-    });
-
-    test('defines webpageUrl string', function() {
-      assert.isString(dataOut.webpageUrl);
-    });
-
-    test('defines webpages array', function() {
-      assert.isArray(dataOut.webpages);
-      assert.equal(dataOut.webpages.length, 1);
-      assert.equal(dataOut.webpages[0].icon, 'av:web');
-      assert.isString(dataOut.webpages[0].link);
-      assert.equal(dataOut.webpages[0].styleClass, 'entity-webpage-font');
-      assert.isString(dataOut.webpages[0].text);
-      assert.equal(dataOut.webpages[0].type, 'webpage');
-    });
-
-    test('defines cache array', function() {
-      assert.isArray(dataOut.cache);
-      assert.equal(dataOut.cache.length, 1);
-      assert.equal(dataOut.cache[0].icon, 'icons:cached');
-      assert.isString(dataOut.cache[0].link);
-      assert.equal(dataOut.cache[0].styleClass, 'entity-cache-font');
-      assert.equal(dataOut.cache[0].text, 'Cached Ad');
-      assert.equal(dataOut.cache[0].type, 'cache');
+    test('defines details in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.details, [{
+        name: 'Url',
+        link: 'http://google.com',
+        text: 'http://google.com'
+      }, {
+        name: 'Description',
+        text: 'This is the description.'
+      }, {
+        name: 'Cached Ad',
+        link: '/cache.html?value=9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954&field=_id',
+        text: 'Open'
+      }]);
     });
   });
 
-  suite('<client-config> offer tests if no people, address info or title from query', function() {
-    var myEl;
-    var dataOut;
+  suite('<client-config> offer tests if offer result does not have data', function() {
+    var clientConfig;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
-      var offerTransform = myEl.config.transforms.offer.offer;
-      var noResults = {hits: {hits: [{_id: 1}]}};
-      dataOut = offerTransform(noResults);
+      clientConfig = fixture('client-config-fixture');
     });
 
-    test('defines person data', function() {
-      assert.isObject(dataOut.person);
-      assert.isUndefined(dataOut.person.id);
-      assert.equal(dataOut.person.type, 'provider');
-      assert.deepEqual(dataOut.person.names, []);
-      assert.deepEqual(dataOut.person.ages, []);
-      assert.deepEqual(dataOut.person.ethnicities, []);
-      assert.deepEqual(dataOut.person.hairColors, []);
-      assert.deepEqual(dataOut.person.eyeColors, []);
-      assert.deepEqual(dataOut.person.heights, []);
-      assert.deepEqual(dataOut.person.weights, []);
-      assert.equal(dataOut.person.text, '');
-      assert.equal(dataOut.person.icon, 'icons:account-circle');
-      assert.isUndefined(dataOut.person.link);
-      assert.equal(dataOut.person.styleClass, 'entity-provider-font');
-      assert.isFalse(dataOut.person.show);
+    test('defines offer', function() {
+      var output = clientConfig.config.transforms.offer.offer({hits: {hits: [{_id: '1'}]}});
+      assert.equal(output.id, '1');
+      assert.equal(output.type, 'offer');
+      assert.equal(output.icon, 'maps:local-offer');
+      assert.equal(output.link, '/offer.html?value=1&field=_id');
+      assert.equal(output.styleClass, 'entity-offer-font');
+      assert.equal(output.name, 'No Title');
+      assert.equal(output.date, 'No Date');
+      assert.equal(output.publisher, 'No Publisher');
+      assert.equal(output.description, 'No Description');
+      assert.equal(output.location, 'No Location');
+      assert.deepEqual(output.images, []);
+      assert.deepEqual(output.locations, []);
+      assert.deepEqual(output.prices, []);
+      assert.deepEqual(output.phones, []);
+      assert.deepEqual(output.emails, []);
+      assert.deepEqual(output.webpages, []);
+      assert.deepEqual(output.caches, []);
     });
 
-    test('defines address data', function() {
-      assert.isObject(dataOut.address);
-      assert.equal(dataOut.address.locality, undefined);
-      assert.equal(dataOut.address.region, undefined);
-      assert.equal(dataOut.address.country, undefined);
-      assert.equal(dataOut.address.formattedAddress, 'No Address');
+    test('defines person in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer({hits: {hits: [{_id: '1'}]}});
+      assert.deepEqual(output.person, {
+        id: null,
+        names: [],
+        ages: [],
+        ethnicities: [],
+        hairColors: [],
+        eyeColors: [],
+        heights: [],
+        weights: [],
+        icon: 'icons:account-circle',
+        link: null,
+        styleClass: 'entity-provider-font',
+        text: '',
+        type: 'provider'
+      });
     });
 
-    test('defines name string', function() {
-      assert.isString(dataOut.name);
-      assert.equal(dataOut.name, 'Title N/A');
+    test('defines descriptors in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer({hits: {hits: [{_id: '1'}]}});
+      assert.deepEqual(output.descriptors, [{
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        text: 'No Date',
+        type: 'date'
+      }, {
+        icon: 'av:web',
+        styleClass: 'entity-webpage-font',
+        text: 'No Publisher',
+        type: 'webpage'
+      }, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'No Location',
+        type: 'location'
+      }]);
     });
 
+    test('defines details in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer({hits: {hits: [{_id: '1'}]}});
+      assert.deepEqual(output.details, [{
+        name: 'Url',
+        link: null,
+        text: 'Unavailable'
+      }, {
+        name: 'Description',
+        text: 'No Description'
+      }, {
+        name: 'Cached Ad',
+        link: null,
+        text: 'Unavailable'
+      }]);
+    });
   });
 
   suite('<client-config> offer tests if no results from query', function() {
-    var myEl;
-    var dataOut;
+    var clientConfig;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
-      var offerTransform = myEl.config.transforms.offer.offer;
-      var noResults = {hits: {hits: []}};
-      dataOut = offerTransform(noResults);
+      clientConfig = fixture('client-config-fixture');
     });
 
-    test('defines empty object for dataOut', function() {
-      expect(dataOut).to.exist;
-      assert.deepEqual(dataOut, {});
+    test('defines empty offer for empty data', function() {
+      var output = clientConfig.config.transforms.offer.offer({
+        hits: {
+          hits: []
+        }
+      });
+      assert.deepEqual(output, {});
+    });
+
+    test('defines empty offer for data with no id', function() {
+      var output = clientConfig.config.transforms.offer.offer({
+        hits: {
+          hits: [{}]
+        }
+      });
+      assert.deepEqual(output, {});
     });
   });
 
@@ -249,7 +343,7 @@
       expect(clientConfig.config.transforms.offer.dropsTimeline).to.be.a('Function');
     });
 
-    test('drops timeline function given empty input returns correct output', function() {
+    test('drops timeline function given empty input returns empty output', function() {
       var output = clientConfig.config.transforms.offer.dropsTimeline({
         aggregations: {
           locations: {
@@ -259,12 +353,13 @@
           }
         }
       });
-      expect(output.data).to.be.an('Array');
-      expect(output.data.length).to.equal(0);
-      expect(output.timestamps).to.deep.equal([]);
+      expect(output).to.deep.equal({
+        data: [],
+        timestamps: []
+      });
     });
 
-    test('drops timeline function given offer aggregations returns correct output', function() {
+    test('drops timeline function given offer aggregations returns correct data', function() {
       var output = clientConfig.config.transforms.offer.dropsTimeline(offerAgg);
       expect(output.data).to.be.an('Array');
       expect(output.data.length).to.equal(2);
@@ -282,6 +377,10 @@
       expect(output.data[1].dates.length).to.equal(1);
       expect(output.data[1].dates[0]).to.be.a('Date');
       expect(output.data[1].dates[0].getTime()).to.equal(1444608000000);
+    });
+
+    test('drops timeline function given offer aggregations returns correct timestamps', function() {
+      var output = clientConfig.config.transforms.offer.dropsTimeline(offerAgg);
       expect(output.timestamps).to.deep.equal([1444608000000, 1444521600000, 1444435200000, 1444608000000]);
     });
   });
@@ -622,7 +721,7 @@
       expect(clientConfig).to.exist;
       expect(clientConfig.config).to.be.an('Object');
       expect(clientConfig.config.transforms).to.be.an('Object');
-      expect(clientConfig.config.transforms.common).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer).to.be.an('Object');
       expect(clientConfig.config.transforms.offer.offerLocations).to.be.a('Function');
     });
 
@@ -640,13 +739,6 @@
 
   suite('<client-config> offer tests: transform for people features', function() {
     var clientConfig;
-    var output;
-
-    setup(function() {
-      clientConfig = fixture('client-config-fixture');
-      var sellerTransform = clientConfig.config.transforms.offer.peopleFeaturesName;
-      output = sellerTransform(peopleAgg);
-    });
 
     setup(function() {
       clientConfig = fixture('client-config-fixture');
@@ -828,14 +920,20 @@
       var output = clientConfig.config.transforms.offer.createExportData([{
         url: 'url',
         link: 'link',
-        text: 'title',
+        name: 'title',
         date: 'today',
         publisher: 'website',
-        locations: 'location',
-        phones: 'phone',
-        emails: 'email',
+        locations: [{
+          text: 'location'
+        }],
+        phones: [{
+          text: 'phone'
+        }],
+        emails: [{
+          text: 'email'
+        }],
         images: [{
-          text: 'image'
+          source: 'image'
         }],
         description: 'A quick brown fox\njumped over the lazy dog.'
       }]);
@@ -854,22 +952,40 @@
       expect(output[1][9]).to.equal('A quick brown fox jumped over the lazy dog.');
     });
 
-    test('create export data function given results array with multiple images returns correct array', function() {
+    test('create export data function given results array with multiple emails, images, locations, and phones returns correct array', function() {
       var output = clientConfig.config.transforms.offer.createExportData([{
         url: 'url',
         link: 'link',
-        text: 'title',
+        name: 'title',
         date: 'today',
-        publisher: 'google.com',
-        locations: 'Mountain View, CA; New York, NY; Washington, DC',
-        phones: 'phone1; phone2; phone3',
-        emails: 'email1; email2; email3',
+        publisher: 'website',
+        locations: [{
+          text: 'location1'
+        }, {
+          text: 'location2'
+        }, {
+          text: 'location3'
+        }],
+        phones: [{
+          text: 'phone1'
+        }, {
+          text: 'phone2'
+        }, {
+          text: 'phone3'
+        }],
+        emails: [{
+          text: 'email1'
+        }, {
+          text: 'email2'
+        }, {
+          text: 'email3'
+        }],
         images: [{
-          text: 'image1'
+          source: 'image1'
         }, {
-          text: 'image2'
+          source: 'image2'
         }, {
-          text: 'image3'
+          source: 'image3'
         }],
         description: 'description'
       }]);
@@ -880,8 +996,8 @@
       expect(output[1][1]).to.be.a('String');
       expect(output[1][2]).to.equal('title');
       expect(output[1][3]).to.equal('today');
-      expect(output[1][4]).to.equal('google.com');
-      expect(output[1][5]).to.equal('Mountain View, CA; New York, NY; Washington, DC');
+      expect(output[1][4]).to.equal('website');
+      expect(output[1][5]).to.equal('location1; location2; location3');
       expect(output[1][6]).to.equal('phone1; phone2; phone3');
       expect(output[1][7]).to.equal('email1; email2; email3');
       expect(output[1][8]).to.equal('image1; image2; image3');
@@ -894,6 +1010,9 @@
 
     setup(function() {
       clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines client config object with offers transform function', function() {
       expect(clientConfig).to.exist;
       expect(clientConfig.config).to.be.an('Object');
       expect(clientConfig.config.transforms).to.be.an('Object');
@@ -901,15 +1020,110 @@
       expect(clientConfig.config.transforms.offer.offers).to.be.an('Function');
     });
 
-    test('defines correct offer array', function() {
+    test('defines correct offer array from offer result', function() {
       var output = clientConfig.config.transforms.offer.offers(offerResult);
       assert.equal(output.count, 1);
-      assert.isString(output.data[0].id);
+      assert.isArray(output.data);
+      assert.equal(output.data.length, 1);
+      assert.equal(output.data[0].id, 'http://dig.isi.edu/ht/data/offer/9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954');
       assert.equal(output.data[0].type, 'offer');
-      assert.equal(output.data[0].text, 'This is the title');
       assert.equal(output.data[0].icon, 'maps:local-offer');
-      assert.isString(output.data[0].link);
+      assert.equal(output.data[0].link, '/offer.html?value=http://dig.isi.edu/ht/data/offer/9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954&field=_id');
       assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.equal(output.data[0].url, 'http://google.com');
+      assert.equal(output.data[0].name, 'This is the title');
+      assert.equal(output.data[0].date, 'Oct 17, 2015');
+      assert.equal(output.data[0].publisher, 'google.com');
+      assert.equal(output.data[0].description, 'This is the description.');
+      assert.equal(output.data[0].location, 'West Palm Beach, Florida, United States');
+
+      assert.deepEqual(output.data[0].images, [{
+        id: 'http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8&field=_id',
+        source: 'http://url1',
+        styleClass: 'entity-image-font'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F&field=_id',
+        source: 'http://url2',
+        styleClass: 'entity-image-font'
+      }]);
+
+      assert.deepEqual(output.data[0].locations, [{
+        latitude: '26.71534',
+        longitude: '-80.05337',
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'West Palm Beach, Florida, United States',
+        type: 'location'
+      }]);
+
+      assert.deepEqual(output.data[0].person, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/04683C829AF807EC2E2E634FC9F7352FE1CB071C',
+        names: [],
+        ages: ['24'],
+        ethnicities: ['indian'],
+        hairColors: [],
+        eyeColors: [],
+        heights: ['157'],
+        weights: ['49'],
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/04683C829AF807EC2E2E634FC9F7352FE1CB071C&field=_id',
+        styleClass: 'entity-provider-font',
+        text: '24, indian',
+        type: 'provider'
+      });
+
+      assert.deepEqual(output.data[0].prices, [{
+        icon: 'editor:attach-money',
+        styleClass: 'entity-money-font',
+        text: '300-per-60min',
+        type: 'money'
+      }, {
+        icon: 'editor:attach-money',
+        styleClass: 'entity-money-font',
+        text: '400-per-60min',
+        type: 'money'
+      }]);
+
+      assert.deepEqual(output.data[0].phones, [{
+        id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
+        type: 'phone',
+        text: '1234567890',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1234567890&field=_id',
+        icon: 'communication:phone',
+        styleClass: 'entity-phone-font'
+      }]);
+
+      assert.deepEqual(output.data[0].emails, [{
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        type: 'email',
+        text: 'abc@xyz.com',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        icon: 'communication:email',
+        styleClass: 'entity-email-font'
+      }]);
+
+      assert.deepEqual(output.data[0].webpages, [{
+        id: 'http://dig.isi.edu/ht/data/webpage/9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954',
+        icon: 'av:web',
+        link: 'http://google.com',
+        styleClass: 'entity-webpage-font',
+        text: 'http://google.com',
+        type: 'webpage'
+      }]);
+
+      assert.deepEqual(output.data[0].caches, [{
+        id: '9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954',
+        icon: 'icons:cached',
+        link: '/cache.html?value=9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954&field=_id',
+        styleClass: 'entity-cache-font',
+        text: 'Cached Ad',
+        type: 'cache'
+      }]);
+
       assert.deepEqual(output.data[0].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -940,98 +1154,108 @@
         text: 'abc@xyz.com',
         type: 'email'
       }]);
-      assert.isArray(output.data[0].details);
-      assert.equal(output.data[0].details.length, 3);
-      assert.equal(output.data[0].details[0].name, 'Url');
-      assert.isString(output.data[0].details[0].link);
-      assert.isString(output.data[0].details[0].text);
-      assert.equal(output.data[0].details[1].name, 'Description');
-      assert.isString(output.data[0].details[1].text);
-      assert.equal(output.data[0].details[2].name, 'Cached Ad');
-      assert.isString(output.data[0].details[2].link);
-      assert.isString(output.data[0].details[2].text);
-      assert.deepEqual(output.data[0].images, [{
-        id: 'http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8',
-        icon: 'image:photo',
-        link: '/image.html?value=http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8&field=_id',
-        source: 'http://url1',
-        styleClass: 'entity-image-font'
+
+      assert.deepEqual(output.data[0].details, [{
+        name: 'Url',
+        link: 'http://google.com',
+        text: 'http://google.com'
       }, {
-        id: 'http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F',
-        icon: 'image:photo',
-        link: '/image.html?value=http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F&field=_id',
-        source: 'http://url2',
-        styleClass: 'entity-image-font'
+        name: 'Description',
+        text: 'This is the description.'
+      }, {
+        name: 'Cached Ad',
+        link: '/cache.html?value=9E47C0AFA1C00617F6AF1E5DB9D35F8A3F2BE658830653E51AB7CC38C5C9F954&field=_id',
+        text: 'Open'
       }]);
     });
 
-    /*
-    test('defines correct offer array from offer aggregation', function() {
-      var output = clientConfig.config.transforms.offer.offers(offerAgg);
-      assert.equal(output.count, 2);
-      assert.isString(output.data[0].id);
-      assert.equal(output.data[0].type, 'offer');
-      assert.equal(output.data[0].text, 'Title 1');
-      assert.equal(output.data[0].icon, 'maps:local-offer');
-      assert.isString(output.data[0].link);
-      assert.equal(output.data[0].styleClass, 'entity-offer-font');
-      assert.deepEqual(output.data[0].descriptors, [{
-        icon: 'icons:date-range',
-        styleClass: 'entity-date-font',
-        text: 'Oct 30, 2015',
-        type: 'date'
-      }, {
-        icon: 'av:web',
-        styleClass: 'entity-webpage-font',
-        text: 'Publisher_1',
-        type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'Brooklyn, New York, United States',
-        type: 'location'
-      }, {
-        id: 'http://dig.isi.edu/ht/data/phone/1-9876543210',
-        icon: 'communication:phone',
-        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-9876543210&field=_id',
-        styleClass: 'entity-phone-font',
-        text: '9876543210',
-        type: 'phone',
-      }, {
-        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
-        icon: 'communication:email',
-        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
-        styleClass: 'entity-email-font',
-        text: 'abc@xyz.com',
-        type: 'email'
-      }]);
-      assert.isArray(output.data[0].details);
-      assert.equal(output.data[0].details.length, 3);
-      assert.equal(output.data[0].details[0].name, 'Url');
-      assert.isString(output.data[0].details[0].link);
-      assert.isString(output.data[0].details[0].text);
-      assert.equal(output.data[0].details[1].name, 'Description');
-      assert.isString(output.data[0].details[1].text);
-      assert.equal(output.data[0].details[2].name, 'Cached Ad');
-      assert.isString(output.data[0].details[2].link);
-      assert.isString(output.data[0].details[2].text);
-    });
-    */
-
-    test('defines correct offer array from offer aggregation', function() {
+    test('defines offer array with correct count from offer aggregation', function() {
       var output = clientConfig.config.transforms.offer.offers(offerAgg);
       expect(output).to.be.an('Object');
       expect(output.data).to.be.an('Array');
       expect(output.data.length).to.equal(2);
       expect(output.count).to.equal(2);
+    });
 
-      // Offer 1
+    test('defines correct offer #1 from offer aggregation', function() {
+      var output = clientConfig.config.transforms.offer.offers(offerAgg);
       assert.equal(output.data[0].id, 'http://dig.isi.edu/ht/data/offer/3F1A732EAB37911CBB3C2259594ED1A81CA455E776BA729ED584861E836C358C');
       assert.equal(output.data[0].type, 'offer');
-      assert.equal(output.data[0].text, 'Title 1');
+      assert.equal(output.data[0].name, 'Title 1');
       assert.equal(output.data[0].icon, 'maps:local-offer');
       assert.equal(output.data[0].link, '/offer.html?value=http://dig.isi.edu/ht/data/offer/3F1A732EAB37911CBB3C2259594ED1A81CA455E776BA729ED584861E836C358C&field=_id');
       assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.equal(output.data[0].url, 'http://offerUrl1');
+      assert.equal(output.data[0].date, 'Oct 30, 2015');
+      assert.equal(output.data[0].publisher, 'Publisher_1');
+      assert.equal(output.data[0].description, 'Description 1');
+      assert.equal(output.data[0].location, 'Brooklyn, New York, United States');
+
+      // TODO Test data should have images and prices and better person data.
+      assert.deepEqual(output.data[0].images, []);
+      assert.deepEqual(output.data[0].prices, []);
+
+      assert.deepEqual(output.data[0].locations, [{
+        latitude: '40.6501',
+        longitude: '-73.94958',
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Brooklyn, New York, United States',
+        type: 'location'
+      }]);
+
+      assert.deepEqual(output.data[0].person, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/D616C97E26A7EB30EBA624F49FC882A9C1BF92A2',
+        names: [],
+        ages: [],
+        ethnicities: [],
+        hairColors: [],
+        eyeColors: [],
+        heights: [],
+        weights: [],
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/D616C97E26A7EB30EBA624F49FC882A9C1BF92A2&field=_id',
+        styleClass: 'entity-provider-font',
+        text: '',
+        type: 'provider'
+      });
+
+      assert.deepEqual(output.data[0].phones, [{
+        id: 'http://dig.isi.edu/ht/data/phone/1-9876543210',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-9876543210&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '9876543210',
+        type: 'phone',
+      }]);
+
+      assert.deepEqual(output.data[0].emails, [{
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        icon: 'communication:email',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        styleClass: 'entity-email-font',
+        text: 'abc@xyz.com',
+        type: 'email'
+      }]);
+
+      assert.deepEqual(output.data[0].webpages, [{
+        id: 'http://dig.isi.edu/ht/data/webpage/3F1A732EAB37911CBB3C2259594ED1A81CA455E776BA729ED584861E836C358C',
+        icon: 'av:web',
+        link: 'http://offerUrl1',
+        styleClass: 'entity-webpage-font',
+        text: 'http://offerUrl1',
+        type: 'webpage'
+      }]);
+
+      assert.deepEqual(output.data[0].caches, [{
+        id: '3F1A732EAB37911CBB3C2259594ED1A81CA455E776BA729ED584861E836C358C',
+        icon: 'icons:cached',
+        link: '/cache.html?value=3F1A732EAB37911CBB3C2259594ED1A81CA455E776BA729ED584861E836C358C&field=_id',
+        styleClass: 'entity-cache-font',
+        text: 'Cached Ad',
+        type: 'cache'
+      }]);
+
       assert.deepEqual(output.data[0].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1062,25 +1286,100 @@
         text: 'abc@xyz.com',
         type: 'email'
       }]);
-      assert.deepEqual(output.data[0].images, []);
-      assert.isArray(output.data[0].details);
-      assert.equal(output.data[0].details.length, 3);
-      assert.equal(output.data[0].details[0].name, 'Url');
-      assert.isString(output.data[0].details[0].link);
-      assert.isString(output.data[0].details[0].text);
-      assert.equal(output.data[0].details[1].name, 'Description');
-      assert.equal(output.data[0].details[1].text, 'Description 1');
-      assert.equal(output.data[0].details[2].name, 'Cached Ad');
-      assert.isString(output.data[0].details[2].link);
-      assert.isString(output.data[0].details[2].text);
 
-      // Offer 2
+      assert.deepEqual(output.data[0].details, [{
+        name: 'Url',
+        link: 'http://offerUrl1',
+        text: 'http://offerUrl1'
+      }, {
+        name: 'Description',
+        text: 'Description 1'
+      }, {
+        name: 'Cached Ad',
+        link: '/cache.html?value=3F1A732EAB37911CBB3C2259594ED1A81CA455E776BA729ED584861E836C358C&field=_id',
+        text: 'Open'
+      }]);
+    });
+
+    test('defines correct offer #2 from offer aggregation', function() {
+      var output = clientConfig.config.transforms.offer.offers(offerAgg);
       assert.equal(output.data[1].id, 'http://dig.isi.edu/ht/data/offer/99A1B80A500E764D522B4F6FFA88107559D7866A2C2F6532D8A4206CC15E5422');
       assert.equal(output.data[1].type, 'offer');
-      assert.equal(output.data[1].text, 'Title 2');
+      assert.equal(output.data[1].name, 'Title 2');
       assert.equal(output.data[1].icon, 'maps:local-offer');
       assert.equal(output.data[1].link, '/offer.html?value=http://dig.isi.edu/ht/data/offer/99A1B80A500E764D522B4F6FFA88107559D7866A2C2F6532D8A4206CC15E5422&field=_id');
       assert.equal(output.data[1].styleClass, 'entity-offer-font');
+      assert.equal(output.data[1].url, 'http://offerUrl2');
+      assert.equal(output.data[1].date, 'Nov 2, 2015');
+      assert.equal(output.data[1].publisher, 'Publisher_2');
+      assert.equal(output.data[1].description, 'Description 2');
+      assert.equal(output.data[1].location, 'Atlanta, Georgia, United States');
+
+      // TODO Test data should have images and prices and better person data.
+      assert.deepEqual(output.data[1].images, []);
+      assert.deepEqual(output.data[1].prices, []);
+
+      assert.deepEqual(output.data[1].locations, [{
+        latitude: '33.749',
+        longitude: '-84.38798',
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Atlanta, Georgia, United States',
+        type: 'location'
+      }]);
+
+      assert.deepEqual(output.data[1].person, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/8CA3AB3D5392444AB60AE344DFD6F89EB0AF8A07',
+        names: [],
+        ages: [],
+        ethnicities: [],
+        hairColors: [],
+        eyeColors: [],
+        heights: [],
+        weights: [],
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/8CA3AB3D5392444AB60AE344DFD6F89EB0AF8A07&field=_id',
+        styleClass: 'entity-provider-font',
+        text: '',
+        type: 'provider'
+      });
+
+      assert.deepEqual(output.data[1].phones, [{
+        id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1112223333&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '1112223333',
+        type: 'phone',
+      }]);
+
+      assert.deepEqual(output.data[1].emails, [{
+        id: 'http://dig.isi.edu/ht/data/email/email2%40gmail.com',
+        icon: 'communication:email',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/email2%40gmail.com&field=_id',
+        styleClass: 'entity-email-font',
+        text: 'email2@gmail.com',
+        type: 'email'
+      }]);
+
+      assert.deepEqual(output.data[1].webpages, [{
+        id: 'http://dig.isi.edu/ht/data/webpage/99A1B80A500E764D522B4F6FFA88107559D7866A2C2F6532D8A4206CC15E5422',
+        icon: 'av:web',
+        link: 'http://offerUrl2',
+        styleClass: 'entity-webpage-font',
+        text: 'http://offerUrl2',
+        type: 'webpage'
+      }]);
+
+      assert.deepEqual(output.data[1].caches, [{
+        id: '99A1B80A500E764D522B4F6FFA88107559D7866A2C2F6532D8A4206CC15E5422',
+        icon: 'icons:cached',
+        link: '/cache.html?value=99A1B80A500E764D522B4F6FFA88107559D7866A2C2F6532D8A4206CC15E5422&field=_id',
+        styleClass: 'entity-cache-font',
+        text: 'Cached Ad',
+        type: 'cache'
+      }]);
+
       assert.deepEqual(output.data[1].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1111,28 +1410,58 @@
         text: 'email2@gmail.com',
         type: 'email'
       }]);
-      assert.deepEqual(output.data[1].images, []);
-      assert.isArray(output.data[1].details);
-      assert.equal(output.data[1].details.length, 3);
-      assert.equal(output.data[1].details[0].name, 'Url');
-      assert.isString(output.data[1].details[0].link);
-      assert.isString(output.data[1].details[0].text);
-      assert.equal(output.data[1].details[1].name, 'Description');
-      assert.equal(output.data[1].details[1].text, 'Description 2');
-      assert.equal(output.data[1].details[2].name, 'Cached Ad');
-      assert.isString(output.data[1].details[2].link);
-      assert.isString(output.data[1].details[2].text);
+
+      assert.deepEqual(output.data[1].details, [{
+        name: 'Url',
+        link: 'http://offerUrl2',
+        text: 'http://offerUrl2'
+      }, {
+        name: 'Description',
+        text: 'Description 2'
+      }, {
+        name: 'Cached Ad',
+        link: '/cache.html?value=99A1B80A500E764D522B4F6FFA88107559D7866A2C2F6532D8A4206CC15E5422&field=_id',
+        text: 'Open'
+      }]);
     });
 
     test('defines correct offer array from sparse data', function() {
-      var output = clientConfig.config.transforms.offer.offers({hits: {hits: [{_id: 'http://id', _type: 'offer'}], total: 1}});
+      var output = clientConfig.config.transforms.offer.offers({hits: {hits: [{_id: 'id'}], total: 1}});
       assert.equal(output.count, 1);
-      assert.isString(output.data[0].id);
+      assert.equal(output.data[0].id, 'id');
       assert.equal(output.data[0].type, 'offer');
-      assert.equal(output.data[0].text, 'No Title');
+      assert.equal(output.data[0].name, 'No Title');
       assert.equal(output.data[0].icon, 'maps:local-offer');
-      assert.isString(output.data[0].link);
+      assert.equal(output.data[0].link, '/offer.html?value=id&field=_id');
       assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.equal(output.data[0].date, 'No Date');
+      assert.equal(output.data[0].publisher, 'No Publisher');
+      assert.equal(output.data[0].description, 'No Description');
+      assert.equal(output.data[0].location, 'No Location');
+      assert.isUndefined(output.data[0].url);
+      assert.deepEqual(output.data[0].images, []);
+      assert.deepEqual(output.data[0].locations, []);
+      assert.deepEqual(output.data[0].phones, []);
+      assert.deepEqual(output.data[0].emails, []);
+      assert.deepEqual(output.data[0].webpages, []);
+      assert.deepEqual(output.data[0].caches, []);
+
+      assert.deepEqual(output.data[0].person, {
+        id: null,
+        names: [],
+        ages: [],
+        ethnicities: [],
+        hairColors: [],
+        eyeColors: [],
+        heights: [],
+        weights: [],
+        icon: 'icons:account-circle',
+        link: null,
+        styleClass: 'entity-provider-font',
+        text: '',
+        type: 'provider'
+      });
+
       assert.deepEqual(output.data[0].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1143,7 +1472,13 @@
         styleClass: 'entity-webpage-font',
         text: 'No Publisher',
         type: 'webpage'
+      }, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'No Location',
+        type: 'location'
       }]);
+
       assert.deepEqual(output.data[0].details, [{
         name: 'Url',
         link: null,
@@ -1153,10 +1488,9 @@
         text: 'No Description'
       }, {
         name: 'Cached Ad',
-        link: '/cache.html?value=id&field=_id',
-        text: 'Open'
+        link: null,
+        text: 'Unavailable'
       }]);
-      assert.deepEqual(output.data[0].images, []);
     });
   });
 </script>

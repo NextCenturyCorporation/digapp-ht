@@ -121,7 +121,7 @@
     <elastic-client-query-builder
       type="term"
       fields='"url.raw"'
-      values="[[offerDisplay.webpageUrl]]"
+      values="[[offerDisplay.url]]"
       ejs-query="{{webpageRevisionsQuery}}">
     </elastic-client-query-builder>
 
@@ -144,12 +144,6 @@
       transform-function="[[clientConfig.transforms.webpage.webpageRevisions]]">
     </json-transform>
 
-    <json-transform
-      data-in="[[webpageRevisionsResults]]"
-      data-out="{{webpageDisplay}}"
-      transform-function="[[clientConfig.transforms.webpage.webpage]]">
-    </json-transform>
-
     <!-- Offer revisions query -->
 
     <elastic-client-filter-builder
@@ -164,7 +158,7 @@
       filtered
       type="term"
       fields='"mainEntityOfPage.url.raw"'
-      values="[[offerDisplay.webpageUrl]]"
+      values="[[offerDisplay.url]]"
       ejs-filter="[[offerRevisionsFilter]]"
       ejs-query="{{offerRevisionsQuery}}">
     </elastic-client-query-builder>
@@ -237,7 +231,7 @@
       type="mlt"
       mlt-config='{"minTermFreq":1,"minDocFreq":1,"maxQueryTerms":100,"minimumShouldMatch":"75%"}'
       fields='["mainEntityOfPage.description", "mainEntityOfPage.name"]'
-      values="[[buildMoreLikeThisValue(offerDisplay.name, offerDisplay.body)]]"
+      values="[[buildMoreLikeThisValue(offerDisplay.name, offerDisplay.description)]]"
       ejs-query="{{similarOfferQuery}}">
     </elastic-client-query-builder>
 
@@ -294,8 +288,7 @@
                 Ad: <span>[[offerDisplay.name]]</span>
               </div>
               <div class="paper-font-subhead layout horizontal">
-                <span>Posted</span>
-                <time is="relative-time" datetime$="[[offerDisplay.date]]"></time>
+                <span>Posted on [[offerDisplay.date]]</span>
               </div>
             </section>
           </div>
@@ -397,7 +390,7 @@
                   <div class="what-section">
                     <div class="flex-12">
                       <div class="desc-header">Description:</div>
-                      <div class="desc-body">[[offerDisplay.body]]</div>
+                      <div class="desc-body">[[offerDisplay.description]]</div>
                     </div>
                   </div>
 
@@ -408,7 +401,7 @@
                     <div class="flex">
                       <icon-label-grid class="wide"
                         icon-style-class-property="styleClass"
-                        data="[[offerDisplay.cache]]">
+                        data="[[offerDisplay.caches]]">
                       </icon-label-grid>
                     </div>
                   </div>
@@ -447,7 +440,7 @@
               </paper-material>
 
               <!-- Provider Section -->
-              <template is="dom-if" if="{{offerDisplay.person.show}}">
+              <template is="dom-if" if="{{offerDisplay.person.id}}">
                 <div class="h-divider"></div>
                 <paper-material>
                   <section class="who">
@@ -545,27 +538,6 @@
                 </paper-material>
               </template>
 
-              <!-- Seller section -->
-              <template is="dom-if" if="[[webpageDisplay.showCommunications]]">
-                <div class="h-divider"></div>
-                <paper-material>
-                  <section class="who">
-                    <div class="paper-font-title">Email/Phone Cluster</div>
-
-                    <template is="dom-if" if="[[webpageRevisionsError]]">
-                      <elastic-error error="[[webpageRevisionsError]]" message="{{communicationsErrorMessage}}"></elastic-error>
-                      <div>[[communicationsErrorMessage]]</div>
-                    </template>
-
-                    <icon-label-grid
-                      icon-style-class-property="styleClass"
-                      data="[[webpageDisplay.communications]]">
-                    </icon-label-grid>
-                  </section>
-                </paper-material>
-              </template>
-
-
               <!-- Revisions Timeline -->
               <template is="dom-if" if="[[webpageRevisions.length]]">
                 <div class="h-divider"></div>
@@ -653,16 +625,15 @@
                 <section class="where-header flex-none content">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[offerDisplay.address.formattedAddress]]</div>
+                    <div>[[offerDisplay.location]]</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[offerDisplay.geolocation.length]]">
+                <template is="dom-if" if="[[offerDisplay.locations.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
-                      text-property="longName"
-                      data="[[offerDisplay.geolocation]]">
+                      data="[[offerDisplay.locations]]">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -738,8 +709,8 @@
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.buildMoreLikeThisValue = function(name, body) {
-      return name + ' ' + body;
+    app.buildMoreLikeThisValue = function(name, desc) {
+      return name + ' ' + desc;
     };
   })(document);
   </script>

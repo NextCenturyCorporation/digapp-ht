@@ -9,69 +9,6 @@
 /* note lodash should be defined in parent scope, as well as commonTransforms */
 var offerTransform = (function(_, commonTransforms) {
 
-  /** build address object:
-  "address": {
-      "locality": "Los Angeles",
-      "region": "California",
-      "formattedAddress": 'Los Angeles, California'
-  }
-  */
-  function getAddress(record) {
-    var address = {};
-    address.locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
-    address.region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
-
-    var formattedAddress = [];
-    if(address.locality) {
-      formattedAddress.push(address.locality);
-    }
-
-    if(address.region) {
-      if(formattedAddress.length > 0) {
-        formattedAddress.push(', ');
-      }
-      formattedAddress.push(address.region);
-    }
-
-    address.formattedAddress = formattedAddress.join('');
-
-    if(_.isEmpty(address.formattedAddress)) {
-      address.formattedAddress = 'No Address';
-    }
-
-    return address;
-  }
-
-  function getGeolocation(record) {
-    /** build geolocation array object:
-    "geolocation": [{
-        "latitude": 33.916403,
-        "longitude": -118.352575
-    }]
-
-    should only be one location, but needs to be in array format
-    to be processed by leaflet-wrapper
-
-    if no latitude && longitude, return empty array
-    */
-    var geolocation = [];
-    var latitude = _.get(record, 'availableAtOrFrom.address[0].geo.latitude');
-    var longitude = _.get(record, 'availableAtOrFrom.address[0].geo.longitude');
-
-    if(latitude && longitude) {
-      var location = {};
-      location.latitude = latitude;
-      location.longitude = longitude;
-      var locality = _.get(record, 'availableAtOrFrom.address[0].addressLocality');
-      var region = _.get(record, 'availableAtOrFrom.address[0].addressRegion');
-      var country = _.get(record, 'availableAtOrFrom.address[0].addressCountry');
-      location.longName = locality + ', ' + region + ', ' + country;
-      geolocation.push(location);
-    }
-
-    return geolocation;
-  }
-
   function getPerson(record) {
     /** build person object:
     "person": {
@@ -85,30 +22,29 @@ var offerTransform = (function(_, commonTransforms) {
         "eyeColors": ["blue"],
         "heights": [64],
         "weights": [115],
-        "text": "Emily, 20, white",
-        "show": true
+        "text": "Emily, 20, white"
     }
     */
     var person = {};
-    person.id = _.get(record, 'itemOffered.uri');
+    person.id = _.get(record, 'uri') || null;
     person.type = 'provider';
     person.icon = commonTransforms.getIronIcon('provider');
-    person.link = commonTransforms.getLink(person.id, 'provider');
+    person.link = commonTransforms.getLink(person.id, 'provider') || null;
     person.styleClass = commonTransforms.getStyleClass('provider');
 
-    person.names = _.get(record, 'itemOffered.name') || [];
+    person.names = _.get(record, 'name') || [];
     person.names = (_.isArray(person.names) ? person.names : [person.names]);
-    person.ages = _.get(record, 'itemOffered.age') || [];
+    person.ages = _.get(record, 'age') || [];
     person.ages = (_.isArray(person.ages) ? person.ages : [person.ages]);
-    person.ethnicities = _.get(record, 'itemOffered.ethnicity') || [];
+    person.ethnicities = _.get(record, 'ethnicity') || [];
     person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
-    person.hairColors = _.get(record, 'itemOffered.hairColor') || [];
+    person.hairColors = _.get(record, 'hairColor') || [];
     person.hairColors = (_.isArray(person.hairColors) ? person.hairColors : [person.hairColors]);
-    person.eyeColors = _.get(record, 'itemOffered.eyeColor') || [];
+    person.eyeColors = _.get(record, 'eyeColor') || [];
     person.eyeColors = (_.isArray(person.eyeColors) ? person.eyeColors : [person.eyeColors]);
-    person.heights = _.get(record, 'itemOffered.height') || [];
+    person.heights = _.get(record, 'height') || [];
     person.heights = (_.isArray(person.heights) ? person.heights : [person.heights]);
-    person.weights = _.get(record, 'itemOffered.weight') || [];
+    person.weights = _.get(record, 'weight') || [];
     person.weights = (_.isArray(person.weights) ? person.weights : [person.weights]);
 
     var text = (person.names.length) ? [person.names[0]] : [];
@@ -119,55 +55,174 @@ var offerTransform = (function(_, commonTransforms) {
       text.push(person.ethnicities[0]);
     }
     person.text = text.join(', ');
-    person.show = (text.length > 0) ? true : false;
     return person;
   }
 
-  function getPrices(prices) {
-    if(prices) {
-      return (_.isArray(prices) ? prices : [prices]).map(function(priceObject) {
-        return priceObject.name;
-      }).filter(function(price) {
-        return price !== '-per-min';
-      });
-    }
-    return [];
+  /**
+   * Returns the list of DIG image objects using the given images from the data.
+   */
+  function getImages(images) {
+    return (_.isArray(images) ? images : [images]).map(function(image) {
+      return {
+        id: image.uri,
+        icon: commonTransforms.getIronIcon('image'),
+        link: commonTransforms.getLink(image.uri, 'image'),
+        source: _.isArray(image.url) ? image.url[0] : image.url,
+        styleClass: commonTransforms.getStyleClass('image')
+      };
+    });
   }
 
-  function parseOffer(record) {
-    var newData = {};
+  /**
+   * Returns the list of DIG location objects using the given locations (addresses) from the data.
+   */
+  function getLocations(locations) {
+    return (_.isArray(locations) ? locations : [locations]).map(function(location) {
+      var locality = _.get(location, 'addressLocality');
+      var region = _.get(location, 'addressRegion');
+      var country = _.get(location, 'addressCountry');
+      var latitude = _.get(location, 'geo.latitude');
+      var longitude = _.get(location, 'geo.longitude');
 
-    newData.id = _.get(record, 'uri');
-    newData.icon = commonTransforms.getIronIcon('offer');
-    newData.styleClass = commonTransforms.getStyleClass('offer');
-    newData.date = _.get(record, 'validFrom');
-    newData.address = getAddress(record);
-    newData.geolocation = getGeolocation(record);
-    newData.person = getPerson(record);
-    newData.prices = commonTransforms.getClickableObjects(getPrices(_.get(record, 'priceSpecification')).map(function(price) {
       return {
-        name: price
+        latitude: latitude,
+        longitude: longitude,
+        icon: commonTransforms.getIronIcon('location'),
+        styleClass: commonTransforms.getStyleClass('location'),
+        text: locality ? (locality + (region ? (', ' + region) : '') + (country ? (', ' + country) : '')) : '',
+        type: 'location'
       };
-    }), 'money');
-    newData.name = _.get(record, 'title', 'Title N/A');
-    newData.publisher = _.get(record, 'mainEntityOfPage.publisher.name');
-    newData.body = _.get(record, 'mainEntityOfPage.description');
-    newData.emails = commonTransforms.getClickableObjects(_.get(record, 'seller.email'), 'email');
-    newData.phones = commonTransforms.getClickableObjects(_.get(record, 'seller.telephone'), 'phone');
-    newData.sellerId = _.get(record, 'seller.uri');
-    newData.serviceId = _.get(record, 'itemOffered.uri');
-    newData.webpageId = _.get(record, 'mainEntityOfPage.uri');
-    newData.webpageUrl = _.get(record, 'mainEntityOfPage.url');
-    newData.webpages = commonTransforms.getClickableObjects({
-      uri: _.get(record, 'mainEntityOfPage.uri'),
-      name: _.get(record, 'mainEntityOfPage.url')
-    }, 'webpage');
-    newData.cache = commonTransforms.getClickableObjects({
-      uri: newData.id ? newData.id.substring(newData.id.lastIndexOf('/') + 1) : '',
-      name: 'Cached Ad'
-    }, 'cache');
+    }).filter(function(location) {
+      return location.latitude && location.longitude && location.text;
+    });
+  }
 
-    return newData;
+  /**
+   * Returns the list of DIG mention objects of the given type using the given mentions from the data.
+   */
+  function getMentions(mentions, type) {
+    return (_.isArray(mentions) ? mentions : [mentions]).map(function(uri) {
+      var text = uri.substring(uri.lastIndexOf('/') + 1);
+      if(type === 'phone' && text.indexOf('-') >= 0) {
+        // Remove country code.
+        text = text.substring(text.indexOf('-') + 1);
+      }
+      if(type === 'email') {
+        text = decodeURIComponent(text);
+      }
+      return {
+        id: uri,
+        type: type,
+        text: text,
+        icon: commonTransforms.getIronIcon(type),
+        link: commonTransforms.getLink(uri, type),
+        styleClass: commonTransforms.getStyleClass(type)
+      };
+    });
+  }
+
+  /**
+   * Returns the list of DIG price objects using the given prices from the data.
+   */
+  function getPrices(prices) {
+    return (_.isArray(prices) ? prices : [prices]).map(function(price) {
+      return {
+        type: 'money',
+        text: price.name,
+        icon: commonTransforms.getIronIcon('money'),
+        styleClass: commonTransforms.getStyleClass('money')
+      };
+    }).filter(function(price) {
+      return price.text !== '-per-min';
+    });
+  }
+
+  function getOfferObject(record, mainPath, idPath, datePath, entityPath) {
+    var id = _.get(record, idPath);
+    if(!id) {
+      return {};
+    }
+
+    var url = _.get(record, mainPath + '.url');
+    var cacheId = id.length && id.lastIndexOf('/') >= 0 ? id.substring(id.lastIndexOf('/') + 1) : '';
+
+    var offerObject = {
+      id: id,
+      type: 'offer',
+      date: commonTransforms.getDate(_.get(record, datePath)) || 'No Date',
+      icon: commonTransforms.getIronIcon('offer'),
+      link: commonTransforms.getLink(id, 'offer'),
+      styleClass: commonTransforms.getStyleClass('offer'),
+      url: url,
+      name: _.get(record, mainPath + '.name', 'No Title'),
+      publisher: _.get(record, mainPath + '.publisher.name', 'No Publisher'),
+      description: _.get(record, mainPath + '.description', 'No Description'),
+      phones: getMentions(_.get(record, mainPath + '.mentionsPhone', []), 'phone'),
+      emails: getMentions(_.get(record, mainPath + '.mentionsEmail', []), 'email'),
+      images: getImages(_.get(record, mainPath + '.hasImagePart', [])),
+      person: getPerson(_.get(record, entityPath + '.itemOffered')),
+      prices: getPrices(_.get(record, entityPath + '.priceSpecification', [])),
+      locations: getLocations(_.get(record, entityPath + '.availableAtOrFrom.address', [])),
+      webpages: url ? [{
+        id: _.get(record, mainPath + '.uri'),
+        type: 'webpage',
+        text: url,
+        icon: commonTransforms.getIronIcon('webpage'),
+        link: url,
+        styleClass: commonTransforms.getStyleClass('webpage')
+      }] : [],
+      caches: cacheId ? [{
+        id: cacheId,
+        type: 'cache',
+        text: 'Cached Ad',
+        icon: commonTransforms.getIronIcon('cache'),
+        link: commonTransforms.getLink(cacheId, 'cache'),
+        styleClass: commonTransforms.getStyleClass('cache')
+      }] : [],
+      descriptors: [],
+      details: []
+    };
+
+    offerObject.name = _.isArray(offerObject.name) ? offerObject.name.join(', ') : offerObject.name;
+    offerObject.location = offerObject.locations.length ? offerObject.locations[0].text : 'No Location';
+
+    offerObject.descriptors.push({
+      icon: commonTransforms.getIronIcon('date'),
+      styleClass: commonTransforms.getStyleClass('date'),
+      type: 'date',
+      text: offerObject.date
+    });
+    offerObject.descriptors.push({
+      icon: commonTransforms.getIronIcon('webpage'),
+      styleClass: commonTransforms.getStyleClass('webpage'),
+      type: 'webpage',
+      text: offerObject.publisher
+    });
+    offerObject.descriptors.push({
+      icon: commonTransforms.getIronIcon('location'),
+      styleClass: commonTransforms.getStyleClass('location'),
+      text: offerObject.location,
+      type: 'location'
+    });
+    offerObject.descriptors = offerObject.descriptors.concat(offerObject.phones);
+    offerObject.descriptors = offerObject.descriptors.concat(offerObject.emails);
+
+    offerObject.details.push({
+      name: 'Url',
+      link: url || null,
+      text: url || 'Unavailable'
+    });
+    offerObject.details.push({
+      name: 'Description',
+      text: offerObject.description
+    });
+    offerObject.details.push({
+      name: 'Cached Ad',
+      link: cacheId ? commonTransforms.getLink(cacheId, 'cache') : null,
+      text: cacheId ? 'Open' : 'Unavailable'
+    });
+
+    return offerObject;
   }
 
   function offsetDates(dates) {
@@ -199,7 +254,7 @@ var offerTransform = (function(_, commonTransforms) {
     }
 
     if(bucket.phones) {
-      var phones = commonTransforms.getMentions(_.map(bucket.phones.buckets, function(phone) {
+      var phones = getMentions(_.map(bucket.phones.buckets, function(phone) {
         return phone.key;
       }), 'phone');
       if(phones.length) {
@@ -211,7 +266,7 @@ var offerTransform = (function(_, commonTransforms) {
     }
 
     if(bucket.emails) {
-      var emails = commonTransforms.getMentions(_.map(bucket.emails.buckets, function(email) {
+      var emails = getMentions(_.map(bucket.emails.buckets, function(email) {
         return email.key;
       }), 'email');
       if(emails.length) {
@@ -343,25 +398,26 @@ var offerTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
     offer: function(data) {
-      var newData = {};
-
       if(data && data.hits.hits.length > 0) {
-        newData = parseOffer(data.hits.hits[0]._source);
+        return getOfferObject(data.hits.hits[0], '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
       }
-
-      return newData;
+      return {};
     },
 
     offers: function(data) {
-      var newObj = {data: [], count: 0};
+      var offers = {data: [], count: 0};
       if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
-          var offerObject = commonTransforms.getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
-          newObj.data.push(offerObject);
+          var offerObject = getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
+          offers.data.push(offerObject);
         });
-        newObj.count = data.hits.total;
+        offers.count = data.hits.total;
       }
-      return newObj;
+      return offers;
+    },
+
+    offerFromPaths: function(record, mainPath, idPath, datePath, entityPath) {
+      return getOfferObject(record, mainPath, idPath, datePath, entityPath);
     },
 
     removeDescriptorFromOffers: function(descriptorId, offers) {
@@ -551,10 +607,19 @@ var offerTransform = (function(_, commonTransforms) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
       var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];
       results.forEach(function(result) {
-        var images = result.images.map(function(image) {
-          return image.text;
+        var locations = result.locations.map(function(location) {
+          return location.text;
         }).join('; ');
-        data.push([result.url, linkPrefix + result.link, result.text, result.date, result.publisher, result.locations, result.phones, result.emails, images, result.description.replace(/\n/g, ' ')]);
+        var phones = result.phones.map(function(phone) {
+          return phone.text;
+        }).join('; ');
+        var emails = result.emails.map(function(email) {
+          return email.text;
+        }).join('; ');
+        var images = result.images.map(function(image) {
+          return image.source;
+        }).join('; ');
+        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, result.description.replace(/\n/g, ' ')]);
       });
       return data;
     }
