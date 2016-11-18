@@ -5,56 +5,7 @@
 /* exported offerTransform */
 /* jshint camelcase:false */
 
-var offerTransform = (function(_, commonTransforms) {
-
-  function getPerson(record) {
-    /** build person object:
-    "person": {
-        "id": "id",
-        "type": "provider",
-        "link": "/provider.html?value=<id>&field=_id",
-        "names": ["Emily"],
-        "ages": [20],
-        "ethnicities": ["white"],
-        "hairColors": ["blonde"],
-        "eyeColors": ["blue"],
-        "heights": [64],
-        "weights": [115],
-        "text": "Emily, 20, white"
-    }
-    */
-    var person = {};
-    person.id = _.get(record, 'uri') || null;
-    person.type = 'provider';
-    person.icon = commonTransforms.getIronIcon('provider');
-    person.link = commonTransforms.getLink(person.id, 'provider') || null;
-    person.styleClass = commonTransforms.getStyleClass('provider');
-
-    person.names = _.get(record, 'name') || [];
-    person.names = (_.isArray(person.names) ? person.names : [person.names]);
-    person.ages = _.get(record, 'age') || [];
-    person.ages = (_.isArray(person.ages) ? person.ages : [person.ages]);
-    person.ethnicities = _.get(record, 'ethnicity') || [];
-    person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
-    person.hairColors = _.get(record, 'hairColor') || [];
-    person.hairColors = (_.isArray(person.hairColors) ? person.hairColors : [person.hairColors]);
-    person.eyeColors = _.get(record, 'eyeColor') || [];
-    person.eyeColors = (_.isArray(person.eyeColors) ? person.eyeColors : [person.eyeColors]);
-    person.heights = _.get(record, 'height') || [];
-    person.heights = (_.isArray(person.heights) ? person.heights : [person.heights]);
-    person.weights = _.get(record, 'weight') || [];
-    person.weights = (_.isArray(person.weights) ? person.weights : [person.weights]);
-
-    var text = (person.names.length) ? [person.names[0]] : [];
-    if(person.ages && person.ages.length) {
-      text.push(person.ages[0]);
-    }
-    if(person.ethnicities && person.ethnicities.length) {
-      text.push(person.ethnicities[0]);
-    }
-    person.text = text.join(', ');
-    return person;
-  }
+var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
   /**
    * Returns the list of DIG image objects using the given images from the data.
@@ -144,7 +95,7 @@ var offerTransform = (function(_, commonTransforms) {
     var url = _.get(record, mainPath + '.url');
     var cacheId = id.length && id.lastIndexOf('/') >= 0 ? id.substring(id.lastIndexOf('/') + 1) : '';
 
-    var offerObject = {
+    var offer = {
       id: id,
       type: 'offer',
       date: commonTransforms.getDate(_.get(record, datePath)) || 'No Date',
@@ -158,7 +109,7 @@ var offerTransform = (function(_, commonTransforms) {
       phones: getMentions(_.get(record, mainPath + '.mentionsPhone', []), 'phone'),
       emails: getMentions(_.get(record, mainPath + '.mentionsEmail', []), 'email'),
       images: getImages(_.get(record, mainPath + '.hasImagePart', [])),
-      person: getPerson(_.get(record, entityPath + '.itemOffered')),
+      person: providerTransforms.personFromRecord(_.get(record, entityPath + '.itemOffered')),
       prices: getPrices(_.get(record, entityPath + '.priceSpecification', [])),
       locations: getLocations(_.get(record, entityPath + '.availableAtOrFrom.address', [])),
       webpages: url ? [{
@@ -181,46 +132,46 @@ var offerTransform = (function(_, commonTransforms) {
       details: []
     };
 
-    offerObject.name = _.isArray(offerObject.name) ? offerObject.name.join(', ') : offerObject.name;
-    offerObject.location = offerObject.locations.length ? offerObject.locations[0].text : 'No Location';
+    offer.name = _.isArray(offer.name) ? offer.name.join(', ') : offer.name;
+    offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
 
-    offerObject.descriptors.push({
+    offer.descriptors.push({
       icon: commonTransforms.getIronIcon('date'),
       styleClass: commonTransforms.getStyleClass('date'),
       type: 'date',
-      text: offerObject.date
+      text: offer.date
     });
-    offerObject.descriptors.push({
+    offer.descriptors.push({
       icon: commonTransforms.getIronIcon('webpage'),
       styleClass: commonTransforms.getStyleClass('webpage'),
       type: 'webpage',
-      text: offerObject.publisher
+      text: offer.publisher
     });
-    offerObject.descriptors.push({
+    offer.descriptors.push({
       icon: commonTransforms.getIronIcon('location'),
       styleClass: commonTransforms.getStyleClass('location'),
-      text: offerObject.location,
+      text: offer.location,
       type: 'location'
     });
-    offerObject.descriptors = offerObject.descriptors.concat(offerObject.phones);
-    offerObject.descriptors = offerObject.descriptors.concat(offerObject.emails);
+    offer.descriptors = offer.descriptors.concat(offer.phones);
+    offer.descriptors = offer.descriptors.concat(offer.emails);
 
-    offerObject.details.push({
+    offer.details.push({
       name: 'Url',
       link: url || null,
       text: url || 'Unavailable'
     });
-    offerObject.details.push({
+    offer.details.push({
       name: 'Description',
-      text: offerObject.description
+      text: offer.description
     });
-    offerObject.details.push({
+    offer.details.push({
       name: 'Cached Ad',
       link: cacheId ? commonTransforms.getLink(cacheId, 'cache') : null,
       text: cacheId ? 'Open' : 'Unavailable'
     });
 
-    return offerObject;
+    return offer;
   }
 
   function offsetDates(dates) {
@@ -406,15 +357,15 @@ var offerTransform = (function(_, commonTransforms) {
       var offers = {data: [], count: 0};
       if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
-          var offerObject = getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
-          offers.data.push(offerObject);
+          var offer = getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
+          offers.data.push(offer);
         });
         offers.count = data.hits.total;
       }
       return offers;
     },
 
-    offerFromPaths: function(record, mainPath, idPath, datePath, entityPath) {
+    offerFromRecordAndPaths: function(record, mainPath, idPath, datePath, entityPath) {
       return getOfferObject(record, mainPath, idPath, datePath, entityPath);
     },
 

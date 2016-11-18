@@ -12,7 +12,7 @@ var webpageTransform = (function(_, commonTransforms, offerTransform) {
       var newObj = {data: [], count: 0};
       if(data && data.hits.hits.length > 0) {
         _.each(data.hits.hits, function(record) {
-          var webpageObject = offerTransform.offerFromPaths(record, '_source', '_source.mainEntity.uri', '_source.dateCreated', '_source.mainEntity');
+          var webpageObject = offerTransform.offerFromRecordAndPaths(record, '_source', '_source.mainEntity.uri', '_source.dateCreated', '_source.mainEntity');
           webpageObject.highlightedText = _.get(record, 'highlight.name[0]') || null;
           if(webpageObject.details) {
             webpageObject.details[1].highlightedText = _.get(record, 'highlight.description[0]') || null;
