@@ -26,66 +26,108 @@
   /* jshint camelcase:false */
   /* jshint -W030 */
   suite('<client-config> provider tests', function() {
-    var myEl;
-    var dataOut;
+    var clientConfig;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
-      var providerTransform = myEl.config.transforms.provider.provider;
-      dataOut = providerTransform(providerResult);
+      clientConfig = fixture('client-config-fixture');
     });
 
-    test('defines config object', function(done) {
-      expect(myEl).to.exist;
-      expect(myEl.config).to.exist;
-      expect(myEl.config).to.be.an('Object');
-      expect(myEl.config.transforms.provider.provider).to.be.a('Function');
+    test('defines config object with provider transform function', function(done) {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.provider).to.be.an('Object');
+      expect(clientConfig.config.transforms.provider.provider).to.be.a('Function');
       done();
     });
 
-    test('result exists from query', function() {
-      expect(providerResult).to.exist;
-      assert.equal(providerResult.hits.total, 1);
-    });
-
-    test('defines provider data', function() {
-      assert.isObject(dataOut);
-      assert.isString(dataOut.id);
-      assert.equal(dataOut.icon, 'icons:account-circle');
-      assert.equal(dataOut.styleClass, 'entity-provider-font');
-      assert.equal(dataOut.name[0], 'Carol');
-      assert.equal(dataOut.weight, '53');
-      assert.equal(dataOut.height, '160');
-      assert.deepEqual(dataOut.ages, ['22']);
-      assert.deepEqual(dataOut.ethnicities, ['latin']);
-      assert.equal(dataOut.text, 'Carol, 22, latin');
+    test('defines provider', function() {
+      var output = clientConfig.config.transforms.provider.provider(providerResult);
+      assert.deepEqual(output, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/B616D29FCE07F8F7CE98D3F127DC064DC90E2630',
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/B616D29FCE07F8F7CE98D3F127DC064DC90E2630&field=_id',
+        name: 'Carol, 22, latin',
+        styleClass: 'entity-provider-font',
+        type: 'provider',
+        names: ['Carol'],
+        ages: ['22'],
+        ethnicities: ['latin'],
+        heights: ['160'],
+        weights: ['53'],
+        eyeColors: [],
+        hairColors: []
+      });
     });
   });
 
   suite('<client-config> provider tests if results exist but useful info not present in data', function() {
-    var myEl;
-    var dataOut;
+    var clientConfig;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
-      var providerTransform = myEl.config.transforms.provider.provider;
-      var oneResult = {hits: {hits: [{_id: 'uri', _source: {uri: 'uri'}}]}};
-      dataOut = providerTransform(oneResult);
+      clientConfig = fixture('client-config-fixture');
     });
 
-    test('defines provider data', function() {
-      assert.isObject(dataOut);
-      assert.isString(dataOut.id);
-      assert.equal(dataOut.name, 'Name N/A');
-      assert.equal(dataOut.ages, undefined);
-      assert.equal(dataOut.weight, undefined);
-      assert.equal(dataOut.height, undefined);
-      assert.equal(dataOut.ethnicities, undefined);
-      assert.equal(dataOut.text, '');
+    test('defines empty object if given no id', function() {
+      var output = clientConfig.config.transforms.provider.provider({hits: {hits: [{}]}});
+      assert.deepEqual(output, {});
+    });
+
+    test('defines default provider if given id', function() {
+      var output = clientConfig.config.transforms.provider.provider({hits: {hits: [{_id: 'uri', _source: {uri: 'uri'}}]}});
+      assert.deepEqual(output, {
+        id: 'uri',
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=uri&field=_id',
+        name: 'Unknown Provider',
+        styleClass: 'entity-provider-font',
+        type: 'provider',
+        names: [],
+        ages: [],
+        ethnicities: [],
+        heights: [],
+        weights: [],
+        eyeColors: [],
+        hairColors: []
+      });
     });
   });
 
-</script>
+  suite('<client-config> provider tests for personFromRecord transform function', function() {
+    var clientConfig;
 
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with personFromRecord transform function', function(done) {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.provider).to.be.an('Object');
+      expect(clientConfig.config.transforms.provider.personFromRecord).to.be.a('Function');
+      done();
+    });
+
+    test('defines person', function() {
+      var output = clientConfig.config.transforms.provider.personFromRecord(providerResult.hits.hits[0]._source);
+      assert.deepEqual(output, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/B616D29FCE07F8F7CE98D3F127DC064DC90E2630',
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/B616D29FCE07F8F7CE98D3F127DC064DC90E2630&field=_id',
+        name: 'Carol, 22, latin',
+        styleClass: 'entity-provider-font',
+        type: 'provider',
+        names: ['Carol'],
+        ages: ['22'],
+        ethnicities: ['latin'],
+        heights: ['160'],
+        weights: ['53'],
+        eyeColors: [],
+        hairColors: []
+      });
+    });
+  });
+</script>
 </body>
 </html>

@@ -2,11 +2,9 @@
  * transform elastic search filter aggregations to display format.
  */
 
-/* globals _ */
 /* exported filterAggTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
 var filterAggTransform = (function(_) {
   return {
     cityResults: function(data) {
@@ -32,4 +30,4 @@ var filterAggTransform = (function(_) {
       return cityResultsObj;
     }
   };
-})(_);
+});

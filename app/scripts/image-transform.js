@@ -2,33 +2,12 @@
  * transform elastic search image query to display format.  See data-model.json
  */
 
-/* globals _, relatedEntityTransform, commonTransforms */
 /* exported imageTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
-var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
-
+var imageTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
-    images: function(data) {
-      var images = [];
-      if(data) {
-        data.hits.hits.forEach(function(hit) {
-          var imageId = _.get(hit._source, 'uri', '');
-          var imageSource = _.get(hit._source, 'url', '');
-          images.push({
-            id: imageId,
-            icon: commonTransforms.getIronIcon('image'),
-            link: commonTransforms.getLink(imageId, 'image'),
-            source: _.isArray(imageSource) ? imageSource[0] : imageSource,
-            styleClass: commonTransforms.getStyleClass('image')
-          });
-        });
-      }
-      return images;
-    },
-
     image: function(data) {
       var newData = {};
       if(data && data.hits.hits.length > 0) {
@@ -53,10 +32,22 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return newData;
     },
 
-    imageOffersData: function(data) {
-      var newData = {};
-      newData.relatedOffers = relatedEntityTransform.offer(data);
-      return newData;
+    images: function(data) {
+      var images = [];
+      if(data) {
+        data.hits.hits.forEach(function(hit) {
+          var imageId = _.get(hit._source, 'uri', '');
+          var imageSource = _.get(hit._source, 'url', '');
+          images.push({
+            id: imageId,
+            icon: commonTransforms.getIronIcon('image'),
+            link: commonTransforms.getLink(imageId, 'image'),
+            source: _.isArray(imageSource) ? imageSource[0] : imageSource,
+            styleClass: commonTransforms.getStyleClass('image')
+          });
+        });
+      }
+      return images;
     },
 
     imageTotal: function(data) {
@@ -67,5 +58,4 @@ var imageTransform = (function(_, relatedEntityTransform, commonTransforms) {
       return commonTransforms.getLink('http://dig.isi.edu/ht/data/' + id, 'image');
     }
   };
-})(_, relatedEntityTransform, commonTransforms);
-
+});

@@ -24,100 +24,24 @@
   'use strict';
   /* globals suite, test, expect, setup, fixture, webpageResult, assert */
   /* jshint -W030 */
-  suite('<client-config> webpage tests', function() {
-    var myEl;
-    var dataOut;
-
-    setup(function() {
-      myEl = fixture('client-config-fixture');
-      var webpageTransform = myEl.config.transforms.webpage.webpage;
-      dataOut = webpageTransform(webpageResult);
-    });
-
-    test('defines config object', function() {
-      expect(myEl).to.exist;
-      expect(myEl.config).to.exist;
-      expect(myEl.config).to.be.an('Object');
-      expect(myEl.config.transforms.webpage.webpage).to.be.a('Function');
-    });
-
-    test('defines webpage data', function() {
-      expect(webpageResult).to.exist;
-      assert.equal(webpageResult.hits.total, 1);
-    });
-
-    test('defines id string', function() {
-      assert.isString(dataOut.id);
-    });
-
-    test('defines phone array', function() {
-      assert.isArray(dataOut.phones);
-      assert.equal(dataOut.phones.length, 2);
-      assert.equal(dataOut.phones[0].id, 'http://dig.isi.edu/ht/data/phone/1-0987654321');
-      assert.equal(dataOut.phones[0].type, 'phone');
-      assert.equal(dataOut.phones[0].text, '0987654321');
-      assert.equal(dataOut.phones[0].icon, 'communication:phone');
-      assert.equal(dataOut.phones[0].link, '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-0987654321&field=_id');
-      assert.equal(dataOut.phones[0].styleClass, 'entity-phone-font');
-      assert.equal(dataOut.phones[1].id, 'http://dig.isi.edu/ht/data/phone/1-1112223333');
-      assert.equal(dataOut.phones[1].type, 'phone');
-      assert.equal(dataOut.phones[1].text, '1112223333');
-      assert.equal(dataOut.phones[1].icon, 'communication:phone');
-      assert.equal(dataOut.phones[1].link, '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1112223333&field=_id');
-      assert.equal(dataOut.phones[1].styleClass, 'entity-phone-font');
-    });
-
-    test('defines email array', function() {
-      assert.isArray(dataOut.emails);
-      assert.equal(dataOut.emails.length, 1);
-      assert.equal(dataOut.emails[0].id, 'http://dig.isi.edu/ht/data/email/abc%40xyz.com');
-      assert.equal(dataOut.emails[0].type, 'email');
-      assert.equal(dataOut.emails[0].text, 'abc@xyz.com');
-      assert.equal(dataOut.emails[0].icon, 'communication:email');
-      assert.equal(dataOut.emails[0].link, '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id');
-      assert.equal(dataOut.emails[0].styleClass, 'entity-email-font');
-    });
-
-    test('defines showCommunications boolean', function() {
-      assert.isBoolean(dataOut.showCommunications);
-      assert.isTrue(dataOut.showCommunications);
-    });
-  });
-
-  suite('<client-config> webpage tests if no results from query', function() {
-    var myEl;
-    var dataOut;
-
-    setup(function() {
-      myEl = fixture('client-config-fixture');
-      var webpageTransform = myEl.config.transforms.webpage.webpage;
-      var noResults = {hits: {hits: []}};
-      dataOut = webpageTransform(noResults);
-    });
-
-    test('defines config object', function() {
-      expect(myEl).to.exist;
-      expect(myEl.config).to.exist;
-      expect(myEl.config).to.be.an('Object');
-      expect(myEl.config.transforms.webpage.webpage).to.be.a('Function');
-    });
-
-    test('defines empty object for dataOut', function() {
-      expect(dataOut).to.exist;
-      assert.deepEqual(dataOut, {});
-    });
-  });
-
   suite('<client-config> webpage revisions tests', function() {
-    var myEl;
+    var clientConfig;
 
     setup(function() {
-      myEl = fixture('client-config-fixture');
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with webpage revisions transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.webpage).to.be.an('Object');
+      expect(clientConfig.config.transforms.webpage.webpageRevisions).to.be.an('Function');
     });
 
     test('defines webpage revisions for multiple dates', function() {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var dataOut = myEl.config.transforms.webpage.webpageRevisions({
+      var output = clientConfig.config.transforms.webpage.webpageRevisions({
         aggregations: {
           revisions: {
             revisions: {
@@ -134,18 +58,18 @@
       });
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-      expect(dataOut).to.exist;
-      expect(dataOut).to.be.an('Array');
-      assert.equal(dataOut.length, 2);
-      assert.equal(dataOut[0].date, 'Jan 1, 2016');
-      assert.equal(dataOut[0].count, 1);
-      assert.equal(dataOut[1].date, 'Jan 2, 2016');
-      assert.equal(dataOut[1].count, 5);
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      assert.equal(output.length, 2);
+      assert.equal(output[0].date, 'Jan 1, 2016');
+      assert.equal(output[0].count, 1);
+      assert.equal(output[1].date, 'Jan 2, 2016');
+      assert.equal(output[1].count, 5);
     });
 
     test('defines webpage revisions for single date with multiple revisions', function() {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var dataOut = myEl.config.transforms.webpage.webpageRevisions({
+      var output = clientConfig.config.transforms.webpage.webpageRevisions({
         aggregations: {
           revisions: {
             revisions: {
@@ -159,16 +83,16 @@
       });
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-      expect(dataOut).to.exist;
-      expect(dataOut).to.be.an('Array');
-      assert.equal(dataOut.length, 1);
-      assert.equal(dataOut[0].date, 'Jan 1, 2016');
-      assert.equal(dataOut[0].count, 5);
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      assert.equal(output.length, 1);
+      assert.equal(output[0].date, 'Jan 1, 2016');
+      assert.equal(output[0].count, 5);
     });
 
     test('defines webpage revisions for a single date with single revision as an empty array', function() {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var dataOut = myEl.config.transforms.webpage.webpageRevisions({
+      var output = clientConfig.config.transforms.webpage.webpageRevisions({
         aggregations: {
           revisions: {
             revisions: {
@@ -182,9 +106,290 @@
       });
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-      expect(dataOut).to.exist;
-      expect(dataOut).to.be.an('Array');
-      assert.equal(dataOut.length, 0);
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      assert.equal(output.length, 0);
+    });
+  });
+
+  suite('<client-config> webpage tests for webpages transform function', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with webpages transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.webpage).to.be.an('Object');
+      expect(clientConfig.config.transforms.webpage.webpages).to.be.an('Function');
+    });
+
+    test('defines correct offer array from webpage result', function() {
+      var output = clientConfig.config.transforms.webpage.webpages(webpageResult);
+      assert.equal(output.count, 1);
+      assert.equal(output.data[0].id, 'http://dig.isi.edu/ht/data/offer/FE4F0A8BCE060306CC4F78A836721479D21DB10DA10EFD35D519C70632E4E461');
+      assert.equal(output.data[0].type, 'offer');
+      assert.equal(output.data[0].icon, 'maps:local-offer');
+      assert.equal(output.data[0].link, '/offer.html?value=http://dig.isi.edu/ht/data/offer/FE4F0A8BCE060306CC4F78A836721479D21DB10DA10EFD35D519C70632E4E461&field=_id');
+      assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.equal(output.data[0].url, 'http://google.com');
+      assert.equal(output.data[0].name, 'This is the title');
+      assert.equal(output.data[0].date, 'Oct 30, 2015');
+      assert.equal(output.data[0].publisher, 'google.com');
+      assert.equal(output.data[0].description, 'This is the description.');
+      assert.equal(output.data[0].location, 'Ogden, Utah, United States');
+      assert.equal(output.data[0].highlightedText, 'title');
+
+      assert.deepEqual(output.data[0].images, [{
+        id: 'http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8&field=_id',
+        source: 'http://url1',
+        styleClass: 'entity-image-font'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F',
+        icon: 'image:photo',
+        link: '/image.html?value=http://dig.isi.edu/ht/data/5C88F2ADC78DDFC173023B04CF0AD9508CD7E88F&field=_id',
+        source: 'http://url2',
+        styleClass: 'entity-image-font'
+      }]);
+
+      assert.deepEqual(output.data[0].locations, [{
+        latitude: '41.223',
+        longitude: '-111.97383',
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Ogden, Utah, United States',
+        type: 'location'
+      }]);
+
+      assert.deepEqual(output.data[0].person, {
+        id: 'http://dig.isi.edu/ht/data/adultservice/45334AB03FA35CBAFEF44E30C3EEF7AFDA74BC77',
+        names: [],
+        ages: ['25'],
+        ethnicities: ['latin','latina','white','ebony','french','asian'],
+        hairColors: [],
+        eyeColors: [],
+        heights: [],
+        weights: [],
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=http://dig.isi.edu/ht/data/adultservice/45334AB03FA35CBAFEF44E30C3EEF7AFDA74BC77&field=_id',
+        name: '25, latin',
+        styleClass: 'entity-provider-font',
+        type: 'provider'
+      });
+
+      assert.deepEqual(output.data[0].prices, [{
+        icon: 'editor:attach-money',
+        styleClass: 'entity-money-font',
+        text: '20-per-15min',
+        type: 'money'
+      }]);
+
+      assert.deepEqual(output.data[0].phones, [{
+        id: 'http://dig.isi.edu/ht/data/phone/1-0987654321',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-0987654321&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '0987654321',
+        type: 'phone'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1112223333&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '1112223333',
+        type: 'phone'
+      }]);
+
+      assert.deepEqual(output.data[0].emails, [{
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        icon: 'communication:email',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        styleClass: 'entity-email-font',
+        text: 'abc@xyz.com',
+        type: 'email'
+      }]);
+
+      assert.deepEqual(output.data[0].webpages, [{
+        id: 'http://dig.isi.edu/ht/data/webpage/FE4F0A8BCE060306CC4F78A836721479D21DB10DA10EFD35D519C70632E4E461',
+        icon: 'av:web',
+        link: 'http://google.com',
+        styleClass: 'entity-webpage-font',
+        text: 'http://google.com',
+        type: 'webpage'
+      }]);
+
+      assert.deepEqual(output.data[0].caches, [{
+        id: 'FE4F0A8BCE060306CC4F78A836721479D21DB10DA10EFD35D519C70632E4E461',
+        icon: 'icons:cached',
+        link: '/cache.html?value=FE4F0A8BCE060306CC4F78A836721479D21DB10DA10EFD35D519C70632E4E461&field=_id',
+        styleClass: 'entity-cache-font',
+        text: 'Cached Ad',
+        type: 'cache'
+      }]);
+
+      assert.deepEqual(output.data[0].descriptors, [{
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        text: 'Oct 30, 2015',
+        type: 'date'
+      }, {
+        icon: 'av:web',
+        styleClass: 'entity-webpage-font',
+        text: 'google.com',
+        type: 'webpage'
+      }, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Ogden, Utah, United States',
+        type: 'location'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/phone/1-0987654321',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-0987654321&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '0987654321',
+        type: 'phone'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
+        icon: 'communication:phone',
+        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1112223333&field=_id',
+        styleClass: 'entity-phone-font',
+        text: '1112223333',
+        type: 'phone'
+      }, {
+        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
+        icon: 'communication:email',
+        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
+        styleClass: 'entity-email-font',
+        text: 'abc@xyz.com',
+        type: 'email'
+      }]);
+
+      assert.deepEqual(output.data[0].details, [{
+        name: 'Url',
+        link: 'http://google.com',
+        text: 'http://google.com'
+      }, {
+        name: 'Description',
+        text: 'This is the description.',
+        highlightedText: 'description'
+      }, {
+        name: 'Cached Ad',
+        link: '/cache.html?value=FE4F0A8BCE060306CC4F78A836721479D21DB10DA10EFD35D519C70632E4E461&field=_id',
+        text: 'Open'
+      }]);
+    });
+
+    test('getAddressArray works if the address is not an array', function() {
+      var record = {
+        _source: {
+          mainEntity: {
+            uri: 'uri',
+            availableAtOrFrom: {
+              address: {
+                addressLocality: 'testLocality',
+                addressRegion: 'testRegion',
+                addressCountry: 'testCountry',
+                geo: {
+                  latitude: '12',
+                  longitude: '34'
+                }
+              }
+            }
+          }
+        }
+      };
+
+      var result = clientConfig.config.transforms.webpage.webpages({
+        hits: {
+          hits: [record]
+        }
+      });
+
+      assert.isArray(result.data);
+      assert.equal(result.data.length, 1);
+      assert.isObject(result.data[0]);
+      assert.equal(result.data[0].location, 'testLocality, testRegion, testCountry');
+      assert.isArray(result.data[0].descriptors);
+      assert.equal(result.data[0].descriptors.length, 3);
+      assert.equal(result.data[0].descriptors[2].type, 'location');
+      assert.equal(result.data[0].descriptors[2].text, 'testLocality, testRegion, testCountry');
+    });
+
+    test('defines correct webpage array from sparse data', function() {
+      var output = clientConfig.config.transforms.webpage.webpages({hits: {hits: [{_source: {mainEntity: {uri: 'uri', itemOffered: {uri: 'person'}}}}], total: 1}});
+      assert.equal(output.count, 1);
+      assert.equal(output.data[0].id, 'uri');
+      assert.equal(output.data[0].type, 'offer');
+      assert.equal(output.data[0].icon, 'maps:local-offer');
+      assert.equal(output.data[0].link, '/offer.html?value=uri&field=_id');
+      assert.equal(output.data[0].styleClass, 'entity-offer-font');
+      assert.isUndefined(output.data[0].url);
+      assert.equal(output.data[0].name, 'No Title');
+      assert.equal(output.data[0].date, 'No Date');
+      assert.equal(output.data[0].publisher, 'No Publisher');
+      assert.equal(output.data[0].description, 'No Description');
+      assert.equal(output.data[0].location, 'No Location');
+      assert.isNull(output.data[0].highlightedText);
+      assert.deepEqual(output.data[0].images, []);
+      assert.deepEqual(output.data[0].locations, []);
+      assert.deepEqual(output.data[0].prices, []);
+      assert.deepEqual(output.data[0].phones, []);
+      assert.deepEqual(output.data[0].emails, []);
+      assert.deepEqual(output.data[0].webpages, []);
+      assert.deepEqual(output.data[0].caches, []);
+
+      assert.deepEqual(output.data[0].person, {
+        id: 'person',
+        names: [],
+        ages: [],
+        ethnicities: [],
+        hairColors: [],
+        eyeColors: [],
+        heights: [],
+        weights: [],
+        icon: 'icons:account-circle',
+        link: '/provider.html?value=person&field=_id',
+        name: 'Unknown Provider',
+        styleClass: 'entity-provider-font',
+        type: 'provider'
+      });
+
+      assert.deepEqual(output.data[0].descriptors, [{
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        text: 'No Date',
+        type: 'date'
+      }, {
+        icon: 'av:web',
+        styleClass: 'entity-webpage-font',
+        text: 'No Publisher',
+        type: 'webpage'
+      }, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'No Location',
+        type: 'location'
+      }]);
+
+      assert.deepEqual(output.data[0].details, [{
+        name: 'Url',
+        link: null,
+        text: 'Unavailable'
+      }, {
+        highlightedText: null,
+        name: 'Description',
+        text: 'No Description'
+      }, {
+        name: 'Cached Ad',
+        link: null,
+        text: 'Unavailable'
+      }]);
     });
   });
 </script>

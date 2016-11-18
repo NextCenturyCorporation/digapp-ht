@@ -2,45 +2,23 @@
  * transform elastic search phone query to display format.  See data-model.json
  */
 
-/* globals _, relatedEntityTransform, commonTransforms */
 /* exported phoneTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope, as should relatedEntityTransform and commonTransforms */
-var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
-
-  function getTelephone(record) {
-    /** build telephone object:
-    'telephone': {
-        'id': 'http://someuri/1234567890'
-        'number': '1234567890',
-        'type': 'cell',
-        'origin': 'Washington DC'
-    }
-    */
-    var telephone = {};
-    telephone.id = _.get(record, 'uri');
-    telephone.number = _.get(record, 'name');
-    telephone.icon = commonTransforms.getIronIcon('phone');
-    telephone.styleClass = commonTransforms.getStyleClass('phone');
-    return telephone;
-  }
-
+var phoneTransform = (function(_, commonTransforms) {
   return {
     // expected data is from an elasticsearch
-    telephone: function(data) {
-      var newData = {};
+    phone: function(data) {
+      var phone = {};
+
       if(data && data.hits.hits.length > 0) {
-        newData = getTelephone(data.hits.hits[0]._source);
+        phone.id = _.get(data.hits.hits[0], '_source.uri');
+        phone.telephoneNumber = _.get(data.hits.hits[0], '_source.name');
+        phone.icon = commonTransforms.getIronIcon('phone');
+        phone.styleClass = commonTransforms.getStyleClass('phone');
       }
 
-      return newData;
-    },
-
-    phoneOffersData: function(data) {
-      var newData = {};
-      newData.relatedOffers = relatedEntityTransform.offer(data);
-      return newData;
+      return phone;
     },
 
     cleanPhoneBuckets: function(buckets) {
@@ -59,5 +37,5 @@ var phoneTransform = (function(_, relatedEntityTransform, commonTransforms) {
       });
     }
   };
-})(_, relatedEntityTransform, commonTransforms);
+});
 

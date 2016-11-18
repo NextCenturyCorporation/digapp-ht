@@ -2,46 +2,60 @@
  * transform elastic search webpage query to display format.  See data-model.json
  */
 
-/* globals _, commonTransforms */
 /* exported providerTransform */
 /* jshint camelcase:false */
 
-/* note lodash should be defined in parent scope */
 var providerTransform = (function(_, commonTransforms) {
-
-  function getProvider(record) {
-    var person = {};
-    person.id = _.get(record, 'uri');
-    person.type = 'provider';
-    person.icon = commonTransforms.getIronIcon('provider');
-    person.styleClass = commonTransforms.getStyleClass('provider');
-    person.name = _.get(record, 'name', 'Name N/A');
-    person.ethnicities = _.get(record, 'ethnicity');
-    person.height = _.get(record, 'height');
-    person.weight = _.get(record, 'weight');
-    person.ages = _.get(record, 'age');
-
-    var text = (person.name !== 'Name N/A') ? person.name : '';
-    if(person.ages) {
-      text += (text ? ', ' : '') + (_.isArray(person.ages) ? person.ages[0] : person.ages);
+  function getPersonObject(record) {
+    var id = _.get(record, 'uri');
+    if(!id) {
+      return {};
     }
-    if(person.ethnicities) {
-      text += (text ? ', ' : '') + (_.isArray(person.ethnicities) ? person.ethnicities[0] : person.ethnicities);
+
+    var person = {
+      id: id,
+      type: 'provider',
+      icon: commonTransforms.getIronIcon('provider'),
+      link: commonTransforms.getLink(id, 'provider'),
+      styleClass: commonTransforms.getStyleClass('provider'),
+      names: _.get(record, 'name', []),
+      ages: _.get(record, 'age', []),
+      ethnicities: _.get(record, 'ethnicity', []),
+      hairColors: _.get(record, 'hairColor', []),
+      eyeColors: _.get(record, 'eyeColor', []),
+      heights: _.get(record, 'height', []),
+      weights: _.get(record, 'weight', []),
+    };
+
+    person.names = (_.isArray(person.names) ? person.names : [person.names]);
+    person.ages = (_.isArray(person.ages) ? person.ages : [person.ages]);
+    person.ethnicities = (_.isArray(person.ethnicities) ? person.ethnicities : [person.ethnicities]);
+    person.hairColors = (_.isArray(person.hairColors) ? person.hairColors : [person.hairColors]);
+    person.eyeColors = (_.isArray(person.eyeColors) ? person.eyeColors : [person.eyeColors]);
+    person.heights = (_.isArray(person.heights) ? person.heights : [person.heights]);
+    person.weights = (_.isArray(person.weights) ? person.weights : [person.weights]);
+
+    var name = (person.names.length) ? [person.names[0]] : [];
+    if(person.ages && person.ages.length) {
+      name.push(person.ages[0]);
     }
-    person.text = text;
+    if(person.ethnicities && person.ethnicities.length) {
+      name.push(person.ethnicities[0]);
+    }
+    person.name = name.length ? name.join(', ') : 'Unknown Provider';
     return person;
   }
 
   return {
     // expected data is from an elasticsearch
     provider: function(data) {
-      var newData = {};
-
       if(data && data.hits.hits.length > 0) {
-        newData = getProvider(data.hits.hits[0]._source);
+        return getPersonObject(_.get(data.hits.hits[0], '_source'));
       }
-
-      return newData;
+      return {};
+    },
+    personFromRecord: function(record) {
+      return getPersonObject(record);
     }
   };
-})(_, commonTransforms);
+});
