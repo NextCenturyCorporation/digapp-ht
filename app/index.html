@@ -429,34 +429,42 @@
 
         <!-- Sidebar on left side -->
         <paper-header-panel drawer>
-          <iron-pages attr-for-selected="data-type" selected="webpage">
-            <section data-type="webpage">
+          <paper-toolbar class="drawer-header">
+            <div class="layout vertical">
               <!--TODO: create different sort for all types + different elastic-client-searches for all types -->
               <elastic-sort-input field="dateCreated" selected="{{searchParameters.sort}}">
               </elastic-sort-input>
               <elastic-sort input-string="[[searchParameters.sort]]" sort="{{sort}}"></elastic-sort>
 
-              <template is="dom-if" if="[[hasFacet(searchParameters.*)]]">
-                <div class="h-divider"></div>
-              </template>
-
-              <selected-facets-display facet-selection="{{searchParameters.dateCreated}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.country}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.city}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.phone}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.email}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.website}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.name}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.age}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.ethnicity}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.height}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.weight}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.hairColor}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.eyeColor}}"></selected-facets-display>
-              <selected-facets-display facet-selection="{{searchParameters.hasImage}}"></selected-facets-display>
-
               <div class="h-divider"></div>
 
+              <template is="dom-if" if="[[noFacets(searchParameters.*)]]">
+                <div class="no-selected-facets">No Selected Facets</div>
+              </template>
+
+              <div class="layout horizontal wrap">
+                <selected-facets-display facet-selection="{{searchParameters.dateCreated}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.country}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.city}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.phone}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.email}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.website}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.name}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.age}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.ethnicity}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.height}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.weight}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.hairColor}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.eyeColor}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.hasImage}}"></selected-facets-display>
+              </div>
+
+              <div class="h-divider"></div>
+            </div>
+          </paper-toolbar>
+
+          <iron-pages attr-for-selected="data-type" selected="webpage">
+            <section data-type="webpage">
               <div class="facet-header">
                 <span class="facet-toggle" on-tap="toggleAllFacetLists">
                   {{toggleAllFacetListsText(facetListsExpanded)}}
@@ -1245,19 +1253,24 @@
         return ['webpage'];
       };
 
-      app.hasFacet = function() {
-        return _.keys(app.searchParameters).some(function(key) {
-          return key !== 'sort' && key !== 'text' && !(_.isEmpty(app.searchParameters[key]));
-        });
-      };
-
       app.isSaveButtonDisabled = function(searchResults, searchError) {
         return !(searchResults !== null && searchError === null);
       };
 
+      app.noFacets = function() {
+        return _.keys(app.searchParameters).every(function(facet) {
+          if(facet === 'sort' || facet === 'text' || _.isEmpty(app.searchParameters[facet])) {
+            return true;
+          }
+          return _.keys(app.searchParameters[facet]).every(function(key) {
+            return !app.searchParameters[facet][key].enabled;
+          });
+        });
+      };
+
       app.noSearchParameters = function() {
-        return _.keys(app.searchParameters).every(function(key) {
-          return key === 'sort' || _.isEmpty(app.searchParameters[key]);
+        return _.keys(app.searchParameters).every(function(facet) {
+          return facet === 'sort' || _.isEmpty(app.searchParameters[facet]);
         });
       };
 
