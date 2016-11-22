@@ -123,7 +123,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       caches: cacheId ? [{
         id: cacheId,
         type: 'cache',
-        text: 'Cached Ad',
+        text: 'Open Cached Webpage',
         icon: commonTransforms.getIronIcon('cache'),
         link: commonTransforms.getLink(cacheId, 'cache'),
         styleClass: commonTransforms.getStyleClass('cache')
@@ -166,7 +166,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       text: offer.description
     });
     offer.details.push({
-      name: 'Cached Ad',
+      name: 'Cached Webpage',
       link: cacheId ? commonTransforms.getLink(cacheId, 'cache') : null,
       text: cacheId ? 'Open' : 'Unavailable'
     });
