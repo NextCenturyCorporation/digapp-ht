@@ -9,7 +9,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/iron-dropdown/iron-dropdown.html">
@@ -105,7 +104,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <elastic-client-query-builder
         type="term"
         fields='"user"'
-        values="[[currentUser]]"
+        values="[[getUsername(annotationManager)]]"
         ejs-query="{{userQuery}}">
       </elastic-client-query-builder>
 
@@ -117,7 +116,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       <elastic-client-search
         client="[[client]]"
-        index="[[annotationIndex]]"
+        index="[[getAnnotationIndex(annotationManager)]]"
         elastic-types="[[annotationTypeAsArray]]"
         query="[[annotationQuery]]"
         sort-field="timestamp"
@@ -140,7 +139,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top" on-iron-overlay-closed="saveAnnotation">
         <paper-material class="dropdown-content" on-tap="stopPropagation">
           <div class="layout horizontal">
-            <div class="dropdown-title flex">[[getAnnotationTitle(itemType, annotationRelevant)]]</div>
+            <div class="dropdown-title flex">[[getAnnotationTitle(itemType, annotationManager)]]</div>
             <paper-icon-button icon="close" class="annotation-icon" title="Close Menu" on-tap="closeDropdownMenu"></paper-icon-button>
           </div>
 
@@ -170,15 +169,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         </paper-material>
       </iron-dropdown>
     </div>
-
-    <elastic-create
-      client="[[client]]"
-      index="[[annotationIndex]]"
-      elastic-type="[[annotationType]]"
-      body='{{annotationCreateBody}}'
-      results="{{annotationResult}}"
-      last-error="{{error}}">
-    </elastic-create>
   </template>
   <script>
   (function() {
@@ -230,25 +220,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         client: {
           type: Object
         },
+
         /**
-         * the annotation index (database name)
+         * The annotation manager.
          */
-        annotationIndex: {
-          type: String
+        annotationManager: {
+          type: Object
         },
-        /**
-         * the annotation type
-         */
-        annotationType: {
-          type: String
-        },
-        /**
-         * The text describing the thing for which the annotation is relevant.
-         */
-        annotationRelevant: {
-          type: String,
-          value: ''
-        },
+
         /**
          * the record to add an associated annotation for,
          * based on current user and uri of the record
@@ -289,20 +268,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: 'no answer',
           notify: true
         },
-        /**
-         * User currently logged in.
-         */
-        currentUser: {
-          type: String,
-          notify: true
-        },
-        /**
-         * Document info to pass into the elastic-create component
-         */
-        annotationCreateBody: {
-          type: Object,
-          readOnly: true
-        },
         disableButtons: {
           type: Boolean,
           value: true
@@ -318,7 +283,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
         annotationTypeAsArray: {
           type: Array,
-          computed: 'computeTypeArray(annotationType)'
+          computed: 'computeTypeArray(annotationManager)'
         },
         /**
          * The justification for the annotation.
@@ -336,8 +301,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         // The close event will trigger the save of the annotation.
         this.$.dropdownMenu.close();
       },
-      computeTypeArray: function(annotationType) {
-        return [annotationType];
+      computeTypeArray: function(annotationManager) {
+        return [annotationManager.getAnnotationType()];
       },
       getAnnotationClass: function(label) {
         switch(label) {
@@ -347,6 +312,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           case this.noAnswer: return '';
         }
       },
+      getAnnotationIndex: function(annotationManager) {
+        return annotationManager.getAnnotationIndex();
+      },
       getAnnotationLabel: function(label) {
         switch(label) {
           case this.veryRelevant: return 'Very Relevant';
@@ -355,7 +323,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           case this.noAnswer: return 'No Answer';
         }
       },
-      getAnnotationTitle: function(type, relevant) {
+      getAnnotationTitle: function(type, annotationManager) {
+        var relevant = annotationManager.getWhyTheAnnotationIsRelevant();
         return 'Is this' + (type ? ' ' + type : '') + ' relevant' + (relevant ? ' ' + relevant : '') + '?';
       },
       getCdrId: function(item) {
@@ -366,6 +335,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
       getFlagIcon: function(label) {
         return (label === this.noAnswer ? 'fa:flag-o' : 'fa:flag');
+      },
+      getUsername: function(annotationManager) {
+        return annotationManager.getUsername();
       },
       isSelected: function(label, value) {
         return (label === value ? 'selected' : '');
@@ -378,16 +350,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           this.annotationResult = this.annotationResult || {};
           this.annotationResult.label = this.label;
           this.annotationResult.justification = this.justification;
-          this._setAnnotationCreateBody({
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            cdr_id: this.getCdrId(this.item),
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-            uri: this.item.id,
-            user: this.currentUser,
-            label: this.label,
-            justification: this.justification,
-            timestamp: new Date()
-          });
+          this.annotationManager.createAnnotation(this.item.id, this.getCdrId(this.item), this.label, this.justification);
         }
       },
       selectVeryRelevant: function() {

@@ -76,6 +76,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     </elastic-client-search>
 
     <create-filter-array
+      annotations="[[annotations]]"
       facet-selection="[[filterCollection]]"
       filter-array="{{filterList}}"
       page-type="[[pageType]]">
@@ -106,7 +107,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     Polymer({
       is: 'filter-state-manager',
 
-      behaviors: [DigBehaviors.BrowserBehavior],
+      behaviors: [DigBehaviors.BrowserBehavior, DigBehaviors.StateBehavior],
 
       properties: {
         /**
@@ -167,6 +168,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         processRequest: {
           type: Boolean,
           notify: true
+        },
+
+        annotations: {
+          type: Object
         },
 
         /**
@@ -268,35 +273,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _createFilterString: function(filterCollection, pageType) {
         if(pageType === 'entity') {
-          return JSON.stringify({
-            location: filterCollection.location || [],
-            name: filterCollection.name || [],
-            age: filterCollection.age || [],
-            ethnicity: filterCollection.ethnicity || [],
-            eyeColor: filterCollection.eyeColor || [],
-            hairColor: filterCollection.hairColor || [],
-            height: filterCollection.height || [],
-            weight: filterCollection.weight || []
-          });
+          // From DigBehaviors.StateBehavior
+          return JSON.stringify(this.buildEntityState(filterCollection));
         } else if(pageType === 'search') {
-          return JSON.stringify({
-            dateCreated: filterCollection.dateCreated || {},
-            country: filterCollection.country || {},
-            city: filterCollection.city || {},
-            phone: filterCollection.phone || {},
-            email: filterCollection.email || {},
-            website: filterCollection.website || {},
-            name: filterCollection.name || {},
-            age: filterCollection.age || {},
-            ethnicity: filterCollection.ethnicity || {},
-            eyeColor: filterCollection.eyeColor || {},
-            hairColor: filterCollection.hairColor || {},
-            height: filterCollection.height || {},
-            weight: filterCollection.weight || {},
-            hasImage: filterCollection.hasImage || {},
-            sort: filterCollection.sort || '',
-            text: filterCollection.text || ''
-          });
+          // From DigBehaviors.StateBehavior
+          return JSON.stringify(this.buildSearchState(filterCollection));
         }
         return JSON.stringify({});
       },
@@ -346,35 +327,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var state = JSON.parse(filterString);
         this.set('processRequest', false);
         if(pageType === 'entity') {
-          this.set('filterCollection', {
-            location: state.location || [],
-            name: state.name || [],
-            age: state.age || [],
-            ethnicity: state.ethnicity || [],
-            eyeColor: state.eyeColor || [],
-            hairColor: state.hairColor || [],
-            height: state.height || [],
-            weight: state.weight || []
-          });
+          // From DigBehaviors.StateBehavior
+          this.set('filterCollection', this.buildEntityState(state));
         } else if(pageType === 'search') {
-          this.set('filterCollection', {
-            dateCreated: state.dateCreated || {},
-            country: state.country || {},
-            city: state.city || {},
-            phone: state.phone || {},
-            email: state.email || {},
-            website: state.website || {},
-            name: state.name || {},
-            age: state.age || {},
-            ethnicity: state.ethnicity || {},
-            eyeColor: state.eyeColor || {},
-            hairColor: state.hairColor || {},
-            height: state.height || {},
-            weight: state.weight || {},
-            hasImage: state.hasImage || {},
-            sort: state.sort || '',
-            text: state.text || ''
-          });
+          // From DigBehaviors.StateBehavior
+          this.set('filterCollection', this.buildSearchState(state));
         }
         this.set('processRequest', true);
       },
@@ -400,6 +357,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Updates the browser URL with the filter state ID and shows the dialog with the page link (including the filter state ID).
        */
       _updateUrlAndShowDialog: function(id) {
+        // From DigBehaviors.BrowserBehavior
         this._link = this.generateLinkWithStateParameter(window.location, id);
         this.$$('#linkDialog').open();
       }

@@ -26,8 +26,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
 <test-fixture id="annotate-record-fixture">
   <template>
-    <annotate-record annotation-index="dig-annotations" annotation-type="annotation"
-      item='{"id": "http://offer/ABC123", "type": "offer"}' current-user="mockUser">
+    <annotate-record>
     </annotate-record>
   </template>
 </test-fixture>
@@ -41,17 +40,27 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       element = fixture('annotate-record-fixture');
+      element.item = {
+        id: 'http://offer/ABC123',
+        type: 'offer'
+      };
+      element.annotationManager = {
+        getAnnotationIndex: function() {
+          return 'annotationIndex';
+        },
+        getAnnotationType: function() {
+          return 'annotationType';
+        },
+        getUsername: function() {
+          return 'mockUser';
+        },
+        getWhyTheAnnotationIsRelevant: function() {
+          return 'why';
+        }
+      };
       flush(function() {
         done();
       });
-    });
-
-    test('annotationIndex defined correctly', function() {
-      assert.equal(element.annotationIndex, 'dig-annotations');
-    });
-
-    test('annotationType defined correctly', function() {
-      assert.equal(element.annotationType, 'annotation');
     });
 
     test('item defined correctly', function() {
@@ -66,12 +75,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(element.disableButtons);
     });
 
-    test('currentUser is expected value', function() {
-      assert.equal(element.currentUser, 'mockUser');
-    });
-
     test('annotationTypeAsArray is expected value', function() {
-      assert.deepEqual(element.annotationTypeAsArray, ['annotation']);
+      assert.deepEqual(element.annotationTypeAsArray, ['annotationType']);
     });
 
     test('getAnnotationClass given no answer returns an empty string', function() {
@@ -101,6 +106,22 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(!!element.getAnnotationLabel(element.veryRelevant));
     });
 
+    test('getAnnotationIndex returns the correct string', function() {
+      assert.equal(element.getAnnotationIndex({
+        getAnnotationIndex: function() {
+          return 'annotationIndex';
+        }
+      }), 'annotationIndex');
+    });
+
+    test('getAnnotationTitle returns the correct string', function() {
+      assert.equal(element.getAnnotationTitle('itemType', {
+        getWhyTheAnnotationIsRelevant: function() {
+          return '(why the annotation is relevant)';
+        }
+      }), 'Is this itemType relevant (why the annotation is relevant)?');
+    });
+
     test('getCdrId returns the CDR ID for an offer', function() {
       assert.equal(element.getCdrId(element.item), 'ABC123');
     });
@@ -117,6 +138,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     test('getFlagIcon returns fa:flag-o for no answer', function() {
       assert.equal(element.getFlagIcon(element.noAnswer), 'fa:flag-o');
+    });
+
+    test('getUsername returns the correct string', function() {
+      assert.equal(element.getUsername({
+        getUsername: function() {
+          return 'user';
+        }
+      }), 'user');
     });
 
     test('isSelected given equal values returns selected', function() {
@@ -173,59 +202,56 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(element.disableButtons);
     });
 
-    test('saveAnnotation does set annotation body if the annotationResult does not exist', function() {
-      element.saveAnnotation();
+    test('saveAnnotation does create the annotation if the annotationResult does not exist', function(done) {
+      element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
+        assert.equal(cdrId, 'ABC123');
+        assert.equal(uri, 'http://offer/ABC123');
+        assert.equal(label, element.noAnswer);
+        assert.equal(justification, '');
+        done();
+      };
 
-      assert.isObject(element.annotationCreateBody);
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
-      assert.equal(element.annotationCreateBody.user, 'mockUser');
-      assert.equal(element.annotationCreateBody.label, element.noAnswer);
-      assert.equal(element.annotationCreateBody.justification, '');
-      assert.isTrue(!!element.annotationCreateBody.timestamp);
+      element.saveAnnotation();
     });
 
-    test('saveAnnotation does set annotation body with correct label and justification', function() {
+    test('saveAnnotation does create the annotation with correct label and justification', function(done) {
+      element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
+        assert.equal(cdrId, 'ABC123');
+        assert.equal(uri, 'http://offer/ABC123');
+        assert.equal(label, element.veryRelevant);
+        assert.equal(justification, 'my justification');
+        done();
+      };
+
       element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.saveAnnotation();
-
-      assert.isObject(element.annotationCreateBody);
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
-      assert.equal(element.annotationCreateBody.user, 'mockUser');
-      assert.equal(element.annotationCreateBody.label, element.veryRelevant);
-      assert.equal(element.annotationCreateBody.justification, 'my justification');
-      assert.isTrue(!!element.annotationCreateBody.timestamp);
     });
 
-    test('saveAnnotation does set annotation body if label and justification do not match the annotationResult', function() {
+    test('saveAnnotation does create the annotation if label and justification do not match the annotationResult', function(done) {
+      element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
+        assert.equal(cdrId, 'ABC123');
+        assert.equal(uri, 'http://offer/ABC123');
+        assert.equal(label, element.veryRelevant);
+        assert.equal(justification, 'my justification');
+        done();
+      };
+
       element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.annotationResult = {label: element.noAnswer, justification: ''};
       element.saveAnnotation();
-
-      assert.isObject(element.annotationCreateBody);
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
-      assert.equal(element.annotationCreateBody.user, 'mockUser');
-      assert.equal(element.annotationCreateBody.label, element.veryRelevant);
-      assert.equal(element.annotationCreateBody.justification, 'my justification');
-      assert.isTrue(!!element.annotationCreateBody.timestamp);
     });
 
-    test('saveAnnotation does not set annotation body if label and justification match the annotationResult', function() {
+    test('saveAnnotation does not create the annotation if label and justification match the annotationResult', function() {
+      element.annotationManager.createAnnotation = function() {
+        assert.fail();
+      };
+
       element.label = element.veryRelevant;
       element.justification = 'my justification';
       element.annotationResult = {label: element.veryRelevant, justification: 'my justification'};
       element.saveAnnotation();
-      assert.isUndefined(element.annotationCreateBody);
     });
 
     test('transformOrigResult if result found', function() {
@@ -259,20 +285,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element.label, element.veryRelevant);
     });
 
-    test('closing the dropdown menu does set the annotation body', function(done) {
-      element.$$('#dropdownMenu').fire('iron-overlay-opened');
-      element.closeListener = function() {
-        assert.isObject(element.annotationCreateBody);
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        assert.equal(element.annotationCreateBody.cdr_id, 'ABC123');
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        assert.equal(element.annotationCreateBody.uri, 'http://offer/ABC123');
-        assert.equal(element.annotationCreateBody.user, 'mockUser');
-        assert.equal(element.annotationCreateBody.label, element.noAnswer);
-        assert.equal(element.annotationCreateBody.justification, '');
-        assert.isTrue(!!element.annotationCreateBody.timestamp);
+    test('closing the dropdown menu does create the annotation', function(done) {
+      element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
+        assert.equal(cdrId, 'ABC123');
+        assert.equal(uri, 'http://offer/ABC123');
+        assert.equal(label, element.noAnswer);
+        assert.equal(justification, '');
         done();
       };
+
+      element.$$('#dropdownMenu').fire('iron-overlay-opened');
       element.listen(element.$$('#dropdownMenu'), 'iron-overlay-closed', 'closeListener');
       element.$$('#dropdownMenu').fire('iron-overlay-closed');
     });

@@ -68,6 +68,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.equal(element._getSearchPageFilterField('hairColor'), 'mainEntity.itemOffered.hairColor');
       assert.equal(element._getSearchPageFilterField('eyeColor'), 'mainEntity.itemOffered.eyeColor');
       assert.equal(element._getSearchPageFilterField('dateCreated'), 'dateCreated');
+      assert.equal(element._getSearchPageFilterField('hasImage'), 'hasImagePart.url');
+      assert.equal(element._getSearchPageFilterField('annotationsFilter'), 'mainEntity.uri');
+      assert.isUndefined(element._getSearchPageFilterField('sort'));
+      assert.isUndefined(element._getSearchPageFilterField('text'));
       assert.isUndefined(element._getSearchPageFilterField('somethingElse'));
     });
 
@@ -111,6 +115,73 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         assert.deepEqual(element.filterArray[2].toJSON().or.filters[0],
           ejs.TermFilter('mainEntity.itemOffered.name.raw', 'Jan').toJSON());
         done();
+      });
+    });
+
+    test('showRelevant annotationsFilter in filterArray is created using annotations and facetSelection', function(done) {
+      element.annotations = {
+        relevant: ['id1', 'id2'],
+        notRelevant: ['id3', 'id4']
+      };
+      element.facetSelection = {
+        annotationsFilter: {
+          showRelevant: {
+            enabled: true
+          },
+          hideNotRelevant: {
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        assert.equal(element.filterArray.length, 1);
+        assert.deepEqual(element.filterArray[0].toJSON(), ejs.TermsFilter('mainEntity.uri', ['id1', 'id2']).toJSON());
+        done();
+      });
+    });
+
+    test('hideNotRelevant annotationsFilter in filterArray is created using annotations and facetSelection', function(done) {
+      element.annotations = {
+        relevant: ['id1', 'id2'],
+        notRelevant: ['id3', 'id4']
+      };
+      element.facetSelection = {
+        annotationsFilter: {
+          hideNotRelevant: {
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        assert.equal(element.filterArray.length, 1);
+        assert.deepEqual(element.filterArray[0].toJSON(), ejs.NotFilter(ejs.TermsFilter('mainEntity.uri', ['id3', 'id4'])).toJSON());
+        done();
+      });
+    });
+
+    test('annotationsFilter in filterArray is created after annotations are updated', function(done) {
+      element.facetSelection = {
+        annotationsFilter: {
+          showRelevant: {
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        element.annotations = {
+          relevant: ['id1', 'id2'],
+          notRelevant: ['id3', 'id4']
+
+        };
+
+        flush(function() {
+          assert.equal(element.filterArray.length, 1);
+          assert.deepEqual(element.filterArray[0].toJSON(), ejs.TermsFilter('mainEntity.uri', ['id1', 'id2']).toJSON());
+          done();
+        });
       });
     });
 

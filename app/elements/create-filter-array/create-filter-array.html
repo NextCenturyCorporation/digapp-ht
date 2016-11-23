@@ -21,12 +21,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       is: 'create-filter-array',
 
       properties: {
+        annotations: {
+          type: Object,
+          value: function() {
+            return {
+              relevant: [],
+              notRelevant: []
+            };
+          }
+        },
         /**
          * Contains state of facet checkboxes
          */
         facetSelection: {
-          type: Object,
-          notify: true
+          type: Object
         },
         /**
          * Array of ejs filter objects to pass to elastic-client-search
@@ -48,7 +56,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
       observers: [
-        '_rebuildFilterArray(facetSelection.*)'
+        '_rebuildFilterArray(annotations, facetSelection.*)'
       ],
       _getEntityPageFilterField: function(group) {
         switch(group) {
@@ -101,6 +109,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             return 'dateCreated';
           case 'hasImage':
             return 'hasImagePart.url';
+          case 'annotationsFilter':
+            return 'mainEntity.uri';
         }
         // Remember to ignore other properties (like the text) from the search parameters so they are not included in the filters!
         return undefined;
@@ -150,6 +160,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             filter = me._buildDateRangeEjsFilter(me.facetSelection.dateCreated, field);
           } else if(group === 'hasImage') {
             filter = me.facetSelection.hasImage.Yes && me.facetSelection.hasImage.Yes.enabled ? me._buildExistsFilter(field) : undefined;
+          } else if(group === 'annotationsFilter') {
+            // The showRelevant filter overrides the hideNotRelevant filter.
+            if(me.facetSelection.annotationsFilter.showRelevant && me.facetSelection.annotationsFilter.showRelevant.enabled && me.annotations.relevant.length) {
+              filter = ejs.TermsFilter(field, me.annotations.relevant);
+            } else if(me.facetSelection.annotationsFilter.hideNotRelevant && me.facetSelection.annotationsFilter.hideNotRelevant.enabled && me.annotations.notRelevant.length) {
+              filter = ejs.NotFilter(ejs.TermsFilter(field, me.annotations.notRelevant));
+            }
           } else if(field) {
             var filters = me._buildTermFilterArray(me.facetSelection[group], field);
             filter = me._buildAndOrFilter(filters, group);
@@ -163,6 +180,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         var difference = arrayFilters.length !== this.filterArray.length || arrayFilters.some(function(filter, index) {
           return !_.isEqual(filter.toJSON(), me.filterArray[index].toJSON());
         });
+
         if(difference) {
           this._setFilterArray(arrayFilters);
         }

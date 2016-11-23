@@ -1,0 +1,156 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>single-record</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/annotation-manager/annotation-manager.html">
+
+</head>
+<body>
+
+<test-fixture id="annotation-manager-fixture">
+  <template>
+    <annotation-manager></annotation-manager>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, expect, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('<annotation-manager> default unit tests', function() {
+    var component;
+
+    setup(function(done) {
+      component = fixture('annotation-manager-fixture');
+      component.annotationIndex = 'myIndex';
+      component.annotationType = 'myType';
+      component.username = 'myUser';
+      flush(function() {
+        done();
+      });
+    });
+
+    test('does have an elastic-create component', function() {
+      expect(component.$$('elastic-create')).to.exist;
+    });
+
+    test('does have two search components', function() {
+      expect(component.$$('#relevantSearch')).to.exist;
+      expect(component.$$('#notRelevantSearch')).to.exist;
+    });
+
+    test('properties are set correctly', function() {
+      expect(component.annotationIndex).to.equal('myIndex');
+      expect(component.annotationType).to.equal('myType');
+      expect(component.username).to.equal('myUser');
+      expect(component.doNotQuery).to.be.false;
+    });
+
+    test('annotationManager is set correctly', function() {
+      expect(component.annotationManager).to.be.an('Object');
+      expect(component.annotationManager.getAnnotationIndex).to.be.a('Function');
+      expect(component.annotationManager.getAnnotationIndex()).to.equal('myIndex');
+      expect(component.annotationManager.getAnnotationType).to.be.a('Function');
+      expect(component.annotationManager.getAnnotationType()).to.equal('myType');
+      expect(component.annotationManager.getUsername).to.be.a('Function');
+      expect(component.annotationManager.getUsername()).to.equal('myUser');
+      expect(component.annotationManager.getWhyTheAnnotationIsRelevant).to.be.a('Function');
+      expect(component.annotationManager.getWhyTheAnnotationIsRelevant()).to.equal('');
+    });
+
+    test('annotationManager.createAnnotation sets _createBody', function() {
+      expect(component.annotationManager.createAnnotation).to.be.a('Function');
+      expect(component._createBody).to.not.exist;
+      component.annotationManager.createAnnotation('myUri', 'myCdrId', 'myLabel', 'myJustification');
+      expect(component._createBody).to.be.an('Object');
+      expect(component._createBody.user).to.equal('myUser');
+      expect(component._createBody.uri).to.equal('myUri');
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      expect(component._createBody.cdr_id).to.equal('myCdrId');
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      expect(component._createBody.label).to.equal('myLabel');
+      expect(component._createBody.justification).to.equal('myJustification');
+      expect(component._createBody.timestamp).to.be.a('Date');
+    });
+
+    test('setting _relevantAnnotationResults and _notRelevantAnnotationResults sets annotations', function(done) {
+      component._relevantAnnotationResults = {
+        aggregations: {
+          annotations: {
+            annotations: {
+              buckets: [{
+                key: 'id1'
+              }, {
+                key: 'id2'
+              }]
+            }
+          }
+        }
+      };
+      component._notRelevantAnnotationResults = {
+        aggregations: {
+          annotations: {
+            annotations: {
+              buckets: [{
+                key: 'id3'
+              }, {
+                key: 'id4'
+              }]
+            }
+          }
+        }
+      };
+      flush(function() {
+        expect(component.annotations).to.deep.equal({
+          relevant: ['id1', 'id2'],
+          notRelevant: ['id3', 'id4']
+        });
+        done();
+      });
+    });
+  });
+
+  suite('<annotation-manager> do-not-query unit tests', function() {
+    var component;
+
+    setup(function(done) {
+      component = fixture('annotation-manager-fixture');
+      component.annotationIndex = 'myIndex';
+      component.annotationType = 'myType';
+      component.username = 'myUser';
+      component.doNotQuery = true;
+      flush(function() {
+        done();
+      });
+    });
+
+    test('does have an elastic-create component', function() {
+      expect(component.$$('elastic-create')).to.exist;
+    });
+
+    test('does not have two search components', function() {
+      expect(component.$$('#relevantSearch')).to.not.exist;
+      expect(component.$$('#notRelevantSearch')).to.not.exist;
+    });
+  });
+</script>
+
+</body>
+</html>
