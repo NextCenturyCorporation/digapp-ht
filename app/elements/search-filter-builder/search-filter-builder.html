@@ -1,0 +1,202 @@
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/dig-common/dig-common.html">
+
+<dom-module id="search-filter-builder">
+  <script>
+  (function() {
+    /* globals _, ejs */
+    'use strict';
+
+    Polymer({
+      is: 'search-filter-builder',
+
+      properties: {
+        /**
+         * The object containing the lists of terms for the annotations filters.
+         */
+        annotations: {
+          type: Object,
+          value: function() {
+            return {
+              relevant: [],
+              notRelevant: []
+            };
+          }
+        },
+
+        /**
+         * Contains state of facet checkboxes
+         */
+        searchParameters: {
+          type: Object
+        },
+
+        /**
+         * Array of ejs filter objects to pass to elastic-client-search
+         */
+        filterList: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true,
+          computed: '_buildFilterList(annotations, searchParameters.*)'
+        }
+      },
+
+      _buildAndOrFilter: function(filters, name) {
+        return (filters.length ? (this._getCombinationType() === 'and' ? ejs.AndFilter(filters) : ejs.OrFilter(filters)).name(this._getAggregationName(name)) : undefined);
+      },
+
+      _buildAnnotationsFilter: function(group, field, annotations) {
+        var filter;
+        // The showRelevant filter overrides the hideNotRelevant filter.
+        if(group.showRelevant && group.showRelevant.enabled && annotations.relevant.length) {
+          filter = ejs.TermsFilter(field, annotations.relevant);
+        } else if(group.hideNotRelevant && group.hideNotRelevant.enabled && annotations.notRelevant.length) {
+          filter = ejs.NotFilter(ejs.TermsFilter(field, annotations.notRelevant));
+        }
+        return filter;
+      },
+
+      _buildDateRangeEjsFilter: function(group, field) {
+        if(!field || _.isEqual(group, {})) {
+          return;
+        }
+
+        var filter = ejs.RangeFilter(field);
+        _.each(_.keys(group), function(key) {
+          if(key === 'Begin Date' && group[key].enabled) {
+            filter = filter.gte(group[key].date);
+          }
+          if(key === 'End Date' && group[key].enabled) {
+            filter = filter.lte(group[key].date);
+          }
+        });
+        return filter;
+      },
+
+      _buildFilterList: function() {
+        var me = this;
+        var filters = [];
+
+        _.each(_.keys(me.searchParameters), function(name) {
+          var field = me._getFilterField(name);
+          var filter;
+          if(field) {
+            if(name === 'annotationsFilter') {
+              filter = me._buildAnnotationsFilter(me.searchParameters.annotationsFilter, field, me.annotations);
+            } else if(name === 'dateCreated') {
+              filter = me._buildDateRangeEjsFilter(me.searchParameters.dateCreated, field);
+            } else if(name === 'hasImage') {
+              filter = me._buildHasImageFilter(me.searchParameters.hasImage, field);
+            } else {
+              filter = me._buildAndOrFilter(me._buildTermFilterList(me.searchParameters[name], field), name);
+            }
+          }
+          if(filter) {
+            filters.push(filter);
+          }
+        });
+
+        return filters;
+      },
+
+      _buildHasImageFilter: function(group, field) {
+        return group.Yes && group.Yes.enabled ? ejs.ExistsFilter(field) : undefined;
+      },
+
+      _buildTermFilterList: function(group, field) {
+        var filters = [];
+        _.each(_.keys(group), function(key) {
+          if(group[key].enabled) {
+            filters.push(ejs.TermFilter(field, key));
+          }
+        });
+        return filters;
+      },
+
+      _getAggregationName: function(name) {
+        switch(name) {
+          case 'country':
+            return 'countryAgg';
+          case 'city':
+            return 'cityAgg';
+          case 'phone':
+            return 'phoneAgg';
+          case 'email':
+            return 'emailAgg';
+          case 'website':
+            return 'publisherAgg';
+          case 'name':
+            return 'nameAgg';
+          case 'age':
+            return 'ageAgg';
+          case 'ethnicity':
+            return 'ethnicityAgg';
+          case 'height':
+            return 'heightAgg';
+          case 'weight':
+            return 'weightAgg';
+          case 'hairColor':
+            return 'hairColorAgg';
+          case 'eyeColor':
+            return 'eyeColorAgg';
+        }
+        return undefined;
+      },
+
+      _getCombinationType: function() {
+        return 'or';
+      },
+
+      _getFilterField: function(name) {
+        switch(name) {
+          case 'country':
+            return 'mainEntity.availableAtOrFrom.address.addressCountry';
+          case 'city':
+            return 'mainEntity.availableAtOrFrom.address.key';
+          case 'phone':
+            return 'mentionsPhone';
+          case 'email':
+            return 'mentionsEmail';
+          case 'website':
+            return 'publisher.name.raw';
+          case 'name':
+            return 'mainEntity.itemOffered.name.raw';
+          case 'age':
+            return 'mainEntity.itemOffered.age';
+          case 'ethnicity':
+            return 'mainEntity.itemOffered.ethnicity';
+          case 'height':
+            return 'mainEntity.itemOffered.height';
+          case 'weight':
+            return 'mainEntity.itemOffered.weight';
+          case 'hairColor':
+            return 'mainEntity.itemOffered.hairColor';
+          case 'eyeColor':
+            return 'mainEntity.itemOffered.eyeColor';
+          case 'dateCreated':
+            return 'dateCreated';
+          case 'hasImage':
+            return 'hasImagePart.url';
+          case 'annotationsFilter':
+            return 'mainEntity.uri';
+        }
+        // Remember to ignore other properties (like the text) from the search parameters so they are not included in the filters!
+        return undefined;
+      }
+    });
+  })();
+  </script>
+</dom-module>

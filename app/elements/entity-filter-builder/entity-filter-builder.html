@@ -1,0 +1,87 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/dig-common/dig-common.html">
+
+<dom-module id="entity-filter-builder">
+  <script>
+  (function() {
+    /* globals _, ejs */
+    'use strict';
+
+    Polymer({
+      is: 'entity-filter-builder',
+
+      properties: {
+        /**
+         * The object containing entity page filters.
+         */
+        filterCollection: {
+          type: Object
+        },
+
+        /**
+         * The list of elasticsearch filter objects.
+         */
+        filterList: {
+          type: Array,
+          value: function() {
+            return [];
+          },
+          notify: true,
+          computed: '_buildFilterList(filterCollection.*)'
+        }
+      },
+
+      _buildFilterList: function() {
+        var me = this;
+        var filters = [];
+
+        _.each(_.keys(me.filterCollection), function(name) {
+          var field = me._getFilterField(name);
+          var filter = field ? me._buildTermsFilter(me.filterCollection[name], field, name) : undefined;
+          if(filter) {
+            filters.push(filter);
+          }
+        });
+
+        return filters;
+      },
+
+      _buildTermsFilter: function(group, field, name) {
+        return _.isEmpty(group) ? undefined : ejs.TermsFilter(field, group).name(name);
+      },
+
+      _getFilterField: function(name) {
+        switch(name) {
+          case 'location':
+            return 'availableAtOrFrom.address.key';
+          case 'name':
+            return 'itemOffered.name.raw';
+          case 'age':
+            return 'itemOffered.age';
+          case 'ethnicity':
+            return 'itemOffered.ethnicity';
+          case 'height':
+            return 'itemOffered.height';
+          case 'weight':
+            return 'itemOffered.weight';
+          case 'hairColor':
+            return 'itemOffered.hairColor';
+          case 'eyeColor':
+            return 'itemOffered.eyeColor';
+        }
+        return undefined;
+      }
+    });
+  })();
+  </script>
+</dom-module>
