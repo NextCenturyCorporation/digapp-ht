@@ -9,12 +9,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/dig-common/dig-common.html">
+<link rel="import" href="../../bower_components/elastic-client-filter-builder/elastic-client-filter-builder.html">
 
 <dom-module id="search-filter-builder">
+  <template>
+    <elastic-client-filter-builder id="builder"></elastic-client-filter-builder>
+  </template>
+
   <script>
   (function() {
-    /* globals _, ejs */
+    /* globals _ */
     'use strict';
 
     Polymer({
@@ -55,16 +59,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _buildAndOrFilter: function(filters, name) {
-        return (filters.length ? (this._getCombinationType() === 'and' ? ejs.AndFilter(filters) : ejs.OrFilter(filters)).name(this._getAggregationName(name)) : undefined);
+        return (filters.length ? this.$$('#builder').buildFilter(this._getCombinationType(), false, this._getAggregationName(name), null, filters) : undefined);
       },
 
       _buildAnnotationsFilter: function(group, field, annotations) {
         var filter;
         // The showRelevant filter overrides the hideNotRelevant filter.
         if(group.showRelevant && group.showRelevant.enabled && annotations.relevant.length) {
-          filter = ejs.TermsFilter(field, annotations.relevant);
+          filter = this.$$('#builder').buildFilter('terms', false, '', field, annotations.relevant);
         } else if(group.hideNotRelevant && group.hideNotRelevant.enabled && annotations.notRelevant.length) {
-          filter = ejs.NotFilter(ejs.TermsFilter(field, annotations.notRelevant));
+          filter = this.$$('#builder').buildFilter('terms', true, '', field, annotations.notRelevant);
         }
         return filter;
       },
@@ -74,16 +78,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           return;
         }
 
-        var filter = ejs.RangeFilter(field);
+        var values = [undefined, undefined];
         _.each(_.keys(group), function(key) {
           if(key === 'Begin Date' && group[key].enabled) {
-            filter = filter.gte(group[key].date);
+            values[1] = group[key].date;
           }
           if(key === 'End Date' && group[key].enabled) {
-            filter = filter.lte(group[key].date);
+            values[0] = group[key].date;
           }
         });
-        return filter;
+
+        return this.$$('#builder').buildFilter('range', false, '', field, values);
       },
 
       _buildFilterList: function() {
@@ -113,14 +118,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       _buildHasImageFilter: function(group, field) {
-        return group.Yes && group.Yes.enabled ? ejs.ExistsFilter(field) : undefined;
+        return group.Yes && group.Yes.enabled ? this.$$('#builder').buildFilter('exists', false, '', field, []) : undefined;
       },
 
       _buildTermFilterList: function(group, field) {
+        var me = this;
         var filters = [];
         _.each(_.keys(group), function(key) {
           if(group[key].enabled) {
-            filters.push(ejs.TermFilter(field, key));
+            filters.push(me.$$('#builder').buildFilter('term', false, '', field, key));
           }
         });
         return filters;
