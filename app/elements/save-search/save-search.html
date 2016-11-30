@@ -237,6 +237,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Returns a new search record.
        */
       _createSearchRecord: function() {
+        // Remove the annotationsFilter from the saved filter.
+        var filter = _.cloneDeep(this.esRequest.filter);
+        if(filter && filter.and && filter.and.filters && filter.and.filters.length) {
+          filter.and.filters = filter.and.filters.filter(function(item) {
+            return item.terms ? item.terms._name !== 'annotationsFilter' : true;
+          });
+        }
+
         return {
           name: this._savedSearchName,
           digUIState: {
@@ -245,7 +253,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           esState: {
             query: JSON.stringify(this.esRequest.query),
-            filter: JSON.stringify(this.esRequest.filter)
+            filter: JSON.stringify(filter),
           },
           createdBy: this.username,
           createdAt: new Date(),
