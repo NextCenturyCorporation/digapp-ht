@@ -22,6 +22,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="user-preferences">
@@ -256,11 +257,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   </template>
   <script>
   (function() {
-    /* globals _, moment */
+    /* globals _, moment, DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'user-preferences',
+
+      behaviors: [DigBehaviors.StateBehavior],
 
       properties: {
         /**
@@ -664,27 +667,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Creates and returns a new object for the searchParameters using the given digUIState.
        */
       _createSearchParameters: function(digUIState) {
-        var state = JSON.parse(digUIState.searchParameters);
-        return {
-          dateCreated: state.dateCreated || {},
-          country: state.country || {},
-          city: state.city || {},
-          phone: state.phone || {},
-          email: state.email || {},
-          website: state.website || {},
-          name: state.name || {},
-          age: state.age || {},
-          ethnicity: state.ethnicity || {},
-          eyeColor: state.eyeColor || {},
-          hairColor: state.hairColor || {},
-          height: state.height || {},
-          weight: state.weight || {},
-          hasImage: state.hasImage || {},
-          // Always sort by newest.
-          sort: this.sortNewest,
-          // Set the text to null rather than an empty string or else the search won't trigger.
-          text: state.text || null
-        };
+        var savedState = JSON.parse(digUIState.searchParameters);
+        // Always sort by newest.
+        savedState.sort = this.sortNewest;
+        // Set the text to null rather than an empty string or else the search won't trigger.
+        savedState.text = savedState.text || null;
+        // From DigBehaviors.StateBehavior
+        return this.buildSearchStateForUI(savedState);
       },
 
       /**

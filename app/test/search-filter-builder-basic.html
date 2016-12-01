@@ -1,0 +1,345 @@
+<!doctype html>
+<!--
+@license
+Copyright (c) 2015 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>filter-array</title>
+
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+
+  <!-- Step 1: import the element to test -->
+  <link rel="import" href="../elements/search-filter-builder/search-filter-builder.html">
+
+</head>
+<body>
+
+<test-fixture id="search-filter-builder-fixture">
+  <template>
+    <search-filter-builder></search-filter-builder>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture, flush, ejs */
+  /* jshint -W030 */
+  suite('search-filter-builder tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('search-filter-builder-fixture');
+    });
+
+    test('properties are correct', function() {
+      assert.isUndefined(element.searchParameters);
+      assert.deepEqual(element.filterList, []);
+    });
+
+    test('filterList is created using searchParameters', function(done) {
+      element.searchParameters = {
+        dateCreated: {
+          'Begin Date': {
+            text: '10/05/2015',
+            date: '2015-10-05T00:00:00',
+            enabled: true
+          }
+        },
+        country: {},
+        city: {
+          'LA': {
+            text: 'LA',
+            enabled: true
+          },
+          'NY': {
+            text: 'NY',
+            enabled: false
+          },
+          'DC': {
+            text: 'DC',
+            enabled: true
+          }
+        },
+        phone: {
+          '1234567890': {
+            text: '1234567890',
+            enabled: false
+          }
+        },
+        name: {
+          'Jane': {
+            text: 'Jane',
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        assert.equal(element.filterList.length, 3);
+        assert.deepEqual(element.filterList[0].toJSON(), ejs.RangeFilter('dateCreated').gte('2015-10-05T00:00:00').toJSON());
+        assert.deepEqual(element.filterList[1].toJSON().or.filters.length, 2);
+        assert.deepEqual(element.filterList[1].toJSON().or.filters[0], ejs.TermFilter('mainEntity.availableAtOrFrom.address.key', 'LA').toJSON());
+        assert.deepEqual(element.filterList[1].toJSON().or.filters[1], ejs.TermFilter('mainEntity.availableAtOrFrom.address.key', 'DC').toJSON());
+        assert.deepEqual(element.filterList[2].toJSON().or.filters.length, 1);
+        assert.deepEqual(element.filterList[2].toJSON().or.filters[0], ejs.TermFilter('mainEntity.itemOffered.name.raw', 'Jane').toJSON());
+        done();
+      });
+    });
+
+    test('showRelevant annotationsFilter in filterList is created using annotations and searchParameters', function(done) {
+      element.annotations = {
+        relevant: ['id1', 'id2'],
+        notRelevant: ['id3', 'id4']
+      };
+      element.searchParameters = {
+        annotationsFilter: {
+          showRelevant: {
+            enabled: true
+          },
+          hideNotRelevant: {
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        assert.equal(element.filterList.length, 1);
+        assert.deepEqual(element.filterList[0].toJSON(), ejs.TermsFilter('mainEntity.uri', ['id1', 'id2']).name('annotationsFilter').toJSON());
+        done();
+      });
+    });
+
+    test('hideNotRelevant annotationsFilter in filterList is created using annotations and searchParameters', function(done) {
+      element.annotations = {
+        relevant: ['id1', 'id2'],
+        notRelevant: ['id3', 'id4']
+      };
+      element.searchParameters = {
+        annotationsFilter: {
+          hideNotRelevant: {
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        assert.equal(element.filterList.length, 1);
+        assert.deepEqual(element.filterList[0].toJSON(), ejs.NotFilter(ejs.TermsFilter('mainEntity.uri', ['id3', 'id4'])).name('annotationsFilter').toJSON());
+        done();
+      });
+    });
+
+    test('annotationsFilter in filterList is created after annotations are updated', function(done) {
+      element.searchParameters = {
+        annotationsFilter: {
+          showRelevant: {
+            enabled: true
+          }
+        }
+      };
+
+      flush(function() {
+        element.annotations = {
+          relevant: ['id1', 'id2'],
+          notRelevant: ['id3', 'id4']
+
+        };
+
+        flush(function() {
+          assert.equal(element.filterList.length, 1);
+          assert.deepEqual(element.filterList[0].toJSON(), ejs.TermsFilter('mainEntity.uri', ['id1', 'id2']).name('annotationsFilter').toJSON());
+          done();
+        });
+      });
+    });
+
+    test('_buildAndOrFilter returns undefined if no filters exist, or an ejs.OrFilter object', function() {
+      var filters = [ejs.TermFilter('city', 'NY'), ejs.TermFilter('city', 'LA')];
+      var orFilters = element._buildAndOrFilter(filters, 'city');
+
+      assert.isUndefined(element._buildAndOrFilter([]));
+      assert.isDefined(orFilters.toJSON().or);
+      assert.equal(orFilters.toJSON().or.filters.length, 2);
+    });
+
+    test('_buildAndOrFilter returns undefined if no filters exist, or an ejs.AndFilter object', function(done) {
+      element._getCombinationType = function() {
+        return 'and';
+      };
+      var filters = [ejs.TermFilter('city', 'NY'), ejs.TermFilter('city', 'LA')];
+
+      flush(function() {
+        var andFilters = element._buildAndOrFilter(filters, 'city');
+        assert.isUndefined(element._buildAndOrFilter([]));
+        assert.isDefined(andFilters.toJSON().and);
+        assert.equal(andFilters.toJSON().and.filters.length, 2);
+        element._getCombinationType = function() {
+          return 'or';
+        };
+        done();
+      });
+    });
+
+    test('_buildAnnotationsFilter returns the correct value', function() {
+      var annotations = {
+        relevant: ['id1', 'id2'],
+        notRelevant: ['id3', 'id4']
+      };
+
+      assert.isUndefined(element._buildAnnotationsFilter({}, 'field', annotations));
+      assert.isUndefined(element._buildAnnotationsFilter({
+        showRelevant: {
+          enabled: false
+        }
+      }, 'field', annotations));
+      assert.isUndefined(element._buildAnnotationsFilter({
+        hideNotRelevant: {
+          enabled: false
+        }
+      }, 'field', annotations));
+      assert.isUndefined(element._buildAnnotationsFilter({
+        showRelevant: {
+          enabled: true
+        }
+      }, 'field', {
+        relevant: []
+      }));
+      assert.isUndefined(element._buildAnnotationsFilter({
+        hideNotRelevant: {
+          enabled: true
+        }
+      }, 'field', {
+        notRelevant: []
+      }));
+      assert.deepEqual(element._buildAnnotationsFilter({
+        showRelevant: {
+          enabled: true
+        }
+      }, 'field', annotations).toJSON(), ejs.TermsFilter('field', ['id1', 'id2']).name('annotationsFilter').toJSON());
+      assert.deepEqual(element._buildAnnotationsFilter({
+        hideNotRelevant: {
+          enabled: true
+        }
+      }, 'field', annotations).toJSON(), ejs.NotFilter(ejs.TermsFilter('field', ['id3', 'id4'])).name('annotationsFilter').toJSON());
+      assert.deepEqual(element._buildAnnotationsFilter({
+        showRelevant: {
+          enabled: true
+        },
+        hideNotRelevant: {
+          enabled: true
+        }
+      }, 'field', annotations).toJSON(), ejs.TermsFilter('field', ['id1', 'id2']).name('annotationsFilter').toJSON());
+    });
+
+    test('_buildDateRangeEjsFilter returns undefined, or an ejs.RangeFilter object', function() {
+      var beginFilter = element._buildDateRangeEjsFilter({
+          'Begin Date': {text: '10/05/2015', date: '2015-10-05T00:00:00', enabled: true},
+          'End Date': {text: '10/07/2015', date: '2015-10-07T00:00:00', enabled: false}
+        }, 'dateCreated');
+      var endFilter = element._buildDateRangeEjsFilter({
+          'End Date': {text: '10/07/2015', date: '2015-10-07T00:00:00', enabled: true},
+          'Not Valid Key': {enabled: true}
+        }, 'dateCreated');
+      var bothFiltersTrue = element._buildDateRangeEjsFilter({
+          'Begin Date': {text: '10/05/2015', date: '2015-10-05T00:00:00', enabled: true},
+          'End Date': {text: '10/05/2015', date: '2015-10-05T00:00:00', enabled: true}
+        }, 'dateCreated');
+      var bothFiltersFalse = element._buildDateRangeEjsFilter({
+          'Begin Date': {text: '10/05/2015', date: '2015-10-05T00:00:00', enabled: false},
+          'End Date': {text: '10/07/2015', date: '2015-10-07T00:00:00', enabled: false}
+        }, 'dateCreated');
+      var bothFiltersTrueResult = ejs.RangeFilter('dateCreated').lte('2015-10-07T00:00:00').gte('2015-10-05T00:00:00');
+
+      assert.isUndefined(element._buildDateRangeEjsFilter({}, 'dateCreated'));
+      assert.isUndefined(element._buildDateRangeEjsFilter({'key': {enabled: true}}, null));
+      assert.deepEqual(beginFilter.toJSON(), ejs.RangeFilter('dateCreated').gte('2015-10-05T00:00:00').toJSON());
+      assert.deepEqual(endFilter.toJSON(), ejs.RangeFilter('dateCreated').lte('2015-10-07T00:00:00').toJSON());
+      assert.deepEqual(bothFiltersTrue.toJSON().lte, bothFiltersTrueResult.toJSON().lte);
+      assert.deepEqual(bothFiltersTrue.toJSON().gte, bothFiltersTrueResult.toJSON().gte);
+      assert.deepEqual(bothFiltersFalse.toJSON(), ejs.RangeFilter('dateCreated').toJSON());
+    });
+
+    test('_buildHasImageFilter returns the correct value', function() {
+      assert.isUndefined(element._buildHasImageFilter({}, 'field'));
+      assert.isUndefined(element._buildHasImageFilter({
+        Yes: {
+          enabled: false
+        }
+      }, 'field'));
+      assert.deepEqual(element._buildHasImageFilter({
+        Yes: {
+          enabled: true
+        }
+      }, 'field').toJSON(), ejs.ExistsFilter('field').toJSON());
+    });
+
+    test('_buildTermFilterList returns an array', function() {
+      element.searchParameters = {
+        country: {},
+        city: {'LA': {text: 'LA', enabled: true}, 'NY': {text: 'NY', enabled: false}, 'DC': {text: 'DC', enabled: true}},
+        phone: {'1112223333': {text: '1112223333', enabled: false}},
+        name: {'Jane': {text: 'Jane', enabled: true}}
+      };
+      var nameFilters = element._buildTermFilterList(element.searchParameters.name, 'mainEntity.itemOffered.name.raw');
+      var cityFilters = element._buildTermFilterList(element.searchParameters.city, 'mainEntity.availableAtOrFrom.address.key');
+
+      assert.equal(element._buildTermFilterList(element.searchParameters.country, 'country').length, 0);
+      assert.equal(element._buildTermFilterList(element.searchParameters.phone, 'phone').length, 0);
+      assert.equal(nameFilters.length, 1);
+      assert.deepEqual(nameFilters[0].toJSON(), ejs.TermFilter('mainEntity.itemOffered.name.raw', 'Jane').toJSON());
+      assert.equal(cityFilters.length, 2);
+      assert.deepEqual(cityFilters[0].toJSON(), ejs.TermFilter('mainEntity.availableAtOrFrom.address.key', 'LA').toJSON());
+      assert.deepEqual(cityFilters[1].toJSON(), ejs.TermFilter('mainEntity.availableAtOrFrom.address.key', 'DC').toJSON());
+    });
+
+    test('_getAggregationName returns the correct name based on the input', function() {
+      assert.equal(element._getAggregationName('country'), 'countryAgg');
+      assert.equal(element._getAggregationName('city'), 'cityAgg');
+      assert.equal(element._getAggregationName('phone'), 'phoneAgg');
+      assert.equal(element._getAggregationName('email'), 'emailAgg');
+      assert.equal(element._getAggregationName('website'), 'publisherAgg');
+      assert.equal(element._getAggregationName('age'), 'ageAgg');
+      assert.equal(element._getAggregationName('ethnicity'), 'ethnicityAgg');
+      assert.equal(element._getAggregationName('height'), 'heightAgg');
+      assert.equal(element._getAggregationName('weight'), 'weightAgg');
+      assert.equal(element._getAggregationName('hairColor'), 'hairColorAgg');
+      assert.equal(element._getAggregationName('eyeColor'), 'eyeColorAgg');
+      assert.isUndefined(element._getAggregationName('dateCreated'));
+    });
+
+    test('_getCombinationType returns "or" for now', function() {
+      assert.equal(element._getCombinationType(), 'or');
+    });
+
+    test('_getFilterField returns the correct field based on the input', function() {
+      assert.equal(element._getFilterField('country'), 'mainEntity.availableAtOrFrom.address.addressCountry');
+      assert.equal(element._getFilterField('city'), 'mainEntity.availableAtOrFrom.address.key');
+      assert.equal(element._getFilterField('phone'), 'mentionsPhone');
+      assert.equal(element._getFilterField('email'), 'mentionsEmail');
+      assert.equal(element._getFilterField('website'), 'publisher.name.raw');
+      assert.equal(element._getFilterField('age'), 'mainEntity.itemOffered.age');
+      assert.equal(element._getFilterField('ethnicity'), 'mainEntity.itemOffered.ethnicity');
+      assert.equal(element._getFilterField('height'), 'mainEntity.itemOffered.height');
+      assert.equal(element._getFilterField('weight'), 'mainEntity.itemOffered.weight');
+      assert.equal(element._getFilterField('hairColor'), 'mainEntity.itemOffered.hairColor');
+      assert.equal(element._getFilterField('eyeColor'), 'mainEntity.itemOffered.eyeColor');
+      assert.equal(element._getFilterField('dateCreated'), 'dateCreated');
+      assert.equal(element._getFilterField('hasImage'), 'hasImagePart.url');
+      assert.equal(element._getFilterField('annotationsFilter'), 'mainEntity.uri');
+      assert.isUndefined(element._getFilterField('sort'));
+      assert.isUndefined(element._getFilterField('text'));
+      assert.isUndefined(element._getFilterField('somethingElse'));
+    });
+  });
+</script>
+
+</body>
+</html>
