@@ -23,9 +23,34 @@ DigBehaviors.StateBehavior = {
   },
 
   /**
-   * Builds and returns the search state object from the given config object.
+   * Builds and returns the search state object for the UI from the given config object.
    */
-  buildSearchState: function(config) {
+  buildSearchStateForUI: function(config) {
+    return {
+      dateCreated: config.dateCreated || {},
+      country: config.country || {},
+      city: config.city || {},
+      phone: config.phone || {},
+      email: config.email || {},
+      website: config.website || {},
+      name: config.name || {},
+      age: config.age || {},
+      ethnicity: config.ethnicity || {},
+      eyeColor: config.eyeColor || {},
+      hairColor: config.hairColor || {},
+      height: config.height || {},
+      weight: config.weight || {},
+      hasImage: config.hasImage || {},
+      annotationsFilter: {},
+      sort: config.sort || '',
+      text: config.text || ''
+    };
+  },
+
+  /**
+   * Builds and returns the search state object for elasticsearch from the given config object.
+   */
+  buildSearchStateForES: function(config) {
     return {
       dateCreated: config.dateCreated || {},
       country: config.country || {},
