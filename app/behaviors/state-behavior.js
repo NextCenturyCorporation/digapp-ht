@@ -41,6 +41,7 @@ DigBehaviors.StateBehavior = {
       height: config.height || {},
       weight: config.weight || {},
       hasImage: config.hasImage || {},
+      image: config.image || {},
       annotationsFilter: {},
       sort: config.sort || '',
       text: config.text || ''
@@ -66,6 +67,7 @@ DigBehaviors.StateBehavior = {
       height: config.height || {},
       weight: config.weight || {},
       hasImage: config.hasImage || {},
+      image: config.image || {},
       sort: config.sort || '',
       text: config.text || ''
     };

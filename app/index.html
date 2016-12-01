@@ -267,6 +267,19 @@
       loading="{{eyeColorLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      results="{{imageResult}}"
+      last-error="{{imageError}}"
+      aggregations="{{buildArray(imageAgg)}}"
+      filters="[[filterArray]]"
+      loading="{{imageLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
     <!-- End Facets -->
 
     <dig-logger
@@ -295,7 +308,8 @@
       publisher-facet-selection="[[searchParameters.website]]"
       weight-facet-selection="[[searchParameters.weight]]"
       has-image-facet-selection="[[searchParameters.hasImage]]"
-      annotation-facet-selection="[[searchParameters.annotationsFilter]]"
+      image-facet-selection="[[searchParameters.image]]"
+      annotations-filter-option-selection="[[searchParameters.annotationsFilter]]"
       log-message="{{logMessage}}">
     </search-logger>
 
@@ -472,6 +486,7 @@
                 <selected-facets-display facet-selection="{{searchParameters.hairColor}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.eyeColor}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.hasImage}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.image}}"></selected-facets-display>
               </div>
 
               <div class="h-divider"></div>
@@ -1166,6 +1181,62 @@
                   category="Has Image">
                 </checkbox-list-display>
               </iron-collapse>
+
+              <div class="h-divider"></div>
+
+              <div id="image" class="facet filter-header">
+                <span class="filter-toggle" title="Toggle Image Facet List" on-tap="toggleList">Image</span>
+                <iron-icon id="image-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Image Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="image-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Image Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="imageAgg"
+                field="hasImagePart.url.raw"
+                count="{{imageCount}}"
+                ejs-aggregation="{{imageAgg}}"
+                type="terms"
+                order="{{imageSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <view-all-facets
+                    images
+                    image-style-class="[[getBlurStyleClass(blurImages)]]"
+                    title="Image"
+                    buckets="[[imageResult.aggregations.imageAgg.imageAgg.buckets]]"
+                    loading="[[imageLoading]]"
+                    error="[[imageError]]"
+                    facet-selection="{{searchParameters.image}}"
+                    filter="{{imageFilter}}"
+                    agg-count="{{imageCount}}"
+                    order-by="{{imageSortOrder}}">
+                  </view-all-facets>
+                </div>
+                <div class="flex self-end">
+                  <aggregation-sort facets="[[imageFacets]]" order-by="{{imageSortOrder}}">
+                  </aggregation-sort>
+                </div>
+              </div>
+
+              <iron-collapse id="image-list" class="filter-list" opened>
+                <checkbox-list-display
+                  images
+                  image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  buckets="[[imageResult.aggregations.imageAgg.imageAgg.buckets]]"
+                  facets="{{imageFacets}}"
+                  facet-selection="{{searchParameters.image}}"
+                  category="Image">
+                </checkbox-list-display>
+                <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[imageFacets.length]]"
+                  error="[[imageErrorMessage]]"
+                  loading="[[imageLoading]]"
+                  empty="No Facets">
+                </status-text>
+              </iron-collapse>
             </section>
 
             <section data-type="phone">phone</section>
@@ -1273,6 +1344,10 @@
 
       app.getAdvancedSearchTitle = function(advancedSearch) {
         return 'Click to ' + (advancedSearch ? 'Deactivate' : 'Activate') + ' Advanced Search Mode';
+      };
+
+      app.getBlurStyleClass = function(blurImages) {
+        return blurImages ? 'small-blur' : '';
       };
 
       app.getElasticTypes = function() {
