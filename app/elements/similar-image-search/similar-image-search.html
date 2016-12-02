@@ -32,9 +32,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         margin-top: 20px;
       }
 
-      .settings > .padding {
+      .add-padding {
         /* Add padding to the query image so it matches the padding in the image results list. */
         padding: 10px;
+      }
+
+      .previous-searches {
+        margin-left: 10px;
+        width: 300px;
       }
 
       paginated-image-gallery {
@@ -81,38 +86,72 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         <div class="divider margin-top"></div>
 
-        <span class="bold tall">Your Image</span>
+        <div class="layout horizontal">
+          <div class="padded layout vertical flex">
+            <span class="bold tall">Your Image</span>
 
-        <template is="dom-if" if="[[!_requestImage]]">
-          <span class="text tall">None</span>
-        </template>
+            <template is="dom-if" if="[[!_requestImage]]">
+              <span class="text tall">None</span>
+            </template>
 
-        <template is="dom-if" if="[[_requestImage]]">
-          <image-thumbnail
-            class="padding"
-            source="[[_requestImage]]"
-            style-class="[[_getBlurStyleClass(blur)]]"
-            target="_blank"
-            text="open image">
-          </image-thumbnail>
-        </template>
+            <template is="dom-if" if="[[_requestImage]]">
+              <image-thumbnail
+                class="add-padding"
+                source="[[_requestImage]]"
+                style-class="[[_getBlurStyleClass(blur)]]">
+              </image-thumbnail>
+            </template>
 
-        <div class="divider"></div>
+            <div class="divider"></div>
 
-        <span class="bold tall">Similar Image Results</span>
+            <span class="bold tall">Similar Image Results (Top [[numberOfResults]])</span>
 
-        <template is="dom-if" if="[[_showNoImagesText(_imageResults.length, loading)]]">
-          <span class="text tall">None</span>
-        </template>
+            <template is="dom-if" if="[[_showNoImagesText(_imageResults.length, loading)]]">
+              <span class="text tall">None</span>
+            </template>
 
-        <paginated-image-gallery
-          blur="[[blur]]"
-          new-tab
-          loading="[[loading]]"
-          load-type="Similar Images"
-          image-items="[[_imageResults]]"
-          total-items="[[_.images.length]]">
-        </paginated-image-gallery>
+            <paginated-image-gallery
+              blur="[[blur]]"
+              new-tab
+              loading="[[loading]]"
+              load-type="Similar Images"
+              image-items="[[_imageResults]]"
+              total-items="[[_imageResults.length]]">
+            </paginated-image-gallery>
+          </div>
+
+          <div class="padded layout vertical previous-searches">
+            <span class="bold tall">Your Previous Searches</span>
+
+            <template is="dom-repeat" items="[[_previousSearches]]">
+              <div class="layout horizontal center">
+                <image-thumbnail
+                  class="add-padding"
+                  source="[[item.image]]"
+                  style-class="[[_getBlurStyleClass(blur)]]">
+                </image-thumbnail>
+
+                <div class="layout vertical center flex">
+                  <button-action
+                    class="add-padding"
+                    text="Show Results"
+                    click-listener="[[_createShowImageResultsListener(item)]]">
+                  </button-action>
+
+                  <div class="add-padding">
+                    <template is="dom-if" if="[[item.options.nearDuplicates]]">
+                      Near-Duplicates:  ON
+                    </template>
+
+                    <template is="dom-if" if="[[!item.options.nearDuplicates]]">
+                      Near-Duplicates:  OFF
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
       </div>
     </paper-dialog>
 
@@ -171,9 +210,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           notify: true
         },
 
+        /**
+         * Whether to search for only near-duplicate similar image results.
+         */
         nearDuplicates: {
           type: Boolean,
           value: true
+        },
+
+        /**
+         * The maximum total number of similar image results.
+         */
+        numberOfResults: {
+          type: Number,
+          value: 200
         },
 
         /**
@@ -182,6 +232,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _imageResults: {
           type: Array,
           notify: true,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The list of previous searches which are objects containing the request "image", the similar image "results", and "options.nearDuplicates".
+         */
+        _previousSearches: {
+          type: Array,
           value: function() {
             return [];
           }
@@ -270,6 +330,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
       },
 
+      _createShowImageResultsListener: function(search) {
+        var self = this;
+        return {
+          onClick: function() {
+            self.nearDuplicates = search.options.nearDuplicates;
+            self._requestImage = search.image;
+            self._imageResults = search.results;
+          }
+        };
+      },
+
       _getBlurStyleClass: function(blur) {
         return (blur ? 'small-blur' : '');
       },
@@ -301,6 +372,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               link: ((self.linkFunction && index < imageIds.length) ? self.linkFunction(imageIds[index]) : ''),
               source: url
             };
+          }).slice(0, self.numberOfResults);
+
+          // Use this.splice to force the dom-repeat to redraw itself.  Add the latest search to the start of the list.
+          self.splice('_previousSearches', 0, 0, {
+            image: self._requestImage,
+            results: _.cloneDeep(self._imageResults),
+            options: {
+              nearDuplicates: self.nearDuplicates
+            }
           });
         }
       },
