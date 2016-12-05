@@ -174,11 +174,14 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     return offer;
   }
 
-  function offsetDates(dates) {
-    var sorted = _.sortBy(dates, [function(o) { return o.date; }]);
+  function offsetDates(dateObjects) {
+    var sorted = _.sortBy(dateObjects, [function(o) { return o.date; }]);
     for(var i = 1; i < sorted.length; i++) {
       if(sorted[i] === sorted[i - 1]) {
-        sorted[i] = new Date(sorted[i].getTime() + 300);
+        sorted[i] = {
+          count: sorted[i].count,
+          date: new Date(sorted[i].date.getTime() + 300)
+        };
       }
     }
 
@@ -427,7 +430,10 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           locationBucket.dates.buckets.forEach(function(dateBucket) {
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
             if(dateBucket.key && dateBucket.doc_count > 0) {
-              cityAggs[city].push({date: new Date(dateBucket.key), count: dateBucket.doc_count});
+              cityAggs[city].push({
+                date: new Date(dateBucket.key),
+                count: dateBucket.doc_count
+              });
               timestamps.push(dateBucket.key);
             }
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -435,16 +441,24 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         });
 
         /* Transform data */
-        for(var city in cityAggs) {
-          var dates = offsetDates(cityAggs[city]);
-
+        _.keys(cityAggs).forEach(function(city) {
           var nameList = city.split(':');
           var combineCityStateNames = nameList[0] + ', ' + nameList[1];
-          transformedData.push({
-            name: (combineCityStateNames.length <= 24) ? combineCityStateNames : nameList[0],
-            dates: dates
+          var chosenName = (combineCityStateNames.length <= 24) ? combineCityStateNames : nameList[0];
+
+          var dateObjects = offsetDates(cityAggs[city]).map(function(dateObject) {
+            return {
+              count: dateObject.count,
+              date: dateObject.date,
+              name: chosenName
+            };
           });
-        }
+
+          transformedData.push({
+            name: chosenName,
+            dates: dateObjects
+          });
+        });
       }
 
       return {

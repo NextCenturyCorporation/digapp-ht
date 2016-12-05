@@ -2,16 +2,24 @@
 <link rel="import" href="../d3.html">
 <link rel="import" href="../eventdrops.html">
 <link rel="import" href="../../styles/chart-styles.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 
 <dom-module id="drops-timeline">
   <style include="chart-styles"></style>
   <style>
     :host {
       display: block;
-      font-size: 12px;
     }
 
-    #timeline {
+    #eventDropsInfo {
+      /* Match the style of the label in the zoomable-bar-chart */
+      font-size: 14px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    #eventDropsTimeline {
+      font-size: 12px;
       width: 100%;
       /* Must manually hide the overflow for IE. */
       overflow: hidden;
@@ -19,7 +27,8 @@
   </style>
 
   <template>
-    <div id="timeline"></div>
+    <div id="eventDropsInfo"></div>
+    <div id="eventDropsTimeline"></div>
     <div class="layout horizontal flex center-justified">
       <button-action text="Reset Timeline" click-listener="[[_createResetListener()]]"></button-action>
     </div>
@@ -28,7 +37,7 @@
   <script>
     (function() {
       'use strict';
-      /* globals _, d3 */
+      /* globals _, d3, moment */
       Polymer({
         is: 'drops-timeline',
 
@@ -44,6 +53,10 @@
             value: function() {
               return {};
             }
+          },
+
+          _domain: {
+            type: Array
           }
         },
 
@@ -68,7 +81,7 @@
         },
 
         _redrawChart: function() {
-          d3.select('#timeline svg').remove();
+          d3.select('#eventDropsTimeline svg').remove();
           this._createChart();
         },
 
@@ -96,7 +109,7 @@
           var startTime = this._getStartTime();
 
           // Use the width of the timeline container.
-          var container = document.getElementById('timeline');
+          var container = document.getElementById('eventDropsTimeline');
           var width = (container ? parseInt(container.offsetWidth, 10) : 600);
 
           var chart = d3.chart.eventDrops();
@@ -112,8 +125,10 @@
             bottom: 20,
             right: 20
           });
+          chart.eventHover(this._showDataItemInfo());
+          chart.eventZoom(this._updateZoom());
 
-          d3.select('#timeline')
+          d3.select('#eventDropsTimeline')
             .datum(this.payload.data)
             .call(chart);
 
@@ -133,6 +148,30 @@
             return Math.min.apply(null, this.payload.timestamps) - (60 * 60 * 24 * 30 * 1000);
           }
           return Date.now();
+        },
+
+        _showDataItemInfo: function() {
+          var self = this;
+          return function(data) {
+            if(data) {
+              var object = d3.select(data).data()[0];
+              d3.select('#eventDropsInfo').html(object.count + ' in ' + object.name + ' on ' + moment.utc(new Date(object.date)).format('MMM D, YYYY'));
+            } else if(self.domain) {
+              self._updateZoomInfo(self.domain);
+            }
+          };
+        },
+
+        _updateZoom: function() {
+          var self = this;
+          return function(zoom) {
+            self.domain = zoom.domain();
+            self._updateZoomInfo(self.domain);
+          };
+        },
+
+        _updateZoomInfo: function(domain) {
+          d3.select('#eventDropsInfo').html('Showing ' + moment.utc(new Date(domain[0])).format('MMM D, YYYY') + ' to ' + moment.utc(new Date(domain[1])).format('MMM D, YYYY'));
         }
       });
     })();
