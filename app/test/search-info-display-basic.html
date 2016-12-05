@@ -39,43 +39,118 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element = fixture('search-info-display-fixture');
     });
 
-    test('_isFalse returns the correct values', function() {
-      assert.isTrue(element._isFalse(false));
-      assert.isFalse(element._isFalse(true));
+    test('_isFacetSelectionEmpty returns true for empty searchParameters', function() {
+      element.searchParameters = {};
+      assert.isTrue(element._isFacetSelectionEmpty());
     });
 
-    test('_isFacetSelectionEmpty returns appropriate value', function() {
-      assert.isFalse(element._isFacetSelectionEmpty({digUIState: {searchParameters: '{\"dateCreated\":{\"somekey\": {\"enabled\": true}}, \"city\":{}}'}}));
-      assert.isTrue(element._isFacetSelectionEmpty({digUIState: {searchParameters: '{\"dateCreated\":{\"somekey\": {\"enabled\": false}}, \"city\":{}}'}}));
-      assert.isTrue(element._isFacetSelectionEmpty({digUIState: {searchParameters: '{\"dateCreated\":{}, \"city\":{}}'}}));
-      assert.isTrue(element._isFacetSelectionEmpty({digUIState: {}}));
+    test('_isFacetSelectionEmpty returns true for searchParameters with empty facet groups', function() {
+      element.searchParameters = {
+        dateCreated: {},
+        city: {}
+      };
+      assert.isTrue(element._isFacetSelectionEmpty());
+    });
+
+    test('_isFacetSelectionEmpty returns true for searchParameters with all disabled facet groups', function() {
+      element.searchParameters = {
+        dateCreated: {
+          key: {
+            enabled: false
+          }
+        },
+        city: {
+          key: {
+            enabled: false
+          }
+        },
+      };
+      assert.isTrue(element._isFacetSelectionEmpty());
+    });
+
+    test('_isFacetSelectionEmpty returns false for searchParameters with at least one enabled facet group', function() {
+      element.searchParameters = {
+        dateCreated: {
+          key: {
+            enabled: true
+          }
+        },
+        city: {
+          key: {
+            enabled: false
+          }
+        },
+      };
+      assert.isFalse(element._isFacetSelectionEmpty());
     });
 
     test('_getFacetGroups parses searchParameters correctly', function() {
-      var facets = element._getFacetGroups('{\"dateCreated\":{}, \"city\":{}}');
-      assert.equal(facets.length, 2);
-      assert.equal(facets[0], 'dateCreated');
-      assert.equal(facets[1], 'city');
+      element.searchParameters = {
+        dateCreated: {},
+        city: {}
+      };
+      assert.deepEqual(element._getFacetGroups(), ['dateCreated', 'city']);
     });
 
-    test('_getFacetGroupKeys parses searchParameters correctly', function() {
-      assert.equal(element._getFacetGroupKeys('{\"dateCreated\":{}, \"city\":{}}', 'dateCreated').length, 0);
-      assert.equal(element._getFacetGroupKeys('{\"dateCreated\":{\"first\":{}}, \"city\":{}}', 'dateCreated').length, 1);
-      assert.equal(element._getFacetGroupKeys('{\"dateCreated\":{\"first\":{}}, \"city\":{}}', 'dateCreated')[0], 'first');
+    test('_getFacetGroupKeys parses empty searchParameters correctly', function() {
+      element.searchParameters = {
+        dateCreated: {},
+        city: {}
+      };
+      assert.deepEqual(element._getFacetGroupKeys('dateCreated'), []);
+      assert.deepEqual(element._getFacetGroupKeys('city'), []);
+    });
+
+    test('_getFacetGroupKeys parses defined searchParameters correctly', function() {
+      element.searchParameters = {
+        dateCreated: {
+          key1: {}
+        },
+        city: {
+          key2: {},
+          key3: {}
+        }
+      };
+      assert.deepEqual(element._getFacetGroupKeys('dateCreated'), ['key1']);
+      assert.deepEqual(element._getFacetGroupKeys('city'), ['key2', 'key3']);
     });
 
     test('_getFacetProperty parses searchParameters correctly', function() {
-      assert.isUndefined(element._getFacetProperty('{\"dateCreated\":{}, \"city\":{}}', 'dateCreated', 'nokey', 'noprop'));
-      assert.isUndefined(element._getFacetProperty('{\"dateCreated\":{\"first\":{}}, \"city\":{}}', 'dateCreated', 'first', 'noprop'));
-      assert.isTrue(element._getFacetProperty('{\"dateCreated\":{\"first\":{\"enabled\": true}}, \"city\":{}}', 'dateCreated', 'first', 'enabled'));
-      assert.equal(element._getFacetProperty('{\"dateCreated\":{\"first\":{\"text\": \"something\"}}, \"city\":{}}', 'dateCreated', 'first', 'text'), 'something');
-    });
-
-    test('_getSearchText parses searchParameters correctly', function() {
-      assert.equal(element._getSearchText('{}'), '');
-      assert.equal(element._getSearchText('{\"dateCreated\":{}}'), '');
-      assert.equal(element._getSearchText('{\"text\":\"\"}'), '');
-      assert.equal(element._getSearchText('{\"text\":\"something\"}'), 'something');
+      assert.isUndefined(element._getFacetProperty({}, 'dateCreated', 'nokey', 'noprop'));
+      assert.isUndefined(element._getFacetProperty({
+        dateCreated: {},
+        city: {}
+      }, 'dateCreated', 'nokey', 'noprop'));
+      assert.isUndefined(element._getFacetProperty({
+        dateCreated: {
+          first: {}
+        },
+        city: {}
+      }, 'dateCreated', 'first', 'noprop'));
+      assert.isTrue(element._getFacetProperty({
+        dateCreated: {
+          first: {
+            enabled: true
+          }
+        },
+        city: {}
+      }, 'dateCreated', 'first', 'enabled'));
+      assert.isFalse(element._getFacetProperty({
+        dateCreated: {
+          first: {
+            enabled: false
+          }
+        },
+        city: {}
+      }, 'dateCreated', 'first', 'enabled'));
+      assert.equal(element._getFacetProperty({
+        dateCreated: {
+          first: {
+            text: 'something'
+          }
+        },
+        city: {}
+      }, 'dateCreated', 'first', 'text'), 'something');
     });
   });
 </script>
