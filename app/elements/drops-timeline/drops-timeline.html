@@ -1,8 +1,18 @@
+<!--
+@license
+Copyright (c) 2016 The Polymer Project Authors. All rights reserved.
+This code may only be used under the BSD style license found at http://polymer.github.io/LICENSE.txt
+The complete set of authors may be found at http://polymer.github.io/AUTHORS.txt
+The complete set of contributors may be found at http://polymer.github.io/CONTRIBUTORS.txt
+Code distributed by Google as part of the polymer project is also
+subject to an additional IP rights grant found at http://polymer.github.io/PATENTS.txt
+-->
+
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
+<link rel="import" href="../../styles/chart-styles.html">
 <link rel="import" href="../d3.html">
 <link rel="import" href="../eventdrops.html">
-<link rel="import" href="../../styles/chart-styles.html">
-<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 
 <dom-module id="drops-timeline">
   <style include="chart-styles"></style>
@@ -37,7 +47,8 @@
   <script>
     (function() {
       'use strict';
-      /* globals _, d3, moment */
+
+      /* globals d3, moment */
       Polymer({
         is: 'drops-timeline',
 
@@ -46,15 +57,30 @@
         ],
 
         properties: {
-          payload: {
-            type: Object,
-            notify: true,
-            observer: '_createChart',
-            value: function() {
-              return {};
-            }
+          /**
+           * The data for the event drops chart.  Each item in the data must have {String} "name" and {Array} "dates" properties.  Each item in the dates must
+           * have {Number} "count", {Date} "date", and {String} "name" properties.
+           *
+           * @type {Array}
+           */
+          data: {
+            type: Array
           },
 
+          /**
+           * The list of timestamps as {Number} numerical dates for the date range of the event drops chart.
+           *
+           * @type {Array}
+           */
+          timestamps: {
+            type: Array
+          },
+
+          /**
+           * The current date range of the event drops chart.
+           *
+           * @type {Array}
+           */
           _domain: {
             type: Array
           }
@@ -65,12 +91,27 @@
           'iron-resize': '_redrawChart'
         },
 
-        _createChart: function() {
-          if(!_.isEmpty(this.payload)) {
+        observers: [
+          '_createChart(data, timestamps)'
+        ],
+
+        /**
+         * Draws the event drops chart if the given data and timestamps are not empty.
+         *
+         * @private
+         */
+        _createChart: function(data, timestamps) {
+          if(data && data.length && timestamps && timestamps.length) {
             this._drawChart();
           }
         },
 
+        /**
+         * Returns the reset click listener object for a button-action.
+         *
+         * @return {Object}
+         * @private
+         */
         _createResetListener: function() {
           var self = this;
           return {
@@ -80,11 +121,21 @@
           };
         },
 
+        /**
+         * Redraws the event drops chart using the global data and timestamps.
+         *
+         * @private
+         */
         _redrawChart: function() {
           d3.select('#eventDropsTimeline svg').remove();
           this._createChart();
         },
 
+        /**
+         * Draws the event drops chart using the global data and timestamps.
+         *
+         * @private
+         */
         _drawChart: function() {
           var color = d3.scale.ordinal().range([
             this.getComputedStyleValue('--chart-blue'),
@@ -129,27 +180,45 @@
           chart.eventZoom(this._updateZoom());
 
           d3.select('#eventDropsTimeline')
-            .datum(this.payload.data)
+            .datum(this.data)
             .call(chart);
 
           // The library fails to set the fill making it black by default so we must set the fill to transparent ourselves.
           d3.select('.zoom').style('fill', 'transparent');
         },
 
+        /**
+         * Returns the end time for the event drops chart.
+         *
+         * @return {Number}
+         * @private
+         */
         _getEndTime: function() {
-          if(this.payload.timestamps.length) {
-            return Math.max.apply(null, this.payload.timestamps) + (60 * 60 * 24 * 30 * 1000);
+          if(this.timestamps.length) {
+            return Math.max.apply(null, this.timestamps) + (60 * 60 * 24 * 30 * 1000);
           }
           return Date.now();
         },
 
+        /**
+         * Returns the start time for the event drops chart.
+         *
+         * @return {Number}
+         * @private
+         */
         _getStartTime: function() {
-          if(this.payload.timestamps.length) {
-            return Math.min.apply(null, this.payload.timestamps) - (60 * 60 * 24 * 30 * 1000);
+          if(this.timestamps.length) {
+            return Math.min.apply(null, this.timestamps) - (60 * 60 * 24 * 30 * 1000);
           }
           return Date.now();
         },
 
+        /**
+         * Returns the callback that shows a given data item from the event drops chart in the info label.
+         *
+         * @return {Function}
+         * @private
+         */
         _showDataItemInfo: function() {
           var self = this;
           return function(data) {
@@ -162,6 +231,12 @@
           };
         },
 
+        /**
+         * Returns the callback that updates the date range for the zoom from the event drops chart in the info label.
+         *
+         * @return {Function}
+         * @private
+         */
         _updateZoom: function() {
           var self = this;
           return function(zoom) {
@@ -170,6 +245,12 @@
           };
         },
 
+        /**
+         * Updates the date range for the zoom from the event drops chart in the info label using the given array.
+         *
+         * @param {Array} domain
+         * @private
+         */
         _updateZoomInfo: function(domain) {
           d3.select('#eventDropsInfo').html('Showing ' + moment.utc(new Date(domain[0])).format('MMM D, YYYY') + ' to ' + moment.utc(new Date(domain[1])).format('MMM D, YYYY'));
         }

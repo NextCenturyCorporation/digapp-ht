@@ -41,7 +41,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     before(function() {
       element = fixture('drops-query-and-timeline-fixture');
-      element.dropsQuery = ejs.TermsQuery('field', 'value');
+      element.query = ejs.TermsQuery('field', 'value');
     });
 
     it('title is expected value', function() {
@@ -51,7 +51,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     it('properties for performing main query are set to expected values', function() {
       expect(element.index).to.equal('dig-data');
       expect(element.indexTypes).to.deep.equal(['offer']);
-      expect(element.dropsQuery.toJSON()).to.deep.equal(ejs.TermsQuery('field', 'value').toJSON());
+      expect(element.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', 'value').toJSON());
     });
 
     it('buildArray does wrap defined values', function() {
@@ -64,25 +64,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     it('build date histogram', function() {
       expect(element.dateInterval).to.equal('day');
-      expect(element.datesAggregation).to.not.exist;
+      expect(element._dateAggregation).to.not.exist;
       element.dateHistName = 'dates';
-      expect(element.datesAggregation).to.not.exist;
+      expect(element._dateAggregation).to.not.exist;
       element.dateHistField = 'date';
-      expect(element.datesAggregation).to.exist;
-      expect(element.datesAggregation.toJSON()).to.deep.equal(ejs.DateHistogramAggregation('dates').field('date').interval('day').toJSON());
+      expect(element._dateAggregation).to.exist;
+      expect(element._dateAggregation.toJSON()).to.deep.equal(ejs.DateHistogramAggregation('dates').field('date').interval('day').toJSON());
     });
 
     it('build location aggregations', function() {
-      expect(element.locationsAggregation).to.not.exist;
+      expect(element._locationAggregation).to.not.exist;
       element.locationAggName = 'locations';
-      expect(element.locationsAggregation).to.not.exist;
+      expect(element._locationAggregation).to.not.exist;
       element.locationAggField = 'city';
-      expect(element.locationsAggregation).to.exist;
-      expect(element.locationsAggregation.toJSON()).to.deep.equal(ejs.TermsAggregation('locations').field('city').size(0).order('_term', 'asc').aggregation(ejs.DateHistogramAggregation('dates').field('date').interval('day')).toJSON());
+      expect(element._locationAggregation).to.exist;
+      expect(element._locationAggregation.toJSON()).to.deep.equal(ejs.TermsAggregation('locations').field('city').size(0).order('_term', 'asc').aggregation(ejs.DateHistogramAggregation('dates').field('date').interval('day')).toJSON());
     });
 
     it('transforms query results', function() {
-      element.dropsQueryResults = [{
+      element._queryResults = [{
         location: 'Sacramento, CA',
         count: 1,
         date: new Date('November 14, 2016')
@@ -94,7 +94,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
         results.forEach(function(result) {
           dataToReturn.data.push({
-            dates: [{date: result.date, count: result.count}],
+            dates: [{
+              count: result.count,
+              date: result.date,
+              name: 'Sacramento, CA'
+            }],
             name: result.location
           });
           dataToReturn.timestamps.push(result.date.getTime());
@@ -102,11 +106,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return dataToReturn;
       };
 
-      expect(element.dropsResultsTransformed.data.length).to.equal(1);
-      expect(element.dropsResultsTransformed.timestamps.length).to.equal(1);
-      expect(element.dropsResultsTransformed.data[0].dates[0]).to.deep.equal({count: 1, date: new Date('November 14, 2016')});
-      expect(element.dropsResultsTransformed.data[0].name).to.equal('Sacramento, CA');
-      expect(element.dropsResultsTransformed.timestamps[0]).to.equal(1479099600000);
+      expect(element._eventDropsData.data.length).to.equal(1);
+      expect(element._eventDropsData.timestamps.length).to.equal(1);
+      expect(element._eventDropsData.data[0].dates[0]).to.deep.equal({
+        count: 1,
+        date: new Date('November 14, 2016'),
+        name: 'Sacramento, CA'
+      });
+      expect(element._eventDropsData.data[0].name).to.equal('Sacramento, CA');
+      expect(element._eventDropsData.timestamps[0]).to.equal(1479099600000);
     });
 
     it('shows drops-timeline', function() {

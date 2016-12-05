@@ -174,7 +174,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     return offer;
   }
 
-  function offsetDates(dateObjects) {
+  function offsetDatesInObjects(dateObjects) {
     var sorted = _.sortBy(dateObjects, [function(o) { return o.date; }]);
     for(var i = 1; i < sorted.length; i++) {
       if(sorted[i] === sorted[i - 1]) {
@@ -410,19 +410,16 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     },
 
-    dropsTimeline: function(data) {
+    gatherEventDropsTimelineData: function(data) {
+      var eventDropsTimelineData = [];
       var timestamps = [];
-      var transformedData = [];
 
       if(data && data.aggregations) {
-
-        /* Aggregate cities */
         var cityAggs = {};
 
         data.aggregations.locations.locations.buckets.forEach(function(locationBucket) {
           var city = locationBucket.key;
 
-          /* Assign city Aggregations */
           if(!(city in cityAggs)) {
             cityAggs[city] = [];
           }
@@ -440,29 +437,28 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           });
         });
 
-        /* Transform data */
         _.keys(cityAggs).forEach(function(city) {
           var nameList = city.split(':');
-          var combineCityStateNames = nameList[0] + ', ' + nameList[1];
-          var chosenName = (combineCityStateNames.length <= 24) ? combineCityStateNames : nameList[0];
+          var name = nameList[0] + ', ' + nameList[1];
+          name = name.length < 25 ? name : nameList[0];
 
-          var dateObjects = offsetDates(cityAggs[city]).map(function(dateObject) {
+          var dateObjects = offsetDatesInObjects(cityAggs[city]).map(function(dateObject) {
             return {
               count: dateObject.count,
               date: dateObject.date,
-              name: chosenName
+              name: name
             };
           });
 
-          transformedData.push({
-            name: chosenName,
+          eventDropsTimelineData.push({
+            name: name,
             dates: dateObjects
           });
         });
       }
 
       return {
-        data: transformedData,
+        data: eventDropsTimelineData,
         timestamps: timestamps
       };
     },

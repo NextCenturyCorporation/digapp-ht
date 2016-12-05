@@ -27,7 +27,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       type="date_histogram"
       interval="[[dateInterval]]"
       field="[[dateHistField]]"
-      ejs-aggregation="{{datesAggregation}}">
+      ejs-aggregation="{{_dateAggregation}}">
     </elastic-client-aggregation-builder>
 
     <elastic-client-aggregation-builder
@@ -37,8 +37,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       order="_term"
       direction="asc"
       field="[[locationAggField]]"
-      nested-aggregations="[[buildArray(datesAggregation)]]"
-      ejs-aggregation="{{locationsAggregation}}">
+      nested-aggregations="[[buildArray(_dateAggregation)]]"
+      ejs-aggregation="{{_locationAggregation}}">
     </elastic-client-aggregation-builder>
 
     <!-- set page size/hits to zero since we only need aggregation here -->
@@ -47,17 +47,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       page-size="0"
       index="[[index]]"
       elastic-types="[[indexTypes]]"
-      query="[[dropsQuery]]"
-      aggregations="[[buildArray(locationsAggregation)]]"
+      query="[[query]]"
+      aggregations="[[buildArray(_locationAggregation)]]"
       filters="[[filterList]]"
-      results="{{dropsQueryResults}}"
-      loading="{{dropsLoading}}"
-      last-error="{{dropsError}}">
+      results="{{_queryResults}}"
+      loading="{{loading}}"
+      last-error="{{error}}">
     </elastic-client-search>
 
     <json-transform
-      data-in="[[dropsQueryResults]]"
-      data-out="{{dropsResultsTransformed}}"
+      data-in="[[_queryResults]]"
+      data-out="{{_eventDropsData}}"
       transform-function="[[transform]]">
     </json-transform>
 
@@ -65,7 +65,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       <div class="paper-font-title">[[title]]</div>
     </template>
 
-    <drops-timeline payload="{{dropsResultsTransformed}}">
+    <drops-timeline data="[[_eventDropsData.data]]" timestamps="[[_eventDropsData.timestamps]]">
     </drops-timeline> 
 
   </template>
@@ -118,12 +118,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           value: 'day'
         },
         /**
-         * Result of date histogram aggregation query.
-         */
-        datesAggregation: {
-          type: Object
-        },
-        /**
          * Name for location aggregation query.
          */
         locationAggName: {
@@ -136,61 +130,65 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           type: String
         },
         /**
-         * Result of location aggregation query.
-         */
-        locationsAggregation: {
-          type: Object
-        },
-        /**
-         * The list of elasticjs filters used in the drops timeline query run by this component.
+         * The list of elasticjs filters used in the event drops timeline query run by this component.
          */
         filterList: {
           type: Array,
           notify: true
         },
         /**
-         * Query to get the data to be used for the drops timeline.
+         * Query to get the data to be used for the event drops timeline.
          */
-        dropsQuery: {
-          type: String,
-          notify: true
+        query: {
+          type: String
         },
         /**
-         * Title to display above drops timeline.
+         * Title to display above event drops timeline.
          */
         title: {
-          type: String,
-          notify: true
+          type: String
         },
         /**
-         * The transform for the drops timeline query results.
+         * The transform for the event drops timeline query results.
          */
         transform: {
           type: Object
         },
         /**
-         * Whether the drops query run by this component is loading.
+         * Whether the event drops query run by this component is loading.
          */
-        dropsLoading: {
+        loading: {
           type: Boolean,
           notify: true
         },
         /**
-         * Error returned by drops query (if any).
+         * Error returned by event drops query (if any).
          */
-        dropsError: {
+        error: {
           type: Object
         },
         /**
-         * Results of drops timeline query.
+         * Result of date histogram aggregation query.
          */
-        dropsQueryResults: {
+        _dateAggregation: {
           type: Object
         },
         /**
-         * Results of drops timeline query after processed through transform function.
+         * Result of location aggregation query.
          */
-        dropsResultsTransformed: {
+        _locationAggregation: {
+          type: Object
+        },
+        /**
+         * Results of event drops timeline query.
+         */
+        _queryResults: {
+          type: Object
+        },
+        /**
+         * Results of event drops timeline query after processed through transform function.
+         */
+        _eventDropsData: {
           type: Object
         }
       }
