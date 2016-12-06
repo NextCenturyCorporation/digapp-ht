@@ -14,7 +14,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
+<link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../behaviors.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="batch-phone">
   <template>
@@ -47,6 +50,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <span class="text">commas, semicolons, whitespace (including spaces, tabs, and newlines)</span>
         </div>
 
+        <div class="layout horizontal">
+          <span class="text right-space">Clear all selected search facets?</span>
+          <span class="text right-space">[[_yesOrNo(clearFacets)]]</span>
+          <paper-toggle-button checked="{{clearFacets}}" title="Clear all selected search facets"></paper-toggle-button>
+        </div>
+
         <div class="divider"></div>
 
         <paper-textarea label="Enter or Paste Telephone Numbers" value="{{_phoneInput}}" no-label-float></paper-textarea>
@@ -65,21 +74,64 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   (function() {
     'use strict';
 
+    /* globals _, DigBehaviors */
     Polymer({
       is: 'batch-phone',
 
+      behaviors: [DigBehaviors.StateBehavior],
+
       properties: {
-        queryValue: {
-          type: String,
+        /**
+         * Whether to clear all selected facets whenever a search is run.
+         *
+         * @type {Boolean}
+         * @default true
+         */
+        clearFacets: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * Whether DIG may process the current query request.
+         *
+         * @type {Boolean}
+         */
+        processRequest: {
+          type: Boolean,
           notify: true
         },
 
+        /**
+         * The search parameters.
+         *
+         * @type {Object}
+         */
+        searchParameters: {
+          type: Object,
+          notify: true
+        },
+
+        /**
+         * The phone input for the dialog.
+         *
+         * @type {String}
+         * @default ''
+         * @private
+         */
         _phoneInput: {
           type: String,
           value: ''
         }
       },
 
+      /**
+       * Returns the cleaned phone input.
+       *
+       * @param {String} phoneInput
+       * @return {String}
+       * @private
+       */
       _cleanPhoneInput: function(phoneInput) {
         // Replace all delimiters (whitespace, commas, and, semicolons) with single spaces.
         return phoneInput.replace(/[\s,;]/g, ' ')
@@ -89,13 +141,30 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           .replace(/\s+/g, ' ');
       },
 
+      /**
+       * Returns the on-click listener object for the search button-action.
+       *
+       * @return {Object}
+       * @private
+       */
       _createSearchListener: function() {
         var self = this;
         return {
           onClick: function() {
             if(self._phoneInput) {
+              var searchText = self._cleanPhoneInput(self._phoneInput);
               self.$$('#batchPhoneDialog').close();
-              self.set('queryValue', self._cleanPhoneInput(self._phoneInput));
+              self.set('processRequest', false);
+              if(self.clearFacets) {
+                // From DigBehaviors.StateBehavior
+                self.set('searchParameters', self.buildSearchStateForUI({
+                  sort: self.searchParameters.sort,
+                  text: searchText
+                }, self.searchParameters.annotationsFilter));
+              } else {
+                self.set('searchParameters.text', searchText);
+              }
+              self.set('processRequest', true);
               self.set('_phoneInput', '');
               self.$$('#fileUpload').clear();
             }
@@ -103,6 +172,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
       },
 
+      /**
+       * Returns the on-click listener object for the clear button-action.
+       *
+       * @return {Object}
+       * @private
+       */
       _createClearListener: function() {
         var self = this;
         return {
@@ -113,12 +188,32 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         };
       },
 
+      /**
+       * Handles the file upload event by setting the phone input in the dialog with the file text.
+       *
+       * @param {Event} event
+       * @private
+       */
       _handleUpload: function(event) {
         if(event.detail && event.detail.xhr && event.detail.xhr.response) {
           this._phoneInput = (this._phoneInput || '') + event.detail.xhr.response;
         }
       },
 
+      /**
+       * Returns Yes if the input is true and No otherwise.
+       *
+       * @param {Boolean} value
+       * @return {String}
+       * @private
+       */
+      _yesOrNo: function(value) {
+        return value ? 'Yes' : 'No';
+      },
+
+      /**
+       * Opens the dialog.
+       */
       open: function() {
         this.$$('#batchPhoneDialog').open();
       }

@@ -38,9 +38,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function() {
       component = fixture('batch-phone-fixture');
+      component.searchParameters = {};
     });
 
-    test('_phoneInput is blank by default', function() {
+    test('default properties are correct', function() {
+      expect(component.clearFacets).to.be.true;
       expect(component._phoneInput).to.equal('');
     });
 
@@ -78,26 +80,71 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.queryValue).to.not.exist;
+      expect(component.searchParameters.text).to.not.exist;
     });
 
-    test('_createSearchListener.onClick sets queryValue and clears _phoneInput', function() {
+    test('_createSearchListener.onClick sets searchParameters.text and clears _phoneInput', function() {
       component._phoneInput = '1234567890';
       var listener = component._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.queryValue).to.equal('1234567890');
+      expect(component.searchParameters.text).to.equal('1234567890');
       expect(component._phoneInput).to.equal('');
     });
 
-    test('_createSearchListener.onClick cleans queryValue', function() {
+    test('_createSearchListener.onClick sets searchParameters.text with cleaned input', function() {
       component._phoneInput = '(123)-456-7890';
       var listener = component._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.queryValue).to.equal('1234567890');
+      expect(component.searchParameters.text).to.equal('1234567890');
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('_createSearchListener.onClick with clearFacets clears and resets searchParameters except annotationsFilter and sort', function() {
+      component.searchParameters = {
+        key1: {
+          property: 'value1'
+        },
+        key2: 'value2',
+        annotationsFilter: 'filter',
+        sort: 'sort'
+      };
+      component._phoneInput = '1234567890';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.searchParameters.text).to.equal('1234567890');
+      expect(component.searchParameters.sort).to.equal('sort');
+      expect(component.searchParameters.annotationsFilter).to.equal('filter');
+      expect(component.searchParameters.key1).to.not.exist;
+      expect(component.searchParameters.key2).to.not.exist;
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('_createSearchListener.onClick without clearFacets only sets searchParameters.text', function() {
+      component.clearFacets = false;
+      component.searchParameters = {
+        key1: {
+          property: 'value1'
+        },
+        key2: 'value2'
+      };
+      component._phoneInput = '1234567890';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.searchParameters).to.deep.equal({
+        key1: {
+          property: 'value1'
+        },
+        key2: 'value2',
+        text: '1234567890'
+      });
       expect(component._phoneInput).to.equal('');
     });
 

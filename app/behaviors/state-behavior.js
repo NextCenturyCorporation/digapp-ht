@@ -8,6 +8,9 @@ var DigBehaviors = DigBehaviors || {};
 DigBehaviors.StateBehavior = {
   /**
    * Builds and returns the entity state object from the given config object.
+   *
+   * @param {Object} config
+   * @return {Object}
    */
   buildEntityState: function(config) {
     return {
@@ -23,9 +26,13 @@ DigBehaviors.StateBehavior = {
   },
 
   /**
-   * Builds and returns the search state object for the UI from the given config object.
+   * Builds and returns the search state object for the UI from the given config object and annotations filter.
+   *
+   * @param {Object} config
+   * @param {Object} annotationsFilter
+   * @return {Object}
    */
-  buildSearchStateForUI: function(config) {
+  buildSearchStateForUI: function(config, annotationsFilter) {
     return {
       dateCreated: config.dateCreated || {},
       country: config.country || {},
@@ -41,7 +48,7 @@ DigBehaviors.StateBehavior = {
       height: config.height || {},
       weight: config.weight || {},
       hasImage: config.hasImage || {},
-      annotationsFilter: {},
+      annotationsFilter: annotationsFilter ? _.cloneDeep(annotationsFilter) : {},
       sort: config.sort || '',
       text: config.text || ''
     };
@@ -49,6 +56,9 @@ DigBehaviors.StateBehavior = {
 
   /**
    * Builds and returns the search state object for elasticsearch from the given config object.
+   *
+   * @param {Object} config
+   * @return {Object}
    */
   buildSearchStateForES: function(config) {
     return {

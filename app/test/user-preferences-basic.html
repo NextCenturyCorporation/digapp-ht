@@ -38,6 +38,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function(done) {
       element = fixture('user-preferences-fixture');
+      element.searchParameters = {};
       flush(function() {
         done();
       });
@@ -50,7 +51,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isTrue(element.showSearch);
       assert.isFalse(element.advancedSearch);
       assert.isTrue(element.blurImages);
-      assert(!element.searchParameters);
+      assert.deepEqual(element.searchParameters, {});
       assert.equal(element.userId, '1');
       assert.isTrue(element.userRecordExists);
       assert.isFalse(element.sendingSearch);
@@ -61,7 +62,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.deepEqual(element.searches, []);
       assert.isFalse(element.hasNotifications);
       assert.equal(element.sortNewest, '');
-      assert.isUndefined(element.notificationQueryDate);
+      assert.isNull(element.notificationQueryDate);
       assert.isUndefined(element._userUpdateBody);
       assert.isUndefined(element._updatedUser);
       assert.isUndefined(element._facetsToLoad);
@@ -431,10 +432,10 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       assert.isFalse(settingsDialog.opened);
     });
 
-    test('_runSearch sets all search parameters except sort', function() {
+    test('_runSearch sets all search parameters except annotationsFilter and sort', function() {
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"hasImage\":{\"value\":\"yes\"},\"sort\":\"mySort\",\"text\":\"my search text\"}'
+          searchParameters: '{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"hasImage\":{\"value\":\"yes\"},\"annotationsFilter\":{\"filter\":\"myFilter\"},\"sort\":\"mySort\",\"text\":\"my search text\"}'
         }
       }];
 
@@ -495,11 +496,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       });
     });
 
-    test('_runSearch sets sort search parameter to sortNewest', function() {
+    test('_runSearch sets annotations filter and sort search parameters to correct values', function() {
       element.sortNewest = 'sortNewest';
+      element.searchParameters = {
+        annotationsFilter: {
+          filter: 'myNewFilter'
+        }
+      };
+
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"sort\":\"mySort\",\"text\":\"my search text\"}'
+          searchParameters: '{\"annotationsFilter\":{\"filter\":\"myOldFilter\"},\"sort\":\"mySort\",\"text\":\"my search text\"}'
         }
       }];
 
@@ -526,7 +533,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         height: {},
         weight: {},
         hasImage: {},
-        annotationsFilter: {},
+        annotationsFilter: {
+          filter: 'myNewFilter'
+        },
         sort: 'sortNewest',
         text: 'my search text'
       });
