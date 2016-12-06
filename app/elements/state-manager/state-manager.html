@@ -18,7 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../clipboard.html">
 <link rel="import" href="../uuid.html">
 
-<dom-module id="filter-state-manager">
+<dom-module id="state-manager">
   <template>
     <style include="user-dialog-styles"></style>
 
@@ -36,24 +36,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <elastic-client-query-builder
       type="term"
       fields='"id"'
-      values="[[filterId]]"
-      ejs-query="{{_filterIdQuery}}">
+      values="[[stateId]]"
+      ejs-query="{{_stateIdQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[client]]"
-      index="[[filterStatesIndex]]"
+      index="[[stateIndex]]"
       elastic-types="[]"
-      query="[[_filterIdQuery]]"
+      query="[[_stateIdQuery]]"
       aggregations="[]"
       filters="[]"
-      results="{{_filterIdResults}}">
+      results="{{_stateIdResults}}">
     </elastic-client-search>
 
     <elastic-create
       client="[[client]]"
-      index="[[filterStatesIndex]]"
-      elastic-type="[[filterStatesType]]"
+      index="[[stateIndex]]"
+      elastic-type="[[stateType]]"
       body="[[_creationBody]]"
       results="{{_creationResults}}">
     </elastic-create>
@@ -61,18 +61,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     <elastic-client-query-builder
       type="term"
       fields='"state"'
-      values="[[_filterString]]"
-      ejs-query="{{_filterStringQuery}}">
+      values="[[_stringifiedState]]"
+      ejs-query="{{_stringifiedStateQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[client]]"
-      index="[[filterStatesIndex]]"
+      index="[[stateIndex]]"
       elastic-types="[]"
-      query="[[_filterStringQuery]]"
+      query="[[_stringifiedStateQuery]]"
       aggregations="[]"
       filters="[]"
-      results="{{_filterStringResults}}">
+      results="{{_stringifiedStateResults}}">
     </elastic-client-search>
 
     <paper-dialog modal id="linkDialog" class="small" entry-animation="fade-in-animation" exit-animation="fade-out-animation" on-iron-overlay-opened="_activateClipboard" on-iron-overlay-closed="_deactivateClipboard">
@@ -98,13 +98,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     /* globals Clipboard, DigBehaviors, uuid */
     Polymer({
-      is: 'filter-state-manager',
+      is: 'state-manager',
 
       behaviors: [DigBehaviors.BrowserBehavior, DigBehaviors.StateBehavior],
 
       properties: {
         /**
          * The elasticsearch client.
+         *
+         * @type {Object}
          */
         client: {
           type: Object
@@ -112,6 +114,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         /**
          * The object with properties for lists of strings to filter.
+         *
+         * @type {Object}
          */
         filterCollection: {
           type: Object,
@@ -119,28 +123,37 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The ID for the filter state.
+         * The ID for the state.
+         *
+         * @type {String}
          */
-        filterId: {
+        stateId: {
           type: String
         },
 
         /**
-         * The name of the filter states elasticsearch index.
+         * The name of the state elasticsearch index.
+         *
+         * @type {String}
          */
-        filterStatesIndex: {
+        stateIndex: {
           type: String
         },
 
         /**
-         * The name of the filter states elasticsearch type.
+         * The name of the state elasticsearch type.
+         *
+         * @type {String}
          */
-        filterStatesType: {
+        stateType: {
           type: String
         },
 
         /**
          * Whether this component is used on the search or entity page.
+         *
+         * @type {String}
+         * @default 'entity'
          */
         pageType: {
           type: String,
@@ -149,6 +162,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         /**
          * Whether or not all properties have been loaded/are ready for elastic-client-search.
+         *
+         * @type {Boolean}
          */
         processRequest: {
           type: Boolean,
@@ -156,103 +171,137 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The request body for creation of new filter states.
+         * The request body for creation of new states.
+         *
+         * @type {Object}
+         * @private
          */
         _creationBody: {
           type: Object
         },
 
         /**
-         * The results from the requests for creation of new filter states.
+         * The results from the requests for creation of new states.
+         *
+         * @type {Object}
+         * @private
          */
         _creationResults: {
           type: Object
         },
 
         /**
-         * The ejs query object for the filter ID query.
+         * The ejs query object for the state ID query.
+         *
+         * @type {Object}
+         * @private
          */
-        _filterIdQuery: {
+        _stateIdQuery: {
           type: Object
         },
 
         /**
-         * The results from the filter ID query.
+         * The results from the state ID query.
+         *
+         * @type {Object}
+         * @private
          */
-        _filterIdResults: {
+        _stateIdResults: {
           type: Object,
-          observer: '_handleFilterIdResults'
+          observer: '_handleStateIdResults'
         },
 
         /**
-         * The stringified filter state for the filter string query.
+         * The stringified state for the stringified state query.
+         *
+         * @type {String}
+         * @private
          */
-        _filterString: {
+        _stringifiedState: {
           type: String
         },
 
         /**
-         * The ejs query object for the filter string query.
+         * The ejs query object for the stringified string query.
+         *
+         * @type {Object}
+         * @private
          */
-        _filterStringQuery: {
+        _stringifiedStateQuery: {
           type: Object
         },
 
         /**
-         * The results from the filter string query.
+         * The results from the stringified string query.
+         *
+         * @type {Object}
+         * @private
          */
-        _filterStringResults: {
+        _stringifiedStateResults: {
           type: Object,
           observer: '_updateOrCreateId'
         },
 
         /**
          * The page link shown in the dialog.
+         *
+         * @type {String}
+         * @private
          */
         _link: {
           type: String
         },
 
         /**
-         * Whether the filter ID query was run to validate the uniqueness of the ID (rather than getting the filter state for that ID).
+         * Whether the state ID query was run to validate the uniqueness of the ID (rather than getting the state for that ID).
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
          */
         _validateId: {
           type: Boolean,
           value: false
         },
 
+        /**
+         * The clipboard object used to copy link text from the browser to the clipboard.
+         *
+         * @type {Object}
+         * @private
+         */
         _clipboard: {
           type: Object
         }
       },
 
       _activateClipboard: function() {
-        this.clipboard = new Clipboard('#copyToClipboard');
+        this._clipboard = new Clipboard('#copyToClipboard');
       },
 
       _deactivateClipboard: function() {
         // Destroy the clipboard object whenever the dialog is closed in order to avoid console errors.
-        if(this.clipboard) {
-          this.clipboard.destroy();
+        if(this._clipboard) {
+          this._clipboard.destroy();
         }
       },
 
       /**
-       * Generate a link for the filter state by getting an existing, matching ID or creating a new one.
+       * Generate a link for the state by getting an existing, matching ID or creating a new one.
        */
       generateLink: function() {
-        var filterString = this._createFilterString(this.filterCollection, this.pageType);
-        if(filterString === this._filterString) {
+        var state = this._createStringifiedState(this.filterCollection, this.pageType);
+        if(state === this._stringifiedState) {
           this.$$('#linkDialog').open();
         } else {
-          this._filterString = this._createFilterString(this.filterCollection, this.pageType);
+          this._stringifiedState = this._createStringifiedState(this.filterCollection, this.pageType);
         }
       },
 
       /**
-       * Creates and returns the stringified filter state for the given filter collection object.
+       * Creates and returns the stringified state for the given filter collection object.
        */
-      _createFilterString: function(filterCollection, pageType) {
+      _createStringifiedState: function(filterCollection, pageType) {
         if(pageType === 'entity') {
           // From DigBehaviors.StateBehavior
           return JSON.stringify(this.buildEntityState(filterCollection));
@@ -272,41 +321,41 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Handles the results from the filter ID query:  either creating a new filter state or the updating the filters using the results.
+       * Handles the results from the state ID query:  either creating a new state or the updating the filters using the results.
        */
-      _handleFilterIdResults: function() {
-        if(this._filterIdQuery === undefined) {
+      _handleStateIdResults: function() {
+        if(this._stateIdQuery === undefined) {
           return;
         }
-        if(this._filterIdResults && this._filterIdResults.hits.hits.length) {
+        if(this._stateIdResults && this._stateIdResults.hits.hits.length) {
           // If the query was triggered to validate a new ID and that ID is already in use, generate a new ID to trigger another query.
           if(this._validateId) {
-            this.filterId = this._generateId();
+            this.stateId = this._generateId();
           } else {
-            this._updateFilterCollection(this._filterIdResults.hits.hits[0]._source.state, this.pageType);
+            this._updateFilterCollection(this._stateIdResults.hits.hits[0]._source.state, this.pageType);
           }
         } else if(this._validateId) {
           this._validateId = false;
-          this._populateCreationBody(this.filterId, this.filterCollection, this.pageType);
+          this._populateCreationBody(this.stateId, this.filterCollection, this.pageType);
         }
       },
 
       /**
-       * Sets the body of the filter state creation request using the given filter ID and collection object, updates the browser URL, and shows the dialog with the page link.
+       * Sets the body of the state creation request using the given state ID and collection object, updates the browser URL, and shows the dialog with the page link.
        */
-      _populateCreationBody: function(filterId, filterCollection, pageType) {
+      _populateCreationBody: function(stateId, filterCollection, pageType) {
         this._creationBody = {
-          id: filterId,
-          state: this._createFilterString(filterCollection, pageType)
+          id: stateId,
+          state: this._createStringifiedState(filterCollection, pageType)
         };
-        this._updateUrlAndShowDialog(filterId);
+        this._updateUrlAndShowDialog(stateId);
       },
 
       /**
-       * Sets the filter collection to a new object using the given filter state.
+       * Sets the filter collection to a new object using the given stringified state.
        */
-      _updateFilterCollection: function(filterString, pageType) {
-        var state = JSON.parse(filterString);
+      _updateFilterCollection: function(stringifiedState, pageType) {
+        var state = JSON.parse(stringifiedState);
         this.set('processRequest', false);
         if(pageType === 'entity') {
           // From DigBehaviors.StateBehavior
@@ -320,24 +369,24 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       },
 
       /**
-       * Updates the filter ID using the results from the filter ID query or creates a new ID if needed.
+       * Updates the state ID using the results from the state ID query or creates a new ID if needed.
        */
       _updateOrCreateId: function() {
-        if(this._filterStringQuery === undefined) {
+        if(this._stringifiedStateQuery === undefined) {
           return;
         }
-        if(this._filterStringResults && this._filterStringResults.hits.hits.length) {
-          // Do not set this.filterId here because that will trigger another query.
-          var filterId = this._filterStringResults.hits.hits[0]._source.id;
-          this._updateUrlAndShowDialog(filterId);
+        if(this._stringifiedStateResults && this._stringifiedStateResults.hits.hits.length) {
+          // Do not set this.stateId here because that will trigger another query.
+          var stateId = this._stringifiedStateResults.hits.hits[0]._source.id;
+          this._updateUrlAndShowDialog(stateId);
         } else {
           this._validateId = true;
-          this.filterId = this._generateId();
+          this.stateId = this._generateId();
         }
       },
 
       /**
-       * Updates the browser URL with the filter state ID and shows the dialog with the page link (including the filter state ID).
+       * Updates the browser URL with the state ID and shows the dialog with the page link (including the state ID).
        */
       _updateUrlAndShowDialog: function(id) {
         // From DigBehaviors.BrowserBehavior
