@@ -27,8 +27,9 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       .facets {
         /* Align the left of the facets with the left of text in collapsed view */
+        /* Note that the breadbox-item components have a default margin of 3px */
         margin-left: 7px;
-        margin-top: 5px;
+        margin-top: 2px;
       }
 
       .name {
@@ -44,20 +45,23 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         color: yellowgreen;
       }
     </style>
-    <div class="layout horizontal">
-      <div class="name tall right-space">Search Name</div>
-      <div class="text tall right-space search-text">[[search.name]]</div>
-      <template is="dom-if" if="[[_isFalse(search.notificationHasRun)]]" restamp="true">
-        <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
-      </template>
-    </div>
+
+    <template is="dom-if" if="[[searchName]]">
+      <div class="layout horizontal">
+        <div class="name tall right-space">Search Name</div>
+        <div class="text tall right-space search-text">[[searchName]]</div>
+        <template is="dom-if" if="[[showNewIcon]]" restamp="true">
+          <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
+        </template>
+      </div>
+    </template>
     <div class="layout horizontal">
       <div class="name tall right-space">Search Text</div>
       <div class="text tall right-space search-text">
-        <template is="dom-if" if="[[_getSearchText(search.digUIState.searchParameters)]]">
-          [[_getSearchText(search.digUIState.searchParameters)]]
+        <template is="dom-if" if="[[searchParameters.text]]">
+          [[searchParameters.text]]
         </template>
-        <template is="dom-if" if="[[!_getSearchText(search.digUIState.searchParameters)]]">
+        <template is="dom-if" if="[[!searchParameters.text]]">
           None
         </template>
       </div>
@@ -69,12 +73,12 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
       <template is="dom-if" if="{{!_hasNoFacets}}">
         <div class="wrap facets">
-          <template is="dom-repeat" items="[[_getFacetGroups(search.digUIState.searchParameters)]]" as="facetGroupName">
-            <template is="dom-repeat" items="[[_getFacetGroupKeys(search.digUIState.searchParameters, facetGroupName)]]" as="key">
-              <template is="dom-if" if="[[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'enabled')]]">
+          <template is="dom-repeat" items="[[_getFacetGroups(searchParameters.*)]]" as="facetGroupName">
+            <template is="dom-repeat" items="[[_getFacetGroupKeys(facetGroupName, searchParameters.*)]]" as="key">
+              <template is="dom-if" if="[[_getFacetProperty(searchParameters, facetGroupName, key, 'enabled')]]">
                 <breadbox-item
-                  text="[[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'text')]]"
-                  title$="[[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'category')]]: [[_getFacetProperty(search.digUIState.searchParameters, facetGroupName, key, 'text')]]">
+                  text="[[_getFacetProperty(searchParameters, facetGroupName, key, 'category')]]: [[_getFacetProperty(searchParameters, facetGroupName, key, 'text')]]"
+                  title$="[[_getFacetProperty(searchParameters, facetGroupName, key, 'category')]]: [[_getFacetProperty(searchParameters, facetGroupName, key, 'text')]]">
                 </breadbox-item>
               </template>
             </template>
@@ -83,6 +87,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       </template>
     </div>
   </template>
+
   <script>
   (function() {
     /* globals _ */
@@ -93,38 +98,52 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       properties: {
         /**
-         * Search to display
+         * The name of the search.
+         * @type {String}
          */
-        search: {
-          type: Object,
-          notify: true
+        searchName: {
+          type: String,
+          value: ''
         },
+
         /**
-         * Indicates if current search has facets or not
+         * The parameters of the search.
+         * @type {Object}
+         */
+        searchParameters: {
+          type: Object
+        },
+
+        /**
+         * Whether to show the 'new' icon.
+         * @type {Boolean}
+         */
+        showNewIcon: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether the search has no facets.
+         * @type {Boolean}
          */
         _hasNoFacets: {
           type: Boolean,
-          computed: '_isFacetSelectionEmpty(search)'
+          computed: '_isFacetSelectionEmpty(searchParameters.*)'
         }
       },
-      /**
-       * Check if value is set to false
-       */
-      _isFalse: function(value) {
-        return value === false;
-      },
+
       /**
        * Computes _hasNoFacets property
        */
-      _isFacetSelectionEmpty: function(search) {
+      _isFacetSelectionEmpty: function() {
+        var self = this;
         var isEmpty = true;
-        if(search && search.digUIState && search.digUIState.searchParameters) {
-          var searchParameters = search.digUIState.searchParameters;
 
-          var searchParametersObject = JSON.parse(searchParameters);
-          _.each(_.keys(searchParametersObject), function(key) {
-            _.each(_.keys(searchParametersObject[key]), function(subkey) {
-              if(searchParametersObject[key][subkey].enabled === true) {
+        if(self.searchParameters) {
+          _.each(_.keys(self.searchParameters), function(key) {
+            _.each(_.keys(self.searchParameters[key]), function(subkey) {
+              if(self.searchParameters[key][subkey].enabled === true) {
                 isEmpty = false;
                 return false;
               }
@@ -138,37 +157,26 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         return isEmpty;
       },
+
       /**
        * Get all the facet selection groups.
        */
-      _getFacetGroups: function(searchParameters) {
-        return _.keys(JSON.parse(searchParameters));
+      _getFacetGroups: function() {
+        return _.keys(this.searchParameters);
       },
 
       /**
        * Get the selected facets from the facet group.
        */
-      _getFacetGroupKeys: function(searchParameters, facetGroupName) {
-        var searchParametersObject = JSON.parse(searchParameters);
-        return _.keys(searchParametersObject[facetGroupName]);
+      _getFacetGroupKeys: function(facetGroupName) {
+        return _.keys(this.searchParameters[facetGroupName]);
       },
 
       /**
        * Get the property of a selected facet.
        */
       _getFacetProperty: function(searchParameters, facetGroupName, key, prop) {
-        var searchParametersObject = JSON.parse(searchParameters);
-        if(searchParametersObject && searchParametersObject[facetGroupName] && searchParametersObject[facetGroupName][key]) {
-          return searchParametersObject[facetGroupName][key][prop];
-        }
-      },
-
-      /**
-       * Returns the text property in the given search parameters.
-       */
-      _getSearchText: function(searchParameters) {
-        var searchParametersObject = JSON.parse(searchParameters) || {};
-        return searchParametersObject.text || '';
+        return searchParameters && searchParameters[facetGroupName] && searchParameters[facetGroupName][key] ? searchParameters[facetGroupName][key][prop] : undefined;
       }
     });
   })();
