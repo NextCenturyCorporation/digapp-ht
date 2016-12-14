@@ -60,7 +60,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
         <paper-textarea label="Enter or Paste Telephone Numbers" value="{{_phoneInput}}" no-label-float></paper-textarea>
 
-        <file-upload id="fileUpload" droppable="true" method="POST" multi="true" raised="true" target="/upload" on-success="_handleUpload">Upload File...</file-upload>
+        <div class="layout horizontal center">
+          <file-upload
+            id="fileUpload"
+            droppable
+            method="POST"
+            raised
+            target="/upload"
+            on-before-upload="_clearFileList"
+            on-error="_setUploadErrorMessage"
+            on-success="_setPhoneInputToFileText">Upload File...
+          </file-upload>
+
+          <span class="text">[[_uploadText]]</span>
+        </div>
 
         <div class="layout horizontal">
           <button-action class="right-space" disabled="[[!_phoneInput]]" text="Search" click-listener="[[_createSearchListener()]]"></button-action>
@@ -122,6 +135,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         _phoneInput: {
           type: String,
           value: ''
+        },
+
+        /**
+         * The text to show about a file upload.
+         *
+         * @type {String}
+         * default ''
+         * @private
+         */
+        _uploadText: {
+          type: String,
+          value: ''
         }
       },
 
@@ -139,6 +164,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           .replace(/[^\d\s]/g, '')
           // Remove extra spaces.
           .replace(/\s+/g, ' ');
+      },
+
+      /**
+       * Clears the uploaded file list.
+       *
+       * @event before-upload
+       * @private
+       */
+      _clearFileList: function() {
+        this.$$('#fileUpload').clear();
       },
 
       /**
@@ -166,6 +201,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               }
               self.set('processRequest', true);
               self.set('_phoneInput', '');
+              self.set('_uploadText', '');
               self.$$('#fileUpload').clear();
             }
           }
@@ -183,21 +219,33 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return {
           onClick: function() {
             self.set('_phoneInput', '');
+            self.set('_uploadText', '');
             self.$$('#fileUpload').clear();
           }
         };
       },
 
       /**
-       * Handles the file upload event by setting the phone input in the dialog with the file text.
+       * Sets the phone input in the dialog with the file text.
        *
-       * @param {Event} event
+       * @event success
        * @private
        */
-      _handleUpload: function(event) {
+      _setPhoneInputToFileText: function(event) {
         if(event.detail && event.detail.xhr && event.detail.xhr.response) {
+          this._uploadText = 'File upload successful!';
           this._phoneInput = (this._phoneInput || '') + event.detail.xhr.response;
         }
+      },
+
+      /**
+       * Sets the upload error message.
+       *
+       * @event error
+       * @private
+       */
+      _setUploadErrorMessage: function() {
+        this._uploadText = 'File upload failed!';
       },
 
       /**

@@ -69,7 +69,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           <button-action disabled="[[!_urlInput]]" text="Search on URL" click-listener="[[_createSearchOnUrlListener()]]"></button-action>
         </div>
 
-        <file-upload accept="image/*" id="fileUpload" droppable="true" method="POST" raised="true" target="/uploadImage" on-success="_handleUpload" multi="false">Upload Image...</file-upload>
+        <div class="layout horizontal center">
+          <file-upload
+            id="fileUpload"
+            accept="image/*"
+            droppable
+            method="POST"
+            raised
+            target="/uploadImage"
+            on-before-upload="_clearFileList"
+            on-error="_setUploadErrorMessage"
+            on-success="_setRequestImageToFile">Upload Image...
+          </file-upload>
+
+          <span class="text">[[_uploadText]]</span>
+        </div>
 
         <div class="layout horizontal">
           <button-action class="right-space" disabled="[[!_uploadedImage]]" text="Search on Upload" click-listener="[[_createSearchOnUploadListener()]]"></button-action>
@@ -101,8 +115,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
                 style-class="[[_getBlurStyleClass(blur)]]">
               </image-thumbnail>
             </template>
-
-            <div class="divider"></div>
 
             <span class="bold tall">Similar Image Results (Top [[numberOfResults]])</span>
 
@@ -265,6 +277,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
+         * The text to show about a file upload.
+         */
+        _uploadText: {
+          type: String,
+          value: ''
+        },
+
+        /**
          * The image URL entered by the user.
          */
         _urlInput: {
@@ -273,10 +293,21 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
+      /**
+       * Clears the uploaded file list.
+       *
+       * @event before-upload
+       * @private
+       */
+      _clearFileList: function() {
+        this.$$('#fileUpload').clear();
+      },
+
       _clearImageInputAndResults: function() {
         this.set('_imageResults', []);
         this.set('_requestImage', '');
         this.set('_uploadedImage', '');
+        this.set('_uploadText', '');
         this.set('_urlInput', '');
         this.$$('#fileUpload').clear();
       },
@@ -386,14 +417,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       },
 
-      _handleUpload: function(event) {
-        if(event.detail && event.detail.xhr && event.detail.xhr.response) {
-          var response = JSON.parse(event.detail.xhr.response);
-          this._uploadedImage = 'data:' + response.mimeType + ';base64,' + response.base64;
-          this._requestImage = this._uploadedImage;
-        }
-      },
-
       _sendXhrRequest: function(type) {
         this.set('_imageResults', []);
         this.$.xhr.url = this._getRequestHost(this.imageServiceHost, type);
@@ -403,6 +426,35 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         } else {
           this.$$('#errorDialog').open();
         }
+      },
+
+      /**
+       * Sets the request image to the uploaded file.
+       *
+       * @event success
+       * @private
+       */
+      _setRequestImageToFile: function(event) {
+        if(event.detail && event.detail.xhr && event.detail.xhr.response) {
+          var response = JSON.parse(event.detail.xhr.response);
+          if(!response.mimeType.startsWith('image')) {
+            this._uploadText = 'Image upload failed:  Not an image file!';
+            return;
+          }
+          this._uploadText = 'Image upload succcessful!';
+          this._uploadedImage = 'data:' + response.mimeType + ';base64,' + response.base64;
+          this._requestImage = this._uploadedImage;
+        }
+      },
+
+      /**
+       * Sets the upload error message.
+       *
+       * @event error
+       * @private
+       */
+      _setUploadErrorMessage: function() {
+        this._uploadText = 'Image upload failed!';
       },
 
       _showNoImagesText: function(numberOfImages, loading) {
