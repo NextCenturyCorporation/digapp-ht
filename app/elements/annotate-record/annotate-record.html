@@ -346,11 +346,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.$.dropdownMenu.open();
       },
       saveAnnotation: function() {
-        if(!this.annotationResult || this.label !== this.annotationResult.label || this.justification !== this.annotationResult.justification) {
-          this.annotationResult = this.annotationResult || {};
-          this.annotationResult.label = this.label;
-          this.annotationResult.justification = this.justification;
-          this.annotationManager.createAnnotation(this.item.id, this.getCdrId(this.item), this.label, this.justification);
+        if(!this.annotationResult || this.label !== this.annotationResult.source.label || this.justification !== this.annotationResult.source.justification) {
+          this.annotationResult = this.annotationResult || {
+            source: {}
+          };
+          if(this.annotationResult.id) {
+            this.annotationManager.markAnnotationDeprecated(this.annotationResult.id);
+          }
+          this.annotationResult.id = undefined;
+          this.annotationResult.source.label = this.label;
+          this.annotationResult.source.justification = this.justification;
+          var self = this;
+          this.annotationManager.createAnnotation(this.item.id, this.getCdrId(this.item), this.label, this.justification, function(id) {
+            self.annotationResult.id = id;
+          });
         }
       },
       selectVeryRelevant: function() {
@@ -372,12 +381,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         this.disableButtons = !this.originalSearchResult;
         if(this.originalSearchResult && this.originalSearchResult.hits.hits.length > 0) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          this.annotationResult = this.originalSearchResult.hits.hits[0]._source;
+          this.annotationResult = {
+            id: this.originalSearchResult.hits.hits[0]._id,
+            source: this.originalSearchResult.hits.hits[0]._source
+          };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          this.label = this.annotationResult.label;
-          this.justification = this.annotationResult.justification;
+          this.label = this.annotationResult.source.label;
+          this.justification = this.annotationResult.source.justification;
         } else {
-          this.annotationResult = {};
+          this.annotationResult = undefined;
           this.label = this.noAnswer;
           this.justification = '';
         }

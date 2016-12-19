@@ -28,6 +28,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       results="{{_createResults}}">
     </elastic-create>
 
+    <elastic-update
+      client="[[client]]"
+      index="[[annotationIndex]]"
+      elastic-type="[[annotationType]]"
+      id="[[_updateId]]"
+      body="[[_updateBody]]"
+      results="{{_updateResults}}">
+    </elastic-create>
+
     <template is="dom-if" if="[[!doNotQuery]]">
       <elastic-client-query-builder
         type="term"
@@ -46,6 +55,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       <elastic-client-filter-builder
         type="terms"
+        field="latest"
+        values='[true]'
+        ejs-filter="{{_latestFilter}}">
+      </elastic-client-filter-builder>
+
+      <elastic-client-filter-builder
+        type="terms"
         field="label"
         values='["somewhat relevant", "very relevant"]'
         ejs-filter="{{_relevantAnnotationFilter}}">
@@ -57,7 +73,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         elastic-types="[[annotationType]]"
         query="[[_annotationQuery]]"
         aggregations="[[buildArray(_annotationAggregation)]]"
-        filters="[[buildArray(_relevantAnnotationFilter)]]"
+        filters="[[buildArray(_latestFilter, _relevantAnnotationFilter)]]"
         results="{{_relevantAnnotationResults}}">
       </elastic-client-search>
 
@@ -74,7 +90,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         elastic-types="[[annotationType]]"
         query="[[_annotationQuery]]"
         aggregations="[[buildArray(_annotationAggregation)]]"
-        filters="[[buildArray(_notRelevantAnnotationFilter)]]"
+        filters="[[buildArray(_latestFilter, _notRelevantAnnotationFilter)]]"
         results="{{_notRelevantAnnotationResults}}">
       </elastic-client-search>
     </template>
@@ -195,18 +211,46 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The body of the new annotation to create.
+         * The body of the annotation to create.
          */
         _createBody: {
           type: Object
         },
 
         /**
-         * The results of the request to create a new annotation.
+         * The results of the request to create an annotation.
          */
         _createResults: {
           type: Object,
           observer: '_onCreateDone'
+        },
+
+        /**
+         * The callback function to use after a create request.
+         */
+        _createCallback: {
+          type: Object
+        },
+
+        /**
+         * The ID of the annotation to update.
+         */
+        _updateId: {
+          type: String
+        },
+
+        /**
+         * The body of the annotation to update.
+         */
+        _updateBody: {
+          type: Object
+        },
+
+        /**
+         * The results of the request to update an annotation.
+         */
+        _updateResults: {
+          type: Object
         }
       },
 
@@ -216,7 +260,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       _buildAnnotationManager: function() {
         var self = this;
         return {
-          createAnnotation: function(uri, cdrId, label, justification) {
+          createAnnotation: function(uri, cdrId, label, justification, callback) {
+            self.set('_createCallback', callback);
             self.set('_createBody', {
               user: self.username,
               uri: uri,
@@ -225,7 +270,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
               label: label,
               justification: justification,
-              timestamp: new Date()
+              timestamp: new Date(),
+              latest: true
             });
           },
           getAnnotationIndex: function() {
@@ -239,6 +285,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           },
           getWhyTheAnnotationIsRelevant: function() {
             return self.relevant;
+          },
+          markAnnotationDeprecated: function(annotationId) {
+            self.set('_updateId', annotationId);
+            self.set('_updateBody', {
+              doc: {
+                latest: false
+              }
+            });
           }
         };
       },
@@ -247,18 +301,15 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * Computes and returns the 'annotations' object using the _relevantAnnotationResults and _notRelevantAnnotationResults.
        */
       _computeAnnotations: function() {
-        var annotations = {
-          relevant: [],
-          notRelevant: []
-        };
+        var annotations = {};
 
-        if(this._relevantAnnotationResults && this._relevantAnnotationResults.aggregations.annotations.annotations.buckets.length) {
+        if(this._relevantAnnotationResults && this._relevantAnnotationResults.aggregations.annotations.annotations.buckets) {
           annotations.relevant = this._relevantAnnotationResults.aggregations.annotations.annotations.buckets.map(function(bucket) {
             return bucket.key;
           });
         }
 
-        if(this._notRelevantAnnotationResults && this._notRelevantAnnotationResults.aggregations.annotations.annotations.buckets.length) {
+        if(this._notRelevantAnnotationResults && this._notRelevantAnnotationResults.aggregations.annotations.annotations.buckets) {
           annotations.notRelevant = this._notRelevantAnnotationResults.aggregations.annotations.annotations.buckets.map(function(bucket) {
             return bucket.key;
           });
@@ -271,12 +322,18 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        * After creating a new annotation, query for 'relevant' and 'not relevant' annotations again after a short timeout (wait for elasticsearch to re-index).
        */
       _onCreateDone: function(results) {
-        if(results && !this.doNotQuery) {
-          var self = this;
-          setTimeout(function() {
-            self.$$('#relevantSearch').search();
-            self.$$('#notRelevantSearch').search();
-          }, 1000);
+        if(results) {
+          if(!this.doNotQuery) {
+            var self = this;
+            setTimeout(function() {
+              self.$$('#relevantSearch').search();
+              self.$$('#notRelevantSearch').search();
+            }, 1000);
+          }
+          if(this._createCallback) {
+            this._createCallback(results._id);
+            this.set('_createCallback', undefined);
+          }
         }
       }
     });

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 
 echo 'creating dig-annotations index ...'
-curl -XPUT localhost:9200/dig-annotations -d '
+#curl -XPUT localhost:9200/dig-annotations -d '
+curl -XPUT http://memex:digdig@52.36.12.77:8080/dig-annotations -d '
 {
   "mappings" : {
     "annotation" : {
@@ -28,6 +29,9 @@ curl -XPUT localhost:9200/dig-annotations -d '
         },
         "timestamp" : {
           "type" : "date"
+        },
+        "latest" : {
+          "type" : "boolean"
         }
       }
     }

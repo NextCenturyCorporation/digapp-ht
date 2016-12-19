@@ -188,7 +188,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     test('transformOrigResult if originalSearchResult not defined', function() {
       element.transformOrigResult();
 
-      assert.deepEqual(element.annotationResult, {});
+      assert.isUndefined(element.annotationResult);
       assert.equal(element.label, element.noAnswer);
       assert.isTrue(element.disableButtons);
     });
@@ -197,12 +197,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       element.originalSearchResult = {hits: {hits: []}};
       element.transformOrigResult();
 
-      assert.deepEqual(element.annotationResult, {});
+      assert.isUndefined(element.annotationResult);
       assert.equal(element.label, element.noAnswer);
       assert.isFalse(element.disableButtons);
     });
 
     test('saveAnnotation does create the annotation if the annotationResult does not exist', function(done) {
+      element.annotationManager.markAnnotationDeprecated = function() {
+        // Not called because no annotationResult.id is set.
+        assert.fail();
+      };
+
       element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
         assert.equal(cdrId, 'ABC123');
         assert.equal(uri, 'http://offer/ABC123');
@@ -215,6 +220,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('saveAnnotation does create the annotation with correct label and justification', function(done) {
+      element.annotationManager.markAnnotationDeprecated = function() {
+        // Not called because no annotationResult.id is set.
+        assert.fail();
+      };
+
       element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
         assert.equal(cdrId, 'ABC123');
         assert.equal(uri, 'http://offer/ABC123');
@@ -229,7 +239,17 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('saveAnnotation does create the annotation if label and justification do not match the annotationResult', function(done) {
+      var marked = false;
+      element.annotationManager.markAnnotationDeprecated = function(id) {
+        if(id === 1) {
+          marked = true;
+        }
+      };
+
       element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
+        if(!marked) {
+          assert.fail();
+        }
         assert.equal(cdrId, 'ABC123');
         assert.equal(uri, 'http://offer/ABC123');
         assert.equal(label, element.veryRelevant);
@@ -239,18 +259,34 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       element.label = element.veryRelevant;
       element.justification = 'my justification';
-      element.annotationResult = {label: element.noAnswer, justification: ''};
+      element.annotationResult = {
+        id: 1,
+        source: {
+          label: element.noAnswer,
+          justification: ''
+        }
+      };
       element.saveAnnotation();
     });
 
     test('saveAnnotation does not create the annotation if label and justification match the annotationResult', function() {
+      element.annotationManager.markAnnotationDeprecated = function() {
+        assert.fail();
+      };
+
       element.annotationManager.createAnnotation = function() {
         assert.fail();
       };
 
       element.label = element.veryRelevant;
       element.justification = 'my justification';
-      element.annotationResult = {label: element.veryRelevant, justification: 'my justification'};
+      element.annotationResult = {
+        id: 1,
+        source: {
+          label: element.veryRelevant,
+          justification: 'my justification'
+        }
+      };
       element.saveAnnotation();
     });
 
@@ -259,7 +295,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
       element.transformOrigResult();
 
-      assert.deepEqual(element.annotationResult, {label: element.veryRelevant, justification: 'my justification'});
+      assert.deepEqual(element.annotationResult, {
+        id: 1,
+        source: {
+          label: element.veryRelevant,
+          justification: 'my justification'
+        }
+      });
       assert.equal(element.label, element.veryRelevant);
       assert.equal(element.justification, 'my justification');
       assert.isFalse(element.disableButtons);
@@ -286,6 +328,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     });
 
     test('closing the dropdown menu does create the annotation', function(done) {
+      element.annotationManager.markAnnotationDeprecated = function() {
+        // Not called because no annotationResult.id is set.
+        assert.fail();
+      };
+
       element.annotationManager.createAnnotation = function(uri, cdrId, label, justification) {
         assert.equal(cdrId, 'ABC123');
         assert.equal(uri, 'http://offer/ABC123');
