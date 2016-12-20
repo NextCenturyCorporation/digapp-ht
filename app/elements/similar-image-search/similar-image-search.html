@@ -18,6 +18,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../bower_components/image-thumbnail/image-thumbnail.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="similar-image-search">
   <template>
@@ -116,11 +117,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
               </image-thumbnail>
             </template>
 
-            <span class="bold tall">Similar Image Results (Top [[numberOfResults]])</span>
-
-            <template is="dom-if" if="[[_showNoImagesText(_imageResults.length, loading)]]">
-              <span class="text tall">None</span>
-            </template>
+            <span class="bold tall">[[_getImageResultsTitle(_imageResults.length)]]</span>
 
             <paginated-image-gallery
               blur="[[blur]]"
@@ -232,11 +229,11 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         },
 
         /**
-         * The maximum total number of similar image results.
+         * The threshold for similar image results.
          */
-        numberOfResults: {
+        imageThreshold: {
           type: Number,
-          value: 200
+          value: 0.6
         },
 
         /**
@@ -390,6 +387,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         return host[type];
       },
 
+      /**
+       * Returns the title for the similar image results.
+       */
+      _getImageResultsTitle: function(number) {
+        return (number ? 'Top ' + number + ' ' : 'No ') + 'Similar Image Result' + (number === 1 ? '' : 's');
+      },
+
       _handleImageServiceResponse: function(event) {
         var self = this;
         var response = event.detail.response;
@@ -397,14 +401,19 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           var imageUrls = response.images[0].similar_images.cached_image_urls;
           var imageIds = response.images[0].similar_images.sha1;
+          var imageDistances = response.images[0].similar_images.distance;
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+          imageDistances = imageDistances.filter(function(distance) {
+            return _.toNumber(distance) < self.imageThreshold;
+          });
 
           self._imageResults = imageUrls.map(function(url, index) {
             return {
               link: ((self.linkFunction && index < imageIds.length) ? self.linkFunction(imageIds[index]) : ''),
               source: url
             };
-          }).slice(0, self.numberOfResults);
+          }).slice(0, imageDistances.length);
 
           // Use this.splice to force the dom-repeat to redraw itself.  Add the latest search to the start of the list.
           self.splice('_previousSearches', 0, 0, {
@@ -441,7 +450,7 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             this._uploadText = 'Image upload failed:  Not an image file!';
             return;
           }
-          this._uploadText = 'Image upload succcessful!';
+          this._uploadText = 'Image upload successful!';
           this._uploadedImage = 'data:' + response.mimeType + ';base64,' + response.base64;
           this._requestImage = this._uploadedImage;
         }
@@ -455,10 +464,6 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
        */
       _setUploadErrorMessage: function() {
         this._uploadText = 'Image upload failed!';
-      },
-
-      _showNoImagesText: function(numberOfImages, loading) {
-        return !numberOfImages && !loading;
       },
 
       _yesOrNo: function(value) {

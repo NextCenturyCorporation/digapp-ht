@@ -38,14 +38,20 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
     setup(function() {
       component = fixture('similar-image-search-fixture');
+      component.linkFunction = function(id) {
+        return 'http://' + id;
+      };
     });
 
     test('properties are correct default values', function() {
       expect(component.loading).to.be.false;
       expect(component.nearDuplicates).to.be.true;
+      expect(component.imageThreshold).to.equal(0.6);
       expect(component._imageResults).to.deep.equal([]);
+      expect(component._previousSearches).to.deep.equal([]);
       expect(component._requestImage).to.equal('');
       expect(component._uploadedImage).to.equal('');
+      expect(component._uploadText).to.equal('');
       expect(component._urlInput).to.equal('');
     });
 
@@ -67,12 +73,14 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }];
       component._requestImage = 'test';
       component._uploadedImage = 'test';
+      component._uploadText = 'test';
       component._urlInput = 'test';
       expect(component._clearImageInputAndResults).to.be.a('Function');
       component._clearImageInputAndResults();
       expect(component._imageResults).to.deep.equal([]);
       expect(component._requestImage).to.equal('');
       expect(component._uploadedImage).to.equal('');
+      expect(component._uploadText).to.equal('');
       expect(component._urlInput).to.equal('');
     });
 
@@ -182,10 +190,25 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       expect(component._urlInput).to.equal('');
     });
 
-    test('_handleImageServiceResponse with images sets _imageResults', function() {
-      component.linkFunction = function(id) {
-        return 'http://' + id;
-      };
+    test('_createShowImageResultsListener.onClick does set nearDuplicates, _imageResults, and _requestImage', function() {
+      var listener = component._createShowImageResultsListener({
+        image: 'testImage',
+        results: ['testResults'],
+        options: {
+          nearDuplicates: false
+        }
+      });
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+
+      expect(component.nearDuplicates).to.be.false;
+      expect(component._imageResults).to.deep.equal(['testResults']);
+      expect(component._requestImage).to.equal('testImage');
+    });
+
+    test('_handleImageServiceResponse with images sets _imageResults and _previousSearches', function() {
+      component._requestImage = 'testImage1';
       expect(component._handleImageServiceResponse).to.be.a('Function');
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -195,7 +218,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             images: [{
               similar_images: {
                 cached_image_urls: ['testUrl1', 'testUrl2'],
-                sha1: ['testId1', 'testId2']
+                sha1: ['testId1', 'testId2'],
+                distance: ['0.1', '0.3']
               }
             }]
           }
@@ -209,6 +233,106 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       }, {
         link: 'http://testId2',
         source: 'testUrl2'
+      }]);
+      expect(component._previousSearches).to.deep.equal([{
+        image: 'testImage1',
+        results: [{
+          link: 'http://testId1',
+          source: 'testUrl1'
+        }, {
+          link: 'http://testId2',
+          source: 'testUrl2'
+        }],
+        options: {
+          nearDuplicates: true
+        }
+      }]);
+    });
+
+    test('_handleImageServiceResponse adds to _previousSearches', function() {
+      component._previousSearches = [{
+        image: 'testImage0',
+        results: [{
+          link: 'http://testId0',
+          source: 'testUrl0'
+        }],
+        options: {
+          nearDuplicates: false
+        }
+      }];
+      component._requestImage = 'testImage1';
+      expect(component._handleImageServiceResponse).to.be.a('Function');
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      component._handleImageServiceResponse({
+        detail: {
+          response: {
+            images: [{
+              similar_images: {
+                cached_image_urls: ['testUrl1', 'testUrl2'],
+                sha1: ['testId1', 'testId2'],
+                distance: ['0.1', '0.3']
+              }
+            }]
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(component._imageResults).to.deep.equal([{
+        link: 'http://testId1',
+        source: 'testUrl1'
+      }, {
+        link: 'http://testId2',
+        source: 'testUrl2'
+      }]);
+      expect(component._previousSearches).to.deep.equal([{
+        image: 'testImage1',
+        results: [{
+          link: 'http://testId1',
+          source: 'testUrl1'
+        }, {
+          link: 'http://testId2',
+          source: 'testUrl2'
+        }],
+        options: {
+          nearDuplicates: true
+        }
+      }, {
+        image: 'testImage0',
+        results: [{
+          link: 'http://testId0',
+          source: 'testUrl0'
+        }],
+        options: {
+          nearDuplicates: false
+        }
+      }]);
+    });
+
+    test('_handleImageServiceResponse with images sets _imageResults to images under imageThreshold', function() {
+      component.imageThreshold = 0.2;
+      expect(component._handleImageServiceResponse).to.be.a('Function');
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      component._handleImageServiceResponse({
+        detail: {
+          response: {
+            images: [{
+              similar_images: {
+                cached_image_urls: ['testUrl1', 'testUrl2'],
+                sha1: ['testId1', 'testId2'],
+                distance: ['0.1', '0.3']
+              }
+            }]
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(component._imageResults).to.deep.equal([{
+        link: 'http://testId1',
+        source: 'testUrl1'
       }]);
     });
 
@@ -225,7 +349,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
             images: [{
               similar_images: {
                 cached_image_urls: [],
-                sha1: []
+                sha1: [],
+                distance: []
               }
             }]
           }
@@ -245,15 +370,40 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
         }
       });
       expect(component._uploadedImage).to.equal('data:image/something;base64,somebase64string');
+      expect(component._uploadText).to.equal('Image upload successful!');
       expect(component._requestImage).to.equal('data:image/something;base64,somebase64string');
     });
 
-    test('_showNoImagesText returns the correct values', function() {
-      expect(component._showNoImagesText).to.be.a('Function');
-      expect(component._showNoImagesText(0, false)).to.be.true;
-      expect(component._showNoImagesText(0, true)).to.be.false;
-      expect(component._showNoImagesText(1, false)).to.be.false;
-      expect(component._showNoImagesText(1, true)).to.be.false;
+    test('_setRequestImageToFile with non-image mime type sets the correct values', function() {
+      component._setRequestImageToFile({
+        detail: {
+          xhr: {
+            response: '{"base64": "somebase64string", "mimeType": "something/something"}'
+          }
+        }
+      });
+      expect(component._uploadedImage).to.equal('');
+      expect(component._uploadText).to.equal('Image upload failed:  Not an image file!');
+      expect(component._requestImage).to.equal('');
+    });
+
+    test('_setUploadErrorMessage works', function() {
+      component._setUploadErrorMessage();
+      expect(component._uploadText).to.equal('Image upload failed!');
+    });
+
+    test('_getImageResultsTitle returns the correct values', function() {
+      expect(component._getImageResultsTitle).to.be.a('Function');
+      expect(component._getImageResultsTitle()).to.equal('No Similar Image Results');
+      expect(component._getImageResultsTitle(0)).to.equal('No Similar Image Results');
+      expect(component._getImageResultsTitle(1)).to.equal('Top 1 Similar Image Result');
+      expect(component._getImageResultsTitle(2)).to.equal('Top 2 Similar Image Results');
+    });
+
+    test('_yesOrNo returns the correct values', function() {
+      expect(component._yesOrNo).to.be.a('Function');
+      expect(component._yesOrNo(true)).to.equal('Yes');
+      expect(component._yesOrNo(false)).to.equal('No');
     });
 
     test('open() opens the dialog', function(done) {
