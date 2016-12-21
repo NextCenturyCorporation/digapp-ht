@@ -30,6 +30,7 @@ DigBehaviors.StateBehavior = {
    */
   buildEntityState: function(config) {
     return {
+      publisher: config.publisher || [],
       location: config.location || [],
       name: config.name || [],
       age: config.age || [],
