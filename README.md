@@ -92,3 +92,6 @@ gulp docker
 
 This will build & vulcanize the application, build the docker container (using the version from package.json), and push it to docker hub.
 
+## License
+
+[Apache 2.0](https://github.com/NextCenturyCorporation/digapp-ht/blob/master/LICENSE)
