@@ -69,6 +69,10 @@ limitations under the License.
       .show-more {
         text-align: center;
       }
+
+      a {
+        color: var(--primary-text-color);
+      }
     </style>
 
     <div class="chart-wrapper">
@@ -80,13 +84,27 @@ limitations under the License.
 
       <div class$="chart-items [[_doesOverflow(_combinedItems.length, limit)]] [[_isSmall(small)]]">
         <template id="barList" is="dom-repeat" items="[[_shownItems]]">
-          <horizontal-bar
-            name="[[_getProperty(item, textProperty)]]"
-            count="[[_getProperty(item, countProperty)]]"
-            width="[[item.width]]"
-            selected="{{item.selected}}"
-            toggle-listener="[[_createToggleListener(item)]]">
-          </horizontal-bar>
+          <template is="dom-if" if="[[_hasLink(item)]]">
+            <a href$="[[item.link]]">
+              <horizontal-bar
+                name="[[_getProperty(item, textProperty)]]"
+                count="[[_getProperty(item, countProperty)]]"
+                selected="{{item.selected}}"
+                toggle-listener="[[_createToggleListener(item)]]"
+                max="{{_getMaxCount(_shownItems)}}">
+              </horizontal-bar>
+            </a>
+          </template>
+          <template is="dom-if" if="[[!_hasLink(item)]]">
+            <horizontal-bar
+              name="[[_getProperty(item, textProperty)]]"
+              count="[[_getProperty(item, countProperty)]]"
+              selected="{{item.selected}}"
+              toggle-listener="[[_createToggleListener(item)]]"
+              max="{{_getMaxCount(_shownItems)}}"
+              show-checkbox>
+            </horizontal-bar>
+          </template>
         </template>
       </div>
 
@@ -183,7 +201,13 @@ limitations under the License.
             return [];
           }
         },
-
+        /**
+         * Whether or not to display an item as a link.
+         */
+        showLink: {
+          type: Boolean,
+          value: false
+        },
         /**
          * The list of items that are now selected or have previously been selected.  Computed from the 'items' and 'selectedIds'.  Required
          * in case the list of items does not contain an item for a selected ID due to a new filter created by another component.
@@ -219,20 +243,22 @@ limitations under the License.
           value: false
         }
       },
-
       /**
-       * Returns the width of the bar for the given item in CSS syntax.
+       * Whether or not to display item as a link.
        */
-      _computeWidth: function(count, maxCount) {
-        // This returns bar widths relative to the highest count item, assuming it's first.
-        // Could also sum up all counts and do widths relative to the total.
-        // Will return a minimum of 1 as the width if the count is greater than 0.
-        var widthCalc = Math.round((count / maxCount) * 100);
-        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
+      _hasLink: function(item) {
+        return this.showLink && item && item.link !== undefined;
       },
 
       /**
-       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'width' properties for the items.
+       * Returns the max count from a group of items.
+       */
+      _getMaxCount: function(items) {
+        return Math.max((items.length ? items[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
+      },
+
+      /**
+       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' property for the items.
        */
       _computeCombinedItems: function() {
         if(!this.items.length && !this._selectedItems.length) {
@@ -258,13 +284,6 @@ limitations under the License.
           return b[self.countProperty] - a[self.countProperty];
         });
 
-        var maxCount = Math.max((combinedItems.length ? combinedItems[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
-
-        // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
-        combinedItems.forEach(function(item) {
-          item.width = self._computeWidth(item[self.countProperty], maxCount);
-        });
-
         this.items.forEach(function(item) {
           var index = self.selectedIds.indexOf(self._getProperty(item, self.idProperty));
           if(index < 0) {
@@ -272,7 +291,6 @@ limitations under the License.
             var clonedItem = _.cloneDeep(item);
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
-            clonedItem.width = self._computeWidth(clonedItem[self.countProperty], maxCount);
             combinedItems.push(clonedItem);
           }
         });

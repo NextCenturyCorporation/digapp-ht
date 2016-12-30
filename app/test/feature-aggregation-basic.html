@@ -99,20 +99,24 @@ limitations under the License.
       expect(bar).to.exist;
       expect(bar.name).to.equal('a');
       expect(bar.count).to.equal(4);
-      expect(bar.width).to.equal(100);
+      expect(bar.showCheckbox).to.equal(true);
+      expect(bar._width).to.equal(100);
+    });
+
+    test('does not show a link element', function() {
+      var link = component.$$('a');
+      expect(link).to.not.exist;
     });
 
     test('_combinedItems is set correctly', function() {
       expect(component._combinedItems).to.be.an('array');
       expect(component._combinedItems).to.deep.equal([{
         selected: false,
-        width: 100,
         id: 1,
         text: 'a',
         count: 4
       }, {
         selected: false,
-        width: 75,
         id: 2,
         text: 'b',
         count: 3
@@ -123,13 +127,11 @@ limitations under the License.
       expect(component._shownItems).to.be.an('array');
       expect(component._shownItems).to.deep.equal([{
         selected: false,
-        width: 100,
         id: 1,
         text: 'a',
         count: 4
       }, {
         selected: false,
-        width: 75,
         id: 2,
         text: 'b',
         count: 3
@@ -150,7 +152,6 @@ limitations under the License.
       expect(component._combinedItems).to.be.an('array');
       expect(component._combinedItems).to.deep.equal([{
         selected: false,
-        width: 100,
         id: 3,
         text: 'c',
         count: 2
@@ -166,11 +167,18 @@ limitations under the License.
       expect(component._shownItems).to.be.an('array');
       expect(component._shownItems).to.deep.equal([{
         selected: false,
-        width: 100,
         id: 3,
         text: 'c',
         count: 2
       }]);
+    });
+
+    test('_hasLink returns correct value', function() {
+      expect(component._hasLink(component._shownItems[0])).to.be.false;
+    });
+
+    test('_getMaxCount returns correct number', function() {
+      expect(component._getMaxCount(component._shownItems)).to.equal(4);
     });
 
     test('_doesOverflow returns overflow if items length is greater than limit', function() {
@@ -225,13 +233,6 @@ limitations under the License.
       expect(component._showNoDataText(2, false)).to.be.false;
     });
 
-    test('_computeWidth returns correct widths', function() {
-      expect(component._computeWidth(4, 4)).to.equal(100);
-      expect(component._computeWidth(3, 4)).to.equal(75);
-      expect(component._computeWidth(2, 4)).to.equal(50);
-      expect(component._computeWidth(1, 4)).to.equal(25);
-    });
-
     test('adding selectedIds adds to _selectedItems', function() {
       component.selectedIds = [1];
       expect(component._selectedItems).to.deep.equal([{
@@ -273,13 +274,11 @@ limitations under the License.
       expect(component.selectedIds).to.deep.equal([1]);
       expect(component._combinedItems).to.deep.equal([{
         selected: true,
-        width: 100,
         id: 1,
         text: 'a',
         count: 4
       }, {
         selected: false,
-        width: 50,
         id: 3,
         text: 'c',
         count: 2
@@ -434,38 +433,34 @@ limitations under the License.
       expect(bar).to.exist;
       expect(bar.name).to.equal('a');
       expect(bar.count).to.equal(4);
-      expect(bar.width).to.equal(100);
+      expect(bar.showCheckbox).to.equal(true);
+      expect(bar._width).to.equal(100);
     });
 
     test('_combinedItems is set correctly', function() {
       expect(component._combinedItems).to.be.an('array');
       expect(component._combinedItems).to.deep.equal([{
         selected: false,
-        width: 100,
         uuid: 1,
         name: 'a',
         number: 4
       }, {
         selected: false,
-        width: 75,
         uuid: 2,
         name: 'b',
         number: 3
       }, {
         selected: false,
-        width: 50,
         uuid: 3,
         name: 'c',
         number: 2
       }, {
         selected: false,
-        width: 50,
         uuid: 4,
         name: 'd',
         number: 2
       }, {
         selected: false,
-        width: 25,
         uuid: 5,
         name: 'e',
         number: 1
@@ -476,13 +471,11 @@ limitations under the License.
       expect(component._shownItems).to.be.an('array');
       expect(component._shownItems).to.deep.equal([{
         selected: false,
-        width: 100,
         uuid: 1,
         name: 'a',
         number: 4
       }, {
         selected: false,
-        width: 75,
         uuid: 2,
         name: 'b',
         number: 3
@@ -509,36 +502,46 @@ limitations under the License.
     });
   });
 
-  suite('feature-aggregation test -- edge cases for width of bar', function() {
+  suite('feature-aggregation test -- check if showLink is true', function() {
     var component;
 
-    setup(function() {
+    setup(function(done) {
       component = fixture('feature-aggregation-fixture');
       component.items = [{
-        count: 300
+        id: 1,
+        key: 'key',
+        link: 'somelink.html',
+        text: 'a',
+        count: 4
       }, {
-        count: 1
-      }, {
-        count: 0
+        id: 2,
+        text: 'b',
+        count: 3
       }];
+      component.showLink = true;
+      flush(function() {
+        done();
+      });
     });
 
-    test('_computeWidth returns correct width if calculated width is 0 but count is not', function() {
-      var item = component.items[1];
-      var result = component._computeWidth(item.count, component.items[0].count);
-      var calculatedWidth = Math.round((item.count / component.items[0].count) * 100);
-
-      expect(calculatedWidth).to.be.equal(0);
-      expect(result).to.equal(1);
+    test('does not show a link element', function() {
+      var link = component.$$('a');
+      expect(link).to.exist;
+      expect(link.href).to.equal('http://localhost:2000/components/digapp-ht/app/test/somelink.html');
     });
 
-    test('_computeWidth returns correct width if item.count is 0', function() {
-      var item = component.items[2];
-      var result = component._computeWidth(item.count, component.items[0].count);
-      var calculatedWidth = Math.round((item.count / component.items[0].count) * 100);
+    test('does show a horizontal-bar element', function() {
+      var bar = component.$$('horizontal-bar');
+      expect(bar).to.exist;
+      expect(bar.name).to.equal('a');
+      expect(bar.count).to.equal(4);
+      expect(bar.showCheckbox).to.equal(false);
+      expect(bar._width).to.equal(100);
+    });
 
-      expect(calculatedWidth).to.be.equal(0);
-      expect(result).to.equal(0);
+    test('_hasLink returns correct value', function() {
+      expect(component._hasLink(component.items[0])).to.be.true;
+      expect(component._hasLink(component.items[1])).to.be.false;
     });
   });
 </script>
