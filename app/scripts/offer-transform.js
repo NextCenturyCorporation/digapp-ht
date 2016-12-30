@@ -310,6 +310,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           sum += locationBucket.doc_count;
           subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', ') + ' (' + locationBucket.doc_count + ')');
           return {
+            link: commonTransforms.getLink(locationBucket.key, 'location'),
             name: locationBucket.key.split(':').slice(0, 3).join(', '),
             icon: commonTransforms.getIronIcon('location'),
             styleClass: commonTransforms.getStyleClass('location'),
