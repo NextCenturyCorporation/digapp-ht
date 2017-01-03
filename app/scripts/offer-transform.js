@@ -153,6 +153,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     offer.name = _.isArray(offer.name) ? offer.name.join(', ') : offer.name;
     offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
     offer.locationKey = offer.locations.length ? offer.locations[0].key : undefined;
+    offer.locationLink = offer.locations.length ? commonTransforms.getLink(offer.locationKey, 'location') : undefined;
 
     offer.descriptors.push({
       icon: commonTransforms.getIronIcon('date'),
