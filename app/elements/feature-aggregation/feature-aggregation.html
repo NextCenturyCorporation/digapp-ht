@@ -69,10 +69,6 @@ limitations under the License.
       .show-more {
         text-align: center;
       }
-
-      a {
-        color: var(--primary-text-color);
-      }
     </style>
 
     <div class="chart-wrapper">
@@ -84,27 +80,15 @@ limitations under the License.
 
       <div class$="chart-items [[_doesOverflow(_combinedItems.length, limit)]] [[_isSmall(small)]]">
         <template id="barList" is="dom-repeat" items="[[_shownItems]]">
-          <template is="dom-if" if="[[_hasLink(item)]]">
-            <a href$="[[item.link]]">
-              <horizontal-bar
-                name="[[_getProperty(item, textProperty)]]"
-                count="[[_getProperty(item, countProperty)]]"
-                selected="{{item.selected}}"
-                toggle-listener="[[_createToggleListener(item)]]"
-                max="{{_getMaxCount(_shownItems)}}">
-              </horizontal-bar>
-            </a>
-          </template>
-          <template is="dom-if" if="[[!_hasLink(item)]]">
-            <horizontal-bar
-              name="[[_getProperty(item, textProperty)]]"
-              count="[[_getProperty(item, countProperty)]]"
-              selected="{{item.selected}}"
-              toggle-listener="[[_createToggleListener(item)]]"
-              max="{{_getMaxCount(_shownItems)}}"
-              show-checkbox>
-            </horizontal-bar>
-          </template>
+          <horizontal-bar
+            name="[[_getProperty(item, textProperty)]]"
+            count="[[_getProperty(item, countProperty)]]"
+            selected="{{item.selected}}"
+            toggle-listener="[[_createToggleListener(item)]]"
+            max="{{_getMaxCount(_shownItems)}}"
+            show-checkbox="{{showCheckboxes}}"
+            link-value="[[_getLinkValue(item)]]">
+          </horizontal-bar>
         </template>
       </div>
 
@@ -201,13 +185,23 @@ limitations under the License.
             return [];
           }
         },
+
         /**
          * Whether or not to display an item as a link.
          */
-        showLink: {
+        showLinks: {
           type: Boolean,
           value: false
         },
+
+        /**
+         * Whether or not to display a checkbox in each horizontal-bar.
+         */
+        showCheckboxes: {
+          type: Boolean,
+          value: false
+        },
+
         /**
          * The list of items that are now selected or have previously been selected.  Computed from the 'items' and 'selectedIds'.  Required
          * in case the list of items does not contain an item for a selected ID due to a new filter created by another component.
@@ -244,10 +238,10 @@ limitations under the License.
         }
       },
       /**
-       * Whether or not to display item as a link.
+       * Get link value if it exists and showLinks is set to true.
        */
-      _hasLink: function(item) {
-        return this.showLink && item && item.link !== undefined;
+      _getLinkValue: function(item) {
+        return (this.showLinks && item && item.link !== undefined) ? item.link : null;
       },
 
       /**

@@ -53,6 +53,7 @@ limitations under the License.
         text: 'b',
         count: 3
       }];
+      component.showCheckboxes = true;
       flush(function() {
         done();
       });
@@ -88,6 +89,8 @@ limitations under the License.
       expect(component.chartTitle).to.equal('Data');
       expect(component.selectedIds).to.be.an('array');
       expect(component.selectedIds).to.deep.equal([]);
+      expect(component.showCheckboxes).to.be.true;
+      expect(component.showLinks).to.be.false;
       expect(component._selectedItems).to.be.an('array');
       expect(component._selectedItems).to.deep.equal([]);
       expect(component._showMore).to.be.a('boolean');
@@ -101,11 +104,8 @@ limitations under the License.
       expect(bar.count).to.equal(4);
       expect(bar.showCheckbox).to.equal(true);
       expect(bar._width).to.equal(100);
-    });
-
-    test('does not show a link element', function() {
-      var link = component.$$('a');
-      expect(link).to.not.exist;
+      expect(bar.max).to.equal(component._getMaxCount(component._shownItems));
+      expect(bar.linkValue).to.be.null;
     });
 
     test('_combinedItems is set correctly', function() {
@@ -173,8 +173,8 @@ limitations under the License.
       }]);
     });
 
-    test('_hasLink returns correct value', function() {
-      expect(component._hasLink(component._shownItems[0])).to.be.false;
+    test('_getLinkValue returns correct value', function() {
+      expect(component._getLinkValue(component._shownItems[0])).to.be.null;
     });
 
     test('_getMaxCount returns correct number', function() {
@@ -424,6 +424,8 @@ limitations under the License.
       expect(component.loading).to.be.false;
       expect(component.selectedIds).to.be.an('array');
       expect(component.selectedIds).to.deep.equal([]);
+      expect(component.showCheckboxes).to.be.false;
+      expect(component.showLinks).to.be.false;
       expect(component._selectedItems).to.be.an('array');
       expect(component._selectedItems).to.deep.equal([]);
     });
@@ -433,8 +435,10 @@ limitations under the License.
       expect(bar).to.exist;
       expect(bar.name).to.equal('a');
       expect(bar.count).to.equal(4);
-      expect(bar.showCheckbox).to.equal(true);
+      expect(bar.showCheckbox).to.equal(false);
       expect(bar._width).to.equal(100);
+      expect(bar.max).to.equal(component._getMaxCount(component._shownItems));
+      expect(bar.linkValue).to.be.null;
     });
 
     test('_combinedItems is set correctly', function() {
@@ -502,7 +506,7 @@ limitations under the License.
     });
   });
 
-  suite('feature-aggregation test -- check if showLink is true', function() {
+  suite('feature-aggregation test -- check if showLinks is true', function() {
     var component;
 
     setup(function(done) {
@@ -518,30 +522,26 @@ limitations under the License.
         text: 'b',
         count: 3
       }];
-      component.showLink = true;
+      component.showLinks = true;
       flush(function() {
         done();
       });
-    });
-
-    test('does not show a link element', function() {
-      var link = component.$$('a');
-      expect(link).to.exist;
-      expect(link.href).to.equal('http://localhost:2000/components/digapp-ht/app/test/somelink.html');
     });
 
     test('does show a horizontal-bar element', function() {
       var bar = component.$$('horizontal-bar');
       expect(bar).to.exist;
       expect(bar.name).to.equal('a');
+      expect(bar.max).to.equal(component._getMaxCount(component._shownItems));
       expect(bar.count).to.equal(4);
       expect(bar.showCheckbox).to.equal(false);
+      expect(bar.linkValue).to.equal('somelink.html');
       expect(bar._width).to.equal(100);
     });
 
-    test('_hasLink returns correct value', function() {
-      expect(component._hasLink(component.items[0])).to.be.true;
-      expect(component._hasLink(component.items[1])).to.be.false;
+    test('_getLinkValue returns correct value', function() {
+      expect(component._getLinkValue(component.items[0])).to.equal('somelink.html');
+      expect(component._getLinkValue(component.items[1])).to.be.null;
     });
   });
 </script>
