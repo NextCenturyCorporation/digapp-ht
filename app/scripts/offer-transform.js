@@ -553,30 +553,41 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     },
 
-    offerLocations: function(data) {
-      if(!data || !data.aggregations) {
-        return {
-          location: []
-        };
-      }
+    offerPublishers: function(data) {
+      var publishers = [];
+      (data && data.aggregations ? data.aggregations.publisher.publisher.buckets : []).forEach(function(publisherBucket) {
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        publishers.push({
+          id: publisherBucket.key,
+          count: publisherBucket.doc_count
+        });
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      });
 
+      return {
+        title: (publishers.length || 'No') + ' Website' + (publishers.length === 1 ? '' : 's'),
+        publisher: publishers
+      };
+    },
+
+    offerLocations: function(data) {
       var locations = [];
-      _.each(data.aggregations.location.location.buckets, function(locationBucket) {
+      (data && data.aggregations ? data.aggregations.location.location.buckets : []).forEach(function(locationBucket) {
         var locationData = locationBucket.key.split(':');
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        var location = {
+        locations.push({
           key: locationBucket.key,
           count: locationBucket.doc_count,
           longitude: locationData[3],
           latitude: locationData[4],
           name: locationData[0] + ', ' + locationData[1],
           longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2] + ' (' + locationBucket.doc_count + ')'
-        };
+        });
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        locations.push(location);
       });
 
       return {
+        title: (locations.length || 'No') + ' Location' + (locations.length === 1 ? '' : 's'),
         location: locations
       };
     },
