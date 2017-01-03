@@ -592,7 +592,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     },
 
-    similarLocations: function(data) {
+    similarLocations: function(currentLocation, data) {
       if(!data || !data.aggregations) {
         return {
           similarLocations: []
@@ -601,7 +601,10 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
       var similarLocations = [];
       _.each(data.aggregations.similarLocsAgg.similarLocsAgg.cityAgg.buckets, function(locationBucket) {
-        similarLocations.push(offerSplitLocations(locationBucket));
+        // omit current location used to display entity page
+        if(locationBucket.key !== currentLocation) {
+          similarLocations.push(offerSplitLocations(locationBucket));
+        }
       });
 
       return {
