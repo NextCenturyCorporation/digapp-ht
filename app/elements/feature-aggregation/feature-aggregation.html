@@ -85,7 +85,7 @@ limitations under the License.
             count="[[_getProperty(item, countProperty)]]"
             selected="{{item.selected}}"
             toggle-listener="[[_createToggleListener(item)]]"
-            max="{{_getMaxCount(_shownItems)}}"
+            max="[[item.max]]"
             show-checkbox="{{showCheckboxes}}"
             link-value="[[_getLinkValue(item)]]">
           </horizontal-bar>
@@ -245,14 +245,7 @@ limitations under the License.
       },
 
       /**
-       * Returns the max count from a group of items.
-       */
-      _getMaxCount: function(items) {
-        return Math.max((items.length ? items[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
-      },
-
-      /**
-       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' property for the items.
+       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'max' properties for the items.
        */
       _computeCombinedItems: function() {
         if(!this.items.length && !this._selectedItems.length) {
@@ -278,11 +271,18 @@ limitations under the License.
           return b[self.countProperty] - a[self.countProperty];
         });
 
+        var maxCount = Math.max((combinedItems.length ? combinedItems[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
+        // Ensure that the max count of each selected item is up-to-date once the selected items are sorted.
+        combinedItems.forEach(function(item) {
+          item.max = maxCount;
+        });
+
         this.items.forEach(function(item) {
           var index = self.selectedIds.indexOf(self._getProperty(item, self.idProperty));
           if(index < 0) {
             // Ensure that this component does not affect the input items by creating a copy.
             var clonedItem = _.cloneDeep(item);
+            clonedItem.max = maxCount;
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
             combinedItems.push(clonedItem);
