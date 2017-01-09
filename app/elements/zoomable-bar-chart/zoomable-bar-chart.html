@@ -79,41 +79,41 @@ limitations under the License.
 
         properties: {
           /**
-           * The property containing the date of the objects in the data.
+           * The property of the objects in the data containing the unique bar string or date-string used in the x-axis.
            */
-          dataDateProperty: {
+          barProperty: {
             type: String,
-            value: 'date'
+            value: 'bar'
           },
 
           /**
-           * The property containing the list of the objects for a date in the data.
+           * The property of the objects in the data containing the list of stacks on each bar.
            */
-          dataListProperty: {
+          stackProperty: {
             type: String,
-            value: 'list'
+            value: 'stack'
           },
 
           /**
-           * The property containing the name of the objects in the list of the objects for a date in the data.
+           * The property of the objects in the list of stacks containing the count of that stack.
            */
-          dataNameProperty: {
-            type: String,
-            value: 'name'
-          },
-
-          /**
-           * The property containing the count of the objects in the list of the objects for a date in the data.
-           */
-          dataCountProperty: {
+          countProperty: {
             type: String,
             value: 'count'
           },
 
           /**
+           * The property of the objects in the list of stacks containing the label of that stack.
+           */
+          labelProperty: {
+            type: String,
+            value: 'label'
+          },
+
+          /**
            * The name to give to bars that do not have a name.
            */
-          defaultBarName: {
+          defaultLabel: {
             type: String,
             value: 'Other'
           },
@@ -135,6 +135,14 @@ limitations under the License.
           },
 
           /**
+           * Whether the bar chart is a timeline (its bars and x-axis are dates).
+           */
+          timeline: {
+            type: Boolean,
+            value: false
+          },
+
+          /**
            * The time interval for the x-axis.
            */
           interval: {
@@ -153,32 +161,12 @@ limitations under the License.
           },
 
           /**
-           * The data that is displayed in the bar chart.  Computed from the data.
+           * The title for the bar chart.
            */
-          barChartData: {
-            type: Array,
-            value: function() {
-              return [];
-            }
-          },
-
-          /**
-           * The set of parts that are displayed in the bar chart.  Computed from the data.
-           */
-          barChartLegend: {
-            type: Array,
-            value: function() {
-              return [];
-            }
-          },
-
-          /**
-           * The title for this bar chart.
-           */
-          barChartTitle: {
+          chartTitle: {
             type: String,
             value: 'No Data',
-            computed: 'computeTitle(source, barChartData.length)',
+            computed: '_computeTitle(source, _bars.length)',
             notify: true
           },
 
@@ -189,97 +177,153 @@ limitations under the License.
             type: Boolean,
             value: false,
             notify: true
+          },
+
+          /**
+           * The data that is displayed in the bar chart.  Computed from the data.
+           */
+          _bars: {
+            type: Array,
+            value: function() {
+              return [];
+            }
+          },
+
+          /**
+           * The set of parts that are displayed in the bar chart.  Computed from the data.
+           */
+          _legend: {
+            type: Array,
+            value: function() {
+              return [];
+            }
           }
         },
 
         observers: [
-          'checkData(data)'
+          '_checkData(data)'
         ],
 
-        checkData: function(data) {
+        _checkData: function(data) {
           if(data && data.length) {
-            this.processData(data);
-            this.createElements();
+            this._createBars(data);
+            this._createElements();
           }
         },
 
-        createIntervalText: function() {
-          return this.interval && this.interval === 'week' ? 'Week of ' : '';
+        _createIntervalText: function() {
+          return this.timeline && this.interval && this.interval === 'week' ? 'Week of ' : '';
         },
 
         /**
-         * Returns the title for this bar chart based on the source and the barChartData.
+         * Returns the title for this bar chart based on the source and the bars.
          */
-        computeTitle: function(source, count) {
-          var intervalText = this.createIntervalText();
+        _computeTitle: function(source, count) {
+          var intervalText = this._createIntervalText();
           if(count > 1) {
-            return source + ' from ' + intervalText + this.barChartData[count - 1].dateString + ' to ' + intervalText + this.barChartData[0].dateString;
+            return source + ' from ' + intervalText + this._bars[0].barLabel + ' to ' + intervalText + this._bars[count - 1].barLabel;
           }
-          return count ? (source + ' at ' + intervalText + this.barChartData[0].dateString) : ('No ' + source);
+          return count ? (source + ' at ' + intervalText + this._bars[0].barLabel) : ('No ' + source);
         },
 
-        processData: function(data) {
+        _addMissingTimelineBars: function(oldBars) {
           var self = this;
-          var barChartData = [];
-          var barChartLegend = {};
+          var newBars = [];
+
+          var times = oldBars.map(function(bar) {
+            return bar.barValue.getTime();
+          });
+
+          // Add 0-count bars for all dates on the timeline without data.
+          d3.time.scale().domain(d3.extent(oldBars, function(bar) {
+            return bar.barValue;
+          })).ticks(self._getD3Interval(), 1).map(function(tick) {
+            return {
+              object: tick,
+              number: tick.getTime()
+            };
+          }).forEach(function(tick) {
+            var barIndex = times.indexOf(tick.number);
+            if(barIndex >= 0) {
+              newBars.push(oldBars[barIndex]);
+            } else {
+              newBars.push({
+                stacks: [],
+                barValue: tick.object,
+                barLabel: self._getDateString(tick.object),
+                barCount: 0
+              });
+            }
+          });
+
+          return newBars;
+        },
+
+        _createBars: function(data) {
+          var self = this;
+          var bars = [];
+          var legend = {};
 
           if(data) {
-            data.forEach(function(dateItem) {
-              var yMax = 0; // keeps track of where the 'previous' value 'ended'
-              var bars = [];
-              if(dateItem[self.dataListProperty]) {
-                dateItem[self.dataListProperty].forEach(function(listItem) {
-                  if(listItem[self.dataCountProperty]) {
-                    var name = listItem[self.dataNameProperty] || self.defaultBarName;
-                    bars.push({
-                      date: dateItem[self.dataDateProperty],
-                      name: name,
-                      yAxisStart: yMax,
-                      yAxisEnd: yMax + listItem[self.dataCountProperty]
+            data.forEach(function(bar) {
+              var count = 0;
+              var stacks = [];
+              var value = self.timeline ? new Date(bar[self.barProperty]) : bar[self.barProperty];
+              if(bar[self.stackProperty]) {
+                bar[self.stackProperty].forEach(function(stack) {
+                  if(stack[self.countProperty]) {
+                    var label = stack[self.labelProperty] || self.defaultLabel;
+                    stacks.push({
+                      barValue: value,
+                      barLabel: bar[self.barProperty],
+                      stackLabel: label,
+                      yAxisStart: count,
+                      yAxisEnd: count + stack[self.countProperty]
                     });
-                    yMax += listItem[self.dataCountProperty];
-                    barChartLegend[name] = true;
+                    count += stack[self.countProperty];
+                    legend[label] = true;
                   }
                 });
-                bars.forEach(function(bar) {
-                  bar.yMax = yMax;
+                stacks.forEach(function(bar) {
+                  bar.barCount = count;
                 });
-              } else if(dateItem[self.dataCountProperty]) {
-                yMax = dateItem[self.dataCountProperty];
-                var name = dateItem[self.dataNameProperty] || self.defaultBarName;
-                bars.push({
-                  date: dateItem[self.dataDateProperty],
-                  name: name,
+              } else if(bar[self.countProperty]) {
+                count = bar[self.countProperty];
+                var label = bar[self.labelProperty] || self.defaultLabel;
+                stacks.push({
+                  barValue: value,
+                  barLabel: bar[self.barProperty],
+                  stackLabel: label,
                   yAxisStart: 0,
-                  yAxisEnd: yMax,
-                  yMax: yMax
+                  yAxisEnd: count
                 });
-                barChartLegend[name] = true;
+                legend[label] = true;
               }
-              barChartData.push({
-                bars: bars,
-                dateObject: new Date(dateItem[self.dataDateProperty]),
-                dateString: dateItem[self.dataDateProperty],
-                yMax: yMax
+              bars.push({
+                stacks: stacks,
+                barValue: value,
+                barLabel: bar[self.barProperty],
+                barCount: count
               });
             });
+
+            if(this.timeline) {
+              bars = this._addMissingTimelineBars(bars);
+            }
           }
 
-          this.barChartData = barChartData;
-          this.barChartLegend = Object.keys(barChartLegend).sort();
+          this._bars = bars;
+          this._legend = Object.keys(legend).sort();
         },
 
-        createElements: function() {
-          // setup complete, let's get some data!
-          var data = this.barChartData;
-
+        _createElements: function() {
+          var data = this._bars;
           var self = this;
 
           // Use the width of the bar chart container.
           var container = document.getElementById('chartContainer');
           this.width = (container ? parseInt(container.offsetWidth, 10) : 600);
 
-          // sizing information, including margins so there is space for labels, etc
           var marginLeft = 40;
           var marginRight = 20;
           var marginTopInfo = 20;
@@ -293,7 +337,7 @@ limitations under the License.
           var chartHeight = this.height - marginTopMain - marginBottomMain;
           var overviewHeight = this.height - marginTopOverview - marginBottomOverview;
 
-          // some colors to use for the bars
+          var axisColor = this.getComputedStyleValue('--bar-chart-axis');
           var overviewColor = this.getComputedStyleValue('--chart-black');
           var otherGroupColor = this.getComputedStyleValue('--chart-grey');
           var color = d3.scale.ordinal().range([
@@ -315,13 +359,11 @@ limitations under the License.
             this.getComputedStyleValue('--chart-light-blue')
           ]);
 
-          // mathematical scales for the x and y axes
-          var x = d3.time.scale().range([0, chartWidth]);
+          var x = d3.scale.ordinal();
           var y = d3.scale.linear().range([chartHeight, 0]);
-          var xOverview = d3.time.scale().range([0, chartWidth]);
+          var xOverview = d3.scale.ordinal();
           var yOverview = d3.scale.linear().range([overviewHeight, 0]);
 
-          // rendering for the x and y axes
           var xAxis = d3.svg.axis().scale(x).orient('bottom');
           var yAxis = d3.svg.axis().scale(y).orient('left').tickFormat(d3.format('.0f'));
           var xAxisOverview = d3.svg.axis().scale(xOverview).orient('bottom');
@@ -352,35 +394,31 @@ limitations under the License.
             .attr('class', 'overview')
             .attr('transform', 'translate(' + marginLeft + ',' + marginTopOverview + ')');
 
-          // data ranges for the x and y axes
-          x.domain(d3.extent(data, function(d) { return d.dateObject; }));
-          this.setXAxisTicks(xAxis, x.domain(), xAxisOverview);
+          this._setXAxes(data, chartWidth, x, xAxis, xOverview, xAxisOverview);
+
           var xAxisMax = _.max(_.map(data, function(item) {
-            return x(item.dateObject);
+            return x(item.barValue) + x.rangeBand();
           }));
-          var yAxisMax = d3.max(data, function(d) { return d.yMax; });
+          var yAxisMax = d3.max(data, function(d) { return d.barCount; });
+
           y.domain([0, yAxisMax]);
-          yAxis.tickValues(this.getYAxisTickValues(yAxisMax));
-          xOverview.domain(x.domain());
+          yAxis.tickValues(this._getNumberedAxisTickValues(0, yAxisMax));
           yOverview.domain(y.domain());
 
           var createExtentText = function() {
             var xDomain = x.domain();
-            var intervalText = self.createIntervalText();
-            // TODO Combine with use of moment in commonTransforms.getDate().
-            return 'Showing ' + intervalText + moment.utc(new Date(xDomain[0])).format('MMM D, YYYY') + ' to ' + intervalText +
-              moment.utc(new Date(xDomain[1])).format('MMM D, YYYY');
+            var intervalText = self._createIntervalText();
+            var from = self.timeline ? self._getDateString(new Date(xDomain[0])) : xDomain[0];
+            var to = self.timeline ? self._getDateString(new Date(xDomain[xDomain.length - 1])) : xDomain[xDomain.length - 1];
+            return 'Showing ' + intervalText + from + ' to ' + intervalText + to;
           };
 
           info.text(createExtentText());
 
-          // data range for the bar colors
-          // (essentially maps attribute names to color values)
-          color.domain(this.barChartLegend.filter(function(key) {
-            return key !== self.defaultBarName;
+          color.domain(this._legend.filter(function(key) {
+            return key !== self.defaultLabel;
           }));
 
-          // draw the axes now that they are fully set up
           main.append('g')
             .attr('class', 'x axis')
             .attr('transform', 'translate(0,' + chartHeight + ')')
@@ -398,7 +436,7 @@ limitations under the License.
           var createGridLines = function(yAxisMax) {
             grid.selectAll('line.gridline').remove();
             grid.selectAll('line.gridline')
-              .data(self.getYAxisTickValues(yAxisMax))
+              .data(self._getNumberedAxisTickValues(0, yAxisMax))
               .enter()
               .append('line')
               .attr('class', 'gridline')
@@ -414,66 +452,67 @@ limitations under the License.
 
           createGridLines(yAxisMax);
 
-          // draw the bars
           main.append('g')
             .attr('class', 'bars')
-            // a group for each stack of bars, positioned in the correct x position
             .selectAll('.bar.stack')
             .data(data)
             .enter().append('g')
-              .attr('class', 'bar stack')
-              .attr('transform', function(d) { return 'translate(' + x(d.dateObject) + ',0)'; })
-            // a bar for each value in the stack, positioned in the correct y positions
+            .attr('class', 'bar stack')
+            .attr('transform', function(d) { return 'translate(' + x(d.barValue) + ',0)'; })
             .selectAll('rect')
-            .data(function(d) { return d.bars; })
+            .data(function(d) { return d.stacks; })
             .enter().append('rect')
-              .attr('class', 'bar')
-              .attr('width', 8)
-              .attr('y', function(d) { return y(d.yAxisEnd); })
-              .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
-              .style('fill', function(d) {
-                if(d.name === self.defaultBarName || !color(d.name)) {
-                  return otherGroupColor;
-                }
-                return color(d.name);
-              })
-              .style('cursor', 'pointer')
-              .on('mouseout', function() {
-                info.text(createExtentText());
-              })
-              .on('mousemove', function(d) {
-                info.text(self.createIntervalText() + d.date + ':  ' + (d.name ? (d.name + ' ') : '') + '(' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.yMax + ')');
-              });
+            .attr('class', 'bar')
+            .attr('width', function() { return Math.max(x.rangeBand(), 8); })
+            .attr('y', function(d) { return y(d.yAxisEnd); })
+            .attr('height', function(d) { return y(d.yAxisStart) - y(d.yAxisEnd); })
+            .style('fill', function(d) {
+              if(d.stackLabel === self.defaultLabel || !color(d.stackLabel)) {
+                return otherGroupColor;
+              }
+              return color(d.stackLabel);
+            })
+            .style('cursor', 'pointer')
+            .on('mouseout', function() {
+              info.text(createExtentText());
+            })
+            .on('mousemove', function(d) {
+              info.text(self._createIntervalText() + d.barLabel + ':  ' + (d.stackLabel ? (d.stackLabel + ' ') : '') + '(' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.barCount + ')');
+            });
 
           overview.append('g')
             .attr('class', 'bars')
             .selectAll('.bar')
             .data(data)
             .enter().append('rect')
-              .attr('class', 'bar')
-              .attr('x', function(d) { return xOverview(d.dateObject) - 3; })
-              .attr('width', 8)
-              .attr('y', function(d) { return yOverview(d.yMax); })
-              .attr('height', function(d) { return overviewHeight - yOverview(d.yMax); })
-              .style('fill', overviewColor);
+            .attr('class', 'bar')
+            .attr('x', function(d) { return xOverview(d.barValue) - 3; })
+            .attr('width', function() { return Math.max(xOverview.rangeBand(), 8); })
+            .attr('y', function(d) { return yOverview(d.barCount); })
+            .attr('height', function(d) { return overviewHeight - yOverview(d.barCount); })
+            .style('fill', overviewColor);
 
           var brush = d3.svg.brush().x(xOverview);
 
           var onBrushed = function() {
-            // update the main chart's x axis data range
-            x.domain(brush.empty() ? xOverview.domain() : brush.extent());
-            self.setXAxisTicks(xAxis, x.domain(), xAxisOverview);
+            var extent = brush.extent();
+            var xWidth = xOverview.rangeBand();
+            self._setXAxes(brush.empty() ? data : data.filter(function(bar) {
+              var xValue = xOverview(bar.barValue);
+              return (extent[0] <= xValue + xWidth) && (xValue <= extent[1]);
+            }), chartWidth, x, xAxis);
+
+            main.selectAll('.bar.stack .bar').attr('width', function() { return Math.max(x.rangeBand(), 8); });
 
             info.text(createExtentText());
 
-            // redraw the bars on the main chart
             var yAxisMax = 0;
             main.selectAll('.bar.stack')
               .attr('transform', function(d) {
-                var barX = x(d.dateObject);
+                var barX = x(d.barValue);
                 // A buffer (5 pixels seems sufficient) is needed to show the bars at the start and end of the chart.
                 if(barX > -5 && barX < xAxisMax + 5) {
-                  yAxisMax = Math.max(yAxisMax, d.yMax);
+                  yAxisMax = Math.max(yAxisMax, d.barCount);
                   return 'translate(' + barX + ',0)';
                 } else {
                   return 'translate(0,0),scale(0)';
@@ -481,11 +520,13 @@ limitations under the License.
               });
 
             y.domain([0, yAxisMax]);
-            yAxis.tickValues(self.getYAxisTickValues(yAxisMax));
+            yAxis.tickValues(self._getNumberedAxisTickValues(0, yAxisMax));
 
-            // redraw the x axis of the main chart
             main.select('.x.axis').call(xAxis);
             main.select('.y.axis').call(yAxis);
+
+            // For whatever reason (maybe polymer?) the stroke color of the ticks isn't correctly applied once the axes are redrawn so we must reapply it here.
+            main.selectAll('.axis .tick line').attr('stroke', axisColor);
 
             main.selectAll('.bar.stack rect')
               .attr('y', function(d) { return y(d.yAxisEnd); })
@@ -495,10 +536,8 @@ limitations under the License.
             createGridLines(yAxisMax);
           };
 
-          // brush tool to let us zoom and pan using the overview chart
           brush.on('brush', onBrushed);
 
-          // add the brush target area on the overview chart
           overview.append('g')
             .attr('class', 'x brush')
             .call(brush)
@@ -510,13 +549,9 @@ limitations under the License.
             // over the full height of the overview chart
             .attr('height', overviewHeight + 7);  // +7 is magic number for styling
 
-          // Add chart to DOM
-          //this.$.barChart.style.height = this.height;
-          //this.$.barChart.style.width = this.width;
           Polymer.dom(this.$.barChart).setAttribute('style', 'height: ' + this.height + 'px; width: ' + this.width + 'px;');
 
           var children = Polymer.dom(this.$.barChart).children;
-          // delete previous nodes if they exist
           for(var i = 0; i < children.length; i++) {
             Polymer.dom(this.$.barChart).removeChild(children[i]);
           }
@@ -528,31 +563,44 @@ limitations under the License.
           });
         },
 
-        setXAxisTicks: function(xAxis, xDomain, xAxisOverview) {
-          var xDiffInDays = (((((xDomain[1] - xDomain[0]) / 1000) / 60) / 60) / 24);
-
-          var xInterval = (xDiffInDays > 15 ? d3.time.week : d3.time.day);
-          var timeFormat = '%b %e';
-          if(xDiffInDays > 550) {
-            xInterval = d3.time.year;
-            timeFormat = '%b %Y';
-          } else if(xDiffInDays > 90 || this.interval === 'week') {
-            xInterval = d3.time.month;
-            timeFormat = '%b';
-          }
-
-          xAxis.tickFormat(d3.time.format(timeFormat));
-          xAxisOverview.tickFormat(d3.time.format(timeFormat));
-          xAxis.ticks(xInterval, 1);
-          xAxisOverview.ticks(xInterval, 1);
+        _getD3Interval: function() {
+          // Use d3.time.monday for weeks because elasticsearch date histogram aggregations return weeks that start on Mondays.
+          return this.interval === 'week' ? d3.time.monday : d3.time.day;
         },
 
-        getYAxisTickValues: function(yAxisMax) {
-          if(yAxisMax < 10) {
-            return _.range(yAxisMax + 1);
+        _getDateString: function(date) {
+          // TODO Combine with use of moment in commonTransforms.getDate().
+          return moment.utc(date).format('MMM D, YYYY');
+        },
+
+        _getDomain: function(bars, chartWidth) {
+          if(this.timeline) {
+            return d3.time.scale().range([0, chartWidth]).domain(d3.extent(bars, function(bar) {
+              return bar.barValue;
+            })).ticks(this._getD3Interval(), 1);
+          }
+          return bars.map(function(bar) {
+            return bar.barValue;
+          });
+        },
+
+        _getDomainTimeFormat: function(domain) {
+          var diffInDays = (((((domain[domain.length - 1] - domain[0]) / 1000) / 60) / 60) / 24);
+          if(diffInDays > 550) {
+            return '%b %Y';
+          }
+          if(diffInDays > 90 || this.interval === 'week') {
+            return '%b %e';
+          }
+          return '%b %e';
+        },
+
+        _getNumberedAxisTickValues: function(axisMin, axisMax) {
+          if(axisMax - axisMin < 10) {
+            return _.range(axisMin, axisMax + 1);
           }
           // Return at most 10 tick values based on the number of digits in the maximum.
-          var string = yAxisMax.toString();
+          var string = (axisMax - axisMin).toString();
           var digits = string.length;
           var step = Math.pow(10, digits - 1);
           if(string.indexOf('1') === 0) {
@@ -562,12 +610,44 @@ limitations under the License.
             step = 5 * Math.pow(10, digits - 2);
           }
           // Set the end to the max plus one so the max is added to the range if evenly divisible.
-          return _.range(0, yAxisMax + 1, step);
+          return _.range(axisMin, axisMax + 1, step);
+        },
+
+        _getTruncatedDomain: function(domain) {
+          // Only show a maximum of 10 or 15 (arbitrary numbers that look good) labels on the x-axis.
+          var step = Math.ceil(domain.length / (this.timeline ? 15.0 : 10.0));
+          var truncatedDomain = [];
+          for(var i = 0; i < domain.length; i += step) {
+            truncatedDomain.push(domain[i]);
+          }
+          return truncatedDomain;
+        },
+
+        _setXAxes: function(data, chartWidth, x, xAxis, xOverview, xAxisOverview) {
+          var xDomain = this._getDomain(data, chartWidth);
+          x.domain(xDomain).rangeBands([0, chartWidth]);
+          if(xOverview) {
+            xOverview.domain(x.domain()).rangeBands([0, chartWidth]);
+          }
+
+          if(this.timeline) {
+            var timeFormat = this._getDomainTimeFormat(xDomain);
+            xAxis.tickFormat(d3.time.format(timeFormat));
+            if(xAxisOverview) {
+              xAxisOverview.tickFormat(d3.time.format(timeFormat));
+            }
+          }
+
+          var xTruncatedDomain = this._getTruncatedDomain(xDomain);
+          xAxis.tickValues(xTruncatedDomain);
+          if(xAxisOverview) {
+            xAxisOverview.tickValues(xTruncatedDomain);
+          }
         },
 
         resize: function() {
           d3.select('#chartContainer').style('width', 0);
-          this.createElements();
+          this._createElements();
         }
       });
     })();
