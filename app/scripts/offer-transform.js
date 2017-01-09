@@ -83,7 +83,8 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         text: text,
         icon: commonTransforms.getIronIcon(type),
         link: commonTransforms.getLink(uri, type),
-        styleClass: commonTransforms.getStyleClass(type)
+        styleClass: commonTransforms.getStyleClass(type),
+        annotate: true
       };
     });
   }
