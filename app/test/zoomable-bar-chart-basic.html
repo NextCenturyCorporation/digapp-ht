@@ -25,6 +25,7 @@ limitations under the License.
   <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
   <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
   <link rel="import" href="../elements/zoomable-bar-chart/zoomable-bar-chart.html">
+  <link rel="import" href="../elements/d3.html">
 </head>
 
 <body>
@@ -36,7 +37,7 @@ limitations under the License.
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, test, expect, flush */
+  /* globals suite, setup, fixture, test, expect, flush, d3 */
   /* jshint -W030 */
   suite('<zoomable-bar-chart>', function() {
     var zoomableBarChart;
@@ -115,7 +116,52 @@ limitations under the License.
       expect(zoomableBarChart.chartTitle).to.equal('Unit Tests at July 01, 2016');
     });
 
-    test('_getNumberedAxisTickValues returns correct results', function() {
+    test('_createIntervalText returns correct results', function() {
+      expect(zoomableBarChart._createIntervalText('week')).to.equal('Week of ');
+      expect(zoomableBarChart._createIntervalText('day')).to.equal('');
+    });
+
+    test('_getD3Interval returns correct results', function() {
+      expect(zoomableBarChart._getD3Interval('week')).to.deep.equal(d3.time.monday);
+      expect(zoomableBarChart._getD3Interval('day')).to.deep.equal(d3.time.day);
+    });
+
+    test('_getDateString returns correct results', function() {
+      expect(zoomableBarChart._getDateString(new Date('Jan 1 2016'))).to.equal('Jan 1, 2016');
+    });
+
+    test('_getDomain returns correct results for non-timelines', function() {
+      expect(zoomableBarChart._getDomain([{
+        barValue: 'one',
+      }, {
+        barValue: 'two'
+      }], false)).to.deep.equal(['one', 'two']);
+      expect(zoomableBarChart._getDomain([{
+        barValue: new Date('Jan 1 2016'),
+      }, {
+        barValue: new Date('Jan 31 2016')
+      }], false)).to.deep.equal([new Date('Jan 1 2016'), new Date('Jan 31 2016')]);
+    });
+
+    test('_getDomain returns correct results for timelines', function() {
+      var domain = zoomableBarChart._getDomain([{
+        barValue: new Date('Jan 1 2016'),
+      }, {
+        barValue: new Date('Jan 31 2016')
+      }], true, 100);
+      expect(domain.length).to.equal(31);
+      expect(domain[0]).to.deep.equal(new Date('Jan 1 2016'));
+      expect(domain[30]).to.deep.equal(new Date('Jan 31 2016'));
+    });
+
+    test('_getDomainTimeFormat returns correct results', function() {
+      expect(zoomableBarChart._getDomainTimeFormat([new Date('Jan 1 2016'), new Date('Jan 2 2016')])).to.equal('%b %e');
+      expect(zoomableBarChart._getDomainTimeFormat([new Date('Jan 1 2016'), new Date('April 1 2016')])).to.equal('%b %e');
+      expect(zoomableBarChart._getDomainTimeFormat([new Date('Jan 1 2016'), new Date('July 5 2017')])).to.equal('%b %Y');
+      expect(zoomableBarChart._getDomainTimeFormat([new Date('Jan 1 2016'), new Date('Jan 2 2016')], 'week')).to.equal('%b %e');
+    });
+
+    test('_getNumberedAxisTickValues returns correct results for axisMin=0', function() {
       expect(zoomableBarChart._getNumberedAxisTickValues(0, 0)).to.deep.equal([0]);
       expect(zoomableBarChart._getNumberedAxisTickValues(0, 1)).to.deep.equal([0, 1]);
       expect(zoomableBarChart._getNumberedAxisTickValues(0, 9)).to.deep.equal([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
@@ -132,6 +178,24 @@ limitations under the License.
       expect(zoomableBarChart._getNumberedAxisTickValues(0, 200)).to.deep.equal([0, 50, 100, 150, 200]);
       expect(zoomableBarChart._getNumberedAxisTickValues(0, 500)).to.deep.equal([0, 100, 200, 300, 400, 500]);
       expect(zoomableBarChart._getNumberedAxisTickValues(0, 1000)).to.deep.equal([0, 200, 400, 600, 800, 1000]);
+    });
+
+    test('_getNumberedAxisTickValues returns correct results for axisMin>0', function() {
+      expect(zoomableBarChart._getNumberedAxisTickValues(1, 10)).to.deep.equal([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+      expect(zoomableBarChart._getNumberedAxisTickValues(1, 20)).to.deep.equal([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]);
+      expect(zoomableBarChart._getNumberedAxisTickValues(11, 20)).to.deep.equal([11, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+      expect(zoomableBarChart._getNumberedAxisTickValues(1, 50)).to.deep.equal([1, 6, 11, 16, 21, 26, 31, 36, 41, 46]);
+      expect(zoomableBarChart._getNumberedAxisTickValues(31, 50)).to.deep.equal([31, 33, 35, 37, 39, 41, 43, 45, 47, 49]);
+      expect(zoomableBarChart._getNumberedAxisTickValues(41, 50)).to.deep.equal([41, 42, 43, 44, 45, 46, 47, 48, 49, 50]);
+    });
+
+    test('_getTruncatedDomain returns correct results', function() {
+      expect(zoomableBarChart._getTruncatedDomain(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])).to.deep.equal(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
+      expect(zoomableBarChart._getTruncatedDomain(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K'])).to.deep.equal(['A', 'C', 'E', 'G', 'I', 'K']);
+      expect(zoomableBarChart._getTruncatedDomain(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T'])).to.deep.equal(['A', 'C', 'E', 'G', 'I', 'K', 'M', 'O', 'Q', 'S']);
+      expect(zoomableBarChart._getTruncatedDomain(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U'])).to.deep.equal(['A', 'D', 'G', 'J', 'M', 'P', 'S']);
+      expect(zoomableBarChart._getTruncatedDomain(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'], true)).to.deep.equal(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O']);
+      expect(zoomableBarChart._getTruncatedDomain(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'], true)).to.deep.equal(['A', 'C', 'E', 'G', 'I', 'K', 'M', 'O']);
     });
   });
 
@@ -308,6 +372,131 @@ limitations under the License.
     test('chartTitle should exist', function() {
       expect(zoomableBarChart.chartTitle).to.be.a('String');
       expect(zoomableBarChart.chartTitle).to.equal('Data at July 01, 2016');
+    });
+  });
+
+  suite('<zoomable-bar-chart> with weekly timeline data', function() {
+    var zoomableBarChart;
+
+    setup(function(done) {
+      zoomableBarChart = fixture('zoomable-bar-chart-fixture');
+      zoomableBarChart.timeline = true;
+      zoomableBarChart.interval = 'week';
+      zoomableBarChart.data = [{
+        bar: 'Jul 04, 2016',
+        stack: [{
+          label: 'Houston, TX, USA',
+          count: 4
+        }, {
+          label: 'Austin, TX, USA',
+          count: 0
+        }, {
+          count: 2
+        }]
+      }, {
+        bar: 'Jul 11, 2016',
+        stack: [{
+          label: 'San Antonio, TX, USA',
+          count: 5
+        }]
+      }, {
+        bar: 'Jul 25, 2016',
+        stack: [{
+          label: 'Houston, TX, USA',
+          count: 1
+        }]
+      }];
+      flush(function() {
+        done();
+      });
+    });
+
+    test('data should equal array input', function() {
+      expect(zoomableBarChart.data).to.be.deep.equal([{
+        bar: 'Jul 04, 2016',
+        stack: [{
+          label: 'Houston, TX, USA',
+          count: 4
+        }, {
+          label: 'Austin, TX, USA',
+          count: 0
+        }, {
+          count: 2
+        }]
+      }, {
+        bar: 'Jul 11, 2016',
+        stack: [{
+          label: 'San Antonio, TX, USA',
+          count: 5
+        }]
+      }, {
+        bar: 'Jul 25, 2016',
+        stack: [{
+          label: 'Houston, TX, USA',
+          count: 1
+        }]
+      }]);
+    });
+
+    test('_bars is correct', function() {
+      expect(zoomableBarChart._bars.length).to.equal(4);
+
+      expect(zoomableBarChart._bars[0].barCount).to.equal(6);
+      expect(zoomableBarChart._bars[0].barLabel).to.equal('Jul 04, 2016');
+      expect(zoomableBarChart._bars[0].barValue).to.deep.equal(new Date('Jul 04, 2016'));
+      expect(zoomableBarChart._bars[0].stacks).to.be.deep.equal([{
+        barCount: 6,
+        barLabel: 'Jul 04, 2016',
+        barValue: new Date('Jul 04, 2016'),
+        stackLabel: 'Houston, TX, USA',
+        yAxisStart: 0,
+        yAxisEnd: 4
+      }, {
+        barCount: 6,
+        barLabel: 'Jul 04, 2016',
+        barValue: new Date('Jul 04, 2016'),
+        stackLabel: 'Other',
+        yAxisStart: 4,
+        yAxisEnd: 6
+      }]);
+
+      expect(zoomableBarChart._bars[1].barCount).to.equal(5);
+      expect(zoomableBarChart._bars[1].barLabel).to.equal('Jul 11, 2016');
+      expect(zoomableBarChart._bars[1].barValue).to.deep.equal(new Date('Jul 11, 2016'));
+      expect(zoomableBarChart._bars[1].stacks).to.be.deep.equal([{
+        barCount: 5,
+        barLabel: 'Jul 11, 2016',
+        barValue: new Date('Jul 11, 2016'),
+        stackLabel: 'San Antonio, TX, USA',
+        yAxisStart: 0,
+        yAxisEnd: 5
+      }]);
+
+      expect(zoomableBarChart._bars[2].barCount).to.equal(0);
+      expect(zoomableBarChart._bars[2].barLabel).to.equal('Jul 18, 2016');
+      expect(zoomableBarChart._bars[2].barValue).to.deep.equal(new Date('Jul 18, 2016'));
+      expect(zoomableBarChart._bars[2].stacks).to.be.deep.equal([]);
+
+      expect(zoomableBarChart._bars[3].barCount).to.equal(1);
+      expect(zoomableBarChart._bars[3].barLabel).to.equal('Jul 25, 2016');
+      expect(zoomableBarChart._bars[3].barValue).to.deep.equal(new Date('Jul 25, 2016'));
+      expect(zoomableBarChart._bars[3].stacks).to.be.deep.equal([{
+        barCount: 1,
+        barLabel: 'Jul 25, 2016',
+        barValue: new Date('Jul 25, 2016'),
+        stackLabel: 'Houston, TX, USA',
+        yAxisStart: 0,
+        yAxisEnd: 1
+      }]);
+    });
+
+    test('_legend is correct', function() {
+      expect(zoomableBarChart._legend).to.be.deep.equal(['Houston, TX, USA', 'Other', 'San Antonio, TX, USA']);
+    });
+
+    test('chartTitle should exist', function() {
+      expect(zoomableBarChart.chartTitle).to.be.a('String');
+      expect(zoomableBarChart.chartTitle).to.equal('Data from Week of Jul 04, 2016 to Week of Jul 25, 2016');
     });
   });
 </script>

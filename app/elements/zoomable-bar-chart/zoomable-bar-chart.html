@@ -211,15 +211,15 @@ limitations under the License.
           }
         },
 
-        _createIntervalText: function() {
-          return this.timeline && this.interval && this.interval === 'week' ? 'Week of ' : '';
+        _createIntervalText: function(interval) {
+          return interval === 'week' ? 'Week of ' : '';
         },
 
         /**
          * Returns the title for this bar chart based on the source and the bars.
          */
         _computeTitle: function(source, count) {
-          var intervalText = this._createIntervalText();
+          var intervalText = this.timeline ? this._createIntervalText(this.interval) : '';
           if(count > 1) {
             return source + ' from ' + intervalText + this._bars[0].barLabel + ' to ' + intervalText + this._bars[count - 1].barLabel;
           }
@@ -237,7 +237,7 @@ limitations under the License.
           // Add 0-count bars for all dates on the timeline without data.
           d3.time.scale().domain(d3.extent(oldBars, function(bar) {
             return bar.barValue;
-          })).ticks(self._getD3Interval(), 1).map(function(tick) {
+          })).ticks(self._getD3Interval(self.interval), 1).map(function(tick) {
             return {
               object: tick,
               number: tick.getTime()
@@ -394,7 +394,7 @@ limitations under the License.
             .attr('class', 'overview')
             .attr('transform', 'translate(' + marginLeft + ',' + marginTopOverview + ')');
 
-          this._setXAxes(data, chartWidth, x, xAxis, xOverview, xAxisOverview);
+          this._setXAxes(this.timeline, this.interval, data, chartWidth, x, xAxis, xOverview, xAxisOverview);
 
           var xAxisMax = _.max(_.map(data, function(item) {
             return x(item.barValue) + x.rangeBand();
@@ -407,7 +407,7 @@ limitations under the License.
 
           var createExtentText = function() {
             var xDomain = x.domain();
-            var intervalText = self._createIntervalText();
+            var intervalText = self.timeline ? self._createIntervalText(self.interval) : '';
             var from = self.timeline ? self._getDateString(new Date(xDomain[0])) : xDomain[0];
             var to = self.timeline ? self._getDateString(new Date(xDomain[xDomain.length - 1])) : xDomain[xDomain.length - 1];
             return 'Showing ' + intervalText + from + ' to ' + intervalText + to;
@@ -477,7 +477,8 @@ limitations under the License.
               info.text(createExtentText());
             })
             .on('mousemove', function(d) {
-              info.text(self._createIntervalText() + d.barLabel + ':  ' + (d.stackLabel ? (d.stackLabel + ' ') : '') + '(' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.barCount + ')');
+              var intervalText = self.timeline ? self._createIntervalText(self.interval) : '';
+              info.text(intervalText + d.barLabel + ':  ' + (d.stackLabel ? (d.stackLabel + ' ') : '') + '(' + (d.yAxisEnd - d.yAxisStart) + ' of ' + d.barCount + ')');
             });
 
           overview.append('g')
@@ -497,7 +498,7 @@ limitations under the License.
           var onBrushed = function() {
             var extent = brush.extent();
             var xWidth = xOverview.rangeBand();
-            self._setXAxes(brush.empty() ? data : data.filter(function(bar) {
+            self._setXAxes(self.timeline, self.interval, brush.empty() ? data : data.filter(function(bar) {
               var xValue = xOverview(bar.barValue);
               return (extent[0] <= xValue + xWidth) && (xValue <= extent[1]);
             }), chartWidth, x, xAxis);
@@ -563,9 +564,9 @@ limitations under the License.
           });
         },
 
-        _getD3Interval: function() {
+        _getD3Interval: function(interval) {
           // Use d3.time.monday for weeks because elasticsearch date histogram aggregations return weeks that start on Mondays.
-          return this.interval === 'week' ? d3.time.monday : d3.time.day;
+          return interval === 'week' ? d3.time.monday : d3.time.day;
         },
 
         _getDateString: function(date) {
@@ -573,23 +574,23 @@ limitations under the License.
           return moment.utc(date).format('MMM D, YYYY');
         },
 
-        _getDomain: function(bars, chartWidth) {
-          if(this.timeline) {
+        _getDomain: function(bars, timeline, interval, chartWidth) {
+          if(timeline) {
             return d3.time.scale().range([0, chartWidth]).domain(d3.extent(bars, function(bar) {
               return bar.barValue;
-            })).ticks(this._getD3Interval(), 1);
+            })).ticks(this._getD3Interval(interval), 1);
           }
           return bars.map(function(bar) {
             return bar.barValue;
           });
         },
 
-        _getDomainTimeFormat: function(domain) {
+        _getDomainTimeFormat: function(domain, interval) {
           var diffInDays = (((((domain[domain.length - 1] - domain[0]) / 1000) / 60) / 60) / 24);
           if(diffInDays > 550) {
             return '%b %Y';
           }
-          if(diffInDays > 90 || this.interval === 'week') {
+          if(diffInDays > 90 || interval === 'week') {
             return '%b %e';
           }
           return '%b %e';
@@ -613,9 +614,9 @@ limitations under the License.
           return _.range(axisMin, axisMax + 1, step);
         },
 
-        _getTruncatedDomain: function(domain) {
+        _getTruncatedDomain: function(domain, timeline) {
           // Only show a maximum of 10 or 15 (arbitrary numbers that look good) labels on the x-axis.
-          var step = Math.ceil(domain.length / (this.timeline ? 15.0 : 10.0));
+          var step = Math.ceil(domain.length / (timeline ? 15.0 : 10.0));
           var truncatedDomain = [];
           for(var i = 0; i < domain.length; i += step) {
             truncatedDomain.push(domain[i]);
@@ -623,22 +624,22 @@ limitations under the License.
           return truncatedDomain;
         },
 
-        _setXAxes: function(data, chartWidth, x, xAxis, xOverview, xAxisOverview) {
-          var xDomain = this._getDomain(data, chartWidth);
+        _setXAxes: function(timeline, interval, data, chartWidth, x, xAxis, xOverview, xAxisOverview) {
+          var xDomain = this._getDomain(data, timeline, interval, chartWidth);
           x.domain(xDomain).rangeBands([0, chartWidth]);
           if(xOverview) {
             xOverview.domain(x.domain()).rangeBands([0, chartWidth]);
           }
 
-          if(this.timeline) {
-            var timeFormat = this._getDomainTimeFormat(xDomain);
+          if(timeline) {
+            var timeFormat = this._getDomainTimeFormat(xDomain, interval);
             xAxis.tickFormat(d3.time.format(timeFormat));
             if(xAxisOverview) {
               xAxisOverview.tickFormat(d3.time.format(timeFormat));
             }
           }
 
-          var xTruncatedDomain = this._getTruncatedDomain(xDomain);
+          var xTruncatedDomain = this._getTruncatedDomain(xDomain, timeline);
           xAxis.tickValues(xTruncatedDomain);
           if(xAxisOverview) {
             xAxisOverview.tickValues(xTruncatedDomain);
