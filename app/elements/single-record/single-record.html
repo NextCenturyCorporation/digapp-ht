@@ -46,18 +46,8 @@ limitations under the License.
         margin-left: 15px;
       }
 
-      .head button-link {
-        /* Margin between the annotation icon and the 'open' button. */
-        margin-left: 15px;
-      }
-
-      .body button-link ::content paper-button {
-        /* Needed to make the button look nice. */
-        margin-top: 10px;
-      }
-
       .descriptor {
-        display: inline-block;
+        display: inline;
         margin-right: 20px;
       }
 
@@ -87,28 +77,47 @@ limitations under the License.
         visibility: hidden;
       }
 
+      .show {
+        visibility: visible;
+      }
+
       .yellowgreen {
         color: yellowgreen;
+      }
+
+      .entity-page-link {
+        color: var(--primary-text-color);
+        text-decoration: none;
+        padding: 5px;
+      }
+
+      .entity-page-link:hover {
+        color: var(--secondary-text-color);
       }
     </style>
 
     <paper-material class$="layout horizontal flex head [[getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
-      <modal-icon
-        icon="[[item.icon]]"
-        icon-style-class="[[item.styleClass]]"
-        show-icon="[[!hovering]]"
-        openable="[[showDetails]]"
-        open="[[open]]">
-      </modal-icon>
+
+      <template is="dom-if" if="[[!modalIconLast]]">
+        <modal-icon
+          icon="[[item.icon]]"
+          icon-style-class="[[item.styleClass]]"
+          show-icon="[[!hovering]]"
+          openable="[[showDetails]]"
+          open="[[open]]">
+        </modal-icon>
+      </template>
 
       <template is="dom-if" if="[[imageSource]]">
         <iron-image class$="layout vertical center-justified [[getBlurStyleClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
       </template>
 
       <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[item.name]]"><strong>
-          <highlighted-text text="[[getHeaderText(item)]]"></highlighted-text>
-        </strong></div>
+        <div class="text" title$="[[item.name]]">
+          <strong>
+            <highlighted-text text="[[getHeaderText(item)]]"></highlighted-text>
+          </strong>
+        </div>
 
         <template is="dom-if" if="[[item.descriptors.length]]">
           <div class="text wrap" secondary>
@@ -145,12 +154,23 @@ limitations under the License.
         </annotate-record>
       </template>
 
-      <button-link class="layout vertical center-justified"
-        link="[[item.link]]"
-        target="[[getTarget(newTab)]]"
-        text="open [[getTypeText(item)]]"
-        show="[[showLinks]]">
-      </button-link>
+      <div class="layout vertical center-justified">
+        <a class$="[[_showOrHide(showLinks)]] entity-page-link" href$="[[item.link]]" target="[[getTarget(newTab)]]"
+          title="Open [[getTypeText(item)]]">
+          <iron-icon icon="open-in-new"></iron-icon>
+        </a>
+      </div>
+
+      <template is="dom-if" if="[[modalIconLast]]">
+        <modal-icon
+          icon="[[item.icon]]"
+          icon-style-class="[[item.styleClass]]"
+          show-icon="[[!hovering]]"
+          openable="[[showDetails]]"
+          open="[[open]]">
+        </modal-icon>
+      </template>
+
     </paper-material>
 
     <template is="dom-if" if="[[showDetails]]">
@@ -297,6 +317,14 @@ limitations under the License.
         notificationQueryDate: {
           type: Object,
           notify: true
+        },
+
+        /**
+         * Where to put modal icon for record (will default to being first on the left)
+         */
+        modalIconLast: {
+          type: Boolean,
+          value: false
         }
       },
 
@@ -429,6 +457,13 @@ limitations under the License.
        */
       updateShowDetails: function(details) {
         this.set('showDetails', (!!details && !!details.length));
+      },
+
+      /**
+       * Determine whether to show or hide an element.
+       */
+      _showOrHide: function(show) {
+        return show ? 'show' : 'hidden';
       }
     });
   })();
