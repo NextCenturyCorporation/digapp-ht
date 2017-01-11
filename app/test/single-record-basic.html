@@ -45,22 +45,22 @@ limitations under the License.
       singleRecord = fixture('single-record-fixture');
       singleRecord.item = {
         id: '1',
-        type: 'offer',
         text: 'myTitle',
-        details: [{
-          label: 'address',
-          value: ['LA', 'SF']
-        }, {
-          label: 'date',
-          value: '2016-01-01'
-        }, {
-          label: 'description',
-          value: 'myDesc'
-        }, {
-          label: 'publisher',
-          value: 'myPublisher'
-        }]
+        type: 'offer'
       };
+      singleRecord.details = [{
+        label: 'address',
+        value: ['LA', 'SF']
+      }, {
+        label: 'date',
+        value: '2016-01-01'
+      }, {
+        label: 'description',
+        value: 'myDesc'
+      }, {
+        label: 'publisher',
+        value: 'myPublisher'
+      }];
       flush(function() {
         done();
       });
@@ -78,48 +78,62 @@ limitations under the License.
       expect(singleRecord.showDetails).to.be.true;
     });
 
-    test('getDetailText() returns correct value for undefined', function() {
-      expect(singleRecord.getDetailText()).to.equal('None');
+    test('_getDetailText() returns correct value for undefined', function() {
+      expect(singleRecord._getDetailText()).to.equal('None');
     });
 
-    test('getDetailText() returns correct value for no value', function() {
-      expect(singleRecord.getDetailText({})).to.equal('None');
+    test('_getDetailText() returns correct value for no value', function() {
+      expect(singleRecord._getDetailText({}, 'highlightedText', 'text')).to.equal('None');
     });
 
-    test('getDetailText() returns correct value for one value', function() {
-      expect(singleRecord.getDetailText({text: 'LA'})).to.equal('LA');
+    test('_getDetailText() returns correct value for one value', function() {
+      expect(singleRecord._getDetailText({
+        text: 'LA'
+      }, 'highlightedText', 'text')).to.equal('LA');
     });
 
-    test('getDetailText() returns correct value for highlight value', function() {
-      expect(singleRecord.getDetailText({text: 'LA', highlightedText: '<highlight>LA</highlight>'})).to.equal('<highlight>LA</highlight>');
+    test('_getDetailText() returns correct value for highlight value', function() {
+      expect(singleRecord._getDetailText({
+        text: 'LA',
+        highlightedText: '<highlight>LA</highlight>'
+      }, 'highlightedText', 'text')).to.equal('<highlight>LA</highlight>');
     });
 
-    test('getBlurStyleClass() returns correct values', function() {
-      expect(singleRecord.getBlurStyleClass(true)).to.equal('small-blur');
-      expect(singleRecord.getBlurStyleClass(false)).to.equal('');
+    test('_getBlurStyleClass() returns correct values', function() {
+      expect(singleRecord._getBlurStyleClass(true)).to.equal('small-blur');
+      expect(singleRecord._getBlurStyleClass(false)).to.equal('');
     });
 
     test('blur is set to true on default', function() {
       expect(singleRecord.blur).to.equal(true);
     });
 
-    test('cleanCamelCase() returns correct strings', function() {
-      expect(singleRecord.cleanCamelCase('test')).to.be.equal('Test:');
-      expect(singleRecord.cleanCamelCase('camelCase')).to.be.equal('Camel Case:');
+    test('_cleanCamelCase() returns correct strings', function() {
+      expect(singleRecord._cleanCamelCase({
+        property: 'test'
+      }, 'property')).to.be.equal('Test:');
+      expect(singleRecord._cleanCamelCase({
+        property: 'camelCase'
+      }, 'property')).to.be.equal('Camel Case:');
     });
 
-    test('getTarget() returns "_self" when newTab is false', function() {
-      expect(singleRecord.getTarget(false)).to.equal('_self');
+    test('_getTarget() returns "_self" when newTab is false', function() {
+      expect(singleRecord._getTarget(false)).to.equal('_self');
     });
 
-    test('getHeaderStyleClass() returns the correct values', function() {
-      expect(singleRecord.getHeaderStyleClass(true)).to.equal('opened');
-      expect(singleRecord.getHeaderStyleClass(false)).to.equal('closed');
+    test('_getHeaderStyleClass() returns the correct values', function() {
+      expect(singleRecord._getHeaderStyleClass(true)).to.equal('opened');
+      expect(singleRecord._getHeaderStyleClass(false)).to.equal('closed');
     });
 
-    test('getHeaderText() returns the correct strings', function() {
-      expect(singleRecord.getHeaderText({name: 'LA'})).to.equal('LA');
-      expect(singleRecord.getHeaderText({name: 'LA', highlightedText: '<highlight>LA</highlight>'})).to.equal('<highlight>LA</highlight>');
+    test('_getHeaderText() returns the correct strings', function() {
+      expect(singleRecord._getHeaderText({
+        name: 'LA'
+      }, 'highlightedText', 'name')).to.equal('LA');
+      expect(singleRecord._getHeaderText({
+        name: 'LA',
+        highlightedText: '<highlight>LA</highlight>'
+      }, 'highlightedText', 'name')).to.equal('<highlight>LA</highlight>');
     });
 
     test('details start collapsed', function() {
@@ -288,38 +302,72 @@ limitations under the License.
       expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('item.imageSources is undefined', function() {
-      expect(singleRecord.item.imageSources).to.not.exist;
-    });
-
     test('has no iron-image element', function() {
       expect(singleRecord.$$('iron-image')).to.not.exist;
     });
 
-    test('getTypeText returns a string', function() {
-      expect(singleRecord.getTypeText({type: 'date'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'email'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'image'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'location'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'money'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'phone'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'provider'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'offer'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'seller'})).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'webpage'})).to.be.a('String');
+    test('_getTypeText returns a string', function() {
+      expect(singleRecord._getTypeText({
+        type: 'date'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'email'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'image'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'location'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'money'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'phone'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'provider'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'offer'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'seller'
+      }, 'type')).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'webpage'
+      }, 'type')).to.be.a('String');
     });
 
-    test('getTypeText with longText as true returns a different string for email and phone types', function() {
-      expect(singleRecord.getTypeText({type: 'email'}, true)).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'phone'}, true)).to.be.a('String');
-      expect(singleRecord.getTypeText({type: 'email'}, true)).to.not.equal(singleRecord.getTypeText({type: 'email'}));
-      expect(singleRecord.getTypeText({type: 'phone'}, true)).to.not.equal(singleRecord.getTypeText({type: 'phone'}));
+    test('_getTypeText with longText as true returns a different string for email and phone types', function() {
+      expect(singleRecord._getTypeText({
+        type: 'email'
+      }, 'type', true)).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'phone'
+      }, 'type', true)).to.be.a('String');
+      expect(singleRecord._getTypeText({
+        type: 'email'
+      }, 'type', true)).to.not.equal(singleRecord._getTypeText({
+        type: 'email'
+      }, 'type'));
+      expect(singleRecord._getTypeText({
+        type: 'phone'
+      }, 'type', true)).to.not.equal(singleRecord._getTypeText({
+        type: 'phone'
+      }, 'type'));
     });
 
-    test('getNewIconDivClass returns correct value', function() {
+    test('_getNewIconDivClass returns correct value', function() {
       var date = new Date('October 2, 2016');
-      expect(singleRecord.getNewIconDivClass({descriptors: [{type: 'date', text: 'October 3, 2016'}]}, date)).to.be.equal('');
-      expect(singleRecord.getNewIconDivClass({descriptors: [{type: 'date', text: 'October 1, 2016'}]}, date)).to.be.equal('hidden');
+      expect(singleRecord._getNewIconDivClass([{
+        type: 'date',
+        text: 'October 3, 2016'
+      }], 'text', 'type', date)).to.be.equal('');
+      expect(singleRecord._getNewIconDivClass([{
+        type: 'date',
+        text: 'October 1, 2016'
+      }], 'text', 'type', date)).to.be.equal('hidden');
     });
 
     test('does not show the new icon by default', function() {
@@ -327,7 +375,7 @@ limitations under the License.
     });
 
     test('does not show the new icon if the item is not new', function(done) {
-      singleRecord.item.descriptors = [{
+      singleRecord.descriptors = [{
         type: 'date',
         text: 'October 1, 2016'
       }];
@@ -341,7 +389,7 @@ limitations under the License.
     });
 
     test('does show the new icon if the item is new', function(done) {
-      singleRecord.item.descriptors = [{
+      singleRecord.descriptors = [{
         type: 'date',
         text: 'October 3, 2016'
       }];
@@ -352,6 +400,25 @@ limitations under the License.
         expect(singleRecord.$$('iron-icon[icon="av:fiber-new"]').className.split(' ').indexOf('hidden') < 0).to.be.true;
         done();
       });
+    });
+
+    test('_updateImageSrcFromImages() sets imageSource and showDetails', function() {
+      expect(singleRecord.imageSource).to.equal('');
+      singleRecord._updateImageSrcFromImages([{
+        id: 'id1',
+        source: 'url1'
+      }, {
+        id: 'id2',
+        source: 'url2'
+      }], 'source');
+      expect(singleRecord.imageSource).to.equal('url1');
+    });
+
+    test('_updateImageSrcFromImages() with an empty array sets imageSource to a non-empty string', function() {
+      singleRecord.imageSource = 'imageSource';
+      singleRecord._updateImageSrcFromImages([], 'source');
+      expect(singleRecord.imageSource).to.not.equal('imageSource');
+      expect(!!singleRecord.imageSource).to.be.true;
     });
   });
 
@@ -396,24 +463,17 @@ limitations under the License.
       expect(ironCollapse).to.not.exist;
     });
 
-    test('updateImageSrcFromImages() sets imageSource and showDetails', function() {
+    test('_updateImageSrcFromImages() sets showDetails', function() {
       expect(singleRecord.imageSource).to.equal('');
-      singleRecord.updateImageSrcFromImages([{
+      singleRecord._updateImageSrcFromImages([{
         id: 'id1',
         source: 'url1'
       }, {
         id: 'id2',
         source: 'url2'
-      }]);
+      }], 'source');
       expect(singleRecord.imageSource).to.equal('url1');
       expect(singleRecord.showDetails).to.be.true;
-    });
-
-    test('updateImageSrcFromImages() with an empty array sets imageSource to a truthy value', function() {
-      expect(singleRecord.imageSource).to.equal('');
-      singleRecord.updateImageSrcFromImages([]);
-      expect(!!singleRecord.imageSource).to.be.true;
-      expect(singleRecord.showDetails).to.be.false;
     });
   });
 
@@ -429,8 +489,8 @@ limitations under the License.
       });
     });
 
-    test('getTarget() returns "_blank" when newTab is true', function() {
-      expect(singleRecord.getTarget(true)).to.equal('_blank');
+    test('_getTarget() returns "_blank" when newTab is true', function() {
+      expect(singleRecord._getTarget(true)).to.equal('_blank');
     });
   });
 

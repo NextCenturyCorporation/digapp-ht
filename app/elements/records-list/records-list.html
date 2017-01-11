@@ -35,20 +35,40 @@ limitations under the License.
 
     <paginated-list
       loading="[[loading]]"
-      load-type="[[computeLoadType(type)]]"
+      load-type="[[_computeLoadType(type)]]"
       items="[[queryResults]]"
       total-items="[[totalResults]]"
       page="{{page}}"
       page-size="[[pageSize]]"
       shown-items="{{shownResults}}">
 
-      <template is="dom-repeat" items="{{shownResults}}" initial-count="25">
-        <single-record item="{{item}}"
+      <template is="dom-repeat" items="[[shownResults]]" initial-count="25">
+        <single-record
+          item="[[item]]"
+          item-highlighted-text-property="[[itemHighlightedTextProperty]]"
+          item-icon-property="[[itemIconProperty]]"
+          item-icon-style-class-property="[[itemIconStyleClassProperty]]"
+          item-link-property="[[itemLinkProperty]]"
+          item-name-property="[[itemNameProperty]]"
+          item-type-property="[[itemTypeProperty]]"
+          descriptors="[[_getList(item, itemDescriptorProperty)]]"
+          descriptor-icon-property="[[descriptorIconProperty]]"
+          descriptor-icon-style-class-property="[[descriptorIconStyleClassProperty]]"
+          descriptor-link-property="[[descriptorLinkProperty]]"
+          descriptor-text-property="[[descriptorTextProperty]]"
+          descriptor-type-property="[[descriptorTypeProperty]]"
+          details="[[_getList(item, itemDetailProperty)]]"
+          detail-highlighted-text-property="[[detailHighlightedTextProperty]]"
+          detail-link-property="[[detailLinkProperty]]"
+          detail-text-property="[[detailTextProperty]]"
+          images="[[_getList(item, itemImageProperty)]]"
+          image-link-property="[[imageLinkProperty]]"
+          image-source-property="[[imageSourceProperty]]"
           client="[[client]]"
           annotation-manager="[[annotationManager]]"
           new-tab="[[newTab]]"
           blur="[[blur]]"
-          notification-query-date="{{notificationQueryDate}}">
+          notification-query-date="[[notificationQueryDate]]">
         </single-record>
       </template>
     </paginated-list>
@@ -62,6 +82,158 @@ limitations under the License.
       is: 'records-list',
 
       properties: {
+        /**
+         * The property for the highlighted text in the item.
+         */
+        itemHighlightedTextProperty: {
+          type: String,
+          value: 'highlightedText'
+        },
+
+        /**
+         * The property for the icon in the item.
+         */
+        itemIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * The property for the icon in the item.
+         */
+        itemIconStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the link in the item.
+         */
+        itemLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the name in the item.
+         */
+        itemNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
+         * The property for the type in the item.
+         */
+        itemTypeProperty: {
+          type: String,
+          value: 'type'
+        },
+
+        /**
+         * The property for the list of descriptor objects in the item.
+         */
+        itemDescriptorProperty: {
+          type: String,
+          value: 'descriptors'
+        },
+
+        /**
+         * The property for the icon in the descriptors in the item.
+         */
+        descriptorIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * The property for the icon style class in the descriptors in the item.
+         */
+        descriptorIconStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the link in the descriptors in the item.
+         */
+        descriptorLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the text in the descriptors in the item.
+         */
+        descriptorTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * The property for the type in the descriptors in the item.
+         */
+        descriptorTypeProperty: {
+          type: String,
+          value: 'type'
+        },
+
+        /**
+         * The property for the list of detail objects in the item.
+         */
+        itemDetailProperty: {
+          type: String,
+          value: 'details'
+        },
+
+        /**
+         * The property for the highlighted text in the details in the item.
+         */
+        detailHighlightedTextProperty: {
+          type: String,
+          value: 'highlightedText'
+        },
+
+        /**
+         * The property for the link in the details in the item.
+         */
+        detailLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the text in the details in the item.
+         */
+        detailTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * The property for the list of image objects in the item.
+         */
+        itemImageProperty: {
+          type: String,
+          value: 'images'
+        },
+
+        /**
+         * The property for the link in the images in the item.
+         */
+        imageLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the source in the images in the item.
+         */
+        imageSourceProperty: {
+          type: String,
+          value: 'source'
+        },
+
         /**
          * an instance of elasticsearch.Client which is connected to
          * an elasticsearch server
@@ -148,7 +320,7 @@ limitations under the License.
         recordsListTitle: {
           type: String,
           value: 'No Records',
-          computed: 'computeTitle(type, shownResults.length, totalResults)',
+          computed: '_computeTitle(type, shownResults.length, totalResults)',
           notify: true
         },
 
@@ -170,14 +342,14 @@ limitations under the License.
 
       },
 
-      computeLoadType: function(type) {
+      _computeLoadType: function(type) {
         return type + 's';
       },
 
       /**
        * Returns the title for this list based on the type, shownResults, and totalResults.
        */
-      computeTitle: function(type, count, total) {
+      _computeTitle: function(type, count, total) {
         if(total) {
           // Use regex replace to add commas to count.
           var totalString = total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
@@ -188,6 +360,10 @@ limitations under the License.
           return totalString + ' ' + type + (total === 1 ? '' : 's');
         }
         return 'No ' + type + 's';
+      },
+
+      _getList: function(item, property) {
+        return (item ? item[property] : undefined) || [];
       }
     });
   })();

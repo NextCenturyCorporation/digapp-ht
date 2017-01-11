@@ -77,33 +77,33 @@ limitations under the License.
       }
     </style>
 
-    <paper-material class$="layout horizontal flex head [[getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
+    <paper-material class$="layout horizontal flex head [[_getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
       <modal-icon
-        icon="[[item.icon]]"
-        icon-style-class="[[item.styleClass]]"
+        icon="[[_getProperty(item, itemIconProperty)]]"
+        icon-style-class="[[_getProperty(item, itemIconStyleClassProperty)]]"
         show-icon="[[!hovering]]"
         openable="[[showDetails]]"
         open="[[open]]">
       </modal-icon>
 
       <template is="dom-if" if="[[imageSource]]">
-        <iron-image class$="layout vertical center-justified [[getBlurStyleClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
+        <iron-image class$="layout vertical center-justified [[_getBlurStyleClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
       </template>
 
       <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[item.name]]"><strong>
-          <highlighted-text text="[[getHeaderText(item)]]"></highlighted-text>
+        <div class="text" title$="[[_getProperty(item, itemNameProperty)]]"><strong>
+          <highlighted-text text="[[_getHeaderText(item, itemHighlightedTextProperty, itemNameProperty)]]"></highlighted-text>
         </strong></div>
 
-        <template is="dom-if" if="[[item.descriptors.length]]">
+        <template is="dom-if" if="[[descriptors.length]]">
           <div class="text wrap" secondary>
-            <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
-              <icon-label title="Open [[descriptor.text]]"
-                icon="[[descriptor.icon]]"
-                icon-style-class="[[descriptor.styleClass]]"
-                link="[[descriptor.link]]"
-                target="[[getTarget(newTab)]]"
-                text="[[descriptor.text]]">
+            <template is="dom-repeat" items="[[descriptors]]" as="descriptor">
+              <icon-label title="Open [[_getProperty(descriptor, descriptorTextProperty)]]"
+                icon="[[_getProperty(descriptor, descriptorIconProperty)]]"
+                icon-style-class="[[_getProperty(descriptor, descriptorIconStyleClassProperty)]]"
+                link="[[_getProperty(descriptor, descriptorLinkProperty)]]"
+                target="[[_getTarget(newTab)]]"
+                text="[[_getProperty(descriptor, descriptorTextProperty)]]">
               </icon-label>
             </template>
           </div>
@@ -112,23 +112,23 @@ limitations under the License.
 
       <template is="dom-if" if="[[_hasNotificationDate(notificationQueryDate)]]" restamp="true">
         <div class="layout vertical center-justified">
-          <iron-icon class$="[[getNewIconDivClass(item, notificationQueryDate)]] yellowgreen" icon="av:fiber-new"></iron-icon>
+          <iron-icon class$="[[_getNewIconDivClass(descriptors, descriptorTextProperty, descriptorTypeProperty, notificationQueryDate)]] yellowgreen" icon="av:fiber-new"></iron-icon>
         </div>
       </template>
 
-      <template is="dom-if" if="[[showAnnotation(item)]]">
+      <template is="dom-if" if="[[_showAnnotation(item, itemTypeProperty)]]">
         <annotate-record class="layout vertical center-justified"
           client="[[client]]"
           annotation-manager="[[annotationManager]]"
           item="{{item}}"
-          item-type="[[getTypeText(item, 'true')]]">
+          item-type="[[_getTypeText(item, itemTypeProperty, 'true')]]">
         </annotate-record>
       </template>
 
       <button-link class="layout vertical center-justified"
-        link="[[item.link]]"
-        target="[[getTarget(newTab)]]"
-        text="open [[getTypeText(item)]]"
+        link="[[_getProperty(item, itemLinkProperty)]]"
+        target="[[_getTarget(newTab)]]"
+        text="open [[_getTypeText(item, itemTypeProperty)]]"
         show="[[showLinks]]">
       </button-link>
     </paper-material>
@@ -137,31 +137,33 @@ limitations under the License.
       <iron-collapse id="recordDetail">
         <div>
           <paper-material class="body">
-            <template is="dom-repeat" items="[[item.details]]" as="detail">
+            <template is="dom-repeat" items="[[details]]" as="detail">
               <div class="text">
-                <strong>[[cleanCamelCase(detail.name)]]</strong>
-                <template is="dom-if" if="[[detail.link]]">
-                  <a target="_blank" href$="[[detail.link]]">[[detail.text]]</a>
+                <strong>[[_cleanCamelCase(detail, detailNameProperty)]]</strong>
+                <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
+                  <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
                 </template>
-                <template is="dom-if" if="[[!detail.link]]">
-                  <highlighted-text text="[[getDetailText(detail)]]"></highlighted-text>
+                <template is="dom-if" if="[[!_getProperty(detail, detailLinkProperty)]]">
+                  <highlighted-text text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
                 </template>
               </div>
             </template>
 
             <button-link
-              link="[[item.link]]"
-              target="[[getTarget(newTab)]]"
-              text="open [[getTypeText(item)]]"
+              link="[[_getProperty(item, itemLinkProperty)]]"
+              target="[[_getTarget(newTab)]]"
+              text="open [[_getTypeText(item, itemTypeProperty)]]"
               show="[[showLinks]]">
             </button-link>
 
-            <template is="dom-if" if="[[item.images]]">
-              <image-gallery images="[[item.images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-gallery>
-            </template>
-
             <template is="dom-if" if="[[images]]">
-              <image-gallery images="[[images]]" new-tab="[[newTab]]" blur="[[blur]]"></image-gallery>
+              <image-gallery
+                images="[[images]]"
+                image-link-property="[[imageLinkProperty]]"
+                image-source-property="[[imageSourceProperty]]"
+                new-tab="[[newTab]]"
+                blur="[[blur]]">
+              </image-gallery>
             </template>
           </paper-material>
         </div>
@@ -187,6 +189,161 @@ limitations under the License.
         },
 
         /**
+         * The property for the highlighted text in the item.
+         */
+        itemHighlightedTextProperty: {
+          type: String,
+          value: 'highlightedText'
+        },
+
+        /**
+         * The property for the icon in the item.
+         */
+        itemIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * The property for the icon in the item.
+         */
+        itemIconStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the link in the item.
+         */
+        itemLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the name in the item.
+         */
+        itemNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
+         * The property for the type in the item.
+         */
+        itemTypeProperty: {
+          type: String,
+          value: 'type'
+        },
+
+        /**
+         * The descriptors for the item.
+         */
+        descriptors: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The property for the icon in the descriptors in the item.
+         */
+        descriptorIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * The property for the icon style class in the descriptors in the item.
+         */
+        descriptorIconStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the link in the descriptors in the item.
+         */
+        descriptorLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the text in the descriptors in the item.
+         */
+        descriptorTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * The property for the type in the descriptors in the item.
+         */
+        descriptorTypeProperty: {
+          type: String,
+          value: 'type'
+        },
+
+        /**
+         * The details for the item.
+         */
+        details: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The property for the highlighted text in the details in the item.
+         */
+        detailHighlightedTextProperty: {
+          type: String,
+          value: 'highlightedText'
+        },
+
+        /**
+         * The property for the link in the details in the item.
+         */
+        detailLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the text in the details in the item.
+         */
+        detailTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * The images for the item.
+         */
+        images: {
+          type: Array
+        },
+
+        /**
+         * The property for the link in the images in the item.
+         */
+        imageLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the source in the images in the item.
+         */
+        imageSourceProperty: {
+          type: String,
+          value: 'source'
+        },
+
+        /**
          * an instance of elasticsearch.Client which is connected to
          * an elasticsearch server
          */
@@ -207,14 +364,6 @@ limitations under the License.
         imageSource: {
           type: String,
           value: '',
-          notify: true
-        },
-
-        /**
-         * The image URLs for the item used instead of an image query.
-         */
-        images: {
-          type: Array,
           notify: true
         },
 
@@ -281,73 +430,73 @@ limitations under the License.
       },
 
       observers: [
-          'updateImageSrcFromItemImages(item.images.splices)',
-          'updateImageSrcFromPropertyImages(images.splices)',
-          'updateShowDetails(item.details)'
+          '_updateImageSrcFromImages(images, imageSourceProperty)',
+          '_updateShowDetails(details)'
       ],
 
-      getNewIconDivClass: function(item, notificationQueryDate) {
+      _getNewIconDivClass: function(descriptors, textProperty, typeProperty, notificationQueryDate) {
         if(notificationQueryDate) {
-          var t = _.some(item.descriptors, function(descriptor) {
-            return descriptor.type === 'date' && (new Date(descriptor.text) > notificationQueryDate);
+          return _.some(descriptors, function(descriptor) {
+            return descriptor[typeProperty] === 'date' && (new Date(descriptor[textProperty]) > notificationQueryDate);
           }) ? '' : 'hidden';
-          console.log('date ' + item.descriptors[0].text + ' nqd ' + notificationQueryDate + ' result ' + t);
-          return t;
         }
         return 'hidden';
       },
 
-      getBlurStyleClass: function(blur) {
+      _getBlurStyleClass: function(blur) {
         return (blur ? 'small-blur' : '');
       },
 
-      getDetailText: function(detail) {
-        return (detail ? (detail.highlightedText || detail.text) : '') || 'None';
+      _getDetailText: function(detail, highlightedTextProperty, textProperty) {
+        return (detail ? (detail[highlightedTextProperty] || detail[textProperty]) : '') || 'None';
       },
 
-      getHeaderStyleClass: function(open) {
+      _getHeaderStyleClass: function(open) {
         return (open ? 'opened' : 'closed');
       },
 
-      getHeaderText: function(item) {
-        return item.highlightedText || item.name;
+      _getHeaderText: function(item, highlightedTextProperty, nameProperty) {
+        return item[highlightedTextProperty] || item[nameProperty];
       },
 
-      getTarget: function(newTab) {
+      _getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
       },
 
       /**
        * Returns the text for the given item (and returns long text if specified).
        */
-      getTypeText: function(item, longText) {
-        if(item.type === 'offer') {
+      _getTypeText: function(item, typeProperty, longText) {
+        if(!item) {
+          return '';
+        }
+        if(item[typeProperty] === 'offer') {
           return 'ad';
         }
-        if(item.type === 'seller') {
+        if(item[typeProperty] === 'seller') {
           return 'email/phone cluster';
         }
-        if(longText && item.type === 'email') {
+        if(longText && item[typeProperty] === 'email') {
           return 'email address';
         }
-        if(longText && item.type === 'phone') {
+        if(longText && item[typeProperty] === 'phone') {
           return 'telephone number';
         }
-        return item.type;
+        return item[typeProperty];
       },
 
       _hasNotificationDate: function(date) {
         return !!date;
       },
 
-      cleanCamelCase: function(key) {
-        return (key || '').replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
+      _cleanCamelCase: function(item, property) {
+        return (item[property] || '').replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
           return word.charAt(0).toUpperCase() + word.substr(1);
         }) + ':';
       },
 
-      showAnnotation: function(item) {
-        return item && item.type !== 'seller';
+      _showAnnotation: function(item, typeProperty) {
+        return item && item[typeProperty] !== 'seller';
       },
 
       startHover: function() {
@@ -378,37 +527,26 @@ limitations under the License.
       },
 
       /**
-       * Sets the source for the iron-image in the record header with the first image in the item if available.
-       */
-      updateImageSrcFromItemImages: function() {
-        this.updateImageSrcFromImages(this.item.images);
-      },
-
-      /**
        * Sets the source for the iron-image in the record header with the first image in the given list if available.
        */
-      updateImageSrcFromImages: function(images) {
-        if(images && images.length) {
-          this.set('imageSource', images[0].source);
+      _updateImageSrcFromImages: function(images, property) {
+        if(images && images.length && property) {
+          this.set('imageSource', images[0][property]);
           this.set('showDetails', true);
         } else if(images) {
-          // Set the source to a truthy value so the gray iron-image is displayed.
           this.set('imageSource', 'blank');
         }
       },
 
       /**
-       * Sets the source for the iron-image in the record header with the first image in the property if available.
-       */
-      updateImageSrcFromPropertyImages: function() {
-        this.updateImageSrcFromImages(this.images);
-      },
-
-      /**
        * Sets whether to show details based on the existence of the given details object.
        */
-      updateShowDetails: function(details) {
+      _updateShowDetails: function(details) {
         this.set('showDetails', (!!details && !!details.length));
+      },
+
+      _getProperty: function(item, property) {
+        return item ? item[property] : undefined;
       }
     });
   })();
