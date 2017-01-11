@@ -1,19 +1,3 @@
-<!--
-Copyright 2017 Next Century Corporation
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
--->
-
 <!doctype html>
 
 <html lang="">
@@ -60,7 +44,7 @@ limitations under the License.
   <!-- endbuild -->
 
   <script src="scripts/google-analytics.js"></script>
-  
+
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -95,39 +79,12 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <!-- Image query -->
-
+    <!-- Offer query -->
     <elastic-client-query-builder
       type="term"
       fields="[[params.field]]"
-      values="[[params.value]]"
-      ejs-query="{{imageQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["image"]'
-      query="[[imageQuery]]"
-      aggregations="[]"
-      filters="[]"
-      results="{{imageResults}}"
-      last-error="{{error}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[imageResults]]"
-      data-out="{{imageDisplay}}"
-      transform-function="[[clientConfig.transforms.image.image]]">
-    </json-transform>
-
-    <!-- Offer query -->
-
-    <elastic-client-query-builder
-      type="term"
-      fields='"mainEntityOfPage.hasImagePart.uri"'
-      values="[[imageDisplay.uri]]"
-      ejs-query="{{imageOffersQuery}}">
+      values="[[locationDisplay.location.key]]"
+      ejs-query="{{locationOffersQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
@@ -136,12 +93,12 @@ limitations under the License.
       elastic-types='["offer"]'
       page="{{pageNum}}"
       page-size="{{pageSize}}"
-      query="[[imageOffersQuery]]"
+      query="[[locationOffersQuery]]"
       aggregations="[]"
       filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
-      results="{{imageOffers}}"
+      results="{{locationOffers}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
@@ -149,8 +106,8 @@ limitations under the License.
     </elastic-client-search>
 
     <json-transform
-      data-in="[[imageOffers]]"
-      data-out="{{imageDisplay.imageOffers}}"
+      data-in="[[locationOffers]]"
+      data-out="{{locationDisplay.offers}}"
       transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
 
@@ -179,7 +136,7 @@ limitations under the License.
       elastic-types='["offer"]'
       page="{{pageNum}}"
       page-size="0"
-      query="[[imageOffersQuery]]"
+      query="[[locationOffersQuery]]"
       aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
       filters="[[filterList]]"
       sort-field="validFrom"
@@ -191,33 +148,40 @@ limitations under the License.
     </elastic-client-search>
 
     <json-combine
-      data-in1="[[imageDisplay.url]]"
+      data-in1="null"
       data-in2="[[offersMentions]]"
-      data-out="{{imageDisplay.offersMentions}}"
+      data-out="{{locationDisplay.offersMentions}}"
       combine-function="[[clientConfig.transforms.offer.createMentions]]">
     </json-combine>
 
     <!-- Location timeline for bar chart and itinerary -->
 
     <location-timeline
-      field="mainEntityOfPage.hasImagePart.uri"
-      value="[[imageDisplay.uri]]"
+      field="availableAtOrFrom.address.key"
+      value="[[locationDisplay.location.key]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       filters="[[filterList]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
-      count="[[imageDisplay.imageOffers.count]]"
+      count="[[locationDisplay.offers.count]]"
       interval="{{locationTimelineInterval}}"
-      results="{{imageDisplay.locationTimeline}}"
+      results="{{locationDisplay.locationTimeline}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
     </location-timeline>
+
+    <json-combine
+      data-in1="[[locationDisplay.location.key]]"
+      data-in2="[[locationDisplay.locationTimeline.dates]]"
+      data-out="{{locationDisplay.locationTimeline.strippedDates}}"
+      combine-function="[[clientConfig.transforms.offer.removeNoteFromLocationTimeline]]">
+    </json-combine>
 
     <dig-logger
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
-      supertype="Image"
+      supertype="Location"
       subtype="Open"
       value="[[params.value]]"
       username="[[config.username]]">
@@ -243,10 +207,10 @@ limitations under the License.
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
-            <iron-icon class="iron-icon-huge entity-image-font" icon="image:image"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-location-font" icon="communication:location-on"></iron-icon>
             <section>
               <div class="paper-font-headline">
-                Image
+                Location: [[locationDisplay.location.longName]]
               </div>
             </section>
           </div>
@@ -268,13 +232,6 @@ limitations under the License.
           <paper-icon-button icon="link" title="Generate a Link for this Page with the Selected Filters" on-tap="generateLink">
           </paper-icon-button>
 
-          <annotate-record client="[[esclient]]"
-            annotation-manager="[[annotationManager]]"
-            item="{{imageDisplay}}"
-            item-type="image"
-            current-user="[[config.username]]">
-          </annotate-record>
-
           <load-user-info
             client="[[esclient]]"
             loading="[[loading]]"
@@ -295,38 +252,118 @@ limitations under the License.
             <!-- Left Pane -->
             <div class="flex layout vertical">
 
-              <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
-
+              <!-- Map -->
               <paper-material>
-                <section class="when">
-                  <iron-image id="mainImage" src="{{imageDisplay.url}}" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
+
+                <!-- Leaflet map -->
+                <section class="where flex-auto">
+                  <leaflet-wrapper
+                    text-property="longName"
+                    data="{{buildArray(locationDisplay.location)}}"
+                    text-property="name">
+                  </leaflet-wrapper>
+                </section>
+
+                <section class="where-details flex-none">
+                  
+                  <div class="h-divider"></div>
+
+                  <!-- Event drops timeline -->
+                  <drops-query-and-timeline
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    date-hist-name="dates"
+                    date-hist-field="validFrom"
+                    location-agg-name="locations"
+                    location-agg-field="availableAtOrFrom.address.key"
+                    index-types='["offer"]'
+                    query="[[locationOffersQuery]]"
+                    filter-list="[[filterList]]"
+                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
+                  </drops-query-and-timeline>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
+
+              <!-- Similar/related locations -->
               <paper-material>
-                <section class="when">
+                <section class="where-details">
+
+                  <elastic-client-filter-builder
+                    type="terms"
+                    field="availableAtOrFrom.address.addressLocality"
+                    values="[[buildArray(locationDisplay.location.locality)]]"
+                    ejs-filter="{{ejsLocalityFilter}}">
+                  </elastic-client-filter-builder>
+
+                  <elastic-client-filter-builder
+                    type="terms"
+                    field="availableAtOrFrom.address.addressRegion"
+                    values="[[buildArray(locationDisplay.location.region)]]"
+                    ejs-filter="{{ejsRegionFilter}}">
+                  </elastic-client-filter-builder>
+
+                  <elastic-client-filter-builder
+                    type="or"
+                    field="null"
+                    values="[[buildArray(ejsLocalityFilter, ejsRegionFilter)]]"
+                    ejs-filter="{{similarLocsAggFilter}}">
+                  </elastic-client-filter-builder>
+
+                  <!-- only use first 10 locations for now -->
+                  <elastic-client-aggregation-builder
+                    name="cityAgg"
+                    type="terms"
+                    field="availableAtOrFrom.address.key"
+                    ejs-aggregation="{{cityAgg}}">
+                  </elastic-client-aggregation-builder>
+ 
+                  <elastic-client-aggregation-builder
+                    name="similarLocsAgg"
+                    type="filter"
+                    filter="[[similarLocsAggFilter]]"
+                    nested-aggregations="{{buildArray(cityAgg)}}"
+                    ejs-aggregation="{{locsFilterAggregation}}"
+                    field="">
+                  </elastic-client-aggregation-builder>
+
+                  <elastic-client-search
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    elastic-types='["offer"]'
+                    query="null"
+                    aggregations="[[locsFilterAggregation]]"
+                    page-size="0"
+                    filters="[[filterList]]"
+                    results="{{similarLocResults}}"
+                    loading="{{similarLocsLoading}}"
+                    last-error="{{similarLocsError}}">
+                  </elastic-client-search>
+
+                  <json-combine
+                    data-in1="[[locationDisplay.location.key]]"
+                    data-in2="[[similarLocResults]]"
+                    data-out="{{locationDisplay.similarLocations}}"
+                    combine-function="[[clientConfig.transforms.offer.similarLocations]]">
+                  </json-combine>
+
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <div>[[barChartTitle]]</div>
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>Related Locations</div>
                   </div>
 
-                  <template is="dom-if" if="[[locationTimelineError]]">
-                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
-                    <div>[[locationTimelineErrorMessage]]</div>
-                  </template>
-
-                  <zoomable-bar-chart timeline
-                    bar-property="date"
-                    label-property="name"
-                    stack-property="locations"
-                    data="[[imageDisplay.locationTimeline.dates]]"
-                    default-label="Unknown Location(s)"
-                    source="Ads"
-                    interval="[[locationTimelineInterval]]"
-                    chart-title="{{barChartTitle}}"
-                    loading="[[loadingLocationTimeline]]">
-                  </zoomable-bar-chart>
+                  <feature-aggregation class="flex location"
+                    small="[[small]]"
+                    chart-title=""
+                    id-property="key"
+                    count-property="count"
+                    text-property="name"
+                    items="[[locationDisplay.similarLocations.similarLocations]]"
+                    selected-ids="{{selected}}"
+                    loading="[[similarLocsLoading]]"
+                    show-links>
+                  </feature-aggregation>
                 </section>
               </paper-material>
 
@@ -342,8 +379,8 @@ limitations under the License.
                   </div>
 
                   <people-features
-                    query-field="mainEntityOfPage.hasImagePart.uri"
-                    query-values="[[imageDisplay.uri]]"
+                    query-field="availableAtOrFrom.address.key"
+                    query-values="[[locationDisplay.location.key]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     filter-list="[[filterList]]"
@@ -368,7 +405,7 @@ limitations under the License.
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
-                    <div>Emails & Phones in Ads for this Image</div>
+                    <div>Other Phones & Emails in Ads for [[locationDisplay.location.name]]</div>
                   </div>
 
                   <template is="dom-if" if="[[mentionsError]]">
@@ -376,7 +413,7 @@ limitations under the License.
                     <div>[[mentionsErrorMessage]]</div>
                   </template>
 
-                  <template is="dom-if" if="[[!imageDisplay.offersMentions.length]]">
+                  <template is="dom-if" if="[[!locationDisplay.offersMentions.length]]">
                     <template is="dom-if" if="[[mentionsLoading]]">
                       <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
                     </template>
@@ -387,80 +424,14 @@ limitations under the License.
 
                   <icon-label-grid
                     icon-style-class-property="styleClass"
-                    data="[[imageDisplay.offersMentions]]">
+                    data="[[locationDisplay.offersMentions]]">
                   </icon-label-grid>
                 </section>
               </paper-material>
 
-              <div class="h-divider"></div>
-
-              <paper-material>
-                <section class="who publisher-section">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-webpage-font" icon="av:web"></iron-icon>
-                    <div>[[imageDisplay.offerPublisher.title]]</div>
-                  </div>
-
-                  <template is="dom-if" if="[[publisherError]]">
-                    <elastic-error error="[[publisherError]]" message="{{publisherErrorMessage}}"></elastic-error>
-                    <div>[[publisherErrorMessage]]</div>
-                  </template>
-
-                  <feature-query-and-display
-                    aggregation-name="publisher"
-                    aggregation-field="mainEntityOfPage.publisher.name"
-                    filter-field="mainEntityOfPage.publisher.name"
-                    selected="{{filterCollection.publisher}}"
-                    query="[[imageOffersQuery]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["offer"]'
-                    error="{{publisherError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
-                    transform-results="{{imageDisplay.offerPublisher}}"
-                    transform-property="publisher"
-                    data-text-property="id"
-                    feature-title="Ads per Website">
-                  </feature-query-and-display>
-                </section>
-              </paper-material>
-
-              <template is="dom-if" if="[[imageDisplay.similarImageId]]">
-                <div class="h-divider"></div>
-
-                <paper-material>
-                  <section class="photos">
-                    <div class="paper-font-title layout horizontal start center">
-                      <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                      <div>[[imageDisplayTitle]]</div>
-                    </div>
-
-                    <template is="dom-if" if="[[similarImageError]]">
-                      <elastic-error error="[[similarImageError]]" message="{{similarImageErrorMessage}}"></elastic-error>
-                      <div>[[similarImageErrorMessage]]</div>
-                    </template>
-
-                    <image-query-and-display
-                      image-query-field="similarImageId.similarImageId"
-                      image-query-values="[[imageDisplay.similarImageId.similarImageId]]"
-                      client="[[esclient]]"
-                      index="[[config.elasticIndex]]"
-                      index-types='["image"]'
-                      image-transform="[[clientConfig.transforms.image.images]]"
-                      image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                      type="Similar Image"
-                      image-display-title="{{imageDisplayTitle}}"
-                      error="{{similarImageError}}"
-                      blur="[[blurImages]]"
-                      image-query-source-include='["url", "uri"]'>
-                    </image-query-and-display>
-                  </section>
-                </paper-material>
-              </template>
-
               <!-- Itinerary section -->
               <div class="h-divider"></div>
+
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
@@ -475,90 +446,49 @@ limitations under the License.
 
                   <itinerary-list
                     parts-property="locations"
-                    data="[[imageDisplay.locationTimeline.dates]]"
+                    data="[[locationDisplay.locationTimeline.strippedDates]]"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
                     itinerary-title="{{itineraryTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </itinerary-list>
                 </section>
-              </paper-material>
-
+              </paper-material> 
             </div>
 
-            <!-- Right Pane -->
+            <!-- Right pane -->
             <div class="flex layout vertical">
 
-              <!-- Map -->
+              <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
               <paper-material>
-                <!-- City summary -->
-                <section class="where-header flex-none">
+                <section class="when">
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[imageDisplay.offerLocation.title]]</div>
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[barChartTitle]]</div>
                   </div>
-                </section>
 
-                <!-- Leaflet map -->
-                <template is="dom-if" if="[[imageDisplay.offerLocation.location.length]]">
-                  <section class="where flex-auto">
-                    <leaflet-wrapper
-                      text-property="longName"
-                      data="{{imageDisplay.offerLocation.location}}">
-                    </leaflet-wrapper>
-                  </section>
-                </template>
-
-                <!-- City summary -->
-                <section class="where-details location-section flex-none">
-                  <template is="dom-if" if="[[locationError]]">
-                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
-                    <div>[[locationErrorMessage]]</div>
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
+                    <div>[[locationTimelineErrorMessage]]</div>
                   </template>
 
-                  <feature-query-and-display
-                    aggregation-name="location"
-                    aggregation-field="availableAtOrFrom.address.key"
-                    filter-field="availableAtOrFrom.address.key"
-                    selected="{{filterCollection.location}}"
-                    query="[[imageOffersQuery]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["offer"]'
-                    error="{{locationError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
-                    transform-results="{{imageDisplay.offerLocation}}"
-                    transform-property="location"
-                    data-id-property="key"
-                    data-text-property="name"
-                    feature-title="Ads per Location"
-                    show-checkboxes
-                    show-links>
-                  </feature-query-and-display>
-
-                  <div class="h-divider"></div>
-
-                  <!-- Event drops timeline -->
-                  <drops-query-and-timeline
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    date-hist-name="dates"
-                    date-hist-field="validFrom"
-                    location-agg-name="locations"
-                    location-agg-field="availableAtOrFrom.address.key"
-                    index-types='["offer"]'
-                    query="[[imageOffersQuery]]"
-                    filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
-                  </drops-query-and-timeline>
-
+                  <zoomable-bar-chart timeline
+                    bar-property="date"
+                    label-property="name"
+                    stack-property="locations"
+                    data="[[locationDisplay.locationTimeline.dates]]"
+                    default-label="Unknown Location(s)"
+                    source="Ads"
+                    interval="[[locationTimelineInterval]]"
+                    chart-title="{{barChartTitle}}"
+                    loading="[[loadingLocationTimeline]]">
+                  </zoomable-bar-chart>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
 
-              <!-- Offers for the image-->
+              <!-- Offers for the location -->
               <paper-material>
                 <section>
                   <div class="paper-font-title layout horizontal start center">
@@ -580,8 +510,8 @@ limitations under the License.
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
-                    query-results="[[imageDisplay.imageOffers.data]]"
-                    total-results="{{imageDisplay.imageOffers.count}}"
+                    query-results="[[locationDisplay.offers.data]]"
+                    total-results="{{locationDisplay.offers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
                     page-size="[[pageSize]]"
@@ -597,8 +527,8 @@ limitations under the License.
             </div>
 
           </div>
-
         </div>
+
       </paper-header-panel>
     </div>
   </template>
@@ -614,7 +544,6 @@ limitations under the License.
     var app = document.querySelector('#app');
 
     app.filterCollection = {
-      publisher: [],
       location: [],
       name: [],
       age: [],
@@ -631,11 +560,24 @@ limitations under the License.
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.getBlurClass =  function(blur) {
-      return (blur ? 'large-blur' : '');
+    app.createLocationProperties = function() {
+      var locationKey = app.params.value.replace(/%20/g, ' ');
+      var locationData = locationKey.split(':');
+
+      return {
+        location: {
+          key: locationKey,
+          longitude: locationData[3],
+          latitude: locationData[4],
+          locality: locationData[0],
+          region: locationData[1],
+          name: locationData[0] + ', ' + locationData[1],
+          longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2]
+        }
+      };
     };
 
-    app.imageDisplay = {};
+    app.locationDisplay = app.createLocationProperties();
 
     app.generateLink = function() {
       this.$.stateManager.generateLink();

@@ -44,13 +44,16 @@ var commonTransforms = (function(_, moment) {
   }
 
   /**
-   * Returns the link for the given ID and type.
+   * Returns the link for the given field/value combination and type.
    */
-  function getLink(id, type) {
-    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller')) {
+  function getLink(value, type) {
+    if(!value || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller' || type === 'location')) {
       return undefined;
     }
-    return '/' + type + '.html?value=' + id + '&field=_id';
+
+    var field = type === 'location' ? 'availableAtOrFrom.address.key' : '_id';
+
+    return '/' + type + '.html?value=' + value + '&field=' + field;
   }
 
   /**

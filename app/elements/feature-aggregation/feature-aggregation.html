@@ -83,9 +83,11 @@ limitations under the License.
           <horizontal-bar
             name="[[_getProperty(item, textProperty)]]"
             count="[[_getProperty(item, countProperty)]]"
-            width="[[item.width]]"
             selected="{{item.selected}}"
-            toggle-listener="[[_createToggleListener(item)]]">
+            toggle-listener="[[_createToggleListener(item)]]"
+            max="[[item.max]]"
+            show-checkbox="{{showCheckboxes}}"
+            link-value="[[_getLinkValue(item)]]">
           </horizontal-bar>
         </template>
       </div>
@@ -185,6 +187,22 @@ limitations under the License.
         },
 
         /**
+         * Whether or not to display an item as a link.
+         */
+        showLinks: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether or not to display a checkbox in each horizontal-bar.
+         */
+        showCheckboxes: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
          * The list of items that are now selected or have previously been selected.  Computed from the 'items' and 'selectedIds'.  Required
          * in case the list of items does not contain an item for a selected ID due to a new filter created by another component.
          */
@@ -219,20 +237,15 @@ limitations under the License.
           value: false
         }
       },
-
       /**
-       * Returns the width of the bar for the given item in CSS syntax.
+       * Get link value if it exists and showLinks is set to true.
        */
-      _computeWidth: function(count, maxCount) {
-        // This returns bar widths relative to the highest count item, assuming it's first.
-        // Could also sum up all counts and do widths relative to the total.
-        // Will return a minimum of 1 as the width if the count is greater than 0.
-        var widthCalc = Math.round((count / maxCount) * 100);
-        return (widthCalc === 0 && count > 0 ? 1 : widthCalc);
+      _getLinkValue: function(item) {
+        return (this.showLinks && item && item.link !== undefined) ? item.link : null;
       },
 
       /**
-       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'width' properties for the items.
+       * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'max' properties for the items.
        */
       _computeCombinedItems: function() {
         if(!this.items.length && !this._selectedItems.length) {
@@ -259,10 +272,9 @@ limitations under the License.
         });
 
         var maxCount = Math.max((combinedItems.length ? combinedItems[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
-
-        // Ensure that the width of each selected item is up-to-date once the selected items are sorted.
+        // Ensure that the max count of each selected item is up-to-date once the selected items are sorted.
         combinedItems.forEach(function(item) {
-          item.width = self._computeWidth(item[self.countProperty], maxCount);
+          item.max = maxCount;
         });
 
         this.items.forEach(function(item) {
@@ -270,9 +282,9 @@ limitations under the License.
           if(index < 0) {
             // Ensure that this component does not affect the input items by creating a copy.
             var clonedItem = _.cloneDeep(item);
+            clonedItem.max = maxCount;
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
-            clonedItem.width = self._computeWidth(clonedItem[self.countProperty], maxCount);
             combinedItems.push(clonedItem);
           }
         });

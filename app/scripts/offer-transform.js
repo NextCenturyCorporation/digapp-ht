@@ -43,6 +43,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
    */
   function getLocations(locations) {
     return (_.isArray(locations) ? locations : [locations]).map(function(location) {
+      var key = _.get(location, 'key');
       var locality = _.get(location, 'addressLocality');
       var region = _.get(location, 'addressRegion');
       var country = _.get(location, 'addressCountry');
@@ -50,6 +51,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       var longitude = _.get(location, 'geo.longitude');
 
       return {
+        key: key,
         latitude: latitude,
         longitude: longitude,
         icon: commonTransforms.getIronIcon('location'),
@@ -150,6 +152,8 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
     offer.name = _.isArray(offer.name) ? offer.name.join(', ') : offer.name;
     offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
+    offer.locationKey = offer.locations.length ? offer.locations[0].key : undefined;
+    offer.locationLink = offer.locations.length ? commonTransforms.getLink(offer.locationKey, 'location') : undefined;
 
     offer.descriptors.push({
       icon: commonTransforms.getIronIcon('date'),
@@ -167,6 +171,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       icon: commonTransforms.getIronIcon('location'),
       styleClass: commonTransforms.getStyleClass('location'),
       text: offer.location,
+      link: commonTransforms.getLink(offer.locationKey, 'location'),
       type: 'location'
     });
     offer.descriptors = offer.descriptors.concat(offer.phones);
@@ -306,6 +311,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           sum += locationBucket.doc_count;
           subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', ') + ' (' + locationBucket.doc_count + ')');
           return {
+            link: commonTransforms.getLink(locationBucket.key, 'location'),
             name: locationBucket.key.split(':').slice(0, 3).join(', '),
             icon: commonTransforms.getIronIcon('location'),
             styleClass: commonTransforms.getStyleClass('location'),
@@ -361,6 +367,22 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       }
       return obj;
     });
+  }
+
+  function offerSplitLocations(locationBucket) {
+    var locationData = locationBucket.key.split(':');
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var location = {
+      key: locationBucket.key,
+      count: locationBucket.doc_count,
+      longitude: locationData[3],
+      latitude: locationData[4],
+      name: locationData[0] + ', ' + locationData[1],
+      longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2] + ' (' + locationBucket.doc_count + ')',
+      link: commonTransforms.getLink(locationBucket.key, 'location'),
+    };
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    return location;
   }
 
   return {
@@ -580,22 +602,26 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     offerLocations: function(data) {
       var locations = [];
       (data && data.aggregations ? data.aggregations.location.location.buckets : []).forEach(function(locationBucket) {
-        var locationData = locationBucket.key.split(':');
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        locations.push({
-          key: locationBucket.key,
-          count: locationBucket.doc_count,
-          longitude: locationData[3],
-          latitude: locationData[4],
-          name: locationData[0] + ', ' + locationData[1],
-          longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2] + ' (' + locationBucket.doc_count + ')'
-        });
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        locations.push(offerSplitLocations(locationBucket));
       });
 
       return {
         title: (locations.length || 'No') + ' Location' + (locations.length === 1 ? '' : 's'),
         location: locations
+      };
+    },
+
+    similarLocations: function(currentLocation, data) {
+      var similarLocations = [];
+      (data && data.aggregations ? data.aggregations.similarLocsAgg.similarLocsAgg.cityAgg.buckets : []).forEach(function(locationBucket) {
+        // omit current location used to display entity page
+        if(locationBucket.key !== currentLocation) {
+          similarLocations.push(offerSplitLocations(locationBucket));
+        }
+      });
+
+      return {
+        similarLocations: similarLocations
       };
     },
 

@@ -89,6 +89,7 @@ limitations under the License.
     test('defines location array in offer', function() {
       var output = clientConfig.config.transforms.offer.offer(offerResult);
       assert.deepEqual(output.locations, [{
+        key: 'West Palm Beach:Florida:United States:-80.05337:26.71534',
         latitude: '26.71534',
         longitude: '-80.05337',
         icon: 'communication:location-on',
@@ -196,6 +197,7 @@ limitations under the License.
         icon: 'communication:location-on',
         styleClass: 'entity-location-font',
         text: 'West Palm Beach, Florida, United States',
+        link: '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key',
         type: 'location'
       }, {
         id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
@@ -294,7 +296,8 @@ limitations under the License.
         icon: 'communication:location-on',
         styleClass: 'entity-location-font',
         text: 'No Location',
-        type: 'location'
+        type: 'location',
+        link: undefined
       }]);
     });
 
@@ -789,43 +792,77 @@ limitations under the License.
         longitude: '-84.38798',
         latitude: '33.749',
         name: 'Atlanta, Georgia',
-        longName: 'Atlanta, Georgia, United States (45)'
+        longName: 'Atlanta, Georgia, United States (45)',
+        link: '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key'
       }, {
         key: 'Brooklyn:New York:United States:-73.94958:40.6501',
         count: 44,
         longitude: '-73.94958',
         latitude: '40.6501',
         name: 'Brooklyn, New York',
-        longName: 'Brooklyn, New York, United States (44)'
+        longName: 'Brooklyn, New York, United States (44)',
+        link: '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key'
       }, {
         key: 'Houston:Texas:United States:-95.36327:29.76328',
         count: 1,
         longitude: '-95.36327',
         latitude: '29.76328',
         name: 'Houston, Texas',
-        longName: 'Houston, Texas, United States (1)'
+        longName: 'Houston, Texas, United States (1)',
+        link: '/location.html?value=Houston:Texas:United States:-95.36327:29.76328&field=availableAtOrFrom.address.key'
       }, {
         key: 'Lubbock:Texas:United States:-101.85517:33.57786',
         count: 1,
         longitude: '-101.85517',
         latitude: '33.57786',
         name: 'Lubbock, Texas',
-        longName: 'Lubbock, Texas, United States (1)'
+        longName: 'Lubbock, Texas, United States (1)',
+        link: '/location.html?value=Lubbock:Texas:United States:-101.85517:33.57786&field=availableAtOrFrom.address.key'
       }, {
         key: 'Mansfield:Ohio:United States:-82.51545:40.75839',
         count: 1,
         longitude: '-82.51545',
         latitude: '40.75839',
         name: 'Mansfield, Ohio',
-        longName: 'Mansfield, Ohio, United States (1)'
+        longName: 'Mansfield, Ohio, United States (1)',
+        link: '/location.html?value=Mansfield:Ohio:United States:-82.51545:40.75839&field=availableAtOrFrom.address.key'
       }, {
         key: 'Tri-Cities:Washington:United States:-119.19617:46.2454',
         count: 1,
         longitude: '-119.19617',
         latitude: '46.2454',
         name: 'Tri-Cities, Washington',
-        longName: 'Tri-Cities, Washington, United States (1)'
+        longName: 'Tri-Cities, Washington, United States (1)',
+        link: '/location.html?value=Tri-Cities:Washington:United States:-119.19617:46.2454&field=availableAtOrFrom.address.key'
       }]);
+    });
+  });
+
+  suite('<client-config> offer tests: transform for similar offer locations', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with similar locations transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer.similarLocations).to.be.a('Function');
+    });
+
+    test('defines locations for similar location aggregation buckets', function() {
+      var output = clientConfig.config.transforms.offer.similarLocations('Atlanta:Georgia:United States:-84.38798:33.749', offerAgg);
+      assert.equal(output.similarLocations.length, 5);
+      assert.equal(output.similarLocations[0].key, 'Brooklyn:New York:United States:-73.94958:40.6501');
+      assert.equal(output.similarLocations[0].count, 44);
+      assert.equal(output.similarLocations[0].longitude, '-73.94958');
+      assert.equal(output.similarLocations[0].latitude, '40.6501');
+      assert.equal(output.similarLocations[0].name, 'Brooklyn, New York');
+      assert.equal(output.similarLocations[0].longName, 'Brooklyn, New York, United States (44)');
+      assert.equal(output.similarLocations[0].link, '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key');
     });
   });
 
@@ -900,6 +937,7 @@ limitations under the License.
 
       assert.isArray(output.dates[0].locations);
       assert.equal(output.dates[0].locations.length, 2);
+      assert.equal(output.dates[0].locations[0].link, '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key');
       assert.equal(output.dates[0].locations[0].icon, 'communication:location-on');
       assert.equal(output.dates[0].locations[0].name, 'Atlanta, Georgia, United States');
       assert.equal(output.dates[0].locations[0].type, 'location');
@@ -933,10 +971,17 @@ limitations under the License.
         type: 'email'
       }]);
       assert.equal(output.dates[0].locations[1].name, 'Brooklyn, New York, United States');
+      assert.equal(output.dates[0].locations[1].link, '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key');
       assert.equal(output.dates[0].locations[1].type, 'location');
       assert.equal(output.dates[0].locations[1].count, 1);
       assert.isArray(output.dates[0].locations[1].notes);
       assert.equal(output.dates[0].locations[1].notes.length, 3);
+      assert.equal(output.dates[0].locations[2].name, 'Unknown Location(s)');
+      assert.isUndefined(output.dates[0].locations[2].link);
+      assert.equal(output.dates[0].locations[2].type, 'location');
+      assert.equal(output.dates[0].locations[2].count, 1);
+      assert.isArray(output.dates[0].locations[2].notes);
+      assert.equal(output.dates[0].locations[2].notes.length, 0);
     });
 
     test('returns array for dates with no locations', function() {
@@ -1133,6 +1178,8 @@ limitations under the License.
       assert.equal(output.data[0].publisher, 'google.com');
       assert.equal(output.data[0].description, 'This is the description.');
       assert.equal(output.data[0].location, 'West Palm Beach, Florida, United States');
+      assert.equal(output.data[0].locationKey, 'West Palm Beach:Florida:United States:-80.05337:26.71534');
+      assert.equal(output.data[0].locationLink, '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key');
 
       assert.deepEqual(output.data[0].images, [{
         id: 'http://dig.isi.edu/ht/data/0501F8D47865203415090787585F27A8E738FDC8',
@@ -1149,6 +1196,7 @@ limitations under the License.
       }]);
 
       assert.deepEqual(output.data[0].locations, [{
+        key: 'West Palm Beach:Florida:United States:-80.05337:26.71534',
         latitude: '26.71534',
         longitude: '-80.05337',
         icon: 'communication:location-on',
@@ -1235,6 +1283,7 @@ limitations under the License.
         icon: 'communication:location-on',
         styleClass: 'entity-location-font',
         text: 'West Palm Beach, Florida, United States',
+        link: '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key',
         type: 'location'
       }, {
         id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
@@ -1293,6 +1342,7 @@ limitations under the License.
       assert.deepEqual(output.data[0].prices, []);
 
       assert.deepEqual(output.data[0].locations, [{
+        key: 'Brooklyn:New York:United States:-73.94958:40.6501',
         latitude: '40.6501',
         longitude: '-73.94958',
         icon: 'communication:location-on',
@@ -1367,6 +1417,7 @@ limitations under the License.
         icon: 'communication:location-on',
         styleClass: 'entity-location-font',
         text: 'Brooklyn, New York, United States',
+        link: '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key',
         type: 'location'
       }, {
         id: 'http://dig.isi.edu/ht/data/phone/1-9876543210',
@@ -1417,6 +1468,7 @@ limitations under the License.
       assert.deepEqual(output.data[1].prices, []);
 
       assert.deepEqual(output.data[1].locations, [{
+        key: 'Atlanta:Georgia:United States:-84.38798:33.749',
         latitude: '33.749',
         longitude: '-84.38798',
         icon: 'communication:location-on',
@@ -1491,7 +1543,8 @@ limitations under the License.
         icon: 'communication:location-on',
         styleClass: 'entity-location-font',
         text: 'Atlanta, Georgia, United States',
-        type: 'location'
+        type: 'location',
+        link: '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key',
       }, {
         id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
         icon: 'communication:phone',
@@ -1535,6 +1588,8 @@ limitations under the License.
       assert.equal(output.data[0].publisher, 'No Publisher');
       assert.equal(output.data[0].description, 'No Description');
       assert.equal(output.data[0].location, 'No Location');
+      assert.isUndefined(output.data[0].locationKey);
+      assert.isUndefined(output.data[0].locationLink);
       assert.isUndefined(output.data[0].url);
       assert.deepEqual(output.data[0].images, []);
       assert.deepEqual(output.data[0].locations, []);
@@ -1558,7 +1613,8 @@ limitations under the License.
         icon: 'communication:location-on',
         styleClass: 'entity-location-font',
         text: 'No Location',
-        type: 'location'
+        type: 'location',
+        link: undefined
       }]);
 
       assert.deepEqual(output.data[0].details, [{
