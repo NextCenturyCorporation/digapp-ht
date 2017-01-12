@@ -51,12 +51,42 @@ limitations under the License.
         margin-right: 20px;
       }
 
+      .single-record-text {
+        min-height: 25px;
+        line-height: 25px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+      }
+
+      .body button-link ::content paper-button {
+        /* Needed to make the button look nice. */
+        margin-top: 10px;
+      }
+
       icon-label {
         display: inline-block;
         margin-right: 5px;
 
         --icon-label-text: {
           color: var(--secondary-text-color);
+          word-break: break-all;
+        };
+
+        --icon-label-link-hover: {
+          color: var(--primary-text-color);
+        };
+      }
+
+      icon-label.annotations {
+        display: inline-block;
+        margin-right: 5px;
+
+        --icon-label-text: {
+          color: var(--secondary-text-color);
+          @apply(--annotations-list);
         };
 
         --icon-label-link-hover: {
@@ -119,10 +149,24 @@ limitations under the License.
           </strong>
         </div>
 
+        <template is="dom-if" if="[[item.locationDescriptor]]">
+          <div class="single-record-text wrap">
+            <div class="descriptor" secondary>
+              <icon-label title="Open [[item.locationDescriptor.text]]"
+                icon="[[item.locationDescriptor.icon]]"
+                icon-style-class="[[item.locationDescriptor.styleClass]]"
+                link="[[item.locationDescriptor.link]]"
+                target="[[getTarget(newTab)]]"
+                text="[[item.locationDescriptor.text]]">
+              </icon-label>
+            </div>
+          </div>
+        </template>
+
         <template is="dom-if" if="[[item.descriptors.length]]">
-          <div class="text wrap" secondary>
+          <div class="horizontal layout wrap single-record-text" secondary>
             <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
-              <div class="descriptor">
+              <div class="descriptor flex-1">
                 <icon-label title="Open [[descriptor.text]]"
                   icon="[[descriptor.icon]]"
                   icon-style-class="[[descriptor.styleClass]]"
@@ -135,6 +179,50 @@ limitations under the License.
                 </template>
               </div>
             </template>
+          </div>
+        </template>
+
+        <template is="dom-if" if="[[hasPhonesOrEmails(item)]]">
+          <div class="horizontal layout wrap single-record-text" secondary>
+            <div class="vertical layout flex-1">
+              <template is="dom-if" if="[[item.phones.length]]">
+                <template is="dom-repeat" items="[[item.phones]]" as="phone">
+                  <div class="descriptor">
+                    <icon-label class="annotations"
+                      title="Open [[phone.text]]"
+                      icon="[[phone.icon]]"
+                      icon-style-class="[[phone.styleClass]]"
+                      link="[[phone.link]]"
+                      target="[[getTarget(newTab)]]"
+                      text="[[phone.text]]">
+                    </icon-label>
+                    <template is="dom-if" if="[[phone.annotate]]">
+                      <iron-icon class="iron-icon-small" icon="fa:flag"></iron-icon>
+                    </template>
+                  </div>
+                </template>
+              </template>
+            </div>
+
+            <div class="vertical layout flex-1">
+              <template is="dom-if" if="[[item.emails.length]]">
+                <template is="dom-repeat" items="[[item.emails]]" as="email">
+                  <div class="descriptor">
+                    <icon-label class="annotations"
+                      title="Open [[email.text]]"
+                      icon="[[email.icon]]"
+                      icon-style-class="[[email.styleClass]]"
+                      link="[[email.link]]"
+                      target="[[getTarget(newTab)]]"
+                      text="[[email.text]]">
+                    </icon-label>
+                    <template is="dom-if" if="[[email.annotate]]">
+                      <iron-icon class="iron-icon-small" icon="fa:flag"></iron-icon>
+                    </template>
+                  </div>
+                </template>
+              </template>
+            </div>
           </div>
         </template>
       </div>
@@ -333,6 +421,10 @@ limitations under the License.
           'updateImageSrcFromPropertyImages(images.splices)',
           'updateShowDetails(item.details)'
       ],
+
+      hasPhonesOrEmails: function(item) {
+        return item && ((item.phones && item.phones.length) || (item.emails && item.emails.length));
+      },
 
       getNewIconDivClass: function(item, notificationQueryDate) {
         if(notificationQueryDate) {

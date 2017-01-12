@@ -155,6 +155,13 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
     offer.locationKey = offer.locations.length ? offer.locations[0].key : undefined;
     offer.locationLink = offer.locations.length ? commonTransforms.getLink(offer.locationKey, 'location') : undefined;
+    offer.locationDescriptor = {
+      icon: commonTransforms.getIronIcon('location'),
+      styleClass: commonTransforms.getStyleClass('location'),
+      text: offer.location,
+      link: commonTransforms.getLink(offer.locationKey, 'location'),
+      type: 'location'
+    };
 
     offer.descriptors.push({
       icon: commonTransforms.getIronIcon('date'),
@@ -168,15 +175,6 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       type: 'webpage',
       text: offer.publisher
     });
-    offer.descriptors.push({
-      icon: commonTransforms.getIronIcon('location'),
-      styleClass: commonTransforms.getStyleClass('location'),
-      text: offer.location,
-      link: commonTransforms.getLink(offer.locationKey, 'location'),
-      type: 'location'
-    });
-    offer.descriptors = offer.descriptors.concat(offer.phones);
-    offer.descriptors = offer.descriptors.concat(offer.emails);
 
     offer.details.push({
       name: 'Url',
