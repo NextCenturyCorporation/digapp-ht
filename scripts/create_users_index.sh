@@ -116,6 +116,10 @@ curl -XPUT localhost:9200/dig-users -d '
             "createdAt": {
               "type": "date",
               "format" : "dateOptionalTime"
+            },
+            "message": {
+              "type": "string",
+              "index": "no"
             }
           }
         },

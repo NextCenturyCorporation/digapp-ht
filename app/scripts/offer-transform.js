@@ -341,9 +341,9 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       return timeline;
     }, []);
 
-    // Sort newest first.
+    // Sort oldest first.
     timeline.sort(function(a, b) {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
     });
 
     return timeline;
@@ -419,8 +419,8 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       });
     },
 
-    removeNoteFromLocationTimeline: function(noteItemId, timeline) {
-      return timeline.map(function(date) {
+    removeNoteFromLocationTimeline: function(noteItemId, oldTimeline) {
+      var newTimeline = oldTimeline.map(function(date) {
         date.locations = date.locations.map(function(location) {
           location.notes = location.notes.map(function(note) {
             var previousLength = note.data.length;
@@ -440,6 +440,13 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         });
         return date;
       });
+
+      // Sort newest first.
+      newTimeline.sort(function(a, b) {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      });
+
+      return newTimeline;
     },
 
     locationTimeline: function(data) {

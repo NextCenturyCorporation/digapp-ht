@@ -32,7 +32,7 @@ limitations under the License.
     <elastic-client-aggregation-builder
       name="[[emailAggregationName]]"
       type="terms"
-      count="0"
+      count="[[aggregationCount]]"
       field="[[emailAggregationField]]"
       ejs-aggregation="{{emailsAggregation}}">
     </elastic-client-aggregation-builder>
@@ -40,7 +40,7 @@ limitations under the License.
     <elastic-client-aggregation-builder
       name="[[phoneAggregationName]]"
       type="terms"
-      count="0"
+      count="[[aggregationCount]]"
       field="[[phoneAggregationField]]"
       ejs-aggregation="{{phonesAggregation}}">
     </elastic-client-aggregation-builder>
@@ -48,7 +48,7 @@ limitations under the License.
     <elastic-client-aggregation-builder
       name="[[publisherAggregationName]]"
       type="terms"
-      count="0"
+      count="[[aggregationCount]]"
       field="[[publisherAggregationField]]"
       ejs-aggregation="{{publishersAggregation}}">
     </elastic-client-aggregation-builder>
@@ -235,6 +235,14 @@ limitations under the License.
         },
 
         /**
+         * The count of results for the publisher, phone, and email aggregations.  Default is 0 (all results).
+         */
+        aggregationCount: {
+          type: Number,
+          value: 0
+        },
+
+        /**
          * The interval of the date histogram aggregation.
          */
         interval: {
@@ -329,7 +337,19 @@ limitations under the License.
       },
 
       computeInterval: function(count) {
-        return count ? (count < 1000 ? 'day' : 'week') : undefined;
+        if(count) {
+          if(count > 100000) {
+            return 'year';
+          }
+          if(count > 10000) {
+            return 'month';
+          }
+          if(count > 1000) {
+            return 'week';
+          }
+          return 'day';
+        }
+        return undefined;
       }
     });
   })();

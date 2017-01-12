@@ -25,21 +25,31 @@ limitations under the License.
       }
 
       paper-spinner {
-        padding-top: 10px;
+        padding-bottom: 5px;
+      }
+
+      paper-input {
+        min-width: 300px;
       }
     </style>
+
     <div class="layout horizontal">
-      <div class="layout vertical right-space">
+      <div class="layout vertical">
         <paper-input label="Enter DIG User Name" value="{{_userToSendQuery}}"
           disabled="[[_isSendDisabled(disableSend, sendInProgress)]]" no-label-float>
         </paper-input>
+
+        <paper-input label="Enter Message (Optional)" value="{{_messageToSend}}"
+          disabled="[[_isSendDisabled(disableSend, sendInProgress)]]" no-label-float>
+        </paper-input>
+
+        <div class="layout horizontal end-justified">
+          <button-action class="inline" title="Send this Search to User" text="Send" value="{{_checkForUser}}"
+            disabled="[[_isSendDisabled(disableSend, sendInProgress)]]" click-listener="[[_createSendSearchListener()]]">
+          </button-action>
+        </div>
       </div>
-      <div class="layout vertical">
-        <button-action class="inline" title="Send this Search to User" text="Send" value="{{_checkForUser}}"
-          disabled="[[_isSendDisabled(disableSend, sendInProgress)]]" click-listener="[[_createSendSearchListener()]]">
-        </button-action>
-      </div>
-      <div class="layout vertical">
+      <div class="layout vertical end-justified">
         <template is="dom-if" if="[[_querySentSuccessfully]]" restamp="true">
           <paper-icon-button icon="check" title="Query sent successfully!" noink></paper-icon-button>
         </template>
@@ -54,7 +64,6 @@ limitations under the License.
         </template>
       </div>
     </div>
-
     <user-query
       client="[[client]]"
       user-index="[[userIndex]]"
@@ -219,6 +228,13 @@ limitations under the License.
         _sendingThisQuery: {
           type: Boolean,
           notify: true
+        },
+
+        /**
+         * Message to send to user (optional)
+         */
+        _messageToSend: {
+          type: String
         }
       },
       observers: [
@@ -263,13 +279,12 @@ limitations under the License.
               self._queryAlreadySent = undefined;
               self._userIdToSendQuery = undefined;
               self._set_sendUserUpdateBody(undefined);
-              self._queryToSend = JSON.parse(JSON.stringify(self.search));
+              self._queryToSend = _.omit(self.search, ['lastRunDate', 'notificationDate', 'notificationHasRun', 'sendEmailNotification']);
+              if(self._messageToSend) {
+                self._queryToSend.message = self._messageToSend;
+              }
               // don't send record with notification fields
               self._checkForUser = JSON.parse(JSON.stringify(self._userToSendQuery));
-              delete self._queryToSend.lastRunDate;
-              delete self._queryToSend.notificationDate;
-              delete self._queryToSend.notificationHasRun;
-              delete self._queryToSend.sendEmailNotification;
             }
           }
         };
