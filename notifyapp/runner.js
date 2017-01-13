@@ -22,6 +22,11 @@
  */
 
 module.exports = function(logger, client, userIndex, userType, dataIndex, dateField, sendAlertEmailCallback) {
+  logger.info('Runner created.');
+  logger.info('User Index:  ' + userIndex);
+  logger.info('User Type:  ' + userType);
+  logger.info('Data Index:  ' + dataIndex);
+  logger.info('Date Field:  ' + dateField);
 
   var createSavedQueryBody = function(savedQuery) {
     var savedQueryBody = {
@@ -39,10 +44,15 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var checkAndSaveAlert = function(savedQuery, results) {
+    logger.info('Search Result List Length:  ' + results.hits.hits.length);
+
     if(results.hits.hits.length) {
       // Check the date of the newest item and compare it with the date on which the saved query was last run.
       var resultDate = new Date(results.hits.hits[0]._source[dateField]);
+      logger.info('Search Result Date:  ' + resultDate.toUTCString());
       var lastDate = new Date(savedQuery.lastRunDate);
+      logger.info('Last Run Date:  ' + lastDate.toUTCString());
+
       if(resultDate.getTime() > lastDate.getTime()) {
         // Update the notification date so the app knows to show an alert.
         savedQuery.notificationHasRun = false;
@@ -53,6 +63,8 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var updateUser = function(user, savedQueries, callback) {
+    logger.info('Start update of user ' + user._source.username + ' with ID ' + user._id);
+
     // Update the saved queries for the user in the database.
     client.update({
       index: userIndex,
@@ -65,7 +77,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
       }
     }, function(error, response) {
       if(error) {
-        logger.error(error, 'Error updating user ' + user._id);
+        logger.error(error, 'Error in update of user ' + user._source.username + ' with ID ' + user._id);
       }
       callback(savedQueries);
     });
@@ -84,6 +96,9 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     };
 
     var savedQuery = savedQueries[0];
+
+    logger.info('Saved Query:  ' + savedQuery.name);
+    logger.info('Enabled:  ' + savedQuery.sendEmailNotification);
 
     // Check if we need to run the saved query.
     if(savedQuery.sendEmailNotification) {
@@ -134,10 +149,15 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
     };
 
     var user = users[0];
+    var savedQueries = user._source.savedQueries || [];
+
+    logger.info('User:  ' + user._source.username);
+    logger.info('Freq:  ' + user._source.notificationFrequency);
+    logger.info('Saved Query List Length:  ' + savedQueries.length);
 
     // Check if we need to run the saved queries for the user.
-    if(user._source.notificationFrequency === period) {
-      checkNextQuery(user._source.savedQueries, [], function(updatedQueries) {
+    if(user._source.notificationFrequency === period && savedQueries.length) {
+      checkNextQuery(savedQueries, [], function(updatedQueries) {
         updateUser(user, updatedQueries, done);
       });
     } else {
@@ -146,16 +166,19 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var checkUsers = function(period) {
+    logger.info('========================================');
+    logger.info('Start check for period ' + period);
     return function() {
-      // Get the list of all users.
+      // Get the list of all users.  Set the size to an arbitrary big number.
       client.search({
         index: userIndex,
         type: userType,
-        body: {}
+        body: {},
+        size: 10000
       }).then(function(users) {
-        logger.info('Checking ' + users.hits.hits.length + ' users for period ' + period);
+        logger.info('Check ' + users.hits.hits.length + ' users...');
         checkAndSaveNextUser(users.hits.hits, period);
-        logger.info('Done checking ' + users.hits.hits.length + ' users for period ' + period);
+        logger.info('End check for period ' + period);
       }, function(error) {
         logger.error(error, 'Error getting users');
       });
