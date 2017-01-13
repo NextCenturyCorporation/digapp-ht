@@ -67,6 +67,8 @@ limitations under the License.
       assert.equal(output.publisher, 'google.com');
       assert.equal(output.description, 'This is the description.');
       assert.equal(output.location, 'West Palm Beach, Florida, United States');
+      assert.equal(output.locationKey, 'West Palm Beach:Florida:United States:-80.05337:26.71534');
+      assert.equal(output.locationLink, '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key');
     });
 
     test('defines image array in offer', function() {
@@ -181,6 +183,17 @@ limitations under the License.
       }]);
     });
 
+    test('defines locationDescriptor in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer(offerResult);
+      assert.deepEqual(output.locationDescriptor, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'West Palm Beach, Florida, United States',
+        link: '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key',
+        type: 'location'
+      });
+    });
+
     test('defines descriptors in offer', function() {
       var output = clientConfig.config.transforms.offer.offer(offerResult);
       assert.deepEqual(output.descriptors, [{
@@ -193,26 +206,6 @@ limitations under the License.
         styleClass: 'entity-webpage-font',
         text: 'google.com',
         type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'West Palm Beach, Florida, United States',
-        link: '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key',
-        type: 'location'
-      }, {
-        id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
-        icon: 'communication:phone',
-        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1234567890&field=_id',
-        styleClass: 'entity-phone-font',
-        text: '1234567890',
-        type: 'phone',
-      }, {
-        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
-        icon: 'communication:email',
-        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
-        styleClass: 'entity-email-font',
-        text: 'abc@xyz.com',
-        type: 'email'
       }]);
     });
 
@@ -252,6 +245,8 @@ limitations under the License.
       assert.equal(output.publisher, 'No Publisher');
       assert.equal(output.description, 'No Description');
       assert.equal(output.location, 'No Location');
+      assert.isUndefined(output.locationKey);
+      assert.isUndefined(output.locationLink);
       assert.deepEqual(output.images, []);
       assert.deepEqual(output.locations, []);
       assert.deepEqual(output.prices, []);
@@ -280,6 +275,17 @@ limitations under the License.
       });
     });
 
+    test('defines locationDescriptor in offer', function() {
+      var output = clientConfig.config.transforms.offer.offer({hits: {hits: [{_id: '1', _source: {itemOffered: {uri: 'person'}}}]}});
+      assert.deepEqual(output.locationDescriptor, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'No Location',
+        type: 'location',
+        link: undefined
+      });
+    });
+
     test('defines descriptors in offer', function() {
       var output = clientConfig.config.transforms.offer.offer({hits: {hits: [{_id: '1', _source: {itemOffered: {uri: 'person'}}}]}});
       assert.deepEqual(output.descriptors, [{
@@ -292,12 +298,6 @@ limitations under the License.
         styleClass: 'entity-webpage-font',
         text: 'No Publisher',
         type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'No Location',
-        type: 'location',
-        link: undefined
       }]);
     });
 
@@ -1256,6 +1256,14 @@ limitations under the License.
         type: 'cache'
       }]);
 
+      assert.deepEqual(output.data[0].locationDescriptor, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'West Palm Beach, Florida, United States',
+        link: '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key',
+        type: 'location'
+      });
+
       assert.deepEqual(output.data[0].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1266,26 +1274,6 @@ limitations under the License.
         styleClass: 'entity-webpage-font',
         text: 'google.com',
         type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'West Palm Beach, Florida, United States',
-        link: '/location.html?value=West Palm Beach:Florida:United States:-80.05337:26.71534&field=availableAtOrFrom.address.key',
-        type: 'location'
-      }, {
-        id: 'http://dig.isi.edu/ht/data/phone/1-1234567890',
-        icon: 'communication:phone',
-        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1234567890&field=_id',
-        styleClass: 'entity-phone-font',
-        text: '1234567890',
-        type: 'phone',
-      }, {
-        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
-        icon: 'communication:email',
-        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
-        styleClass: 'entity-email-font',
-        text: 'abc@xyz.com',
-        type: 'email'
       }]);
 
       assert.deepEqual(output.data[0].details, [{
@@ -1323,7 +1311,8 @@ limitations under the License.
       assert.equal(output.data[0].publisher, 'Publisher_1');
       assert.equal(output.data[0].description, 'Description 1');
       assert.equal(output.data[0].location, 'Brooklyn, New York, United States');
-
+      assert.equal(output.data[0].locationKey, 'Brooklyn:New York:United States:-73.94958:40.6501');
+      assert.equal(output.data[0].locationLink, '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key');
       // TODO Test data should have images and prices and better person data.
       assert.deepEqual(output.data[0].images, []);
       assert.deepEqual(output.data[0].prices, []);
@@ -1390,6 +1379,14 @@ limitations under the License.
         type: 'cache'
       }]);
 
+      assert.deepEqual(output.data[0].locationDescriptor, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Brooklyn, New York, United States',
+        link: '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key',
+        type: 'location'
+      });
+
       assert.deepEqual(output.data[0].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1400,26 +1397,6 @@ limitations under the License.
         styleClass: 'entity-webpage-font',
         text: 'Publisher_1',
         type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'Brooklyn, New York, United States',
-        link: '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key',
-        type: 'location'
-      }, {
-        id: 'http://dig.isi.edu/ht/data/phone/1-9876543210',
-        icon: 'communication:phone',
-        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-9876543210&field=_id',
-        styleClass: 'entity-phone-font',
-        text: '9876543210',
-        type: 'phone',
-      }, {
-        id: 'http://dig.isi.edu/ht/data/email/abc%40xyz.com',
-        icon: 'communication:email',
-        link: '/email.html?value=http://dig.isi.edu/ht/data/email/abc%40xyz.com&field=_id',
-        styleClass: 'entity-email-font',
-        text: 'abc@xyz.com',
-        type: 'email'
       }]);
 
       assert.deepEqual(output.data[0].details, [{
@@ -1449,6 +1426,8 @@ limitations under the License.
       assert.equal(output.data[1].publisher, 'Publisher_2');
       assert.equal(output.data[1].description, 'Description 2');
       assert.equal(output.data[1].location, 'Atlanta, Georgia, United States');
+      assert.equal(output.data[1].locationKey, 'Atlanta:Georgia:United States:-84.38798:33.749');
+      assert.equal(output.data[1].locationLink, '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key');
 
       // TODO Test data should have images and prices and better person data.
       assert.deepEqual(output.data[1].images, []);
@@ -1516,6 +1495,14 @@ limitations under the License.
         type: 'cache'
       }]);
 
+      assert.deepEqual(output.data[1].locationDescriptor, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'Atlanta, Georgia, United States',
+        type: 'location',
+        link: '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key',
+      });
+
       assert.deepEqual(output.data[1].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1526,26 +1513,6 @@ limitations under the License.
         styleClass: 'entity-webpage-font',
         text: 'Publisher_2',
         type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'Atlanta, Georgia, United States',
-        type: 'location',
-        link: '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key',
-      }, {
-        id: 'http://dig.isi.edu/ht/data/phone/1-1112223333',
-        icon: 'communication:phone',
-        link: '/phone.html?value=http://dig.isi.edu/ht/data/phone/1-1112223333&field=_id',
-        styleClass: 'entity-phone-font',
-        text: '1112223333',
-        type: 'phone',
-      }, {
-        id: 'http://dig.isi.edu/ht/data/email/email2%40gmail.com',
-        icon: 'communication:email',
-        link: '/email.html?value=http://dig.isi.edu/ht/data/email/email2%40gmail.com&field=_id',
-        styleClass: 'entity-email-font',
-        text: 'email2@gmail.com',
-        type: 'email'
       }]);
 
       assert.deepEqual(output.data[1].details, [{
@@ -1586,6 +1553,14 @@ limitations under the License.
       assert.deepEqual(output.data[0].caches, []);
       assert.deepEqual(output.data[0].person, {});
 
+      assert.deepEqual(output.data[0].locationDescriptor, {
+        icon: 'communication:location-on',
+        styleClass: 'entity-location-font',
+        text: 'No Location',
+        type: 'location',
+        link: undefined
+      });
+
       assert.deepEqual(output.data[0].descriptors, [{
         icon: 'icons:date-range',
         styleClass: 'entity-date-font',
@@ -1596,12 +1571,6 @@ limitations under the License.
         styleClass: 'entity-webpage-font',
         text: 'No Publisher',
         type: 'webpage'
-      }, {
-        icon: 'communication:location-on',
-        styleClass: 'entity-location-font',
-        text: 'No Location',
-        type: 'location',
-        link: undefined
       }]);
 
       assert.deepEqual(output.data[0].details, [{
