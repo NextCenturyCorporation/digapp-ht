@@ -24,12 +24,12 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/highlighted-text/highlighted-text.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
-<link rel="import" href="../../styles/list-styles.html">
+<link rel="import" href="../../styles/single-item-styles.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 
 <dom-module id="single-record">
   <template>
-    <style include="list-styles"></style>
+    <style include="single-item-styles"></style>
 
     <style>
       :host {
@@ -39,6 +39,10 @@ limitations under the License.
       modal-icon ::content .entity-offer-font {
         /* Hide the offer icons because users didn't like them. */
         visibility: hidden;
+      }
+
+      modal-icon ::content paper-icon-button[icon*="icons:expand"] {
+        padding: 5px;
       }
 
       annotate-record.main {
@@ -102,8 +106,8 @@ limitations under the License.
         };
       }
 
-      .hidden {
-        visibility: hidden;
+      .not-shown {
+        display: none;
       }
 
       .show {
@@ -137,7 +141,7 @@ limitations under the License.
         </modal-icon>
       </template>
 
-      <iron-image class$="[[getBlurStyleClass(blur)]]" src="[[imageSource]]"></iron-image>
+      <iron-image class$="[[getBlurStyleClass(blur)]] [[_showImageSpace(item, images)]]" src="[[imageSource]]"></iron-image>
 
       <div class="layout vertical flex center-justified vertical-text">
         <div class="text" title$="[[item.name]]">
@@ -171,9 +175,6 @@ limitations under the License.
                   target="[[getTarget(newTab)]]"
                   text="[[descriptor.text]]">
                 </icon-label>
-                <template is="dom-if" if="[[descriptor.annotate]]">
-                  <iron-icon class="iron-icon-small" icon="fa:flag"></iron-icon>
-                </template>
               </div>
             </template>
           </div>
@@ -197,7 +198,7 @@ limitations under the License.
                       client="[[client]]"
                       annotation-manager="[[annotationManager]]"
                       item="{{phone}}"
-                      item-type="[[getTypeText(item, 'true')]]"
+                      item-type="[[getTypeText(phone, 'true')]]"
                       noink>
                     </annotate-record>
                   </div>
@@ -221,7 +222,7 @@ limitations under the License.
                       client="[[client]]"
                       annotation-manager="[[annotationManager]]"
                       item="{{email}}"
-                      item-type="[[getTypeText(item, 'true')]]"
+                      item-type="[[getTypeText(email, 'true')]]"
                       noink>
                     </annotate-record>
                   </div>
@@ -248,7 +249,7 @@ limitations under the License.
       </template>
 
       <div class="layout vertical center-justified">
-        <a class$="[[_showOrHide(showLinks)]] entity-page-link" href$="[[item.link]]" target="[[getTarget(newTab)]]"
+        <a class="entity-page-link" href$="[[item.link]]" target="[[getTarget(newTab)]]"
           title="Open [[getTypeText(item)]]">
           <iron-icon icon="open-in-new"></iron-icon>
         </a>
@@ -286,7 +287,7 @@ limitations under the License.
               link="[[item.link]]"
               target="[[getTarget(newTab)]]"
               text="open [[getTypeText(item)]]"
-              show="[[showLinks]]">
+              show>
             </button-link>
 
             <template is="dom-if" if="[[item.images]]">
@@ -385,14 +386,6 @@ limitations under the License.
         },
 
         /**
-         * Whether links should be shown.
-         */
-        showLinks: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
          * Whether the user is hovering over the record.
          */
         hovering: {
@@ -433,11 +426,9 @@ limitations under the License.
 
       getNewIconDivClass: function(item, notificationQueryDate) {
         if(notificationQueryDate) {
-          var t = _.some(item.descriptors, function(descriptor) {
-            return descriptor.type === 'date' && (new Date(descriptor.text) > notificationQueryDate);
+          return _.some(item.descriptors, function(descriptor) {
+            return descriptor.type === 'date' && (new Date(descriptor.text).getTime() > notificationQueryDate.getTime());
           }) ? '' : 'hidden';
-          console.log('date ' + item.descriptors[0].text + ' nqd ' + notificationQueryDate + ' result ' + t);
-          return t;
         }
         return 'hidden';
       },
@@ -467,16 +458,16 @@ limitations under the License.
        */
       getTypeText: function(item, longText) {
         if(item.type === 'offer') {
-          return 'ad';
+          return 'Ad';
         }
         if(item.type === 'seller') {
-          return 'email/phone cluster';
+          return 'Email/Phone Cluster';
         }
         if(longText && item.type === 'email') {
-          return 'email address';
+          return 'Email Address';
         }
         if(longText && item.type === 'phone') {
-          return 'telephone number';
+          return 'Telephone Number';
         }
         return item.type;
       },
@@ -497,12 +488,10 @@ limitations under the License.
 
       startHover: function() {
         this.hovering = true;
-        this.showLinks = true;
       },
 
       endHover: function() {
         this.hovering = false;
-        this.showLinks = this.open;
       },
 
       /**
@@ -556,10 +545,10 @@ limitations under the License.
       },
 
       /**
-       * Determine whether to show or hide an element.
+       * Whether or not to show the initial iron-image element.
        */
-      _showOrHide: function(show) {
-        return show ? 'show' : 'hidden';
+      _showImageSpace: function(item, images) {
+        return (item && item.images) || images ? 'show' : 'not-shown';
       }
     });
   })();

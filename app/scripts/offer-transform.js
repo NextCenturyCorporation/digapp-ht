@@ -152,13 +152,13 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
     offer.name = _.isArray(offer.name) ? offer.name.join(', ') : offer.name;
     offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
-    offer.locationKey = offer.locations.length ? offer.locations[0].key : undefined;
-    offer.locationLink = offer.locations.length ? commonTransforms.getLink(offer.locationKey, 'location') : undefined;
+
+    var locationKey = offer.locations.length ? offer.locations[0].key : undefined;
     offer.locationDescriptor = {
       icon: commonTransforms.getIronIcon('location'),
       styleClass: commonTransforms.getStyleClass('location'),
       text: offer.location,
-      link: commonTransforms.getLink(offer.locationKey, 'location'),
+      link: commonTransforms.getLink(locationKey, 'location'),
       type: 'location'
     };
 
