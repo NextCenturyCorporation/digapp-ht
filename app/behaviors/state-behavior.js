@@ -68,7 +68,7 @@ DigBehaviors.StateBehavior = {
       image: config.image || {},
       annotationsFilter: annotationsFilter ? _.cloneDeep(annotationsFilter) : {},
       sort: config.sort || '',
-      text: config.text || ''
+      text: (config.text || config.text === null) ? config.text : ''
     };
   },
 

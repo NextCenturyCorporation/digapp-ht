@@ -23,12 +23,13 @@ limitations under the License.
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/highlighted-text/highlighted-text.html">
-<link rel="import" href="../../styles/list-styles.html">
+<link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../../styles/single-item-styles.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 
 <dom-module id="single-record">
   <template>
-    <style include="list-styles"></style>
+    <style include="single-item-styles"></style>
 
     <style>
       :host {
@@ -40,14 +41,37 @@ limitations under the License.
         visibility: hidden;
       }
 
-      .head annotate-record {
+      modal-icon ::content paper-icon-button[icon*="icons:expand"] {
+        padding: 5px;
+      }
+
+      annotate-record.main {
         /* Margin between the text and the annotation icon. */
         margin-left: 15px;
       }
 
-      .head button-link {
-        /* Margin between the annotation icon and the 'open' button. */
-        margin-left: 15px;
+      .descriptor {
+        @apply(--layout-horizontal);
+        vertical-align: middle;
+        margin-right: 20px;
+      }
+
+      .phones-emails {
+        --paper-icon-button: {
+          height: 22px;
+          width: 22px;
+          padding: 2px;
+        };
+      }
+
+      .single-record-text {
+        min-height: 25px;
+        line-height: 25px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
       }
 
       .body button-link ::content paper-button {
@@ -56,7 +80,7 @@ limitations under the License.
       }
 
       icon-label {
-        display: inline;
+        display: inline-block;
         margin-right: 5px;
 
         --icon-label-text: {
@@ -68,44 +92,139 @@ limitations under the License.
         };
       }
 
-      .hidden {
-        visibility: hidden;
+      icon-label.annotations {
+        --icon-label-text: {
+          color: var(--secondary-text-color);
+          @apply(--annotations-list);
+        };
+
+        --icon-label-link-hover: {
+          color: var(--primary-text-color);
+        };
+      }
+
+      .not-shown {
+        display: none;
+      }
+
+      .show {
+        visibility: visible;
       }
 
       .yellowgreen {
         color: yellowgreen;
       }
+
+      .entity-page-link {
+        color: var(--primary-text-color);
+        text-decoration: none;
+      }
+
+      .entity-page-link:hover {
+        color: var(--secondary-text-color);
+      }
     </style>
 
     <paper-material class$="layout horizontal flex head [[getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
-      <modal-icon
-        icon="[[item.icon]]"
-        icon-style-class="[[item.styleClass]]"
-        show-icon="[[!hovering]]"
-        openable="[[showDetails]]"
-        open="[[open]]">
-      </modal-icon>
 
-      <template is="dom-if" if="[[imageSource]]">
-        <iron-image class$="layout vertical center-justified [[getBlurStyleClass(blur)]]" sizing="contain" src="[[imageSource]]"></iron-image>
+      <template is="dom-if" if="[[!modalIconLast]]">
+        <modal-icon
+          icon="[[item.icon]]"
+          icon-style-class="[[item.styleClass]]"
+          show-icon="[[!hovering]]"
+          openable="[[showDetails]]"
+          open="[[open]]">
+        </modal-icon>
       </template>
 
+      <iron-image class$="[[getBlurStyleClass(blur)]] [[_showImageSpace(item, images)]]" src="[[imageSource]]"></iron-image>
+
       <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[item.name]]"><strong>
-          <highlighted-text text="[[getHeaderText(item)]]"></highlighted-text>
-        </strong></div>
+        <div class="text" title$="[[item.name]]">
+          <strong>
+            <highlighted-text text="[[getHeaderText(item)]]"></highlighted-text>
+          </strong>
+        </div>
+
+        <template is="dom-if" if="[[item.locationDescriptor]]">
+          <div class="single-record-text wrap">
+            <div class="descriptor" secondary>
+              <icon-label title="Open [[item.locationDescriptor.text]]"
+                icon="[[item.locationDescriptor.icon]]"
+                icon-style-class="[[item.locationDescriptor.styleClass]]"
+                link="[[item.locationDescriptor.link]]"
+                target="[[getTarget(newTab)]]"
+                text="[[item.locationDescriptor.text]]">
+              </icon-label>
+            </div>
+          </div>
+        </template>
 
         <template is="dom-if" if="[[item.descriptors.length]]">
-          <div class="text wrap" secondary>
+          <div class="horizontal layout wrap single-record-text" secondary>
             <template is="dom-repeat" items="[[item.descriptors]]" as="descriptor">
-              <icon-label title="Open [[descriptor.text]]"
-                icon="[[descriptor.icon]]"
-                icon-style-class="[[descriptor.styleClass]]"
-                link="[[descriptor.link]]"
-                target="[[getTarget(newTab)]]"
-                text="[[descriptor.text]]">
-              </icon-label>
+              <div class="descriptor flex-1">
+                <icon-label title="Open [[descriptor.text]]"
+                  icon="[[descriptor.icon]]"
+                  icon-style-class="[[descriptor.styleClass]]"
+                  link="[[descriptor.link]]"
+                  target="[[getTarget(newTab)]]"
+                  text="[[descriptor.text]]">
+                </icon-label>
+              </div>
             </template>
+          </div>
+        </template>
+
+        <template is="dom-if" if="[[hasPhonesOrEmails(item)]]">
+          <div class="horizontal layout wrap single-record-text" secondary>
+            <div class="vertical layout flex-1">
+              <template is="dom-if" if="[[item.phones.length]]">
+                <template is="dom-repeat" items="[[item.phones]]" as="phone">
+                  <div class="descriptor">
+                    <icon-label class="annotations"
+                      title="Open [[phone.text]]"
+                      icon="[[phone.icon]]"
+                      icon-style-class="[[phone.styleClass]]"
+                      link="[[phone.link]]"
+                      target="[[getTarget(newTab)]]"
+                      text="[[phone.text]]">
+                    </icon-label>
+                    <annotate-record class="layout vertical center-justified phones-emails"
+                      client="[[client]]"
+                      annotation-manager="[[annotationManager]]"
+                      item="{{phone}}"
+                      item-type="[[getTypeText(phone, 'true')]]"
+                      noink>
+                    </annotate-record>
+                  </div>
+                </template>
+              </template>
+            </div>
+
+            <div class="vertical layout flex-1">
+              <template is="dom-if" if="[[item.emails.length]]">
+                <template is="dom-repeat" items="[[item.emails]]" as="email">
+                  <div class="descriptor">
+                    <icon-label class="annotations"
+                      title="Open [[email.text]]"
+                      icon="[[email.icon]]"
+                      icon-style-class="[[email.styleClass]]"
+                      link="[[email.link]]"
+                      target="[[getTarget(newTab)]]"
+                      text="[[email.text]]">
+                    </icon-label>
+                    <annotate-record class="layout vertical center-justified phones-emails"
+                      client="[[client]]"
+                      annotation-manager="[[annotationManager]]"
+                      item="{{email}}"
+                      item-type="[[getTypeText(email, 'true')]]"
+                      noink>
+                    </annotate-record>
+                  </div>
+                </template>
+              </template>
+            </div>
           </div>
         </template>
       </div>
@@ -117,7 +236,7 @@ limitations under the License.
       </template>
 
       <template is="dom-if" if="[[showAnnotation(item)]]">
-        <annotate-record class="layout vertical center-justified"
+        <annotate-record class="layout vertical center-justified main"
           client="[[client]]"
           annotation-manager="[[annotationManager]]"
           item="{{item}}"
@@ -125,12 +244,23 @@ limitations under the License.
         </annotate-record>
       </template>
 
-      <button-link class="layout vertical center-justified"
-        link="[[item.link]]"
-        target="[[getTarget(newTab)]]"
-        text="open [[getTypeText(item)]]"
-        show="[[showLinks]]">
-      </button-link>
+      <div class="layout vertical center-justified">
+        <a class="entity-page-link" href$="[[item.link]]" target="[[getTarget(newTab)]]"
+          title="Open [[getTypeText(item)]]">
+          <paper-icon-button icon="open-in-new" noink></paper-icon-button>
+        </a>
+      </div>
+
+      <template is="dom-if" if="[[modalIconLast]]">
+        <modal-icon
+          icon="[[item.icon]]"
+          icon-style-class="[[item.styleClass]]"
+          show-icon="[[!hovering]]"
+          openable="[[showDetails]]"
+          open="[[open]]">
+        </modal-icon>
+      </template>
+
     </paper-material>
 
     <template is="dom-if" if="[[showDetails]]">
@@ -153,7 +283,7 @@ limitations under the License.
               link="[[item.link]]"
               target="[[getTarget(newTab)]]"
               text="open [[getTypeText(item)]]"
-              show="[[showLinks]]">
+              show>
             </button-link>
 
             <template is="dom-if" if="[[item.images]]">
@@ -252,14 +382,6 @@ limitations under the License.
         },
 
         /**
-         * Whether links should be shown.
-         */
-        showLinks: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
          * Whether the user is hovering over the record.
          */
         hovering: {
@@ -277,6 +399,14 @@ limitations under the License.
         notificationQueryDate: {
           type: Object,
           notify: true
+        },
+
+        /**
+         * Where to put modal icon for record (will default to being first on the left)
+         */
+        modalIconLast: {
+          type: Boolean,
+          value: false
         }
       },
 
@@ -285,6 +415,10 @@ limitations under the License.
           'updateImageSrcFromPropertyImages(images.splices)',
           'updateShowDetails(item.details)'
       ],
+
+      hasPhonesOrEmails: function(item) {
+        return (item && ((item.phones && item.phones.length > 0) || (item.emails && item.emails.length > 0)) === true);
+      },
 
       getNewIconDivClass: function(item, notificationQueryDate) {
         if(notificationQueryDate) {
@@ -320,18 +454,18 @@ limitations under the License.
        */
       getTypeText: function(item, longText) {
         if(item.type === 'offer') {
-          return 'ad';
+          return 'Ad';
         }
         if(item.type === 'seller') {
-          return 'email/phone cluster';
+          return 'Email/Phone Cluster';
         }
         if(longText && item.type === 'email') {
-          return 'email address';
+          return 'Email Address';
         }
         if(longText && item.type === 'phone') {
-          return 'telephone number';
+          return 'Telephone Number';
         }
-        return item.type;
+        return item.type.charAt(0).toUpperCase() + item.type.slice(1);
       },
 
       _hasNotificationDate: function(date) {
@@ -350,12 +484,10 @@ limitations under the License.
 
       startHover: function() {
         this.hovering = true;
-        this.showLinks = true;
       },
 
       endHover: function() {
         this.hovering = false;
-        this.showLinks = this.open;
       },
 
       /**
@@ -366,9 +498,10 @@ limitations under the License.
         if(this.showDetails) {
           var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
           var isButton = (event.target.localName === 'paper-button');
+          var isOpenInNewButton = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button' && event.target.parentElement.getAttribute('icon') === 'open-in-new');
           var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
           // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
-          if(!isAnnotation && !isButton && !isLink) {
+          if(!isAnnotation && !isButton && !isOpenInNewButton && !isLink) {
             this.set('open', !this.open);
             this.$$('#recordDetail').toggle();
           }
@@ -390,8 +523,7 @@ limitations under the License.
           this.set('imageSource', images[0].source);
           this.set('showDetails', true);
         } else if(images) {
-          // Set the source to a truthy value so the gray iron-image is displayed.
-          this.set('imageSource', 'blank');
+          this.set('imageSource', undefined);
         }
       },
 
@@ -407,6 +539,13 @@ limitations under the License.
        */
       updateShowDetails: function(details) {
         this.set('showDetails', (!!details && !!details.length));
+      },
+
+      /**
+       * Whether or not to show the initial iron-image element.
+       */
+      _showImageSpace: function(item, images) {
+        return (item && item.images) || images ? 'show' : 'not-shown';
       }
     });
   })();

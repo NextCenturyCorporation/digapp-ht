@@ -47,6 +47,7 @@ limitations under the License.
         id: '1',
         type: 'offer',
         text: 'myTitle',
+        link: 'somelink.html',
         details: [{
           label: 'address',
           value: ['LA', 'SF']
@@ -76,6 +77,17 @@ limitations under the License.
 
     test('showDetails is true', function() {
       expect(singleRecord.showDetails).to.be.true;
+    });
+
+    test('modalIconLast is false', function() {
+      expect(singleRecord.modalIconLast).to.be.false;
+    });
+
+    test('hasPhonesOrEmails(item) returns correct value', function() {
+      expect(singleRecord.hasPhonesOrEmails(singleRecord.item)).to.be.false;
+      expect(singleRecord.hasPhonesOrEmails({phones: [{someval: 1}]})).to.be.true;
+      expect(singleRecord.hasPhonesOrEmails({phones: [{someval: 1}], emails: [{someval: 1}]})).to.be.true;
+      expect(singleRecord.hasPhonesOrEmails({phones: []})).to.be.false;
     });
 
     test('getDetailText() returns correct value for undefined', function() {
@@ -292,10 +304,6 @@ limitations under the License.
       expect(singleRecord.item.imageSources).to.not.exist;
     });
 
-    test('has no iron-image element', function() {
-      expect(singleRecord.$$('iron-image')).to.not.exist;
-    });
-
     test('getTypeText returns a string', function() {
       expect(singleRecord.getTypeText({type: 'date'})).to.be.a('String');
       expect(singleRecord.getTypeText({type: 'email'})).to.be.a('String');
@@ -350,6 +358,17 @@ limitations under the License.
       flush(function() {
         expect(singleRecord.$$('iron-icon[icon="av:fiber-new"]')).to.exist;
         expect(singleRecord.$$('iron-icon[icon="av:fiber-new"]').className.split(' ').indexOf('hidden') < 0).to.be.true;
+        done();
+      });
+    });
+
+    test('link to entity page exists', function(done) {
+      flush(function() {
+        expect(singleRecord.$$('a[title="Open Ad"]')).to.exist;
+        expect(singleRecord.$$('a[title="Open Ad"]').className.includes('entity-page-link')).to.be.true;
+        expect(singleRecord.$$('a[title="Open Ad"]').getAttribute('href')).to.equal('somelink.html');
+        expect(singleRecord.$$('a[title="Open Ad"]').target).to.equal(singleRecord.getTarget(singleRecord.newTab));
+        expect(singleRecord.$$('paper-icon-button[icon="open-in-new"]')).to.exist;
         done();
       });
     });
@@ -409,11 +428,17 @@ limitations under the License.
       expect(singleRecord.showDetails).to.be.true;
     });
 
-    test('updateImageSrcFromImages() with an empty array sets imageSource to a truthy value', function() {
+    test('updateImageSrcFromImages() with an empty array sets imageSource to undefined', function() {
       expect(singleRecord.imageSource).to.equal('');
       singleRecord.updateImageSrcFromImages([]);
-      expect(!!singleRecord.imageSource).to.be.true;
-      expect(singleRecord.showDetails).to.be.false;
+      expect(singleRecord.imageSource).to.be.undefined;
+    });
+
+    test('_showImageSpace returns correct class name', function() {
+      expect(singleRecord._showImageSpace({images: ['someimage']}, ['someimage'])).to.equal('show');
+      expect(singleRecord._showImageSpace(null, ['someimage'])).to.equal('show');
+      expect(singleRecord._showImageSpace({images: []}, undefined)).to.equal('show');
+      expect(singleRecord._showImageSpace(undefined, null)).to.equal('not-shown');
     });
   });
 
