@@ -111,13 +111,13 @@ limitations under the License.
       query="[[offerQuery]]"
       aggregations="[]"
       filters="[]"
-      results="{{offer}}"
+      results="{{offerResults}}"
       last-error="{{error}}">
     </elastic-client-search>
 
     <json-transform
-      data-in="[[offer]]"
-      data-out="{{offerDisplay}}"
+      data-in="[[offerResults]]"
+      data-out="{{offer}}"
       transform-function="[[clientConfig.transforms.offer.offer]]">
     </json-transform>
 
@@ -137,7 +137,7 @@ limitations under the License.
     <elastic-client-query-builder
       type="term"
       fields='"url.raw"'
-      values="[[offerDisplay.url]]"
+      values="[[offer.url]]"
       ejs-query="{{webpageRevisionsQuery}}">
     </elastic-client-query-builder>
 
@@ -174,7 +174,7 @@ limitations under the License.
       filtered
       type="term"
       fields='"mainEntityOfPage.url.raw"'
-      values="[[offerDisplay.url]]"
+      values="[[offer.url]]"
       ejs-filter="[[offerRevisionsFilter]]"
       ejs-query="{{offerRevisionsQuery}}">
     </elastic-client-query-builder>
@@ -206,7 +206,7 @@ limitations under the License.
       type="mlt"
       mlt-config='{"minTermFreq":1,"minDocFreq":1,"maxQueryTerms":100,"minimumShouldMatch":"75%"}'
       fields='["mainEntityOfPage.description", "mainEntityOfPage.name"]'
-      values="[[buildMoreLikeThisValue(offerDisplay.name, offerDisplay.description)]]"
+      values="[[buildMoreLikeThisValue(offer.name, offer.description)]]"
       ejs-query="{{similarOfferQuery}}">
     </elastic-client-query-builder>
 
@@ -235,7 +235,7 @@ limitations under the License.
 
     <json-transform
       data-in="[[similarOfferResults]]"
-      data-out="{{offerDisplay.similarOffer}}"
+      data-out="{{similarOffers}}"
       transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
 
@@ -271,16 +271,16 @@ limitations under the License.
             <iron-icon class="iron-icon-huge entity-offer-font" icon="maps:local-offer"></iron-icon>
             <section>
               <div class="paper-font-headline">
-                Ad: <span>[[offerDisplay.name]]</span>
+                Ad: <span>[[offer.name]]</span>
               </div>
               <div class="paper-font-subhead">
-                Posted on <strong>[[offerDisplay.date]]</strong> on <strong>[[offerDisplay.publisher]]</strong>
+                Posted on <strong>[[offer.date]]</strong> on <strong>[[offer.publisher]]</strong>
               </div>
             </section>
           </div>
           <annotate-record client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
-            item="{{offerDisplay}}"
+            item="{{offer}}"
             item-type="ad"
             current-user="[[config.username]]">
           </annotate-record>
@@ -308,7 +308,7 @@ limitations under the License.
               <paper-material>
                 <section class="what">
                   <!-- Phone numbers if available -->
-                  <template is="dom-if" if="{{offerDisplay.phones.length}}">
+                  <template is="dom-if" if="{{offer.phones.length}}">
                     <div class="what-section">
                       <div class="flex">
                         <div class="desc-header layout horizontal center entity-phone-font">
@@ -316,7 +316,7 @@ limitations under the License.
                         </div>
                         <icon-label-grid
                           icon-style-class-property="styleClass"
-                          data="[[offerDisplay.phones]]">
+                          data="[[offer.phones]]">
                         </icon-label-grid>
                       </div>
                     </div>
@@ -324,7 +324,7 @@ limitations under the License.
                   </template>
 
                   <!-- Emails if available -->
-                  <template is="dom-if" if="{{offerDisplay.emails.length}}">
+                  <template is="dom-if" if="{{offer.emails.length}}">
                     <div class="what-section">
                       <div class="flex">
                         <div class="desc-header emails layout horizontal center entity-email-font">
@@ -332,7 +332,7 @@ limitations under the License.
                         </div>
                         <icon-label-grid
                           icon-style-class-property="styleClass"
-                          data="[[offerDisplay.emails]]">
+                          data="[[offer.emails]]">
                         </icon-label-grid>
                       </div>
                     </div>
@@ -340,7 +340,7 @@ limitations under the License.
                   </template>
 
                   <!-- Price if available -->
-                  <template is="dom-if" if="{{offerDisplay.prices.length}}">
+                  <template is="dom-if" if="{{offer.prices.length}}">
                     <div class="what-section">
                       <div class="flex">
                         <div class="desc-header layout horizontal center entity-money-font">
@@ -348,7 +348,7 @@ limitations under the License.
                         </div>
                         <icon-label-grid class="wide"
                           icon-style-class-property="styleClass"
-                          data="[[offerDisplay.prices]]">
+                          data="[[offer.prices]]">
                         </icon-label-grid>
                       </div>
                     </div>
@@ -363,11 +363,11 @@ limitations under the License.
                       </div>
                       <icon-label-grid class="wide"
                         icon-style-class-property="styleClass"
-                        data="[[offerDisplay.webpages]]">
+                        data="[[offer.webpages]]">
                       </icon-label-grid>
                       <icon-label-grid class="wide"
                         icon-style-class-property="styleClass"
-                        data="[[offerDisplay.caches]]">
+                        data="[[offer.caches]]">
                       </icon-label-grid>
                     </div>
                   </div>
@@ -378,7 +378,7 @@ limitations under the License.
                   <div class="what-section">
                     <div class="flex-12">
                       <div class="desc-header">Description:</div>
-                      <div class="desc-body">[[offerDisplay.description]]</div>
+                      <div class="desc-body">[[offer.description]]</div>
                     </div>
                   </div>
                 </section>
@@ -400,7 +400,7 @@ limitations under the License.
 
                   <image-query-and-display
                     image-query-field="isImagePartOf.mainEntity.uri"
-                    image-query-values="[[offerDisplay.id]]"
+                    image-query-values="[[offer.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
@@ -416,7 +416,7 @@ limitations under the License.
               </paper-material>
 
               <!-- Provider Section -->
-              <template is="dom-if" if="{{offerDisplay.person.id}}">
+              <template is="dom-if" if="{{offer.person.id}}">
                 <div class="h-divider"></div>
                 <paper-material>
                   <section class="who">
@@ -426,48 +426,49 @@ limitations under the License.
                     <single-record
                       client="[[esclient]]"
                       annotation-manager="[[annotationManager]]"
-                      item="{{offerDisplay.person}}"
+                      item="{{offer.person}}"
                       current-user="[[config.username]]"
-                      blur="[[blurImages]]">
+                      blur="[[blurImages]]"
+                      images="null">
                     </single-record>
 
                     <div class="layout horizontal provider-details">
                       <div class="flex">
                         <div class="desc-header">Name:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.names]]" as="name">
+                        <template is="dom-repeat" items="[[offer.person.names]]" as="name">
                           <div class="desc-body">[[name]]</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.names.length]]">
+                        <template is="dom-if" if="[[!offer.person.names.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
 
                       <div class="flex">
                         <div class="desc-header">Age:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.ages]]" as="age">
+                        <template is="dom-repeat" items="[[offer.person.ages]]" as="age">
                           <div class="desc-body">[[age]]</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.ages.length]]">
+                        <template is="dom-if" if="[[!offer.person.ages.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
 
                       <div class="flex">
                         <div class="desc-header">Ethnicity:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.ethnicities]]" as="ethnicity">
+                        <template is="dom-repeat" items="[[offer.person.ethnicities]]" as="ethnicity">
                           <div class="desc-body">[[ethnicity]]</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.ethnicities.length]]">
+                        <template is="dom-if" if="[[!offer.person.ethnicities.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
 
                       <div class="flex">
                         <div class="desc-header">Hair Color:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.hairColors]]" as="hairColor">
+                        <template is="dom-repeat" items="[[offer.person.hairColors]]" as="hairColor">
                           <div class="desc-body">[[hairColor]]</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.hairColors.length]]">
+                        <template is="dom-if" if="[[!offer.person.hairColors.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
@@ -476,30 +477,30 @@ limitations under the License.
                     <div class="layout horizontal provider-details">
                       <div class="flex">
                         <div class="desc-header">Eye Color:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.eyeColors]]" as="eyeColor">
+                        <template is="dom-repeat" items="[[offer.person.eyeColors]]" as="eyeColor">
                           <div class="desc-body">[[eyeColor]]</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.eyeColors.length]]">
+                        <template is="dom-if" if="[[!offer.person.eyeColors.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
 
                       <div class="flex">
                         <div class="desc-header">Height:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.heights]]" as="height">
+                        <template is="dom-repeat" items="[[offer.person.heights]]" as="height">
                           <div class="desc-body">[[height]] cm</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.heights.length]]">
+                        <template is="dom-if" if="[[!offer.person.heights.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
 
                       <div class="flex">
                         <div class="desc-header">Weight:</div>
-                        <template is="dom-repeat" items="[[offerDisplay.person.weights]]" as="weight">
+                        <template is="dom-repeat" items="[[offer.person.weights]]" as="weight">
                           <div class="desc-body">[[weight]] kg</div>
                         </template>
-                        <template is="dom-if" if="[[!offerDisplay.person.weights.length]]">
+                        <template is="dom-if" if="[[!offer.person.weights.length]]">
                           <div class="desc-body">--</div>
                         </template>
                       </div>
@@ -598,22 +599,22 @@ limitations under the License.
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <template is="dom-if" if="[[offerDisplay.locationLink]]">
-                      <a href="[[offerDisplay.locationLink]]" class="location-link">
-                        <div>[[offerDisplay.location]]</div>
+                    <template is="dom-if" if="[[offer.locationDescriptor.link]]">
+                      <a href="[[offer.locationDescriptor.link]]" class="location-link">
+                        <div>[[offer.location]]</div>
                       </a>
                     </template>
-                    <template is="dom-if" if="[[!offerDisplay.locationLink]]">
-                      <div>[[offerDisplay.location]]</div>
+                    <template is="dom-if" if="[[!offer.locationDescriptor.link]]">
+                      <div>[[offer.location]]</div>
                     </template>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[offerDisplay.locations.length]]">
+                <template is="dom-if" if="[[offer.locations.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
-                      data="[[offerDisplay.locations]]">
+                      data="[[offer.locations]]">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -663,8 +664,8 @@ limitations under the License.
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
-                    query-results="[[offerDisplay.similarOffer.data]]"
-                    total-results="[[offerDisplay.similarOffer.count]]"
+                    query-results="[[similarOffers.data]]"
+                    total-results="[[similarOffers.count]]"
                     shown-results="{{shownSimilarOffers}}"
                     page="{{similarOfferPage}}"
                     page-size="[[similarOfferPageSize]]"

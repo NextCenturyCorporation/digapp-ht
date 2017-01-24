@@ -40,6 +40,8 @@ module.exports = function Client(logger, auth, host, port, protocol) {
     logger.error(error.message, 'Elasticsearch not connected!');
   });
 
+  logger.info('Client created.');
+
   return client;
 };
 

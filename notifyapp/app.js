@@ -41,8 +41,6 @@ var DATE_FIELD = process.env.DATE_FIELD || 'dateCreated';
 
 var logger = new Logger(LOG_NAME, LOG_PATH);
 
-logger.info('Logger created.');
-
 //var mailer = new Mailer(logger, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL);
 
 //logger.info('Mailer created.  Sending a support email...');
@@ -51,19 +49,13 @@ logger.info('Logger created.');
 
 var client = new Client(logger, ES_AUTH, ES_HOST, ES_PORT, ES_PROTOCOL);
 
-logger.info('Client created.');
-
 var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, function(a, b, callback) {
   callback();
 });
 
 //var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, mailer.sendAlertEmail);
 
-logger.info('Runner created.');
-
 var scheduler = new Scheduler(logger);
-
-logger.info('Scheduler created.  Starting jobs...');
 
 runner.checkUsersDaily();
 

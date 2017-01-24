@@ -1,0 +1,160 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>double-aggregation-display</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <script src="../bower_components/elastic.js/dist/elastic.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+  <link rel="import" href="../elements/double-aggregation-display/double-aggregation-display.html">
+</head>
+
+<body>
+<test-fixture id="double-aggregation-display-fixture">
+  <template>
+    <double-aggregation-display></double-aggregation-display>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals ejs, suite, setup, fixture, test, expect, flush */
+  /* jshint -W030 */
+  suite('double-aggregation-display tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('double-aggregation-display-fixture');
+      element.item = {
+        count: 2,
+        id: 'myId',
+        icon: 'myIcon',
+        link: 'myLink',
+        max: 5,
+        styleClass: 'myStyleClass',
+        text: 'My Item Text'
+      };
+      element.queryField = 'myField';
+    });
+
+    test('properties are set correctly', function() {
+      expect(element.item).to.deep.equal({
+        count: 2,
+        id: 'myId',
+        icon: 'myIcon',
+        link: 'myLink',
+        max: 5,
+        styleClass: 'myStyleClass',
+        text: 'My Item Text'
+      });
+      expect(element.queryField).to.equal('myField');
+      expect(element.countProperty).to.equal('count');
+      expect(element.iconProperty).to.equal('icon');
+      expect(element.idProperty).to.equal('id');
+      expect(element.linkProperty).to.equal('link');
+      expect(element.maxProperty).to.equal('max');
+      expect(element.styleClassProperty).to.equal('styleClass');
+      expect(element.textProperty).to.equal('text');
+      expect(element.otherCount).to.not.exist;
+      expect(element.maxOtherCount).to.equal(0);
+      expect(element.loading).to.be.false;
+    });
+
+    test('_queryInput and _query are set using item[idProperty] and queryField', function() {
+      expect(element._queryInput).to.deep.equal({
+        id: 'myId',
+        field: 'myField'
+      });
+      expect(element._query.toJSON()).to.deep.equal(ejs.TermQuery('myField', 'myId').toJSON());
+    });
+
+    test('_updateData with no hits does nothing', function() {
+      element._updateData({});
+      expect(element.otherCount).to.not.exist;
+      expect(element.maxOtherCount).to.equal(0);
+    });
+
+    test('_updateData with hits sets otherCount and maxOtherCount', function() {
+      element._updateData({
+        hits: {
+          total: 10
+        }
+      });
+      expect(element.otherCount).to.equal(8);
+      expect(element.maxOtherCount).to.equal(8);
+    });
+
+    test('_createToggleListener returns object with onToggle function property', function() {
+      var listener = element._createToggleListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onToggle).to.be.a('Function');
+    });
+
+    test('_createToggleListener.onToggle fires a selected event', function(done) {
+      element.selectedListener = function(event) {
+        expect(event.detail.item).to.deep.equal({
+          count: 2,
+          id: 'myId',
+          icon: 'myIcon',
+          link: 'myLink',
+          max: 5,
+          styleClass: 'myStyleClass',
+          text: 'My Item Text'
+        });
+        done();
+      };
+      element.listen(element, 'selected', 'selectedListener');
+      element._createToggleListener().onToggle();
+    });
+
+    test('shows horizontal-bar for item', function() {
+      var bars = document.querySelectorAll('horizontal-bar');
+      var bar = bars.item(0);
+      expect(bar).to.exist;
+      expect(bar.name).to.equal('My Item Text');
+      expect(bar.count).to.equal(2);
+      expect(bar.max).to.equal(5);
+      expect(bar.icon).to.equal('myIcon');
+      expect(bar.styleClass).to.equal('myStyleClass');
+      expect(bar.showCheckbox).to.be.true;
+      expect(bar.checkboxTooltip).to.equal('Toggle Filter on My Item Text');
+      expect(bar.linkValue).to.equal('myLink');
+    });
+
+    test('shows horizontal-bar for other counts', function(done) {
+      element.otherCount = 10;
+      element.maxOtherCount = 10;
+      element.loading = false;
+      flush(function() {
+        var bars = document.querySelectorAll('horizontal-bar');
+        var bar = bars.item(1);
+        expect(bar).to.exist;
+        expect(bar.name).to.equal('');
+        expect(bar.count).to.equal(10);
+        expect(bar.max).to.equal(10);
+        expect(bar.styleClass).to.equal('entity-seller-font');
+        done();
+      });
+    });
+  });
+</script>
+</body>
+</html>

@@ -45,6 +45,7 @@ limitations under the License.
       singleRecord = fixture('single-record-fixture');
       singleRecord.item = {
         id: '1',
+        link: 'somelink.html',
         text: 'myTitle',
         type: 'offer'
       };
@@ -66,16 +67,27 @@ limitations under the License.
       });
     });
 
-    test('has a paper-material element', function() {
+    test('does show a paper-material element', function() {
       expect(singleRecord.$$('paper-material')).to.exist;
     });
 
-    test('has an iron-collapse element', function() {
+    test('does show an iron-collapse element', function() {
       expect(singleRecord.$$('iron-collapse')).to.exist;
     });
 
     test('showDetails is true', function() {
       expect(singleRecord.showDetails).to.be.true;
+    });
+
+    test('modalIconLast is false', function() {
+      expect(singleRecord.modalIconLast).to.be.false;
+    });
+
+    test('hasPhonesOrEmails(item) returns correct value', function() {
+      expect(singleRecord.hasPhonesOrEmails(singleRecord.item)).to.be.false;
+      expect(singleRecord.hasPhonesOrEmails({phones: [{someval: 1}]})).to.be.true;
+      expect(singleRecord.hasPhonesOrEmails({phones: [{someval: 1}], emails: [{someval: 1}]})).to.be.true;
+      expect(singleRecord.hasPhonesOrEmails({phones: []})).to.be.false;
     });
 
     test('_getDetailText() returns correct value for undefined', function() {
@@ -119,6 +131,10 @@ limitations under the License.
 
     test('_getTarget() returns "_self" when newTab is false', function() {
       expect(singleRecord._getTarget(false)).to.equal('_self');
+    });
+
+    test('_getTarget() returns "_blank" when newTab is true', function() {
+      expect(singleRecord._getTarget(true)).to.equal('_blank');
     });
 
     test('_getHeaderStyleClass() returns the correct values', function() {
@@ -302,8 +318,15 @@ limitations under the License.
       expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('has no iron-image element', function() {
-      expect(singleRecord.$$('iron-image')).to.not.exist;
+    test('does not show an iron-image element', function() {
+      var image = singleRecord.$$('iron-image');
+      expect(image).to.exist;
+      expect(image.classList.contains('hide')).to.be.true;
+      expect(image.classList.contains('show')).to.be.false;
+    });
+
+    test('does not show an image-gallery element', function() {
+      expect(singleRecord.$$('image-gallery')).to.not.exist;
     });
 
     test('_getTypeText returns a string', function() {
@@ -402,7 +425,18 @@ limitations under the License.
       });
     });
 
-    test('_updateImageSrcFromImages() sets imageSource and showDetails', function() {
+    test('link to entity page exists', function(done) {
+      flush(function() {
+        expect(singleRecord.$$('a[title="Open Ad"]')).to.exist;
+        expect(singleRecord.$$('a[title="Open Ad"]').className.includes('entity-page-link')).to.be.true;
+        expect(singleRecord.$$('a[title="Open Ad"]').getAttribute('href')).to.equal('somelink.html');
+        expect(singleRecord.$$('a[title="Open Ad"]').target).to.equal(singleRecord._getTarget(singleRecord.newTab));
+        expect(singleRecord.$$('paper-icon-button[icon="open-in-new"]')).to.exist;
+        done();
+      });
+    });
+
+    test('_updateImageSrcFromImages() sets imageSource', function() {
       expect(singleRecord.imageSource).to.equal('');
       singleRecord._updateImageSrcFromImages([{
         id: 'id1',
@@ -414,11 +448,10 @@ limitations under the License.
       expect(singleRecord.imageSource).to.equal('url1');
     });
 
-    test('_updateImageSrcFromImages() with an empty array sets imageSource to a non-empty string', function() {
+    test('_updateImageSrcFromImages() with an empty array sets imageSource to undefined', function() {
       singleRecord.imageSource = 'imageSource';
       singleRecord._updateImageSrcFromImages([], 'source');
-      expect(singleRecord.imageSource).to.not.equal('imageSource');
-      expect(!!singleRecord.imageSource).to.be.true;
+      expect(singleRecord.imageSource).to.be.undefined;
     });
   });
 
@@ -433,15 +466,15 @@ limitations under the License.
       });
     });
 
-    test('has no iron-collapse element for an item with no details', function() {
+    test('does not show an iron-collapse element for no details', function() {
       expect(singleRecord.$$('iron-collapse')).to.not.exist;
     });
 
-    test('showDetails is false for an item with no details', function() {
+    test('showDetails is false for no details', function() {
       expect(singleRecord.showDetails).to.be.false;
     });
 
-    test('toggleRecord() does nothing for an item with no details', function() {
+    test('toggleRecord() does nothing for no details', function() {
       var mockEvent = {
         target: {
           classList: {
@@ -463,7 +496,7 @@ limitations under the License.
       expect(ironCollapse).to.not.exist;
     });
 
-    test('_updateImageSrcFromImages() sets showDetails', function() {
+    test('_updateImageSrcFromImages() sets imageSource and showDetails', function() {
       expect(singleRecord.imageSource).to.equal('');
       singleRecord._updateImageSrcFromImages([{
         id: 'id1',
@@ -475,22 +508,17 @@ limitations under the License.
       expect(singleRecord.imageSource).to.equal('url1');
       expect(singleRecord.showDetails).to.be.true;
     });
-  });
 
-  suite('<single-record> if newTab is true', function() {
-    var singleRecord;
-
-    setup(function(done) {
-      singleRecord = fixture('single-record-fixture');
-      singleRecord.item = {'id': '1', 'type': 'offer', 'text': 'myTitle'};
-      singleRecord.newTab = true;
-      flush(function() {
-        done();
-      });
+    test('_updateImageSrcFromImages() with an empty array sets imageSource to undefined and showDetails to false', function() {
+      expect(singleRecord.imageSource).to.equal('');
+      singleRecord._updateImageSrcFromImages([]);
+      expect(singleRecord.imageSource).to.be.undefined;
+      expect(singleRecord.showDetails).to.be.false;
     });
 
-    test('_getTarget() returns "_blank" when newTab is true', function() {
-      expect(singleRecord._getTarget(true)).to.equal('_blank');
+    test('_showImageSpace returns correct class name', function() {
+      expect(singleRecord._showImageSpace()).to.equal('');
+      expect(singleRecord._showImageSpace(['someimage'])).to.equal('show');
     });
   });
 
@@ -526,20 +554,63 @@ limitations under the License.
       expect(singleRecord.imageSource).to.equal('url1');
     });
 
-    test('has an iron-image element', function() {
-      expect(singleRecord.$$('iron-image')).to.exist;
+    test('does show an iron-image element with source', function() {
+      var image = singleRecord.$$('iron-image');
+      expect(image).to.exist;
+      expect(image.classList.contains('show')).to.be.true;
+      expect(image.src).to.equal('url1');
     });
 
-    test('showDetails is true for an item with images', function() {
+    test('showDetails is true for images', function() {
       expect(singleRecord.showDetails).to.be.true;
     });
 
-    test('has an iron-collapse element for the images', function() {
+    test('does show an iron-collapse element for the images', function() {
       expect(singleRecord.$$('iron-collapse')).to.exist;
     });
 
-    test('has an image-gallery element for the images', function() {
+    test('does show an image-gallery element for the images', function() {
       expect(singleRecord.$$('image-gallery')).to.exist;
+    });
+  });
+
+  suite('<single-record> with empty image array', function() {
+    var singleRecord;
+
+    setup(function(done) {
+      singleRecord = fixture('single-record-fixture');
+      singleRecord.item = {'id': '1', 'type': 'offer'};
+      singleRecord.images = [];
+      flush(function() {
+        done();
+      });
+    });
+
+    test('has empty image array', function() {
+      expect(singleRecord.images).to.be.deep.equal([]);
+    });
+
+    test('imageSource is undefined', function() {
+      expect(singleRecord.imageSource).to.be.undefined;
+    });
+
+    test('does show an iron-image element with no source', function() {
+      var image = singleRecord.$$('iron-image');
+      expect(image).to.exist;
+      expect(image.classList.contains('show')).to.be.true;
+      expect(image.src).to.be.undefined;
+    });
+
+    test('showDetails is false for an empty image array', function() {
+      expect(singleRecord.showDetails).to.be.false;
+    });
+
+    test('does not show an iron-collapse element', function() {
+      expect(singleRecord.$$('iron-collapse')).to.not.exist;
+    });
+
+    test('does not show an image-gallery element', function() {
+      expect(singleRecord.$$('image-gallery')).to.not.exist;
     });
   });
 </script>

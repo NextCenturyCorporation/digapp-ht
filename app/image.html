@@ -117,7 +117,7 @@ limitations under the License.
 
     <json-transform
       data-in="[[imageResults]]"
-      data-out="{{imageDisplay}}"
+      data-out="{{image}}"
       transform-function="[[clientConfig.transforms.image.image]]">
     </json-transform>
 
@@ -126,7 +126,7 @@ limitations under the License.
     <elastic-client-query-builder
       type="term"
       fields='"mainEntityOfPage.hasImagePart.uri"'
-      values="[[imageDisplay.uri]]"
+      values="[[image.uri]]"
       ejs-query="{{imageOffersQuery}}">
     </elastic-client-query-builder>
 
@@ -141,7 +141,7 @@ limitations under the License.
       filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
-      results="{{imageOffers}}"
+      results="{{offersResults}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
@@ -149,53 +149,10 @@ limitations under the License.
     </elastic-client-search>
 
     <json-transform
-      data-in="[[imageOffers]]"
-      data-out="{{imageDisplay.imageOffers}}"
+      data-in="[[offersResults]]"
+      data-out="{{imageOffers}}"
       transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
-
-    <!-- Mentions in Offers -->
-
-    <elastic-client-aggregation-builder
-      name="emails"
-      type="terms"
-      count="0"
-      field="mainEntityOfPage.mentionsEmail"
-      ejs-aggregation="{{emailMentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="phones"
-      type="terms"
-      count="0"
-      field="mainEntityOfPage.mentionsPhone"
-      ejs-aggregation="{{phoneMentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <!-- set page size/hits to zero since we only need aggregation here -->
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      page="{{pageNum}}"
-      page-size="0"
-      query="[[imageOffersQuery]]"
-      aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
-      filters="[[filterList]]"
-      sort-field="validFrom"
-      sort-order="desc"
-      results="{{offersMentions}}"
-      loading="{{mentionsLoading}}"
-      last-error="{{mentionsError}}"
-      properties-ready="{{processRequest}}">
-    </elastic-client-search>
-
-    <json-combine
-      data-in1="[[imageDisplay.url]]"
-      data-in2="[[offersMentions]]"
-      data-out="{{imageDisplay.offersMentions}}"
-      combine-function="[[clientConfig.transforms.offer.createMentions]]">
-    </json-combine>
 
     <!-- Location timeline for bar chart and itinerary -->
 
@@ -211,14 +168,14 @@ limitations under the License.
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
       query-field="mainEntityOfPage.hasImagePart.uri"
-      query-value="[[imageDisplay.uri]]"
+      query-value="[[image.uri]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       filters="[[filterList]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
-      count="[[imageDisplay.imageOffers.count]]"
+      count="[[imageOffers.count]]"
       interval="{{locationTimelineInterval}}"
-      results="{{imageDisplay.locationTimeline}}"
+      results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
     </location-timeline>
@@ -280,7 +237,7 @@ limitations under the License.
 
           <annotate-record client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
-            item="{{imageDisplay}}"
+            item="{{image}}"
             item-type="image"
             current-user="[[config.username]]">
           </annotate-record>
@@ -309,7 +266,7 @@ limitations under the License.
 
               <paper-material>
                 <section class="when">
-                  <iron-image id="mainImage" src="{{imageDisplay.url}}" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
+                  <iron-image id="mainImage" src="{{image.url}}" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
                 </section>
               </paper-material>
 
@@ -330,13 +287,89 @@ limitations under the License.
                     bar-property="date"
                     label-property="name"
                     stack-property="locations"
-                    data="[[imageDisplay.locationTimeline.dates]]"
+                    data="[[timelineData.dates]]"
                     default-label="Unknown Location(s)"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
                     chart-title="{{barChartTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Phones Section -->
+              <paper-material>
+                <section class="who phone-section">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-phone-font" icon="communication:phone"></iron-icon>
+                    <div>[[phoneHeader]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[phoneError]]">
+                    <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
+                    <div>[[phoneErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="phone"
+                    aggregation-field="mainEntityOfPage.mentionsPhone"
+                    selected="{{filterCollection.phone}}"
+                    query="[[imageOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{phoneError}}"
+                    filter-list="[[filterList]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
+                    data-property="phone"
+                    header-property="title"
+                    header="{{phoneHeader}}"
+                    item-type="Phone"
+                    count-type="Ads"
+                    entity-name="This Image"
+                    show-checkboxes
+                    show-other-counts>
+                  </feature-query-and-display>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Emails Section -->
+              <paper-material>
+                <section class="who phone-section">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-email-font" icon="communication:email"></iron-icon>
+                    <div>[[emailHeader]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[emailError]]">
+                    <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
+                    <div>[[emailErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="email"
+                    aggregation-field="mainEntityOfPage.mentionsEmail"
+                    selected="{{filterCollection.email}}"
+                    query="[[imageOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{emailError}}"
+                    filter-list="[[filterList]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
+                    data-property="email"
+                    header-property="title"
+                    header="{{emailHeader}}"
+                    item-type="Email"
+                    count-type="Ads"
+                    entity-name="This Image"
+                    show-checkboxes
+                    show-other-counts>
+                  </feature-query-and-display>
                 </section>
               </paper-material>
 
@@ -353,9 +386,9 @@ limitations under the License.
 
                   <people-features
                     query-field="mainEntityOfPage.hasImagePart.uri"
-                    query-values="[[imageDisplay.uri]]"
+                    query-value="[[image.uri]]"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     filter-list="[[filterList]]"
                     selected-name="{{filterCollection.name}}"
                     selected-age="{{filterCollection.age}}"
@@ -364,41 +397,8 @@ limitations under the License.
                     selected-hair-color="{{filterCollection.hairColor}}"
                     selected-height="{{filterCollection.height}}"
                     selected-weight="{{filterCollection.weight}}"
-                    transforms="[[clientConfig.transforms.offer]]"
-                    show-checkboxes>
+                    transforms="[[clientConfig.transforms.offer]]">
                   </people-features>
-                </section>
-              </paper-material>
-
-              <!-- Mentions Section -->
-
-              <div class="h-divider"></div>
-
-              <paper-material>
-                <section class="who">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
-                    <div>Emails & Phones in Ads for this Image</div>
-                  </div>
-
-                  <template is="dom-if" if="[[mentionsError]]">
-                    <elastic-error error="[[mentionsError]]" message="{{mentionsErrorMessage}}"></elastic-error>
-                    <div>[[mentionsErrorMessage]]</div>
-                  </template>
-
-                  <template is="dom-if" if="[[!imageDisplay.offersMentions.length]]">
-                    <template is="dom-if" if="[[mentionsLoading]]">
-                      <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
-                    </template>
-                    <template is="dom-if" if="[[!mentionsLoading]]">
-                      <div>None</div>
-                    </template>
-                  </template>
-
-                  <icon-label-grid
-                    icon-style-class-property="styleClass"
-                    data="[[imageDisplay.offersMentions]]">
-                  </icon-label-grid>
                 </section>
               </paper-material>
 
@@ -408,7 +408,7 @@ limitations under the License.
                 <section class="who publisher-section">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-webpage-font" icon="av:web"></iron-icon>
-                    <div>[[imageDisplay.offerPublisher.title]]</div>
+                    <div>[[publisherHeader]]</div>
                   </div>
 
                   <template is="dom-if" if="[[publisherError]]">
@@ -419,24 +419,26 @@ limitations under the License.
                   <feature-query-and-display
                     aggregation-name="publisher"
                     aggregation-field="mainEntityOfPage.publisher.name"
-                    filter-field="mainEntityOfPage.publisher.name"
                     selected="{{filterCollection.publisher}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{publisherError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
-                    transform-results="{{imageDisplay.offerPublisher}}"
-                    transform-property="publisher"
+                    data-property="publisher"
+                    header-property="title"
+                    header="{{publisherHeader}}"
                     data-text-property="id"
-                    feature-title="Ads per Website">
+                    item-type="Website"
+                    count-type="Ads"
+                    show-checkboxes>
                   </feature-query-and-display>
                 </section>
               </paper-material>
 
-              <template is="dom-if" if="[[imageDisplay.similarImageId]]">
+              <template is="dom-if" if="[[image.similarImageId]]">
                 <div class="h-divider"></div>
 
                 <paper-material>
@@ -453,7 +455,7 @@ limitations under the License.
 
                     <image-query-and-display
                       image-query-field="similarImageId.similarImageId"
-                      image-query-values="[[imageDisplay.similarImageId.similarImageId]]"
+                      image-query-values="[[image.similarImageId.similarImageId]]"
                       client="[[esclient]]"
                       index="[[config.elasticIndex]]"
                       index-types='["image"]'
@@ -485,7 +487,7 @@ limitations under the License.
 
                   <itinerary-list
                     parts-property="locations"
-                    data="[[imageDisplay.locationTimeline.dates]]"
+                    data="[[timelineData.dates]]"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
                     itinerary-title="{{itineraryTitle}}"
@@ -505,16 +507,16 @@ limitations under the License.
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[imageDisplay.offerLocation.title]]</div>
+                    <div>[[locationHeader]]</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[imageDisplay.offerLocation.location.length]]">
+                <template is="dom-if" if="[[locationData.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
                       text-property="longName"
-                      data="{{imageDisplay.offerLocation.location}}">
+                      data="{{locationData}}">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -529,22 +531,23 @@ limitations under the License.
                   <feature-query-and-display
                     aggregation-name="location"
                     aggregation-field="availableAtOrFrom.address.key"
-                    filter-field="availableAtOrFrom.address.key"
                     selected="{{filterCollection.location}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{locationError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
-                    transform-results="{{imageDisplay.offerLocation}}"
-                    transform-property="location"
+                    data-property="location"
+                    data="{{locationData}}"
+                    header-property="title"
+                    header="{{locationHeaderr}}"
                     data-id-property="key"
                     data-text-property="name"
-                    feature-title="Ads per Location"
-                    show-checkboxes
-                    show-links>
+                    item-type="Location"
+                    count-type="Ads"
+                    show-checkboxes>
                   </feature-query-and-display>
 
                   <div class="h-divider"></div>
@@ -590,8 +593,8 @@ limitations under the License.
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
-                    query-results="[[imageDisplay.imageOffers.data]]"
-                    total-results="{{imageDisplay.imageOffers.count}}"
+                    query-results="[[imageOffers.data]]"
+                    total-results="{{imageOffers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
                     page-size="[[pageSize]]"
@@ -624,6 +627,8 @@ limitations under the License.
     var app = document.querySelector('#app');
 
     app.filterCollection = {
+      email: [],
+      phone: [],
       publisher: [],
       location: [],
       name: [],
@@ -645,7 +650,7 @@ limitations under the License.
       return (blur ? 'large-blur' : '');
     };
 
-    app.imageDisplay = {};
+    app.image = {};
 
     app.generateLink = function() {
       this.$.stateManager.generateLink();

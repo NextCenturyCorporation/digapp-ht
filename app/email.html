@@ -111,14 +111,14 @@ limitations under the License.
       query="[[emailQuery]]"
       aggregations="[]"
       filters="[]"
-      results="{{email}}"
+      results="{{emailResults}}"
       last-error="{{error}}"
       source-include='["uri", "name"]'>
     </elastic-client-search>
 
     <json-transform
-      data-in="[[email]]"
-      data-out="{{emailDisplay.email}}"
+      data-in="[[emailResults]]"
+      data-out="{{email}}"
       transform-function="[[clientConfig.transforms.email.email]]">
     </json-transform>
 
@@ -127,7 +127,7 @@ limitations under the License.
     <elastic-client-query-builder
       type="term"
       fields='"mainEntityOfPage.mentionsEmail"'
-      values="[[emailDisplay.email.id]]"
+      values="[[email.id]]"
       ejs-query="{{emailOffersQuery}}">
     </elastic-client-query-builder>
 
@@ -142,7 +142,7 @@ limitations under the License.
       filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
-      results="{{emailOffers}}"
+      results="{{offersResults}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
@@ -150,59 +150,16 @@ limitations under the License.
     </elastic-client-search>
 
     <json-transform
-      data-in="[[emailOffers]]"
-      data-out="{{emailDisplay.emailOffers}}"
+      data-in="[[offersResults]]"
+      data-out="{{emailOffers}}"
       transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
 
     <json-combine
-      data-in1="[[emailDisplay.email.id]]"
-      data-in2="[[emailDisplay.emailOffers.data]]"
-      data-out="{{emailDisplay.strippedOffers}}"
+      data-in1="[[email.id]]"
+      data-in2="[[emailOffers.data]]"
+      data-out="{{strippedOffers}}"
       combine-function="[[clientConfig.transforms.offer.removeDescriptorFromOffers]]">
-    </json-combine>
-
-    <!-- Mentions in Offers -->
-
-    <elastic-client-aggregation-builder
-      name="emails"
-      type="terms"
-      count="0"
-      field="mainEntityOfPage.mentionsEmail"
-      ejs-aggregation="{{emailMentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="phones"
-      type="terms"
-      count="0"
-      field="mainEntityOfPage.mentionsPhone"
-      ejs-aggregation="{{phoneMentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <!-- set page size/hits to zero since we only need aggregation here -->
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      page="{{pageNum}}"
-      page-size="0"
-      query="[[emailOffersQuery]]"
-      aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
-      filters="[[filterList]]"
-      sort-field="validFrom"
-      sort-order="desc"
-      results="{{offersMentions}}"
-      loading="{{mentionsLoading}}"
-      last-error="{{mentionsError}}"
-      properties-ready="{{processRequest}}">
-    </elastic-client-search>
-
-    <json-combine
-      data-in1="[[emailDisplay.email.id]]"
-      data-in2="[[offersMentions]]"
-      data-out="{{emailDisplay.offersMentions}}"
-      combine-function="[[clientConfig.transforms.offer.createMentions]]">
     </json-combine>
 
     <!-- Location timeline for bar chart and itinerary -->
@@ -219,22 +176,22 @@ limitations under the License.
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
       query-field="mainEntityOfPage.mentionsEmail"
-      query-value="[[emailDisplay.email.id]]"
+      query-value="[[email.id]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       filters="[[filterList]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
-      count="[[emailDisplay.emailOffers.count]]"
+      count="[[emailOffers.count]]"
       interval="{{locationTimelineInterval}}"
-      results="{{emailDisplay.locationTimeline}}"
+      results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
     </location-timeline>
 
     <json-combine
-      data-in1="[[emailDisplay.email.id]]"
-      data-in2="[[emailDisplay.locationTimeline.dates]]"
-      data-out="{{emailDisplay.locationTimeline.strippedDates}}"
+      data-in1="[[email.id]]"
+      data-in2="[[timelineData.dates]]"
+      data-out="{{timelineData.strippedDates}}"
       combine-function="[[clientConfig.transforms.offer.removeNoteFromLocationTimeline]]">
     </json-combine>
 
@@ -271,7 +228,7 @@ limitations under the License.
             <iron-icon class="iron-icon-huge entity-email-font" icon="communication:email"></iron-icon>
             <section>
               <div class="paper-font-headline">
-                Email: <span>[[emailDisplay.email.emailAddress]]</span>
+                Email: <span>[[email.emailAddress]]</span>
               </div>
             </section>
           </div>
@@ -295,7 +252,7 @@ limitations under the License.
 
           <annotate-record client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
-            item="{{emailDisplay.email}}"
+            item="{{email}}"
             item-type="email address"
             current-user="[[config.username]]">
           </annotate-record>
@@ -336,13 +293,90 @@ limitations under the License.
                     bar-property="date"
                     label-property="name"
                     stack-property="locations"
-                    data="[[emailDisplay.locationTimeline.dates]]"
+                    data="[[timelineData.dates]]"
                     default-label="Unknown Location(s)"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
                     chart-title="{{barChartTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Phones Section -->
+              <paper-material>
+                <section class="who phone-section">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-phone-font" icon="communication:phone"></iron-icon>
+                    <div>[[phoneHeader]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[phoneError]]">
+                    <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
+                    <div>[[phoneErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="phone"
+                    aggregation-field="mainEntityOfPage.mentionsPhone"
+                    selected="{{filterCollection.phone}}"
+                    query="[[emailOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{phoneError}}"
+                    filter-list="[[filterList]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
+                    data-property="phone"
+                    header-property="title"
+                    header="{{phoneHeader}}"
+                    item-type="Phone"
+                    count-type="Ads"
+                    entity-name="[[email.emailAddress]]"
+                    show-checkboxes
+                    show-other-counts>
+                  </feature-query-and-display>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Emails Section -->
+              <paper-material>
+                <section class="who phone-section">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-email-font" icon="communication:email"></iron-icon>
+                    <div>[[otherEmailHeader]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[emailError]]">
+                    <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
+                    <div>[[emailErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="email"
+                    aggregation-field="mainEntityOfPage.mentionsEmail"
+                    selected="{{filterCollection.email}}"
+                    query="[[emailOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{emailError}}"
+                    filter-list="[[filterList]]"
+                    ignore-id="[[email.id]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
+                    data-property="email"
+                    header-property="title"
+                    header="{{otherEmailHeader}}"
+                    item-type="Email"
+                    count-type="Ads"
+                    entity-name="[[email.emailAddress]]"
+                    show-checkboxes
+                    show-other-counts>
+                  </feature-query-and-display>
                 </section>
               </paper-material>
 
@@ -359,9 +393,9 @@ limitations under the License.
 
                   <people-features
                     query-field="mainEntityOfPage.mentionsEmail"
-                    query-values="[[emailDisplay.email.id]]"
+                    query-value="[[email.id]]"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     filter-list="[[filterList]]"
                     selected-name="{{filterCollection.name}}"
                     selected-age="{{filterCollection.age}}"
@@ -370,41 +404,8 @@ limitations under the License.
                     selected-hair-color="{{filterCollection.hairColor}}"
                     selected-height="{{filterCollection.height}}"
                     selected-weight="{{filterCollection.weight}}"
-                    transforms="[[clientConfig.transforms.offer]]"
-                    show-checkboxes>
+                    transforms="[[clientConfig.transforms.offer]]">
                   </people-features>
-                </section>
-              </paper-material>
-
-              <!-- Mentions Section -->
-
-              <div class="h-divider"></div>
-
-              <paper-material>
-                <section class="who">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
-                    <div>Other Emails & Phones in Ads for [[emailDisplay.email.emailAddress]]</div>
-                  </div>
-
-                  <template is="dom-if" if="[[mentionsError]]">
-                    <elastic-error error="[[mentionsError]]" message="{{mentionsErrorMessage}}"></elastic-error>
-                    <div>[[mentionsErrorMessage]]</div>
-                  </template>
-
-                  <template is="dom-if" if="[[!emailDisplay.offersMentions.length]]">
-                    <template is="dom-if" if="[[mentionsLoading]]">
-                      <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
-                    </template>
-                    <template is="dom-if" if="[[!mentionsLoading]]">
-                      <div>None</div>
-                    </template>
-                  </template>
-
-                  <icon-label-grid
-                    icon-style-class-property="styleClass"
-                    data="[[emailDisplay.offersMentions]]">
-                  </icon-label-grid>
                 </section>
               </paper-material>
 
@@ -414,7 +415,7 @@ limitations under the License.
                 <section class="who publisher-section">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-webpage-font" icon="av:web"></iron-icon>
-                    <div>[[emailDisplay.offerPublisher.title]]</div>
+                    <div>[[publisherHeader]]</div>
                   </div>
 
                   <template is="dom-if" if="[[publisherError]]">
@@ -425,19 +426,21 @@ limitations under the License.
                   <feature-query-and-display
                     aggregation-name="publisher"
                     aggregation-field="mainEntityOfPage.publisher.name"
-                    filter-field="mainEntityOfPage.publisher.name"
                     selected="{{filterCollection.publisher}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{publisherError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
-                    transform-results="{{emailDisplay.offerPublisher}}"
-                    transform-property="publisher"
+                    data-property="publisher"
+                    header-property="title"
+                    header="{{publisherHeader}}"
                     data-text-property="id"
-                    feature-title="Ads per Website">
+                    item-type="Website"
+                    count-type="Ads"
+                    show-checkboxes>
                   </feature-query-and-display>
                 </section>
               </paper-material>
@@ -458,7 +461,7 @@ limitations under the License.
 
                   <image-query-and-display
                     image-query-field="isImagePartOf.mentionsEmail"
-                    image-query-values="[[emailDisplay.email.id]]"
+                    image-query-values="[[email.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
@@ -489,7 +492,7 @@ limitations under the License.
 
                   <itinerary-list
                     parts-property="locations"
-                    data="[[emailDisplay.locationTimeline.strippedDates]]"
+                    data="[[timelineData.strippedDates]]"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
                     itinerary-title="{{itineraryTitle}}"
@@ -509,16 +512,16 @@ limitations under the License.
                 <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[emailDisplay.offerLocation.title]]</div>
+                    <div>[[locationHeader]]</div>
                   </div>
                 </section>
 
                 <!-- Leaflet map -->
-                <template is="dom-if" if="[[emailDisplay.offerLocation.location.length]]">
+                <template is="dom-if" if="[[locationData.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
                       text-property="longName"
-                      data="{{emailDisplay.offerLocation.location}}">
+                      data="{{locationData}}">
                     </leaflet-wrapper>
                   </section>
                 </template>
@@ -533,22 +536,23 @@ limitations under the License.
                   <feature-query-and-display
                     aggregation-name="location"
                     aggregation-field="availableAtOrFrom.address.key"
-                    filter-field="availableAtOrFrom.address.key"
                     selected="{{filterCollection.location}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     index-types='["offer"]'
                     error="{{locationError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
-                    transform-results="{{emailDisplay.offerLocation}}"
-                    transform-property="location"
+                    data-property="location"
+                    data="{{locationData}}"
+                    header-property="title"
+                    header="{{locationHeader}}"
                     data-id-property="key"
                     data-text-property="name"
-                    feature-title="Ads per Location"
-                    show-checkboxes
-                    show-links>
+                    item-type="Location"
+                    count-type="Ads"
+                    show-checkboxes>
                   </feature-query-and-display>
 
                   <div class="h-divider"></div>
@@ -594,8 +598,8 @@ limitations under the License.
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
-                    query-results="[[emailDisplay.strippedOffers]]"
-                    total-results="{{emailDisplay.emailOffers.count}}"
+                    query-results="[[strippedOffers]]"
+                    total-results="{{emailOffers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
                     page-size="[[pageSize]]"
@@ -625,6 +629,8 @@ limitations under the License.
     var app = document.querySelector('#app');
 
     app.filterCollection = {
+      email: [],
+      phone: [],
       publisher: [],
       location: [],
       name: [],
@@ -642,7 +648,7 @@ limitations under the License.
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.emailDisplay = {};
+    app.email = {};
 
     app.generateLink = function() {
       this.$.stateManager.generateLink();

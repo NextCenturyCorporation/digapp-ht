@@ -83,7 +83,7 @@
     <elastic-client-query-builder
       type="term"
       fields="[[params.field]]"
-      values="[[locationDisplay.location.key]]"
+      values="[[location.key]]"
       ejs-query="{{locationOffersQuery}}">
     </elastic-client-query-builder>
 
@@ -98,7 +98,7 @@
       filters="[[filterList]]"
       sort-field="validFrom"
       sort-order="desc"
-      results="{{locationOffers}}"
+      results="{{offersResults}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
@@ -106,56 +106,12 @@
     </elastic-client-search>
 
     <json-transform
-      data-in="[[locationOffers]]"
-      data-out="{{locationDisplay.offers}}"
+      data-in="[[offersResults]]"
+      data-out="{{locationOffers}}"
       transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
 
-    <!-- Mentions in Offers -->
-
-    <elastic-client-aggregation-builder
-      name="emails"
-      type="terms"
-      count="100"
-      field="mainEntityOfPage.mentionsEmail"
-      ejs-aggregation="{{emailMentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-aggregation-builder
-      name="phones"
-      type="terms"
-      count="100"
-      field="mainEntityOfPage.mentionsPhone"
-      ejs-aggregation="{{phoneMentionsAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <!-- set page size/hits to zero since we only need aggregation here -->
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      page="{{pageNum}}"
-      page-size="0"
-      query="[[locationOffersQuery]]"
-      aggregations="[[buildArray(emailMentionsAggregation, phoneMentionsAggregation)]]"
-      filters="[[filterList]]"
-      sort-field="validFrom"
-      sort-order="desc"
-      results="{{offersMentions}}"
-      loading="{{mentionsLoading}}"
-      last-error="{{mentionsError}}"
-      properties-ready="{{processRequest}}">
-    </elastic-client-search>
-
-    <json-combine
-      data-in1="null"
-      data-in2="[[offersMentions]]"
-      data-out="{{locationDisplay.offersMentions}}"
-      combine-function="[[clientConfig.transforms.offer.createMentions]]">
-    </json-combine>
-
     <!-- Location timeline for bar chart and itinerary -->
-
     <location-timeline
       aggregation-count="100"
       location-aggregation-name="locations"
@@ -169,22 +125,22 @@
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
       query-field="availableAtOrFrom.address.key"
-      query-value="[[locationDisplay.location.key]]"
+      query-value="[[location.key]]"
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
       filters="[[filterList]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
-      count="[[locationDisplay.offers.count]]"
+      count="[[locationOffers.count]]"
       interval="{{locationTimelineInterval}}"
-      results="{{locationDisplay.locationTimeline}}"
+      results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
     </location-timeline>
 
     <json-combine
-      data-in1="[[locationDisplay.location.key]]"
-      data-in2="[[locationDisplay.locationTimeline.dates]]"
-      data-out="{{locationDisplay.locationTimeline.strippedDates}}"
+      data-in1="[[location.key]]"
+      data-in2="[[timelineData.dates]]"
+      data-out="{{timelineData.strippedDates}}"
       combine-function="[[clientConfig.transforms.offer.removeNoteFromLocationTimeline]]">
     </json-combine>
 
@@ -221,7 +177,7 @@
             <iron-icon class="iron-icon-huge entity-location-font" icon="communication:location-on"></iron-icon>
             <section>
               <div class="paper-font-headline">
-                Location: [[locationDisplay.location.longName]]
+                Location: [[location.longName]]
               </div>
             </section>
           </div>
@@ -270,7 +226,7 @@
                 <section class="where flex-auto">
                   <leaflet-wrapper
                     text-property="longName"
-                    data="{{buildArray(locationDisplay.location)}}"
+                    data="{{buildArray(location)}}"
                     text-property="name">
                   </leaflet-wrapper>
                 </section>
@@ -304,14 +260,14 @@
                   <elastic-client-filter-builder
                     type="terms"
                     field="availableAtOrFrom.address.addressLocality"
-                    values="[[buildArray(locationDisplay.location.locality)]]"
+                    values="[[buildArray(location.locality)]]"
                     ejs-filter="{{ejsLocalityFilter}}">
                   </elastic-client-filter-builder>
 
                   <elastic-client-filter-builder
                     type="terms"
                     field="availableAtOrFrom.address.addressRegion"
-                    values="[[buildArray(locationDisplay.location.region)]]"
+                    values="[[buildArray(location.region)]]"
                     ejs-filter="{{ejsRegionFilter}}">
                   </elastic-client-filter-builder>
 
@@ -347,15 +303,15 @@
                     aggregations="[[locsFilterAggregation]]"
                     page-size="0"
                     filters="[[filterList]]"
-                    results="{{similarLocResults}}"
+                    results="{{similarLocsResults}}"
                     loading="{{similarLocsLoading}}"
                     last-error="{{similarLocsError}}">
                   </elastic-client-search>
 
                   <json-combine
-                    data-in1="[[locationDisplay.location.key]]"
-                    data-in2="[[similarLocResults]]"
-                    data-out="{{locationDisplay.similarLocations}}"
+                    data-in1="[[location.key]]"
+                    data-in2="[[similarLocsResults]]"
+                    data-out="{{similarLocations}}"
                     combine-function="[[clientConfig.transforms.offer.similarLocations]]">
                   </json-combine>
 
@@ -366,15 +322,91 @@
 
                   <feature-aggregation class="flex location"
                     small="[[small]]"
-                    chart-title=""
+                    item-type="Location"
+                    count-type="Ads"
                     id-property="key"
                     count-property="count"
                     text-property="name"
-                    items="[[locationDisplay.similarLocations.similarLocations]]"
+                    items="[[similarLocations.similarLocations]]"
                     selected-ids="{{selected}}"
-                    loading="[[similarLocsLoading]]"
-                    show-links>
+                    loading="[[similarLocsLoading]]">
                   </feature-aggregation>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Phones Section -->
+              <paper-material>
+                <section class="who phone-section">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-phone-font" icon="communication:phone"></iron-icon>
+                    <div>[[phoneHeader]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[phoneError]]">
+                    <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
+                    <div>[[phoneErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="phone"
+                    aggregation-field="mainEntityOfPage.mentionsPhone"
+                    selected="{{filterCollection.phone}}"
+                    query="[[locationOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{phoneError}}"
+                    filter-list="[[filterList]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
+                    data-property="phone"
+                    header-property="title"
+                    header="{{phoneHeader}}"
+                    item-type="Phone"
+                    count-type="Ads"
+                    entity-name="[[location.locality]]"
+                    show-checkboxes
+                    show-other-counts>
+                  </feature-query-and-display>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Emails Section -->
+              <paper-material>
+                <section class="who phone-section">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-email-font" icon="communication:email"></iron-icon>
+                    <div>[[emailHeader]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[emailError]]">
+                    <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
+                    <div>[[emailErrorMessage]]</div>
+                  </template>
+
+                  <feature-query-and-display
+                    aggregation-name="email"
+                    aggregation-field="mainEntityOfPage.mentionsEmail"
+                    selected="{{filterCollection.email}}"
+                    query="[[locationOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["offer"]'
+                    error="{{emailError}}"
+                    filter-list="[[filterList]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
+                    data-property="email"
+                    header-property="title"
+                    header="{{emailHeader}}"
+                    item-type="Email"
+                    count-type="Ads"
+                    entity-name="[[location.locality]]"
+                    show-checkboxes
+                    show-other-counts>
+                  </feature-query-and-display>
                 </section>
               </paper-material>
 
@@ -393,10 +425,10 @@
 
                   <people-features
                     query-field="availableAtOrFrom.address.key"
-                    query-values="[[locationDisplay.location.key]]"
+                    query-value="[[location.key]]"
                     aggregation-count="100"
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
+                    index-name="[[config.elasticIndex]]"
                     filter-list="[[filterList]]"
                     selected-name="{{filterCollection.name}}"
                     selected-age="{{filterCollection.age}}"
@@ -405,43 +437,8 @@
                     selected-hair-color="{{filterCollection.hairColor}}"
                     selected-height="{{filterCollection.height}}"
                     selected-weight="{{filterCollection.weight}}"
-                    transforms="[[clientConfig.transforms.offer]]"
-                    show-checkboxes>
+                    transforms="[[clientConfig.transforms.offer]]">
                   </people-features>
-                </section>
-              </paper-material>
-
-              <!-- Mentions Section -->
-
-              <div class="h-divider"></div>
-
-              <paper-material>
-                <section class="who">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-seller-font" icon="social:share"></iron-icon>
-                    <div>Other Phones & Emails in Ads for [[locationDisplay.location.name]]</div>
-                  </div>
-
-                  <div class="note">Note:  Showing Only the Top 100 Phones and the Top 100 Emails</div>
-
-                  <template is="dom-if" if="[[mentionsError]]">
-                    <elastic-error error="[[mentionsError]]" message="{{mentionsErrorMessage}}"></elastic-error>
-                    <div>[[mentionsErrorMessage]]</div>
-                  </template>
-
-                  <template is="dom-if" if="[[!locationDisplay.offersMentions.length]]">
-                    <template is="dom-if" if="[[mentionsLoading]]">
-                      <loading-spinner show="[[mentionsLoading]]"></loading-spinner>
-                    </template>
-                    <template is="dom-if" if="[[!mentionsLoading]]">
-                      <div>None</div>
-                    </template>
-                  </template>
-
-                  <icon-label-grid
-                    icon-style-class-property="styleClass"
-                    data="[[locationDisplay.offersMentions]]">
-                  </icon-label-grid>
                 </section>
               </paper-material>
 
@@ -451,7 +448,7 @@
                 <section class="who publisher-section">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-webpage-font" icon="av:web"></iron-icon>
-                    <div>[[locationDisplay.offerPublisher.title]]</div>
+                    <div>[[publisherHeader]]</div>
                   </div>
 
                   <div class="note">Note:  Showing Only the Top 100 Websites</div>
@@ -465,7 +462,6 @@
                     aggregation-name="publisher"
                     aggregation-field="mainEntityOfPage.publisher.name"
                     aggregation-count="100"
-                    filter-field="mainEntityOfPage.publisher.name"
                     selected="{{filterCollection.publisher}}"
                     query="[[locationOffersQuery]]"
                     client="[[esclient]]"
@@ -474,10 +470,13 @@
                     error="{{publisherError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
-                    transform-results="{{locationDisplay.offerPublisher}}"
-                    transform-property="publisher"
+                    data-property="publisher"
+                    header-property="title"
+                    header="{{publisherHeader}}"
                     data-text-property="id"
-                    feature-title="Ads per Website">
+                    item-type="Website"
+                    count-type="Ads"
+                    show-checkboxes>
                   </feature-query-and-display>
                 </section>
               </paper-material>
@@ -501,7 +500,7 @@
 
                   <itinerary-list
                     parts-property="locations"
-                    data="[[locationDisplay.locationTimeline.strippedDates]]"
+                    data="[[timelineData.strippedDates]]"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
                     itinerary-title="{{itineraryTitle}}"
@@ -531,7 +530,7 @@
                     bar-property="date"
                     label-property="name"
                     stack-property="locations"
-                    data="[[locationDisplay.locationTimeline.dates]]"
+                    data="[[timelineData.dates]]"
                     default-label="Unknown Location(s)"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
@@ -565,8 +564,8 @@
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
-                    query-results="[[locationDisplay.offers.data]]"
-                    total-results="{{locationDisplay.offers.count}}"
+                    query-results="[[locationOffers.data]]"
+                    total-results="{{locationOffers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
                     page-size="[[pageSize]]"
@@ -599,6 +598,8 @@
     var app = document.querySelector('#app');
 
     app.filterCollection = {
+      email: [],
+      phone: [],
       publisher: [],
       location: [],
       name: [],
@@ -621,19 +622,17 @@
       var locationData = locationKey.split(':');
 
       return {
-        location: {
-          key: locationKey,
-          longitude: locationData[3],
-          latitude: locationData[4],
-          locality: locationData[0],
-          region: locationData[1],
-          name: locationData[0] + ', ' + locationData[1],
-          longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2]
-        }
+        key: locationKey,
+        longitude: locationData[3],
+        latitude: locationData[4],
+        locality: locationData[0],
+        region: locationData[1],
+        name: locationData[0] + ', ' + locationData[1],
+        longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2]
       };
     };
 
-    app.locationDisplay = app.createLocationProperties();
+    app.location = app.createLocationProperties();
 
     app.generateLink = function() {
       this.$.stateManager.generateLink();

@@ -30,6 +30,8 @@ DigBehaviors.StateBehavior = {
    */
   buildEntityState: function(config) {
     return {
+      email: config.email || [],
+      phone: config.phone || [],
       publisher: config.publisher || [],
       location: config.location || [],
       name: config.name || [],
@@ -68,7 +70,7 @@ DigBehaviors.StateBehavior = {
       image: config.image || {},
       annotationsFilter: annotationsFilter ? _.cloneDeep(annotationsFilter) : {},
       sort: config.sort || '',
-      text: config.text || ''
+      text: (config.text || config.text === null) ? config.text : ''
     };
   },
 

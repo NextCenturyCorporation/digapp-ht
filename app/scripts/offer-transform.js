@@ -152,8 +152,15 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
     offer.name = _.isArray(offer.name) ? offer.name.join(', ') : offer.name;
     offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
-    offer.locationKey = offer.locations.length ? offer.locations[0].key : undefined;
-    offer.locationLink = offer.locations.length ? commonTransforms.getLink(offer.locationKey, 'location') : undefined;
+
+    var locationKey = offer.locations.length ? offer.locations[0].key : undefined;
+    offer.locationDescriptor = {
+      icon: commonTransforms.getIronIcon('location'),
+      styleClass: commonTransforms.getStyleClass('location'),
+      text: offer.location,
+      link: commonTransforms.getLink(locationKey, 'location'),
+      type: 'location'
+    };
 
     offer.descriptors.push({
       icon: commonTransforms.getIronIcon('date'),
@@ -167,15 +174,6 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       type: 'webpage',
       text: offer.publisher
     });
-    offer.descriptors.push({
-      icon: commonTransforms.getIronIcon('location'),
-      styleClass: commonTransforms.getStyleClass('location'),
-      text: offer.location,
-      link: commonTransforms.getLink(offer.locationKey, 'location'),
-      type: 'location'
-    });
-    offer.descriptors = offer.descriptors.concat(offer.phones);
-    offer.descriptors = offer.descriptors.concat(offer.emails);
 
     offer.details.push({
       name: 'Url',
@@ -357,7 +355,8 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     return _.map(buckets, function(bucket) {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var obj = {
-        count: bucket.doc_count
+        count: bucket.doc_count,
+        styleClass: commonTransforms.getStyleClass('provider')
       };
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       if(alternateKey) {
@@ -380,6 +379,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       name: locationData[0] + ', ' + locationData[1],
       longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2] + ' (' + locationBucket.doc_count + ')',
       link: commonTransforms.getLink(locationBucket.key, 'location'),
+      styleClass: commonTransforms.getStyleClass('location')
     };
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     return location;
@@ -508,36 +508,68 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     },
 
-    createMentions: function(ignoreId, data) {
-      var mentions = [];
+    offerPhones: function(data, ignoreId) {
+      var phones = [];
+      var maxCount;
+      var ignoreName;
       if(data && data.aggregations) {
-        data.aggregations.phones.phones.buckets.forEach(function(bucket) {
+        data.aggregations.phone.phone.buckets.forEach(function(bucket) {
+          var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
+          if(text.indexOf('-') >= 0) {
+            // Remove country code.
+            text = text.substring(text.indexOf('-') + 1);
+          }
           if(ignoreId !== bucket.key) {
-            var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
-            if(text.indexOf('-') >= 0) {
-              // Remove country code.
-              text = text.substring(text.indexOf('-') + 1);
-            }
-            mentions.push({
-              icon: commonTransforms.getIronIcon('phone'),
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            maxCount = maxCount || bucket.doc_count;
+            phones.push({
+              id: bucket.key,
+              count: bucket.doc_count,
               link: commonTransforms.getLink(bucket.key, 'phone'),
+              max: maxCount,
               styleClass: commonTransforms.getStyleClass('phone'),
               text: text
             });
-          }
-        });
-        data.aggregations.emails.emails.buckets.forEach(function(bucket) {
-          if(ignoreId !== bucket.key) {
-            mentions.push({
-              icon: commonTransforms.getIronIcon('email'),
-              link: commonTransforms.getLink(bucket.key, 'email'),
-              styleClass: commonTransforms.getStyleClass('email'),
-              text: decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1))
-            });
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            ignoreName = text;
           }
         });
       }
-      return mentions;
+      return {
+        title: (phones.length || 'No') + (ignoreName ? ' Other' : '') + ' Telephone Number' + (phones.length === 1 ? '' : 's'),
+        phone: phones
+      };
+    },
+
+    offerEmails: function(data, ignoreId) {
+      var emails = [];
+      var maxCount;
+      var ignoreName;
+      if(data && data.aggregations) {
+        data.aggregations.email.email.buckets.forEach(function(bucket) {
+          var text = decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1));
+          if(ignoreId !== bucket.key) {
+            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+            maxCount = maxCount || bucket.doc_count;
+            emails.push({
+              id: bucket.key,
+              count: bucket.doc_count,
+              link: commonTransforms.getLink(bucket.key, 'email'),
+              max: maxCount,
+              styleClass: commonTransforms.getStyleClass('email'),
+              text: text
+            });
+            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+          } else {
+            ignoreName = text;
+          }
+        });
+      }
+      return {
+        title: (emails.length || 'No') + (ignoreName ? ' Other' : '') + ' Email Address' + (emails.length === 1 ? '' : 'es'),
+        email: emails
+      };
     },
 
     peopleFeaturesName: function(data) {
@@ -588,7 +620,8 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         publishers.push({
           id: publisherBucket.key,
-          count: publisherBucket.doc_count
+          count: publisherBucket.doc_count,
+          styleClass: commonTransforms.getStyleClass('webpage')
         });
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       });

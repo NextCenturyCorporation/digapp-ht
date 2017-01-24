@@ -20,18 +20,24 @@ var Schedule = require('node-schedule');
 
 module.exports = function Scheduler(logger) {
   this.runMinutely = function(callback) {
+    logger.info('Starting minutely job...');
     Schedule.scheduleJob('*/1 * * * *', callback);
   };
 
   this.runHourly = function(callback) {
+    logger.info('Starting hourly job...');
     Schedule.scheduleJob('0 * * * *', callback);
   };
 
   this.runDaily = function(callback) {
+    logger.info('Starting daily job...');
     Schedule.scheduleJob('0 0 * * *', callback);
   };
 
   this.runWeekly = function(callback) {
+    logger.info('Starting weekly job...');
     Schedule.scheduleJob('0 0 * * 0', callback);
   };
+
+  logger.info('Scheduler created.');
 };

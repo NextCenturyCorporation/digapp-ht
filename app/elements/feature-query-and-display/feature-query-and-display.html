@@ -18,7 +18,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
-<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/json-combine/json-combine.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../feature-aggregation/feature-aggregation.html">
 
@@ -35,46 +35,57 @@ limitations under the License.
       type="terms"
       count="[[aggregationCount]]"
       field="[[aggregationField]]"
-      ejs-aggregation="{{aggregation}}">
+      ejs-aggregation="{{_aggregation}}">
     </elastic-client-aggregation-builder>
 
     <elastic-client-query-builder
-      type="terms"
+      type="term"
       fields="[[queryField]]"
-      values="[[queryValues]]"
+      values="[[queryValue]]"
       ejs-query="{{query}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[client]]"
-      index="[[index]]"
+      index="[[indexName]]"
       elastic-types="[[indexTypes]]"
       query="[[query]]"
-      aggregations="[[buildArray(aggregation)]]"
-      page-size="[[hitsPerPage]]"
+      aggregations="[[buildArray(_aggregation)]]"
+      page-size="0"
       filters="[[filterList]]"
-      results="{{queryResults}}"
+      results="{{_queryResults}}"
       loading="{{loading}}"
       last-error="{{error}}">
     </elastic-client-search>
 
-    <json-transform
-      data-in="[[queryResults]]"
-      data-out="{{transformResults}}"
-      transform-function="[[featureTransform]]">
-    </json-transform>
+    <json-combine
+      data-in1="[[_queryResults]]"
+      data-in2="[[ignoreId]]"
+      data-out="{{_transformResults}}"
+      combine-function="[[featureTransform]]">
+    </json-combine>
 
     <feature-aggregation class="flex"
-      small="[[small]]"
-      chart-title="[[featureTitle]]"
-      id-property="[[dataIdProperty]]"
       count-property="[[dataCountProperty]]"
+      icon-property="[[dataIconProperty]]"
+      id-property="[[dataIdProperty]]"
+      link-property="[[dataLinkProperty]]"
+      max-property="[[dataMaxProperty]]"
+      style-class-property="[[dataStyleClassProperty]]"
       text-property="[[dataTextProperty]]"
-      items="[[getData(transformResults, transformProperty)]]"
-      selected-ids="{{selected}}"
+      items="[[data]]"
+      item-type="[[itemType]]"
+      count-type="[[countType]]"
+      entity-name="[[entityName]]"
       loading="[[loading]]"
-      show-checkboxes="{{showCheckboxes}}"
-      show-links="{{showLinks}}">
+      small="[[small]]"
+      show-checkboxes="[[showCheckboxes]]"
+      show-other-counts="[[showOtherCounts]]"
+      client="[[client]]"
+      index-name="[[indexName]]"
+      index-types="[[indexTypes]]"
+      query-field="[[aggregationField]]"
+      selected-ids="{{selected}}">
     </feature-aggregation>
   </template>
 
@@ -112,14 +123,6 @@ limitations under the License.
         },
 
         /**
-         * The elasticjs aggregation created by this component.
-         */
-        aggregation: {
-          type: Object,
-          notify: true
-        },
-
-        /**
          * The list of strings selected for the elasticsearch filter.
          */
         selected: {
@@ -135,10 +138,10 @@ limitations under the License.
         },
 
         /**
-         * The string value or array of values for the elasticsearch query.
+         * The value for the elasticsearch query.
          */
-        queryValues: {
-          type: Array
+        queryValue: {
+          type: String
         },
 
         /**
@@ -159,7 +162,7 @@ limitations under the License.
         /**
          * The elasticsearch index to query.
          */
-        index: {
+        indexName: {
           type: String
         },
 
@@ -179,14 +182,6 @@ limitations under the License.
         },
 
         /**
-         * The results of the query run by this component.
-         */
-        queryResults: {
-          type: Object,
-          notify: true
-        },
-
-        /**
          * Whether the query run by this component is loading.
          */
         loading: {
@@ -196,53 +191,135 @@ limitations under the License.
         },
 
         /**
-         * The feature transform function for the query results.
+         * The elasticsearch query error.
          */
-        featureTransform: {
-          type: Function
+        error: {
+          type: Object
         },
 
         /**
-         * The property with the data in the transform results object.  By default, uses the transform results object itself.
+         * The ID to ignore in the feature transform (if any).
          */
-        transformProperty: {
+        ignoreId: {
           type: String,
           value: ''
         },
 
         /**
-         * The results of the transform run by this component.
+         * The feature transform function for the query results.
          */
-        transformResults: {
-          type: Object,
-          notify: true
+        featureTransform: {
+          type: Object
         },
 
         /**
-         * Property in the data objects containing a unique ID (used to set the filter values).
+         * The property with the data in the transform results object.  By default, uses the transform results object itself.
          */
-        dataIdProperty: {
-          type: String
+        dataProperty: {
+          type: String,
+          value: 'data'
+        },
+
+        /**
+         * The data from the transform results object.
+         */
+        data: {
+          notify: true,
+          type: Array,
+          computed: '_getData(_transformResults, dataProperty)'
         },
 
         /**
          * Property in the data objects containing the count to display.
          */
         dataCountProperty: {
-          type: String
+          type: String,
+          value: 'count'
+        },
+
+        /**
+         * Property in the data objects containing the icon to display.
+         */
+        dataIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * Property in the data objects containing a unique ID (used to set the filter values).
+         */
+        dataIdProperty: {
+          type: String,
+          value: 'id'
+        },
+
+        /**
+         * Property in the data objects containing the link to display.
+         */
+        dataLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * Property in the data objects containing the max to display.
+         */
+        dataMaxProperty: {
+          type: String,
+          value: 'max'
+        },
+
+        /**
+         * Property in the data objects containing the style class to display.
+         */
+        dataStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
         },
 
         /**
          * Property in the data objects containing the text to display.
          */
         dataTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * The property with the header in the transform results object.
+         */
+        headerProperty: {
+          type: String,
+          value: 'header'
+        },
+
+        /**
+         * The header from the transform results object.
+         */
+        header: {
+          notify: true,
+          type: String,
+          computed: '_getHeader(_transformResults, headerProperty)'
+        },
+
+        /**
+         * The type for the items to show in the header.
+         */
+        itemType: {
           type: String
         },
 
         /**
-         * The title for this component.
+         * The type for the counts to show in the header.
          */
-        featureTitle: {
+        countType: {
+          type: String
+        },
+
+        /**
+         * The name for the entity to show in the header.
+         */
+        entityName: {
           type: String
         },
 
@@ -254,21 +331,6 @@ limitations under the License.
           value: false
         },
 
-        error: {
-          type: Object
-        },
-
-        /**
-         * Only aggregations are required from elasticsearch here (not hits).
-         * Therefore, size will be set to 0 to avoid returning hits and make
-         * the request more efficient.
-         */
-        hitsPerPage: {
-          type: Number,
-          notify: true,
-          value: 0
-        },
-
         /**
          * Whether or not to display checkboxes in feature-aggregation component.
          */
@@ -278,16 +340,41 @@ limitations under the License.
         },
 
         /**
-         * Whether or not to show links in feature-aggregation component.
+         * Whether or not to run queries and show other counts in feature-aggregation component.
          */
-        showLinks: {
+        showOtherCounts: {
           type: Boolean,
           value: false
+        },
+
+        /**
+         * The elasticjs aggregation created by this component.
+         */
+        _aggregation: {
+          type: Object
+        },
+
+        /**
+         * The results of the query run by this component.
+         */
+        _queryResults: {
+          type: Object
+        },
+
+        /**
+         * The results of the transform run by this component.
+         */
+        _transformResults: {
+          type: Object
         }
       },
 
-      getData: function(data, property) {
+      _getData: function(data, property) {
         return property ? data[property] : data;
+      },
+
+      _getHeader: function(data, property) {
+        return property ? (data[property] || '') : '';
       }
     });
   })();

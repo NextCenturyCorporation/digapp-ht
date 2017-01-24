@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<!doctype html>
-
 <html>
 <head>
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
@@ -59,8 +57,7 @@ limitations under the License.
       });
     });
 
-    test('items is set correctly', function() {
-      expect(component.items).to.be.an('array');
+    test('properties are set to defaults correctly', function() {
       expect(component.items).to.deep.equal([{
         id: 1,
         text: 'a',
@@ -70,30 +67,24 @@ limitations under the License.
         text: 'b',
         count: 3
       }]);
-    });
-
-    test('properties are set to defaults correctly', function() {
-      expect(component.idProperty).to.be.a('string');
-      expect(component.idProperty).to.equal('id');
-      expect(component.countProperty).to.be.a('string');
       expect(component.countProperty).to.equal('count');
-      expect(component.textProperty).to.be.a('string');
+      expect(component.iconProperty).to.equal('icon');
+      expect(component.idProperty).to.equal('id');
+      expect(component.linkProperty).to.equal('link');
+      expect(component.maxProperty).to.equal('max');
+      expect(component.styleClassProperty).to.equal('styleClass');
       expect(component.textProperty).to.equal('text');
-      expect(component.limit).to.be.a('number');
       expect(component.limit).to.equal(10);
-      expect(component.loading).to.be.a('boolean');
-      expect(component.loading).to.be.false;
-      expect(component.small).to.be.a('boolean');
-      expect(component.small).to.be.false;
-      expect(component.chartTitle).to.be.a('string');
-      expect(component.chartTitle).to.equal('Data');
-      expect(component.selectedIds).to.be.an('array');
-      expect(component.selectedIds).to.deep.equal([]);
+      expect(component.itemType).to.equal('Items');
+      expect(component.countType).to.equal('');
+      expect(component.entityName).to.equal('');
       expect(component.showCheckboxes).to.be.true;
-      expect(component.showLinks).to.be.false;
-      expect(component._selectedItems).to.be.an('array');
+      expect(component.showOtherCounts).to.be.false;
+      expect(component.loading).to.be.false;
+      expect(component.small).to.be.false;
+      expect(component.selectedIds).to.deep.equal([]);
       expect(component._selectedItems).to.deep.equal([]);
-      expect(component._showMore).to.be.a('boolean');
+      expect(component._maxOtherCount).to.deep.equal(0);
       expect(component._showMore).to.be.false;
     });
 
@@ -104,7 +95,7 @@ limitations under the License.
       expect(bar.count).to.equal(4);
       expect(bar.showCheckbox).to.equal(true);
       expect(bar.max).to.equal(4);
-      expect(bar.linkValue).to.be.null;
+      expect(bar.linkValue).to.not.exist;
     });
 
     test('_combinedItems is set correctly', function() {
@@ -180,18 +171,14 @@ limitations under the License.
       }]);
     });
 
-    test('_getLinkValue returns correct value', function() {
-      expect(component._getLinkValue(component._shownItems[0])).to.be.null;
+    test('_doesOverflow returns the given string if the items length is greater than the limit', function() {
+      expect(component._doesOverflow(3, 2, 'myString')).to.equal('myString');
     });
 
-    test('_doesOverflow returns overflow if items length is greater than limit', function() {
-      expect(component._doesOverflow(3, 2)).to.equal('overflow');
-    });
-
-    test('_doesOverflow returns empty if items length is less than or equal to limit', function() {
-      expect(component._doesOverflow(0, 2)).to.equal('');
-      expect(component._doesOverflow(1, 2)).to.equal('');
-      expect(component._doesOverflow(2, 2)).to.equal('');
+    test('_doesOverflow returns the empty string if the items length is less than or equal to the limit', function() {
+      expect(component._doesOverflow(0, 2, 'myString')).to.equal('');
+      expect(component._doesOverflow(1, 2, 'myString')).to.equal('');
+      expect(component._doesOverflow(2, 2, 'myString')).to.equal('');
     });
 
     test('_findItem returns the correct values', function() {
@@ -216,6 +203,18 @@ limitations under the License.
       expect(component._isSmall(false)).to.equal('');
     });
 
+    test('_getCountHeader returns correct strings', function() {
+      expect(component._getCountHeader('', '')).to.equal('Co-occurring');
+      expect(component._getCountHeader('Alpha', '')).to.equal('Alpha Co-occurring');
+      expect(component._getCountHeader('', 'Beta')).to.equal('Co-occurring With Beta');
+      expect(component._getCountHeader('Alpha', 'Beta')).to.equal('Alpha Co-occurring With Beta');
+    });
+
+    test('_getOtherCountHeader returns correct strings', function() {
+      expect(component._getOtherCountHeader('')).to.equal('Not Co-occurring');
+      expect(component._getOtherCountHeader('Alpha')).to.equal('Alpha Not Co-occurring');
+    });
+
     test('_getProperty returns correct values', function() {
       var item = {
         id: 1,
@@ -225,6 +224,15 @@ limitations under the License.
       expect(component._getProperty(item, component.idProperty)).to.equal(1);
       expect(component._getProperty(item, component.countProperty)).to.equal(4);
       expect(component._getProperty(item, component.textProperty)).to.equal('a');
+    });
+
+    test('_showCountsHeaderText returns true with items', function() {
+      expect(component._showCountsHeaderText(2, false)).to.be.true;
+    });
+
+    test('_showCountsHeaderText returns false if loading or with no items', function() {
+      expect(component._showCountsHeaderText(2, true)).to.be.false;
+      expect(component._showCountsHeaderText(0, false)).to.be.false;
     });
 
     test('_showNoDataText returns true with no items', function() {
@@ -355,12 +363,15 @@ limitations under the License.
 
     setup(function(done) {
       component = fixture('feature-aggregation-fixture');
-      component.idProperty = 'uuid';
       component.countProperty = 'number';
+      component.idProperty = 'uuid';
+      component.maxProperty = 'maximum';
       component.textProperty = 'name';
       component.limit = 2;
       component.small = true;
-      component.chartTitle = 'Test';
+      component.itemType = 'Item Type';
+      component.countType = 'Count Type';
+      component.entityName = 'Entity Name';
       component.items = [{
         uuid: 1,
         name: 'a',
@@ -387,20 +398,23 @@ limitations under the License.
       });
     });
 
-    test('idProperty, countProperty, textProperty, limit, small, chartTitle, and items are set correctly', function() {
-      expect(component.idProperty).to.be.a('string');
-      expect(component.idProperty).to.equal('uuid');
-      expect(component.countProperty).to.be.a('string');
+    test('properties are set correctly', function() {
       expect(component.countProperty).to.equal('number');
-      expect(component.textProperty).to.be.a('string');
+      expect(component.idProperty).to.equal('uuid');
+      expect(component.maxProperty).to.equal('maximum');
       expect(component.textProperty).to.equal('name');
-      expect(component.limit).to.be.a('number');
       expect(component.limit).to.equal(2);
-      expect(component.small).to.be.a('boolean');
+      expect(component.itemType).to.equal('Item Type');
+      expect(component.countType).to.equal('Count Type');
+      expect(component.entityName).to.equal('Entity Name');
       expect(component.small).to.be.true;
-      expect(component.chartTitle).to.be.a('string');
-      expect(component.chartTitle).to.equal('Test');
-      expect(component.items).to.be.an('array');
+      expect(component.loading).to.be.false;
+      expect(component.showCheckboxes).to.be.false;
+      expect(component.showOtherCounts).to.be.false;
+      expect(component.selectedIds).to.deep.equal([]);
+      expect(component._selectedItems).to.deep.equal([]);
+      expect(component._maxOtherCount).to.deep.equal(0);
+      expect(component._showMore).to.be.true;
       expect(component.items).to.deep.equal([{
         uuid: 1,
         name: 'a',
@@ -424,17 +438,6 @@ limitations under the License.
       }]);
     });
 
-    test('properties are set to defaults correctly', function() {
-      expect(component.loading).to.be.a('boolean');
-      expect(component.loading).to.be.false;
-      expect(component.selectedIds).to.be.an('array');
-      expect(component.selectedIds).to.deep.equal([]);
-      expect(component.showCheckboxes).to.be.false;
-      expect(component.showLinks).to.be.false;
-      expect(component._selectedItems).to.be.an('array');
-      expect(component._selectedItems).to.deep.equal([]);
-    });
-
     test('does show a horizontal-bar element', function() {
       var bar = component.$$('horizontal-bar');
       expect(bar).to.exist;
@@ -443,7 +446,7 @@ limitations under the License.
       expect(bar.showCheckbox).to.equal(false);
       expect(bar._width).to.equal(100);
       expect(bar.max).to.equal(4);
-      expect(bar.linkValue).to.be.null;
+      expect(bar.linkValue).to.not.exist;
     });
 
     test('_combinedItems is set correctly', function() {
@@ -451,31 +454,31 @@ limitations under the License.
       expect(component._combinedItems).to.deep.equal([{
         selected: false,
         uuid: 1,
-        max: 4,
+        maximum: 4,
         name: 'a',
         number: 4
       }, {
         selected: false,
         uuid: 2,
-        max: 4,
+        maximum: 4,
         name: 'b',
         number: 3
       }, {
         selected: false,
         uuid: 3,
-        max: 4,
+        maximum: 4,
         name: 'c',
         number: 2
       }, {
         selected: false,
         uuid: 4,
-        max: 4,
+        maximum: 4,
         name: 'd',
         number: 2
       }, {
         selected: false,
         uuid: 5,
-        max: 4,
+        maximum: 4,
         name: 'e',
         number: 1
       }]);
@@ -486,21 +489,16 @@ limitations under the License.
       expect(component._shownItems).to.deep.equal([{
         selected: false,
         uuid: 1,
-        max: 4,
+        maximum: 4,
         name: 'a',
         number: 4
       }, {
         selected: false,
         uuid: 2,
-        max: 4,
+        maximum: 4,
         name: 'b',
         number: 3
       }]);
-    });
-
-    test('_showMore is set to true', function() {
-      expect(component._showMore).to.be.a('boolean');
-      expect(component._showMore).to.be.true;
     });
 
     test('_createShowMoreListener() does return an object', function() {
@@ -518,7 +516,7 @@ limitations under the License.
     });
   });
 
-  suite('feature-aggregation test -- check if showLinks is true', function() {
+  suite('feature-aggregation test with links', function() {
     var component;
 
     setup(function(done) {
@@ -534,7 +532,6 @@ limitations under the License.
         text: 'b',
         count: 3
       }];
-      component.showLinks = true;
       flush(function() {
         done();
       });
@@ -550,10 +547,31 @@ limitations under the License.
       expect(bar.linkValue).to.equal('somelink.html');
       expect(bar._width).to.equal(100);
     });
+  });
 
-    test('_getLinkValue returns correct value', function() {
-      expect(component._getLinkValue(component.items[0])).to.equal('somelink.html');
-      expect(component._getLinkValue(component.items[1])).to.be.null;
+  suite('feature-aggregation test with other counts', function() {
+    var component;
+
+    setup(function(done) {
+      component = fixture('feature-aggregation-fixture');
+      component.showOtherCounts = true;
+      component.items = [{
+        id: 1,
+        text: 'a',
+        count: 4
+      }, {
+        id: 2,
+        text: 'b',
+        count: 3
+      }];
+      flush(function() {
+        done();
+      });
+    });
+
+    test('does show a double-aggregation-display element', function() {
+      var doubleAggregationDisplay = component.$$('double-aggregation-display');
+      expect(doubleAggregationDisplay).to.exist;
     });
   });
 </script>

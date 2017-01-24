@@ -45,72 +45,67 @@ limitations under the License.
       component = fixture('feature-query-and-display-fixture');
     });
 
-    test('transformProperty is set to default correctly', function() {
-      expect(component.transformProperty).to.equal('');
-    });
-
-    test('showLinks is set to default correctly', function() {
-      expect(component.showLinks).to.be.false;
-    });
-
-    test('showCheckboxes is set to default correctly', function() {
+    test('properties are set to defaults correctly', function() {
+      expect(component.aggregationCount).to.equal(0);
+      expect(component.ignoreId).to.equal('');
+      expect(component.dataProperty).to.equal('data');
+      expect(component.dataCountProperty).to.equal('count');
+      expect(component.dataIconProperty).to.equal('icon');
+      expect(component.dataIdProperty).to.equal('id');
+      expect(component.dataLinkProperty).to.equal('link');
+      expect(component.dataMaxProperty).to.equal('max');
+      expect(component.dataStyleClassProperty).to.equal('styleClass');
+      expect(component.dataTextProperty).to.equal('text');
+      expect(component.headerProperty).to.equal('header');
       expect(component.showCheckboxes).to.be.false;
+      expect(component.showOtherCounts).to.be.false;
+      expect(component.loading).to.be.false;
     });
 
-    test('buildArray does wrap defined values', function() {
-      expect(component.buildArray('value')).to.deep.equal(['value']);
-    });
-
-    test('buildArray does not wrap undefined values', function() {
-      expect(component.buildArray()).to.deep.equal([]);
-    });
-
-    test('getData returns correctly', function() {
+    test('_getData returns correctly', function() {
       var data = {
         property: [1, 2, 3, 4, 5]
       };
-      expect(component.getData(data, '')).to.deep.equal(data);
-      expect(component.getData(data, 'property')).to.deep.equal(data.property);
+      expect(component._getData(data, '')).to.deep.equal(data);
+      expect(component._getData(data, 'property')).to.deep.equal([1, 2, 3, 4, 5]);
+    });
+
+    test('_getHeader returns correctly', function() {
+      var data = {
+        property: 'header'
+      };
+      expect(component._getHeader(data, '')).to.equal('');
+      expect(component._getHeader(data, 'property')).to.equal('header');
     });
 
     test('build aggregation', function() {
-      expect(component.aggregation).to.not.exist;
+      expect(component._aggregation).to.not.exist;
       component.aggregationName = 'name';
-      expect(component.aggregation).to.not.exist;
+      expect(component._aggregation).to.not.exist;
       component.aggregationField = 'field';
-      expect(component.aggregation).to.exist;
-      expect(component.aggregation.toJSON()).to.deep.equal(ejs.TermsAggregation('name').field('field').size(0).toJSON());
+      expect(component._aggregation).to.exist;
+      expect(component._aggregation.toJSON()).to.deep.equal(ejs.TermsAggregation('name').field('field').size(0).toJSON());
     });
 
-    test('build query with one value', function() {
+    test('build query', function() {
       expect(component.query).to.not.exist;
       component.queryField = 'field';
       expect(component.query).to.not.exist;
-      component.queryValues = 'value';
+      component.queryValue = 'value';
       expect(component.query).to.exist;
-      expect(component.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', 'value').toJSON());
-    });
-
-    test('build query with value array', function() {
-      expect(component.query).to.not.exist;
-      component.queryField = 'field';
-      expect(component.query).to.not.exist;
-      component.queryValues = ['value1', 'value2'];
-      expect(component.query).to.exist;
-      expect(component.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', ['value1', 'value2']).toJSON());
+      expect(component.query.toJSON()).to.deep.equal(ejs.TermQuery('field', 'value').toJSON());
     });
 
     test('transforms query results', function() {
-      component.queryResults = [1, 2, 3, 4, 5];
       component.featureTransform = function(results) {
-        return results.map(function(result) {
+        return (results || []).map(function(result) {
           return {
             count: result * 10
           };
         });
       };
-      expect(component.transformResults).to.be.an('Array');
-      expect(component.transformResults).to.deep.equal([{
+      component._queryResults = [1, 2, 3, 4, 5];
+      expect(component._transformResults).to.deep.equal([{
         count: 10
       }, {
         count: 20
@@ -121,6 +116,39 @@ limitations under the License.
       }, {
         count: 50
       }]);
+    });
+
+    test('sets data and header', function() {
+      expect(component.data).to.not.exist;
+      expect(component.header).to.not.exist;
+
+      component._transformResults = {
+        data: [{
+          count: 1,
+        }, {
+          count: 2,
+        }, {
+          count: 3,
+        }, {
+          count: 4,
+        }, {
+          count: 5
+        }],
+        header: 'header'
+      };
+
+      expect(component.data).to.deep.equal([{
+        count: 1,
+      }, {
+        count: 2,
+      }, {
+        count: 3,
+      }, {
+        count: 4,
+      }, {
+        count: 5
+      }]);
+      expect(component.header).to.equal('header');
     });
 
     test('shows feature-aggregation', function() {
