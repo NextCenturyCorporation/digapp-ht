@@ -25,8 +25,10 @@ var Scheduler = require('./scheduler.js');
 var LOG_NAME = process.env.LOG_NAME || 'DIG Alerts App';
 var LOG_PATH = process.env.LOG_PATH || '/var/log/dig_alerts_app.log';
 
-var MAILER_EMAIL_ADDRESS = process.env.MAILER_EMAIL_ADDRESS || 'dig@nextcentury.com';
-var DIG_SUPPORT_EMAIL_ADDRESS = process.env.DIG_SUPPORT_EMAIL_ADDRESS;
+var ACCESS_KEY_ID = process.env.ACCESS_KEY_ID;
+var SECRET_ACCESS_KEY = process.env.SECRET_ACCESS_KEY;
+var MAILER_EMAIL_ADDRESS = process.env.MAILER_EMAIL_ADDRESS || 'dig-alerts@nextcentury.com';
+var DIG_SUPPORT_EMAIL_ADDRESS = process.env.DIG_SUPPORT_EMAIL_ADDRESS || 'dig-support@nextcentury.com';
 var DIG_URL = process.env.DIG_URL;
 
 var ES_AUTH = process.env.ES_AUTH || null;
@@ -41,19 +43,16 @@ var DATE_FIELD = process.env.DATE_FIELD || 'dateCreated';
 
 var logger = new Logger(LOG_NAME, LOG_PATH);
 
-//var mailer = new Mailer(logger, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL);
+var mailer = new Mailer(logger, ACCESS_KEY_ID, SECRET_ACCESS_KEY, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL);
 
-//logger.info('Mailer created.  Sending a support email...');
-
-//mailer.sendSupportEmail();
+mailer.sendSupportEmail();
 
 var client = new Client(logger, ES_AUTH, ES_HOST, ES_PORT, ES_PROTOCOL);
 
-var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, function(a, b, callback) {
-  callback();
+var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, function(toEmailAddress, savedQueryNames, callback) {
+  mailer.sendAlertEmail(toEmailAddress, savedQueryNames, callback);
+  //callback();
 });
-
-//var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_FIELD, mailer.sendAlertEmail);
 
 var scheduler = new Scheduler(logger);
 
@@ -61,5 +60,4 @@ runner.checkUsersDaily();
 
 scheduler.runDaily(runner.checkUsersDaily);
 scheduler.runWeekly(runner.checkUsersWeekly);
-//scheduler.runDaily(mailer.sendSupportEmail);
 
