@@ -635,11 +635,11 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
       (data && data.aggregations ? data.aggregations.similarLocsAgg.similarLocsAgg.cityAgg.buckets : []).forEach(function(locationBucket) {
         if(locationBucket.key === currentLocation.key) {
-          mapLocations.push(offerSplitLocations(locationBucket));
-        } else {
           var location = offerSplitLocations(locationBucket);
-          location.iconId = 'relatedLocation';
+          location.iconId = 'mainLocation';
           mapLocations.push(location);
+        } else {
+          mapLocations.push(offerSplitLocations(locationBucket));
         }
       });
 
