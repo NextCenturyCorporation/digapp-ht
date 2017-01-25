@@ -658,6 +658,31 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     },
 
+    locationPageMap: function(currentLocation, data) {
+      if(!currentLocation || !data || !data.aggregations) {
+        return {
+          // need to return undefined here so that we wait until all data is ready before displaying points on the map
+          mapLocations: undefined
+        };
+      }
+
+      var mapLocations = [];
+
+      (data && data.aggregations ? data.aggregations.similarLocsAgg.similarLocsAgg.cityAgg.buckets : []).forEach(function(locationBucket) {
+        if(locationBucket.key === currentLocation.key) {
+          var location = offerSplitLocations(locationBucket);
+          location.iconId = 'mainLocation';
+          mapLocations.push(location);
+        } else {
+          mapLocations.push(offerSplitLocations(locationBucket));
+        }
+      });
+
+      return {
+        mapLocations: mapLocations
+      };
+    },
+
     createExportData: function(results) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
       var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];

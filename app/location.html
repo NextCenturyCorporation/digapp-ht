@@ -226,37 +226,15 @@
                 <section class="where flex-auto">
                   <leaflet-wrapper
                     text-property="longName"
-                    data="{{buildArray(location)}}"
-                    text-property="name">
+                    data="{{location.mapLocations.mapLocations}}"
+                    text-property="name"
+                    custom-icons="[[customMapIcons]]"
+                    restamp>
                   </leaflet-wrapper>
                 </section>
 
                 <section class="where-details flex-none">
-                  
-                  <div class="h-divider"></div>
-
-                  <!-- Event drops timeline -->
-                  <drops-query-and-timeline
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    date-hist-name="dates"
-                    date-hist-field="validFrom"
-                    location-agg-name="locations"
-                    location-agg-field="availableAtOrFrom.address.key"
-                    index-types='["offer"]'
-                    query="[[locationOffersQuery]]"
-                    filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
-                  </drops-query-and-timeline>
-                </section>
-              </paper-material>
-
-              <div class="h-divider"></div>
-
-              <!-- Similar/related locations -->
-              <paper-material>
-                <section class="where-details">
-
+                  <!-- Similar/related locations -->
                   <elastic-client-filter-builder
                     type="terms"
                     field="availableAtOrFrom.address.addressLocality"
@@ -315,14 +293,15 @@
                     combine-function="[[clientConfig.transforms.offer.similarLocations]]">
                   </json-combine>
 
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>Related Locations</div>
-                  </div>
+                  <json-combine
+                    data-in1="[[location]]"
+                    data-in2="[[similarLocsResults]]"
+                    data-out="{{location.mapLocations}}"
+                    combine-function="[[clientConfig.transforms.offer.locationPageMap]]">
+                  </json-combine>
 
                   <feature-aggregation class="flex location"
-                    small="[[small]]"
-                    item-type="Location"
+                    item-type="Locations with Same City or State Name"
                     count-type="Ads"
                     id-property="key"
                     count-property="count"
@@ -331,6 +310,22 @@
                     selected-ids="{{selected}}"
                     loading="[[similarLocsLoading]]">
                   </feature-aggregation>
+
+                  <div class="h-divider"></div>
+
+                  <!-- Event drops timeline -->
+                  <drops-query-and-timeline
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    date-hist-name="dates"
+                    date-hist-field="validFrom"
+                    location-agg-name="locations"
+                    location-agg-field="availableAtOrFrom.address.key"
+                    index-types='["offer"]'
+                    query="[[locationOffersQuery]]"
+                    filter-list="[[filterList]]"
+                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
+                  </drops-query-and-timeline>
                 </section>
               </paper-material>
 
@@ -349,9 +344,14 @@
                     <div>[[phoneErrorMessage]]</div>
                   </template>
 
+                  <template is="dom-if" if="[[phones.length]]">
+                    <div class="note">Note:  Showing Only the Top 100 Phones</div>
+                  </template>
+
                   <feature-query-and-display
                     aggregation-name="phone"
                     aggregation-field="mainEntityOfPage.mentionsPhone"
+                    aggregation-count="100"
                     selected="{{filterCollection.phone}}"
                     query="[[locationOffersQuery]]"
                     client="[[esclient]]"
@@ -361,6 +361,7 @@
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
                     data-property="phone"
+                    data="{{phones}}"
                     header-property="title"
                     header="{{phoneHeader}}"
                     item-type="Phone"
@@ -387,9 +388,14 @@
                     <div>[[emailErrorMessage]]</div>
                   </template>
 
+                  <template is="dom-if" if="[[emails.length]]">
+                    <div class="note">Note:  Showing Only the Top 100 Emails</div>
+                  </template>
+
                   <feature-query-and-display
                     aggregation-name="email"
                     aggregation-field="mainEntityOfPage.mentionsEmail"
+                    aggregation-count="100"
                     selected="{{filterCollection.email}}"
                     query="[[locationOffersQuery]]"
                     client="[[esclient]]"
@@ -399,6 +405,7 @@
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
                     data-property="email"
+                    data="{{emails}}"
                     header-property="title"
                     header="{{emailHeader}}"
                     item-type="Email"
@@ -451,11 +458,13 @@
                     <div>[[publisherHeader]]</div>
                   </div>
 
-                  <div class="note">Note:  Showing Only the Top 100 Websites</div>
-
                   <template is="dom-if" if="[[publisherError]]">
                     <elastic-error error="[[publisherError]]" message="{{publisherErrorMessage}}"></elastic-error>
                     <div>[[publisherErrorMessage]]</div>
+                  </template>
+
+                  <template is="dom-if" if="[[publishers.length]]">
+                    <div class="note">Note:  Showing Only the Top 100 Websites</div>
                   </template>
 
                   <feature-query-and-display
@@ -471,6 +480,7 @@
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
                     data-property="publisher"
+                    data="{{publishers}}"
                     header-property="title"
                     header="{{publisherHeader}}"
                     data-text-property="id"
@@ -637,6 +647,23 @@
     app.generateLink = function() {
       this.$.stateManager.generateLink();
     };
+
+    app.customMapIcons = [
+      {
+        iconId: 'mainLocation',
+        url: '/images/leaflet/marker-icon-location-star.png',
+        width: 25,
+        height: 41,
+        iconAnchorX: 12,
+        iconAnchorY: 41,
+        popupAnchorX: 1,
+        popupAnchorY: -34,
+        shadowUrl: '/bower_components/leaflet/dist/images/marker-shadow.png',
+        shadowWidth: 41,
+        shadowHeight: 41
+      }
+    ];
+
   })(document);
   </script>
 </body>

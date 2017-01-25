@@ -898,6 +898,69 @@ limitations under the License.
     });
   });
 
+  suite('<client-config> offer tests: transform for the location page map data', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with map locations transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer.locationPageMap).to.be.a('Function');
+    });
+
+    test('defines locations for map location aggregation buckets', function() {
+      var output = clientConfig.config.transforms.offer.locationPageMap({
+        key: 'Atlanta:Georgia:United States:-84.38798:33.749',
+        count: 45,
+        longitude: '-84.38798',
+        latitude: '33.749',
+        name: 'Atlanta, Georgia',
+        longName: 'Atlanta, Georgia, United States (45)',
+        link: '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key'
+      }, offerAgg);
+      assert.equal(output.mapLocations.length, 6);
+      assert.equal(output.mapLocations[0].key, 'Atlanta:Georgia:United States:-84.38798:33.749');
+      assert.equal(output.mapLocations[0].count, 45);
+      assert.equal(output.mapLocations[0].longitude, '-84.38798');
+      assert.equal(output.mapLocations[0].latitude, '33.749');
+      assert.equal(output.mapLocations[0].name, 'Atlanta, Georgia');
+      assert.equal(output.mapLocations[0].longName, 'Atlanta, Georgia, United States (45)');
+      assert.equal(output.mapLocations[0].link, '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key');
+      assert.equal(output.mapLocations[0].iconId, 'mainLocation');
+      assert.equal(output.mapLocations[1].key, 'Brooklyn:New York:United States:-73.94958:40.6501');
+      assert.equal(output.mapLocations[1].count, 44);
+      assert.equal(output.mapLocations[1].longitude, '-73.94958');
+      assert.equal(output.mapLocations[1].latitude, '40.6501');
+      assert.equal(output.mapLocations[1].name, 'Brooklyn, New York');
+      assert.equal(output.mapLocations[1].longName, 'Brooklyn, New York, United States (44)');
+      assert.equal(output.mapLocations[1].link, '/location.html?value=Brooklyn:New York:United States:-73.94958:40.6501&field=availableAtOrFrom.address.key');
+      assert.equal(output.mapLocations[1].iconId, undefined);
+    });
+
+    test('if the first location argument is not yet defined, transform returns undefined', function() {
+      var output = clientConfig.config.transforms.offer.locationPageMap(undefined, offerAgg);
+      assert.equal(output.mapLocations, undefined);
+    });
+
+    test('if aggregation argument is not yet defined, transform returns undefined', function() {
+      var output = clientConfig.config.transforms.offer.locationPageMap({
+        key: 'Atlanta:Georgia:United States:-84.38798:33.749',
+        count: 45,
+        longitude: '-84.38798',
+        latitude: '33.749',
+        name: 'Atlanta, Georgia',
+        longName: 'Atlanta, Georgia, United States (45)',
+        link: '/location.html?value=Atlanta:Georgia:United States:-84.38798:33.749&field=availableAtOrFrom.address.key'
+      }, undefined);
+      assert.equal(output.mapLocations, undefined);
+    });
+  });
+
   suite('<client-config> offer tests: transform for people features', function() {
     var clientConfig;
 
