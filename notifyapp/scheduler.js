@@ -31,12 +31,14 @@ module.exports = function Scheduler(logger) {
 
   this.runDaily = function(callback) {
     logger.info('Starting daily job...');
-    Schedule.scheduleJob('0 0 * * *', callback);
+    // Set the hour to noon (GMT) to run after the daily data update.
+    Schedule.scheduleJob('0 12 * * *', callback);
   };
 
   this.runWeekly = function(callback) {
     logger.info('Starting weekly job...');
-    Schedule.scheduleJob('0 0 * * 0', callback);
+    // Set the hour to noon (GMT) to run after the daily data update.
+    Schedule.scheduleJob('0 12 * * 0', callback);
   };
 
   logger.info('Scheduler created.');
