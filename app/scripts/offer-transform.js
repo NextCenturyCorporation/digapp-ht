@@ -411,10 +411,14 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     },
 
     removeDescriptorFromOffers: function(descriptorId, offers) {
+      var filterFunction = function(descriptor) {
+        return descriptor.id !== descriptorId;
+      };
+
       return offers.map(function(offer) {
-        offer.descriptors = offer.descriptors.filter(function(descriptor) {
-          return descriptor.id !== descriptorId;
-        });
+        offer.descriptors = offer.descriptors.filter(filterFunction);
+        offer.emails = offer.emails.filter(filterFunction);
+        offer.phones = offer.phones.filter(filterFunction);
         return offer;
       });
     },
