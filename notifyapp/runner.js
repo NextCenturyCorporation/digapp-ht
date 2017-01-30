@@ -44,16 +44,16 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var checkAndSaveAlert = function(savedQuery, results) {
-    logger.info('Search Result List Length:  ' + results.hits.hits.length);
-
     if(results.hits.hits.length) {
       // Check the date of the newest item and compare it with the date on which the saved query was last run.
       var resultDate = new Date(results.hits.hits[0]._source[dateField]);
       logger.info('Search Result Date:  ' + resultDate.toUTCString());
       var lastDate = new Date(savedQuery.lastRunDate);
-      logger.info('Last Run Date:  ' + lastDate.toUTCString());
+      logger.info('Last Search Date:  ' + lastDate.toUTCString());
+      lastDate = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate(), 0, 0, 0);
+      logger.info('Zeroed Last Search Date:  ' + lastDate.toUTCString());
 
-      if(resultDate.getTime() > lastDate.getTime()) {
+      if(resultDate.getTime() >= lastDate.getTime()) {
         // Update the notification date so the app knows to show an alert.
         savedQuery.notificationHasRun = false;
         savedQuery.notificationDate = new Date();
@@ -72,6 +72,7 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
       id: user._id,
       body: {
         doc: {
+          lastCheckDate: new Date(),
           savedQueries: savedQueries
         }
       }
