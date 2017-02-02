@@ -17,17 +17,17 @@
 'use strict';
 
 var nodemailer = require('nodemailer');
+var ses = require('nodemailer-ses-transport');
 
 module.exports = function Mailer(logger, accessKeyId, secretAccessKey, mailerEmailAddress, digSupportEmailAddress, digUrl) {
   var transporter;
 
   if(accessKeyId && secretAccessKey) {
     logger.info('Creating nodemailer transporter with access key ID and secret access key.');
-    transporter = nodemailer.createTransport({
-      transport: 'ses',
+    transporter = nodemailer.createTransport(ses({
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey
-    });
+    }));
   } else {
     logger.info('No accessKeyId and/or secretAccessKey.  Creating default nodemailer transporter.');
     transporter = nodemailer.createTransport();
@@ -72,5 +72,8 @@ module.exports = function Mailer(logger, accessKeyId, secretAccessKey, mailerEma
   };
 
   logger.info('Mailer created.');
+  logger.info('Mailer email address:  ' + mailerEmailAddress);
+  logger.info('DIG support email address:  ' + digSupportEmailAddress);
+  logger.info('DIG URL:  ' + digUrl);
 };
 

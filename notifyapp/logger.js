@@ -45,5 +45,7 @@ module.exports = function Logger(loggerName, loggerPath) {
   this.close = function () { /* bunyan's loggers do not need to be closed */ };
 
   logger.info('Logger created.');
+  logger.info('Logger name:  ' + loggerName);
+  logger.info('Logger path:  ' + loggerPath);
 };
 
