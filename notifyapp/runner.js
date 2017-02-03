@@ -34,12 +34,13 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
       size: 1,
       sort: {}
     };
-    if(savedQuery.filter) {
-      savedQuery.filter = JSON.parse(savedQuery.esState.filter);
+    if(savedQuery.esState.filter) {
+      savedQueryBody.filter = JSON.parse(savedQuery.esState.filter);
     }
     savedQueryBody.sort[dateField] = {
       order: 'desc'
     };
+    logger.info('Query:  ' + JSON.stringify(savedQueryBody));
     return savedQueryBody;
   };
 

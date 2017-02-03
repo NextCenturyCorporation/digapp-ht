@@ -23,7 +23,7 @@ module.exports = function Mailer(logger, accessKeyId, secretAccessKey, mailerEma
   var transporter;
 
   if(accessKeyId && secretAccessKey) {
-    logger.info('Creating nodemailer transporter with access key ID and secret access key.');
+    logger.info('Creating nodemailer SES transporter with access key ID and secret access key.');
     transporter = nodemailer.createTransport(ses({
       accessKeyId: accessKeyId,
       secretAccessKey: secretAccessKey
