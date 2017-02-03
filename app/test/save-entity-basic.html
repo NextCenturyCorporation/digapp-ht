@@ -1,0 +1,236 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>save-entity</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/save-entity/save-entity.html">
+</head>
+
+<body>
+  <test-fixture id="save-entity-fixture">
+    <template>
+      <save-entity user-id="1" user-index="dig-users" user-type="user"></save-entity>
+    </template>
+  </test-fixture>
+
+  <script>
+    /* globals suite, setup, test, fixture, assert */
+    suite('save-entity tests', function() {
+      var element;
+
+      setup(function() {
+        element = fixture('save-entity-fixture');
+      });
+
+      test('properties are correct values', function() {
+        assert.equal(element.userId, '1');
+        assert.equal(element.userIndex, 'dig-users');
+        assert.equal(element.userType, 'user');
+        assert.deepEqual(element.existingEntities, []);
+        assert.isFalse(element._saveDemanded);
+        assert.isFalse(element._saveDisabled);
+        assert.isUndefined(element._updateBody);
+        assert.isUndefined(element._updateResults);
+      });
+
+      test('does initialize saveUserDataCallback function', function() {
+        assert.isFunction(element.saveUserDataCallback);
+      });
+
+      test('does have a paper-icon-button element', function() {
+        assert(element.$$('paper-icon-button'));
+        assert.isFalse(element.$$('paper-icon-button').disabled);
+      });
+
+      test('does have an elastic-update element', function() {
+        assert(element.$$('elastic-update'));
+      });
+
+      test('_createEntityRecord returns a new entity record', function() {
+        assert.deepEqual(element._createEntityRecord('testId', 'testName', 'testType', 'testDate'), {
+          date: 'testDate',
+          id: 'testId',
+          name: 'testName',
+          type: 'testType'
+        });
+      });
+
+      test('_updateEntities does add a new entity record to existingEntities, set _saveDisabled, and return the entity list', function() {
+        element.entityId = 'testId';
+        element._saveDisabled = false;
+
+        var entities = element._updateEntities('testId', 'testName', 'testType', 'testDate');
+
+        assert.deepEqual(element.existingEntities, entities);
+        assert.deepEqual(element.existingEntities, [{
+          date: 'testDate',
+          id: 'testId',
+          name: 'testName',
+          type: 'testType'
+        }]);
+        assert.isTrue(element._saveDisabled);
+      });
+
+      test('_saveEntities does set _updateBody', function() {
+        element._saveEntities([{
+          date: 'testDate',
+          id: 'testId',
+          name: 'testName',
+          type: 'testType'
+        }]);
+
+        assert.deepEqual(element._updateBody, {
+          doc: {
+            savedEntities: [{
+              date: 'testDate',
+              id: 'testId',
+              name: 'testName',
+              type: 'testType'
+            }]
+          }
+        });
+      });
+
+      test('getNewestDataAndSave does set _saveDemanded and _saveDisabled and does call runUserQueryCallback', function(done) {
+        element.runUserQueryCallback = function() {
+          assert.isTrue(element._saveDemanded);
+          assert.isTrue(element._saveDisabled);
+          done();
+        };
+
+        element.getNewestDataAndSave();
+      });
+
+      test('save does nothing if _saveDemanded is false', function() {
+        element._saveDemanded = false;
+        element.entityId = 'testId';
+        element.entityName = 'testName';
+        element.entityType = 'testType';
+        element.save();
+
+        assert.deepEqual(element.existingEntities, []);
+        assert.isUndefined(element._updateBody);
+      });
+
+      test('save does update existingEntities and _updateBody if _saveDemanded is true', function() {
+        element._saveDemanded = true;
+        element.entityId = 'testId';
+        element.entityName = 'testName';
+        element.entityType = 'testType';
+        element.save();
+
+        assert.equal(element.existingEntities.length, 1);
+        assert.equal(element.existingEntities[0].id, 'testId');
+        assert.equal(element.existingEntities[0].name, 'testName');
+        assert.equal(element.existingEntities[0].type, 'testType');
+        assert.typeOf(element.existingEntities[0].date, 'date');
+
+        assert.equal(element._updateBody.doc.savedEntities.length, 1);
+        assert.equal(element._updateBody.doc.savedEntities[0].id, 'testId');
+        assert.equal(element._updateBody.doc.savedEntities[0].name, 'testName');
+        assert.equal(element._updateBody.doc.savedEntities[0].type, 'testType');
+        assert.typeOf(element._updateBody.doc.savedEntities[0].date, 'date');
+
+        assert.isFalse(element._saveDemanded);
+        assert.isTrue(element._saveDisabled);
+
+        assert(element.$$('paper-icon-button'));
+        assert.isTrue(element.$$('paper-icon-button').disabled);
+      });
+
+      test('saveUserDataCallback does nothing if _saveDemanded is false', function() {
+        element._saveDemanded = false;
+        element.entityId = 'testId';
+        element.entityName = 'testName';
+        element.entityType = 'testType';
+        element.saveUserDataCallback();
+
+        assert.deepEqual(element.existingEntities, []);
+        assert.isUndefined(element._updateBody);
+      });
+
+      test('saveUserDataCallback does update existingEntities and _updateBody if _saveDemanded is true', function() {
+        element._saveDemanded = true;
+        element.entityId = 'testId';
+        element.entityName = 'testName';
+        element.entityType = 'testType';
+        element.saveUserDataCallback();
+
+        assert.equal(element.existingEntities.length, 1);
+        assert.equal(element.existingEntities[0].id, 'testId');
+        assert.equal(element.existingEntities[0].name, 'testName');
+        assert.equal(element.existingEntities[0].type, 'testType');
+        assert.typeOf(element.existingEntities[0].date, 'date');
+
+        assert.equal(element._updateBody.doc.savedEntities.length, 1);
+        assert.equal(element._updateBody.doc.savedEntities[0].id, 'testId');
+        assert.equal(element._updateBody.doc.savedEntities[0].name, 'testName');
+        assert.equal(element._updateBody.doc.savedEntities[0].type, 'testType');
+        assert.typeOf(element._updateBody.doc.savedEntities[0].date, 'date');
+
+        assert.isFalse(element._saveDemanded);
+        assert.isTrue(element._saveDisabled);
+
+        assert(element.$$('paper-icon-button'));
+        assert.isTrue(element.$$('paper-icon-button').disabled);
+      });
+
+      test('_updateSaveDisabled does set _saveDisabled to false if entityId is not in existingEntities', function() {
+        element._saveDisabled = true;
+        element.entityId = 'testId';
+        element.existingEntities = [];
+        element._updateSaveDisabled();
+        assert.isFalse(element._saveDisabled);
+      });
+
+      test('_updateSaveDisabled does set _saveDisabled to true if entityId is in existingEntities', function() {
+        element._saveDisabled = false;
+        element.entityId = 'testId';
+        element.existingEntities = [{
+          id: 'testId'
+        }];
+        element._updateSaveDisabled();
+        assert.isTrue(element._saveDisabled);
+      });
+
+      test('_updateSaveDisabled is called if an item is pushed to existingEntities', function() {
+        element._saveDisabled = false;
+        element.entityId = 'testId';
+        element.push('existingEntities', {
+          id: 'testId'
+        });
+        assert.isTrue(element._saveDisabled);
+      });
+
+      test('paper-icon-button is disabled if entityId is in existingEntities', function() {
+        element.entityId = 'testId';
+        element.existingEntities = [{
+          id: 'testId'
+        }];
+
+        assert(element.$$('paper-icon-button'));
+        assert.isTrue(element.$$('paper-icon-button').disabled);
+      });
+    });
+  </script>
+</body>
+</html>

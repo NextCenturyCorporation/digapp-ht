@@ -53,6 +53,7 @@ limitations under the License.
       assert.isTrue(element.blurImages);
       assert(!element.facets);
       assert.isUndefined(element.esRequest);
+      assert.isUndefined(element.entities);
       assert.isUndefined(element.searches);
       assert.isUndefined(element.userRecordExists);
       assert.isUndefined(element.userId);
@@ -63,6 +64,22 @@ limitations under the License.
       assert.isUndefined(element._userSearchResult);
       assert.isUndefined(element._userCreateBody);
       assert.isUndefined(element._createdUser);
+    });
+
+    test('does have user-query element', function() {
+      assert(element.$$('user-query'));
+    });
+
+    test('does have user-preferences element', function() {
+      assert(element.$$('user-preferences'));
+    });
+
+    test('does have elastic-create element', function() {
+      assert(element.$$('elastic-create'));
+    });
+
+    test('does initialize runUserQueryCallback function', function() {
+      assert.isFunction(element.runUserQueryCallback);
     });
 
     test('_createUserRecord does nothing if userRecordExists is true', function() {
@@ -84,32 +101,43 @@ limitations under the License.
       assert.isDefined(element._userCreateBody.dateCreated);
     });
 
-    test('_getUserId only returns id if there is a valid userRecord', function() {
+    test('_getUserId does not set userId or userRecordExists if userRecord is empty', function() {
       element._getUserId({});
-
       assert.isUndefined(element.userId);
       assert.isUndefined(element.userRecordExists);
+    });
 
+    test('_getUserId does set userId and userRecordExists if userRecord is valid', function() {
       element._getUserId({_id: 1});
-
       assert.equal(element.userId, 1);
       assert.isTrue(element.userRecordExists);
     });
 
-    test('_transformUserSearchResult if no results found', function() {
-      element._userSearchResult = {
+    test('_transformUserSearchResult if no results found', function(done) {
+      element.saveUserDataCallback = function() {
+        assert.isFalse(element.userRecordExists);
+        done();
+      };
+
+      element._transformUserSearchResult({
         hits: {
           hits: []
         }
-      };
-
-      element._transformUserSearchResult();
-
-      assert.isFalse(element.userRecordExists);
+      });
     });
 
-    test('_transformUserSearchResult if user result found', function() {
-      element._userSearchResult = {
+    test('_transformUserSearchResult if user result found', function(done) {
+      element.saveUserDataCallback = function() {
+        assert.isTrue(element.userRecordExists);
+        assert.isTrue(element.blurImages);
+        assert.isTrue(element.advancedSearch);
+        assert.equal(element._emailAddress, 'test@test.com');
+        assert.equal(element._notificationFrequency, 'never');
+        assert.equal(element.userId, 2);
+        done();
+      };
+
+      element._transformUserSearchResult({
         hits: {
           hits: [{
             _id: 2,
@@ -122,15 +150,7 @@ limitations under the License.
             }
           }]
         }
-      };
-
-      element._transformUserSearchResult();
-      assert.isTrue(element.userRecordExists);
-      assert.equal(element._userSearchResult.hits.hits[0]._source.blurImages, element.blurImages);
-      assert.equal(element._userSearchResult.hits.hits[0]._source.advancedSearch, element.advancedSearch);
-      assert.equal(element._userSearchResult.hits.hits[0]._source.emailAddress, element._emailAddress);
-      assert.equal(element._userSearchResult.hits.hits[0]._source.notificationFrequency, element._notificationFrequency);
-      assert.equal(element.userId, 2);
+      });
     });
 
     test('_populateUserPreferences sets advancedSearch', function() {
@@ -168,6 +188,26 @@ limitations under the License.
         notificationFrequency: 'weekly'
       });
       assert.equal(element._notificationFrequency, 'weekly');
+    });
+
+    test('_populateUserPreferences sets entities', function(done) {
+      element._populateUserPreferences({
+        savedEntities: [{
+          name: 'one'
+        }, {
+          name: 'two'
+        }]
+      });
+
+      // Flush so that interval is updated.
+      flush(function() {
+        assert.deepEqual(element.entities, [{
+          name: 'one'
+        }, {
+          name: 'two'
+        }]);
+        done();
+      });
     });
 
     test('_populateUserPreferences sets searches', function(done) {

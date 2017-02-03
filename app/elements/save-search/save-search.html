@@ -186,6 +186,36 @@ limitations under the License.
           type: Object,
           notify: true
         },
+
+        /**
+         * (Required)
+         *
+         * The callback function to run the user query.
+         *
+         * @type {Function}
+         */
+        runUserQueryCallback: {
+          type: Object
+        },
+
+        /**
+         * (Output)
+         *
+         * The callback function to save the entity.
+         *
+         * @type {Function}
+         */
+        saveUserDataCallback: {
+          notify: true,
+          type: Object,
+          value: function() {
+            var self = this;
+            return function() {
+              self.save();
+            };
+          }
+        },
+
         /**
          * Name chosen by user to save a new search.
          */
@@ -225,22 +255,34 @@ limitations under the License.
       },
 
       /**
+       * Checks if a search with the same name already exists and saves the search as either a new search or a replacement for the search with the same name.
+       */
+      save: function() {
+        if(this._checkSavedSearchName(this._savedSearchName)) {
+          var self = this;
+          var indexToReplace = _.findIndex(this.existingSearches, {
+            name: self._savedSearchName
+          });
+
+          if(indexToReplace !== -1) {
+            this._saveOverIndex = indexToReplace;
+            this.$$('#saveAlert').open();
+          } else {
+            this._addNewSearch();
+            this._saveSearches();
+          }
+        }
+      },
+
+      /**
        * Creates and returns a listener to save a user's query.
        */
       _createSavedSearchListener: function() {
         var self = this;
         return {
           onClick: function() {
-            if(self._checkSavedSearchName(self._savedSearchName)) {
-              var indexToReplace = _.findIndex(self.existingSearches, {name: self._savedSearchName});
-
-              if(indexToReplace !== -1) {
-                self._saveOverIndex = indexToReplace;
-                self.$$('#saveAlert').open();
-              } else {
-                self._addNewSearch();
-                self._saveSearches();
-              }
+            if(self.runUserQueryCallback) {
+              self.runUserQueryCallback();
             }
           }
         };
