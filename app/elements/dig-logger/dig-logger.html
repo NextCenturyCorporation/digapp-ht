@@ -27,13 +27,6 @@ limitations under the License.
       elastic-type="[[esType]]"
       body="[[_esLogBody]]">
     </elastic-create>
-
-    <elastic-create
-      client="[[esClient]]"
-      index="[[esIndex]]"
-      elastic-type="[[esType]]"
-      body="[[_esLoginBody]]">
-    </elastic-create>
   </template>
 
   <script>
@@ -63,50 +56,55 @@ limitations under the License.
         },
         username: {
           type: String,
-          observer: 'login'
+          observer: '_onUsernameChange'
         },
         value: {
           type: String,
-          observer: 'log'
+          observer: '_onInputValueChange'
+        },
+        logger: {
+          notify: true,
+          type: Object,
+          value: function() {
+            var self = this;
+            return {
+              log: function(supertype, subtype, value) {
+                self.log(self.username, 'event', supertype, subtype, value);
+              }
+            };
+          }
         },
         _esLogBody: {
           type: Object
         },
-        _esLoginBody: {
-          type: Object
+      },
+
+      log: function(username, googleType, supertype, subtype, value) {
+        /* jshint ignore:start */
+        ga('set', 'dimension1', window.btoa(this.username));
+        ga('set', 'userId', window.btoa(this.username));
+        if(supertype && subtype && value) {
+          ga('send', googleType, supertype, subtype, value);
+        } else {
+          ga('send', googleType);
         }
-      },
-
-      login: function() {
-        /* jshint ignore:start */
-        ga('set', 'dimension1', window.btoa(this.username));
-        ga('set', 'userId', window.btoa(this.username));
-        ga('send', 'pageview');
-        /* jshint ignore:end */
-
-        this.set('_esLoginBody', {
-          user: this.username,
-          type: 'PageView',
-          host: window.location.origin,
-          date: new Date(),
-          data: ''
-        });
-      },
-
-      log: function(value) {
-        /* jshint ignore:start */
-        ga('set', 'dimension1', window.btoa(this.username));
-        ga('set', 'userId', window.btoa(this.username));
-        ga('send', 'event', this.supertype, this.subtype, value);
         /* jshint ignore:end */
 
         this.set('_esLogBody', {
-          user: this.username,
-          type: this.supertype + '-' + this.subtype,
+          user: username,
+          type: (supertype || '') + (supertype && subtype ? '-' : '') + (subtype || ''),
           host: window.location.origin,
           date: new Date(),
-          data: value
+          data: value || ''
         });
+      },
+
+      _onInputValueChange: function(value) {
+        this.log(this.username, 'event', this.supertype, this.subtype, value);
+      },
+
+      _onUsernameChange: function(username) {
+        this.log(username, 'pageview', 'PageView');
       }
     });
   })();
