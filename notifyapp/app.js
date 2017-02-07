@@ -25,8 +25,10 @@ var Scheduler = require('./scheduler.js');
 var LOG_NAME = process.env.LOG_NAME || 'DIG Alerts App';
 var LOG_PATH = process.env.LOG_PATH || '/var/log/dig_alerts_app.log';
 
-var ACCESS_KEY_ID = process.env.ACCESS_KEY_ID;
-var SECRET_ACCESS_KEY = process.env.SECRET_ACCESS_KEY;
+var SMTP_HOST = process.env.SMTP_HOST || 'email-smtp.us-east-1.amazonaws.com';
+var SMTP_PORT = process.env.SMTP_PORT || 465;
+var SMTP_USER = process.env.SMTP_USER;
+var SMTP_PASS = process.env.SMTP_PASS;
 var MAILER_EMAIL_ADDRESS = process.env.MAILER_EMAIL_ADDRESS || 'dig-alerts@nextcentury.com';
 var DIG_SUPPORT_EMAIL_ADDRESS = process.env.DIG_SUPPORT_EMAIL_ADDRESS || 'dig-support@nextcentury.com';
 var DIG_URL = process.env.DIG_URL;
@@ -43,7 +45,15 @@ var DATE_FIELD = process.env.DATE_FIELD || 'dateCreated';
 
 var logger = new Logger(LOG_NAME, LOG_PATH);
 
-var mailer = new Mailer(logger, ACCESS_KEY_ID, SECRET_ACCESS_KEY, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL);
+logger.info('============================================================');
+logger.info('Starting the DIG alert and email notification application...');
+
+var mailer = new Mailer(logger, MAILER_EMAIL_ADDRESS, DIG_SUPPORT_EMAIL_ADDRESS, DIG_URL, {
+  host: SMTP_HOST,
+  port: SMTP_PORT,
+  user: SMTP_USER,
+  pass: SMTP_PASS
+});
 
 mailer.sendSupportEmail();
 
@@ -56,8 +66,7 @@ var runner = new Runner(logger, client, USER_INDEX, USER_TYPE, DATA_INDEX, DATE_
 
 var scheduler = new Scheduler(logger);
 
-runner.checkUsersDaily();
-
 scheduler.runDaily(runner.checkUsersDaily);
 scheduler.runWeekly(runner.checkUsersWeekly);
 
+runner.checkUsersDaily();

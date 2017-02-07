@@ -168,9 +168,9 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var checkUsers = function(period) {
-    logger.info('========================================');
-    logger.info('Start check for period ' + period);
     return function() {
+      logger.info('------------------------------------------------------------');
+      logger.info('Start check for period ' + period);
       // Get the list of all users.  Set the size to an arbitrary big number.
       client.search({
         index: userIndex,
