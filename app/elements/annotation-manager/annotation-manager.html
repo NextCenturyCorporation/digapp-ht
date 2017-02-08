@@ -232,10 +232,13 @@ limitations under the License.
         },
 
         /**
-         * The callback function to use after a create request.
+         * The list of annotation change listener functions.
          */
-        _createCallback: {
-          type: Object
+        _listeners: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -266,8 +269,10 @@ limitations under the License.
       _buildAnnotationManager: function() {
         var self = this;
         return {
-          createAnnotation: function(uri, cdrId, label, justification, callback) {
-            self.set('_createCallback', callback);
+          addListener: function(listener) {
+            self.push('_listeners', listener);
+          },
+          createAnnotation: function(uri, cdrId, label, justification) {
             self.set('_createBody', {
               user: self.username,
               uri: uri,
@@ -325,6 +330,18 @@ limitations under the License.
       },
 
       /**
+       * Notifies all listeners of the newly created annotation.
+       */
+      _notifyListeners: function(annotationId) {
+        var self = this;
+        this._listeners.forEach(function(listener) {
+          if(listener) {
+            listener(self._createBody.uri, self._createBody.label, self._createBody.justification, annotationId);
+          }
+        });
+      },
+
+      /**
        * After creating a new annotation, query for 'relevant' and 'not relevant' annotations again after a short timeout (wait for elasticsearch to re-index).
        */
       _onCreateDone: function(results) {
@@ -336,10 +353,7 @@ limitations under the License.
               self.$$('#notRelevantSearch').search();
             }, 1000);
           }
-          if(this._createCallback) {
-            this._createCallback(results._id);
-            this.set('_createCallback', undefined);
-          }
+          this._notifyListeners(results._id);
         }
       }
     });
