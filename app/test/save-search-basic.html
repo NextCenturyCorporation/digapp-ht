@@ -120,6 +120,19 @@ limitations under the License.
 
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
+      test('does initialize saveUserDataCallback function', function() {
+        assert.isFunction(element.saveUserDataCallback);
+      });
+
+      test('does have a paper-dialog element', function() {
+        assert(element.$$('paper-dialog'));
+        assert.equal(element.$$('paper-dialog').id, 'saveSearchDialog');
+      });
+
+      test('does have an elastic-update element', function() {
+        assert(element.$$('elastic-update'));
+      });
+
       test('_checkSavedSearchName() verifies that argument is not an empty string/only whitespace', function() {
         assert.isFalse(element._checkSavedSearchName(''));
         assert.isFalse(element._checkSavedSearchName(' '));
@@ -289,48 +302,48 @@ limitations under the License.
         }));
       });
 
-      test('_createSavedSearchListener when saving a new query', function() {
+      test('save when saving a new query', function() {
         element._savedSearchName = 'newQuery';
         assert.equal(element.existingSearches.length, 0);
 
-        element._createSavedSearchListener().onClick(function() {
-          assert.equal(element.existingSearches.length, 1);
-          assert.equal(element.existingSearches[0].name, element._savedSearchName);
-          assert.equal(element.existingSearches[0].digUIState.searchParameters, JSON.stringify({
-            dateCreated: {},
-            country: {},
-            city: {
-              'Los Angeles': {
-                category: 'City',
-                count: 10,
-                key: 'Los Angeles',
-                text: 'Los Angeles',
-                enabled: true
-              }
-            },
-            phone: {},
-            email: {},
-            website: {},
-            name: {},
-            age: {},
-            ethnicity: {},
-            eyeColor: {},
-            hairColor: {},
-            height: {},
-            weight: {},
-            hasImage: {},
-            image: {},
-            sort: '',
-            text: ''
-          }));
-          assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esRequest.query));
-          assert.equal(element.existingSearches[0].esState.filter, JSON.stringify(element.esRequest.filter));
-          assert.equal(element.existingSearches[0].createdBy, element.username);
-          assert.deepEqual(element._userUpdateBody, {doc: {savedQueries: element.existingSearches}});
-        });
+        element.save();
+
+        assert.equal(element.existingSearches.length, 1);
+        assert.equal(element.existingSearches[0].name, element._savedSearchName);
+        assert.equal(element.existingSearches[0].digUIState.searchParameters, JSON.stringify({
+          dateCreated: {},
+          country: {},
+          city: {
+            'Los Angeles': {
+              category: 'City',
+              count: 10,
+              key: 'Los Angeles',
+              text: 'Los Angeles',
+              enabled: true
+            }
+          },
+          phone: {},
+          email: {},
+          website: {},
+          name: {},
+          age: {},
+          ethnicity: {},
+          eyeColor: {},
+          hairColor: {},
+          height: {},
+          weight: {},
+          hasImage: {},
+          image: {},
+          sort: '',
+          text: ''
+        }));
+        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esRequest.query));
+        assert.equal(element.existingSearches[0].esState.filter, JSON.stringify(element.esRequest.filter));
+        assert.equal(element.existingSearches[0].createdBy, element.username);
+        assert.deepEqual(element._userUpdateBody, {doc: {savedQueries: element.existingSearches}});
       });
 
-      test('_createSavedSearchListener when query to save has same name as existing query', function() {
+      test('save when query to save has same name as existing query', function() {
         element.existingSearches = [{
           name: 'save over existing',
           searchParameters: {}
@@ -341,10 +354,78 @@ limitations under the License.
         element._savedSearchName = 'save over existing';
         assert.isFalse(element.$$('#saveAlert').opened);
 
-        element._createSavedSearchListener().onClick(function() {
-          assert.equal(element._saveOverIndex, 0);
-          assert.isTrue(element.$$('#saveAlert').opened);
-        });
+        element.save();
+
+        assert.equal(element._saveOverIndex, 0);
+        assert.isTrue(element.$$('#saveAlert').opened);
+      });
+
+      test('saveUserDataCallback when saving a new query', function() {
+        element._savedSearchName = 'newQuery';
+        assert.equal(element.existingSearches.length, 0);
+
+        element.saveUserDataCallback();
+
+        assert.equal(element.existingSearches.length, 1);
+        assert.equal(element.existingSearches[0].name, element._savedSearchName);
+        assert.equal(element.existingSearches[0].digUIState.searchParameters, JSON.stringify({
+          dateCreated: {},
+          country: {},
+          city: {
+            'Los Angeles': {
+              category: 'City',
+              count: 10,
+              key: 'Los Angeles',
+              text: 'Los Angeles',
+              enabled: true
+            }
+          },
+          phone: {},
+          email: {},
+          website: {},
+          name: {},
+          age: {},
+          ethnicity: {},
+          eyeColor: {},
+          hairColor: {},
+          height: {},
+          weight: {},
+          hasImage: {},
+          image: {},
+          sort: '',
+          text: ''
+        }));
+        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esRequest.query));
+        assert.equal(element.existingSearches[0].esState.filter, JSON.stringify(element.esRequest.filter));
+        assert.equal(element.existingSearches[0].createdBy, element.username);
+        assert.deepEqual(element._userUpdateBody, {doc: {savedQueries: element.existingSearches}});
+      });
+
+      test('saveUserDataCallback when query to save has same name as existing query', function() {
+        element.existingSearches = [{
+          name: 'save over existing',
+          searchParameters: {}
+        }, {
+          name: 'elementToRemove',
+          searchParameters: {}
+        }];
+        element._savedSearchName = 'save over existing';
+        assert.isFalse(element.$$('#saveAlert').opened);
+
+        element.saveUserDataCallback();
+
+        assert.equal(element._saveOverIndex, 0);
+        assert.isTrue(element.$$('#saveAlert').opened);
+      });
+
+      test('_createSavedSearchListener.onClick does call runUserQueryCallback', function(done) {
+        element.runUserQueryCallback = function() {
+          done();
+        };
+        var listener = element._createSavedSearchListener();
+        assert.isObject(listener);
+        assert.isFunction(listener.onClick);
+        listener.onClick();
       });
     });
   </script>

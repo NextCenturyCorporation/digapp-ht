@@ -21,49 +21,27 @@
 /* exported commonTransforms */
 /* jshint camelcase:false */
 
-var commonTransforms = (function(_, moment) {
+var commonTransforms = (function(_, moment, typeBehavior) {
 
   /**
    * Returns the iron icon for the given type.
    */
   function getIronIcon(type) {
-    switch(type) {
-      case 'cache': return 'icons:cached';
-      case 'date': return 'icons:date-range';
-      case 'email': return 'communication:email';
-      case 'image': return 'image:photo';
-      case 'location': return 'communication:location-on';
-      case 'money': return 'editor:attach-money';
-      case 'offer': return 'maps:local-offer';
-      case 'phone': return 'communication:phone';
-      case 'provider': return 'icons:account-circle';
-      case 'seller': return 'group-work';
-      case 'webpage': return 'av:web';
-    }
-    return 'icons:polymer';
+    return typeBehavior.getTypeIcon(type);
   }
 
   /**
-   * Returns the link for the given field/value combination and type.
+   * Returns the link for the given ID and type.
    */
-  function getLink(value, type) {
-    if(!value || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller' || type === 'location')) {
-      return undefined;
-    }
-
-    var field = type === 'location' ? 'availableAtOrFrom.address.key' : '_id';
-
-    return '/' + type + '.html?value=' + value + '&field=' + field;
+  function getLink(id, type) {
+    return typeBehavior.getPageLink(id, type);
   }
 
   /**
    * Returns the style class for the given type.
    */
   function getStyleClass(type) {
-    if(!type) {
-      return '';
-    }
-    return 'entity-' + type + '-font';
+    return typeBehavior.getTypeStyleClass(type);
   }
 
   /**

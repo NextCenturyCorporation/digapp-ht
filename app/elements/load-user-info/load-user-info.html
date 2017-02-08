@@ -23,7 +23,8 @@ limitations under the License.
         display: block;
       }
     </style>
-    <user-query
+
+    <user-query id="userQuery"
       client="[[client]]"
       user-index="[[userIndex]]"
       user-type="[[userType]]"
@@ -33,6 +34,7 @@ limitations under the License.
 
     <!-- User preferences dialog -->
     <user-preferences show-search="{{showSearch}}"
+      entities="{{entities}}"
       searches="{{searches}}"
       email-address="{{_emailAddress}}"
       no-email-address="{{_noEmailAddress}}"
@@ -141,6 +143,14 @@ limitations under the License.
         },
 
         /**
+         * The user's saved entities.
+         */
+        entities: {
+          type: Array,
+          notify: true
+        },
+
+        /**
          * The user's saved searches.
          */
         searches: {
@@ -240,8 +250,38 @@ limitations under the License.
         processRequest: {
           type: Boolean,
           notify: true
+        },
+
+        /**
+         * (Required)
+         *
+         * The callback function to save the entity.
+         *
+         * @type {Function}
+         */
+        saveUserDataCallback: {
+          type: Object
+        },
+
+        /**
+         * (Output)
+         *
+         * The callback function to run the user query.
+         *
+         * @type {Function}
+         */
+        runUserQueryCallback: {
+          notify: true,
+          type: Object,
+          value: function() {
+            var self = this;
+            return function() {
+              self.$$('#userQuery').runUserQuery();
+            };
+          }
         }
       },
+
       observers: [
         '_createUserRecord(userRecordExists, username, advancedSearch, blurImages)'
       ],
@@ -283,15 +323,19 @@ limitations under the License.
       /**
        * Populate properties based on search results.
        */
-      _transformUserSearchResult: function() {
-        if(this._userSearchResult) {
-          if(this._userSearchResult.hits.hits.length > 0) {
+      _transformUserSearchResult: function(userSearchResult) {
+        if(userSearchResult) {
+          if(userSearchResult.hits.hits.length > 0) {
             /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            this._getUserId(this._userSearchResult.hits.hits[0]);
-            this._populateUserPreferences(this._userSearchResult.hits.hits[0]._source);
+            this._getUserId(userSearchResult.hits.hits[0]);
+            this._populateUserPreferences(userSearchResult.hits.hits[0]._source);
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           } else {
             this.userRecordExists = false;
+          }
+
+          if(this.saveUserDataCallback) {
+            this.saveUserDataCallback();
           }
         }
       },
@@ -318,6 +362,10 @@ limitations under the License.
           this.set('_notificationFrequency', prefs.notificationFrequency);
         }
 
+        if(prefs.savedEntities) {
+          this.set('entities', prefs.savedEntities);
+        }
+
         if(prefs.savedQueries) {
           _.each(prefs.savedQueries, function(search) {
             if(search.notificationHasRun === false) {
@@ -331,7 +379,6 @@ limitations under the License.
         if(prefs.receivedQueries) {
           this.set('_receivedSearches', prefs.receivedQueries);
         }
-
       },
 
       /**
