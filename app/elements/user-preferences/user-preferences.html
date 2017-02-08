@@ -27,13 +27,16 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../../styles/icon-styles.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="user-preferences">
   <template>
+    <style include="icon-styles"></style>
     <style include="user-dialog-styles"></style>
+
     <style>
       :host {
         display: inline-block;
@@ -50,7 +53,7 @@ limitations under the License.
         top: 1px;
       }
 
-      .search {
+      .saved-item {
         margin: 5px 5px 0;
       }
 
@@ -71,7 +74,17 @@ limitations under the License.
       paper-listbox paper-item {
         cursor: pointer;
       }
+
+      .entity-action {
+        color: var(--primary-text-color);
+        text-decoration: none;
+      }
+
+      .entity-action:hover {
+        color: var(--secondary-text-color);
+      }
     </style>
+
     <paper-icon-button
       id="settingsButton"
       class$="[[_getSettingsButtonClass(showSearch, hasNotifications)]]"
@@ -151,7 +164,7 @@ limitations under the License.
               <div class="name">Saved Searches (Return to Search Page to Run)</div>
             </template>
             <template is="dom-repeat" items="[[searches]]" as="search">
-              <div class="layout vertical search">
+              <div class="layout vertical saved-item">
                 <div class="layout horizontal">
                   <modal-icon id$="[[_createElementId('expandSavedSearch', index)]]"
                     title="[[_getModalIconTitle('expandSavedSearch', index)]]"
@@ -220,7 +233,7 @@ limitations under the License.
               <div class="name">Received Searches (Return to Search Page to Run)</div>
             </template>
             <template is="dom-repeat" items="[[receivedSearches]]" as="search">
-              <div class="layout vertical search">
+              <div class="layout vertical saved-item">
                 <div class="layout horizontal">
                   <modal-icon id$="[[_createElementId('expandReceivedSearch', index)]]" openable
                     title="[[_getModalIconTitle('expandReceivedSearch', index)]]"
@@ -270,7 +283,23 @@ limitations under the License.
             </template>
           </div>
 
+          <div class="divider"></div>
+
+          <div class="layout vertical">
+            <div class="name">Saved Entities</div>
+            <template is="dom-repeat" items="[[entities]]" as="entity">
+              <div class="layout horizontal saved-item">
+                <a class="entity-action" href$="[[getPageLink(entity.id, entity.type)]]" target="_blank" title="Open [[entity.name]]">
+                  <paper-icon-button icon="icons:open-in-new" noink></paper-icon-button>
+                </a>
+                <paper-icon-button class="entity-action" icon="icons:delete" title="Delete [[entity.name]] from Saved Entities" on-tap="_deleteEntity"></paper-icon-button>
+                <paper-icon-button class$="[[getTypeStyleClass(entity.type)]]" icon$="[[getTypeIcon(entity.type)]]" disabled></paper-icon-button>
+                <span class="tall flex">[[entity.name]]</span>
+              </div>
+            </template>
+          </div>
         </template>
+
         <template is="dom-if" if="{{!userRecordExists}}" restamp="true">
           Creating user record...
         </template>
@@ -297,7 +326,7 @@ limitations under the License.
     Polymer({
       is: 'user-preferences',
 
-      behaviors: [DigBehaviors.StateBehavior],
+      behaviors: [DigBehaviors.StateBehavior, DigBehaviors.TypeBehavior],
 
       properties: {
         /**
@@ -430,10 +459,21 @@ limitations under the License.
             return [];
           }
         },
+
         /**
          * The saved searches for this user.
          */
         searches: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The saved entities for this user.
+         */
+        entities: {
           type: Array,
           value: function() {
             return [];
@@ -627,6 +667,19 @@ limitations under the License.
           doc: {
             savedQueries: self.searches,
             receivedQueries: self.receivedSearches
+          }
+        });
+      },
+
+      /**
+       * Deletes the given saved entity.
+       */
+      _deleteEntity: function(event) {
+        var self = this;
+        self.splice('entities', event.model.index, 1);
+        self._set_userUpdateBody({
+          doc: {
+            savedEntities: self.entities
           }
         });
       },

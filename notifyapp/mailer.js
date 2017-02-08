@@ -18,18 +18,23 @@
 
 var nodemailer = require('nodemailer');
 
-module.exports = function Mailer(logger, accessKeyId, secretAccessKey, mailerEmailAddress, digSupportEmailAddress, digUrl) {
+module.exports = function Mailer(logger, mailerEmailAddress, digSupportEmailAddress, digUrl, smtp) {
   var transporter;
 
-  if(accessKeyId && secretAccessKey) {
-    logger.info('Creating nodemailer transporter with access key ID and secret access key.');
+  if(smtp && smtp.host && smtp.port && smtp.user && smtp.pass) {
+    logger.info('Creating nodemailer SMTP transporter at ' + smtp.host + ':' + smtp.port + ' with username ' + smtp.user);
     transporter = nodemailer.createTransport({
-      transport: 'ses',
-      accessKeyId: accessKeyId,
-      secretAccessKey: secretAccessKey
+      host: smtp.host,
+      port: smtp.port,
+      secure: true,
+      logger: logger,
+      auth: {
+        user: smtp.user,
+        pass: smtp.pass
+      }
     });
   } else {
-    logger.info('No accessKeyId and/or secretAccessKey.  Creating default nodemailer transporter.');
+    logger.info('No SMTP config.  Creating default nodemailer transporter.');
     transporter = nodemailer.createTransport();
   }
 
@@ -72,5 +77,8 @@ module.exports = function Mailer(logger, accessKeyId, secretAccessKey, mailerEma
   };
 
   logger.info('Mailer created.');
+  logger.info('Mailer email address:  ' + mailerEmailAddress);
+  logger.info('DIG support email address:  ' + digSupportEmailAddress);
+  logger.info('DIG URL:  ' + digUrl);
 };
 

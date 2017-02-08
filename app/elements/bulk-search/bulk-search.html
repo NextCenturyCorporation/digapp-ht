@@ -33,6 +33,14 @@ limitations under the License.
       :host {
         display: block;
       }
+
+      iron-icon {
+        padding: 8px;
+      }
+
+      .hide {
+        display: none;
+      }
     </style>
 
     <paper-dialog id="bulkSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
@@ -44,27 +52,30 @@ limitations under the License.
 
         <div class="divider"></div>
 
-        <span class="text">Please enter or paste telephone numbers in the text box below or upload your own files.</span>
-
         <div class="layout horizontal">
-          <span class="name right-space">Supported file types:</span>
-          <span class="text">plain text files (including .csv and .txt)</span>
+          <div class="layout vertical right-space">
+            <span class="name tall right-space">Instructions</span>
+            <span class="name tall right-space">Supported file types</span>
+            <span class="name tall right-space">Supported delimiters</span>
+          </div>
+          <div class="layout vertical">
+            <span class="tall text">Please enter or paste telephone numbers in the text box below or upload your own files.</span>
+            <span class="tall text">plain text files (including .csv and .txt)</span>
+            <span class="tall text">commas, semicolons, whitespace (including spaces, tabs, and newlines)</span>
+          </div>
         </div>
 
-        <div class="layout horizontal">
-          <span class="name right-space">Supported delimiters:</span>
-          <span class="text">commas, semicolons, whitespace (including spaces, tabs, and newlines)</span>
-        </div>
+        <div class="divider"></div>
 
         <div class="layout horizontal">
-          <span class="text right-space">Clear all selected search facets?</span>
-          <span class="text right-space">[[_yesOrNo(clearFacets)]]</span>
+          <span class="text tall right-space">Clear all selected search facets?</span>
+          <span class="text tall right-space">[[_yesOrNo(clearFacets)]]</span>
           <paper-toggle-button checked="{{clearFacets}}" title="Clear all selected search facets"></paper-toggle-button>
         </div>
 
         <div class="divider"></div>
 
-        <paper-textarea label="Enter or Paste Telephone Numbers" value="{{_phoneInput}}" no-label-float></paper-textarea>
+        <paper-textarea label="Enter or Paste Telephone Numbers" value="{{_phoneInput}}" no-label-float on-input="_handlePhoneInputChange"></paper-textarea>
 
         <div class="layout horizontal center">
           <file-upload
@@ -82,8 +93,11 @@ limitations under the License.
         </div>
 
         <div class="layout horizontal">
-          <button-action class="right-space" disabled="[[!_phoneInput]]" text="Search" click-listener="[[_createSearchListener()]]"></button-action>
-          <button-action text="Clear" click-listener="[[_createClearListener()]]"></button-action>
+          <button-action class="tall right-space" text="Clean" click-listener="[[_createCleanListener()]]"></button-action>
+          <button-action class="tall right-space" disabled$="[[!_cleanInput]]" text="Search" click-listener="[[_createSearchListener()]]"></button-action>
+          <button-action class="tall right-space" text="Reset" click-listener="[[_createResetListener()]]"></button-action>
+          <iron-icon class$="[[_showOrHideCleanWarning(_cleanInput, _phoneInput)]]" icon="icons:warning"></iron-icon>
+          <span class$="tall text [[_showOrHideCleanWarning(_cleanInput, _phoneInput)]]">You must Clean before you may Search.</span>
         </div>
       </div>
     </paper-dialog>
@@ -132,6 +146,18 @@ limitations under the License.
         },
 
         /**
+         * Whether the phone input is clean.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        _cleanInput: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
          * The phone input for the dialog.
          *
          * @type {String}
@@ -169,11 +195,11 @@ limitations under the License.
           // Remove all non-digit, non-whitespace characters.
           .replace(/[^\d\s]/g, '')
           // Remove extra spaces.
-          .replace(/\s+/g, ' ');
+          .replace(/\s+/g, '\n');
       },
 
       /**
-       * Clears the uploaded file list.
+       * Resets the uploaded file list.
        *
        * @event before-upload
        * @private
@@ -188,12 +214,30 @@ limitations under the License.
        * @return {Object}
        * @private
        */
-      _createSearchListener: function() {
+      _createCleanListener: function() {
         var self = this;
         return {
           onClick: function() {
             if(self._phoneInput) {
-              var searchText = self._cleanPhoneInput(self._phoneInput);
+              self._phoneInput = self._cleanPhoneInput(self._phoneInput);
+              self._cleanInput = true;
+            }
+          }
+        };
+      },
+
+      /**
+       * Returns the on-click listener object for the search button-action.
+       *
+       * @return {Object}
+       * @private
+       */
+      _createSearchListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            if(self._phoneInput && self._cleanInput) {
+              var searchText = self._phoneInput.replace(/\n/g, ' ');
               self.$$('#bulkSearchDialog').close();
               self.set('processRequest', false);
               if(self.clearFacets) {
@@ -215,20 +259,30 @@ limitations under the License.
       },
 
       /**
-       * Returns the on-click listener object for the clear button-action.
+       * Returns the on-click listener object for the reset button-action.
        *
        * @return {Object}
        * @private
        */
-      _createClearListener: function() {
+      _createResetListener: function() {
         var self = this;
         return {
           onClick: function() {
-            self.set('_phoneInput', '');
             self.set('_uploadText', '');
+            self.set('_phoneInput', '');
+            self.set('_cleanInput', false);
             self.$$('#fileUpload').clear();
           }
         };
+      },
+
+      /**
+       * Handles change in the phone input.  Sets _cleanInput to false.
+       *
+       * @private
+       */
+      _handlePhoneInputChange: function() {
+        this._cleanInput = false;
       },
 
       /**
@@ -241,6 +295,7 @@ limitations under the License.
         if(event.detail && event.detail.xhr && event.detail.xhr.response) {
           this._uploadText = 'File upload successful!';
           this._phoneInput = (this._phoneInput || '') + event.detail.xhr.response;
+          this._cleanInput = false;
         }
       },
 
@@ -252,6 +307,18 @@ limitations under the License.
        */
       _setUploadErrorMessage: function() {
         this._uploadText = 'File upload failed!';
+      },
+
+      /**
+       * Returns the style class for whether to show or hide the clean warning text.
+       *
+       * @param {Boolean} cleanInput
+       * @param {String} phoneInput
+       * @return {String}
+       * @private
+       */
+      _showOrHideCleanWarning: function(cleanInput, phoneInput) {
+        return (!cleanInput && phoneInput) ? '' : 'hide';
       },
 
       /**

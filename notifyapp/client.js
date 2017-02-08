@@ -41,6 +41,8 @@ module.exports = function Client(logger, auth, host, port, protocol) {
   });
 
   logger.info('Client created.');
+  logger.info('Client info:  ' + protocol + '://' + host + ':' + port);
+  logger.info('Client auth?  ' + (auth ? 'Yes' : 'No'));
 
   return client;
 };

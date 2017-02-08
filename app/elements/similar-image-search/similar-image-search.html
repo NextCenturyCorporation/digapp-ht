@@ -39,6 +39,17 @@ limitations under the License.
         margin-top: 20px;
       }
 
+      .selectable {
+        margin: 0 5px 10px;
+        padding: 5px;
+      }
+
+      .selected,
+      .selectable:hover {
+        background-color: var(--primary-background-color);
+        cursor: pointer;
+      }
+
       .add-padding {
         /* Add padding to the query image so it matches the padding in the image results list. */
         padding: 10px;
@@ -63,17 +74,16 @@ limitations under the License.
 
         <div class="divider"></div>
 
-        <span class="text">Please enter or paste an image URL in the text box below or upload your own image.</span>
-
         <div class="layout horizontal">
-          <span class="text right-space">Restrict search to near-duplicate results?</span>
-          <span class="text right-space">[[_yesOrNo(nearDuplicates)]]</span>
-          <paper-toggle-button checked="{{nearDuplicates}}" title="Restrict search to near-duplicate results"></paper-toggle-button>
+          <span class="name tall right-space">Instructions</span>
+          <span class="text tall">Please enter or paste an image URL in the text box below or upload your own image.</span>
         </div>
+
+        <div class="divider"></div>
 
         <div class="layout horizontal">
           <paper-input class="flex right-space" label="Enter or Paste Image URL" value="{{_urlInput}}" no-label-float></paper-input>
-          <button-action disabled="[[!_urlInput]]" text="Search on URL" click-listener="[[_createSearchOnUrlListener()]]"></button-action>
+          <button-action disabled="[[!_urlInput]]" text="Add URL" click-listener="[[_createAddUrlListener()]]"></button-action>
         </div>
 
         <div class="layout horizontal center">
@@ -81,20 +91,34 @@ limitations under the License.
             id="fileUpload"
             accept="image/*"
             droppable
+            files="{{_uploadedImages}}"
             method="POST"
             raised
             target="/uploadImage"
-            on-before-upload="_clearFileList"
             on-error="_setUploadErrorMessage"
-            on-success="_setRequestImageToFile">Upload Image...
+            on-success="_addUploadedImage">Upload Image...
           </file-upload>
 
           <span class="text">[[_uploadText]]</span>
         </div>
 
+        <div class="divider"></div>
+
+        <div class="name tall">Uploaded Images and URLs:</div>
+
+        <div>
+          <template is="dom-repeat" items="[[_images]]" as="image">
+            <div id$="[[image.id]]" class$="text selectable [[_isSelected(image.id, _selectedObject.id)]]" on-tap="_selectImageEvent">[[image.name]]</div>
+          </template>
+
+          <template is="dom-if" if="[[!_images.length]]">
+            <div class="text" style="margin: 0 5px 10px">None</div>
+          </template>
+        </div>
+
         <div class="layout horizontal">
-          <button-action class="right-space" disabled="[[!_uploadedImage]]" text="Search on Upload" click-listener="[[_createSearchOnUploadListener()]]"></button-action>
-          <button-action id="clearAll" class="right-space" text="Clear" click-listener="[[_createClearListener()]]"></button-action>
+          <button-action class="tall right-space" disabled="[[!_queryInput.data]]" text="Search for Near-Duplicate Images" click-listener="[[_createSearchListener(1)]]"></button-action>
+          <button-action class="tall right-space" disabled="[[!_queryInput.data]]" text="Search for Similar Images" click-listener="[[_createSearchListener(0)]]"></button-action>
         </div>
 
         <iron-ajax
@@ -109,21 +133,33 @@ limitations under the License.
 
         <div class="layout horizontal">
           <div class="padded layout vertical flex">
-            <span class="bold tall">Your Image</span>
+            <div class="bold tall">Your Image</div>
 
-            <template is="dom-if" if="[[!_requestImage]]">
-              <span class="text tall">None</span>
+            <template is="dom-if" if="[[!_queryInput.data]]">
+              <div class="text tall">None</div>
             </template>
 
-            <template is="dom-if" if="[[_requestImage]]">
-              <image-thumbnail
-                class="add-padding"
-                source="[[_requestImage]]"
-                style-class="[[_getBlurStyleClass(blur)]]">
-              </image-thumbnail>
-            </template>
+            <div class="layout horizontal center">
+              <template is="dom-if" if="[[_queryInput.data]]">
+                <image-thumbnail
+                  class="add-padding"
+                  source="[[_queryInput.data]]"
+                  style-class="[[_getBlurStyleClass(blur)]]">
+                </image-thumbnail>
+              </template>
 
-            <span class="bold tall">[[_getImageResultsTitle(_imageResults.length)]]</span>
+              <template is="dom-if" if="[[_queryInput.nearDuplicates]]">
+                <span class="name tall right-space">Near-Duplicates?</span>
+                <template is="dom-if" if="[[_queryInput.nearDuplicates.bool]]">
+                  <span class="text tall">ON</span>
+                </template>
+                <template is="dom-if" if="[[!_queryInput.nearDuplicates.bool]]">
+                  <span class="text tall">OFF</span>
+                </template>
+              </template>
+            </div>
+
+            <div class="bold tall">[[_getImageResultsTitle(_imageResults.length)]]</div>
 
             <paginated-image-gallery
               blur="[[blur]]"
@@ -136,7 +172,11 @@ limitations under the License.
           </div>
 
           <div class="padded layout vertical previous-searches">
-            <span class="bold tall">Your Previous Searches</span>
+            <div class="bold tall">Your Previous Searches</div>
+
+            <template is="dom-if" if="[[!_previousSearches.length]]">
+              <div class="text tall">None</div>
+            </template>
 
             <template is="dom-repeat" items="[[_previousSearches]]">
               <div class="layout horizontal center">
@@ -157,7 +197,6 @@ limitations under the License.
                     <template is="dom-if" if="[[item.options.nearDuplicates]]">
                       Near-Duplicates:  ON
                     </template>
-
                     <template is="dom-if" if="[[!item.options.nearDuplicates]]">
                       Near-Duplicates:  OFF
                     </template>
@@ -227,19 +266,28 @@ limitations under the License.
         },
 
         /**
-         * Whether to search for only near-duplicate similar image results.
-         */
-        nearDuplicates: {
-          type: Boolean,
-          value: true
-        },
-
-        /**
          * The threshold for similar image results.
          */
         imageThreshold: {
           type: Number,
           value: 0.6
+        },
+
+        /**
+         * The logger object with the 'log' property that is a function.
+         */
+        logger: {
+          type: Object
+        },
+
+        /**
+         * The list of image objects to show in the selectable list.
+         */
+        _images: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -264,19 +312,30 @@ limitations under the License.
         },
 
         /**
-         * The uploaded image or URL input used by the search request.
+         * The uploaded image or URL and other options used for the query input.
          */
-        _requestImage: {
-          type: String,
-          value: ''
+        _queryInput: {
+          type: Object,
+          value: function() {
+            return {};
+          }
         },
 
         /**
-         * The image uploaded by the user.
+         * The selected object from the list of images.
          */
-        _uploadedImage: {
-          type: String,
-          value: ''
+        _selectedObject: {
+          type: Object,
+          value: function() {
+            return {};
+          }
+        },
+
+        /**
+         * The list of uploaded images from the file-upload element.
+         */
+        _uploadedImages: {
+          type: Array
         },
 
         /**
@@ -297,89 +356,147 @@ limitations under the License.
       },
 
       /**
-       * Clears the uploaded file list.
+       * Adds the uploaded image to the list of images.
        *
-       * @event before-upload
+       * @event success
        * @private
        */
-      _clearFileList: function() {
-        this.$$('#fileUpload').clear();
-      },
-
-      _clearImageInputAndResults: function() {
-        this.set('_imageResults', []);
-        this.set('_requestImage', '');
-        this.set('_uploadedImage', '');
-        this.set('_uploadText', '');
-        this.set('_urlInput', '');
-        this.$$('#fileUpload').clear();
-      },
-
-      _createSearchOnUploadListener: function() {
-        var self = this;
-        return {
-          onClick: function() {
-            self.$.xhr.body = {};
-            self.$.xhr.params = {};
-            if(self._uploadedImage) {
-              self._requestImage = self._uploadedImage;
-              self.$.xhr.body = {
-                data: self._uploadedImage
-              };
-              if(!self.nearDuplicates) {
-                self.$.xhr.body.options = '{"near_dup":0}';
-              }
-              self.$.xhr.contentType = 'application/x-www-form-urlencoded';
-              self.$.xhr.method = 'POST';
-              self._sendXhrRequest('base64');
+      _addUploadedImage: function(event) {
+        if(this._uploadedImages && this._uploadedImages[0] && this._uploadedImages[0].name) {
+          if(event.detail && event.detail.xhr && event.detail.xhr.response) {
+            var response = JSON.parse(event.detail.xhr.response);
+            if(!response.mimeType.startsWith('image')) {
+              this._uploadText = 'Upload image failed:  Not an image file!';
+              return;
             }
+            this._uploadText = 'Upload image successful!';
+            var id = this._images.length;
+            var data = 'data:' + response.mimeType + ';base64,' + response.base64;
+            this.push('_images', {
+              id: id,
+              data: data,
+              name: this._uploadedImages[0].name,
+              type: 'File'
+            });
+            this._selectImageIndex(id);
           }
-        };
+          this.$$('#fileUpload').clear();
+        }
       },
 
-      _createSearchOnUrlListener: function() {
+      /**
+       * Creates and returns the listener for the Add URL button.
+       *
+       * @return {Object}
+       * @private
+       */
+      _createAddUrlListener: function() {
         var self = this;
         return {
           onClick: function() {
-            self.$.xhr.body = {};
-            self.$.xhr.params = {};
             if(self._urlInput) {
-              self._requestImage = self._urlInput;
-              self.$.xhr.params.data = self._urlInput;
-              if(!self.nearDuplicates) {
-                self.$.xhr.params.options = '{"near_dup":0}';
-              }
-              self.$.xhr.method = 'GET';
-              self._sendXhrRequest('url');
+              var id = self._images.length;
+              self.push('_images', {
+                id: id,
+                data: self._urlInput,
+                name: self._urlInput,
+                type: 'Link'
+              });
+              self._selectImageIndex(id);
             }
           }
         };
       },
 
-      _createClearListener: function() {
+      /**
+       * Creates and returns the listener for a Search button with the given near-duplicates setting.
+       *
+       * @param {Boolean} nearDuplicates
+       * @return {Object}
+       * @private
+       */
+      _createSearchListener: function(nearDuplicates) {
         var self = this;
         return {
           onClick: function() {
-            self._clearImageInputAndResults();
+            self.$.xhr.body = {};
+            self.$.xhr.params = {};
+            if(self._selectedObject.data && self._selectedObject.type) {
+              self.set('_queryInput.nearDuplicates', {
+                bool: nearDuplicates
+              });
+
+              if(self._selectedObject.type === 'File') {
+                self.$.xhr.body = {
+                  data: self._selectedObject.data
+                };
+                if(!nearDuplicates) {
+                  self.$.xhr.body.options = '{"near_dup":0}';
+                }
+                self.$.xhr.contentType = 'application/x-www-form-urlencoded';
+                self.$.xhr.method = 'POST';
+                self._sendXhrRequest('base64');
+              }
+
+              if(self._selectedObject.type === 'Link') {
+                self.$.xhr.params.data = self._selectedObject.data;
+                if(!nearDuplicates) {
+                  self.$.xhr.params.options = '{"near_dup":0}';
+                }
+                self.$.xhr.method = 'GET';
+                self._sendXhrRequest('url');
+              }
+
+              if(self.logger && self.logger.log) {
+                self.logger.log('SimilarImageSearch-' + self._selectedObject.type,
+                    'NearDuplicates=' + (nearDuplicates ? 'TRUE' : 'FALSE'),
+                    (self._selectedObject.type === 'Link' ? self._selectedObject.data : ''));
+              }
+            }
           }
         };
       },
 
+      /**
+       * Creates and returns the listener for the Show Image Results button for the given search object.
+       *
+       * @param {Object} search
+       * @return {Object}
+       * @private
+       */
       _createShowImageResultsListener: function(search) {
         var self = this;
         return {
           onClick: function() {
-            self.nearDuplicates = search.options.nearDuplicates;
-            self._requestImage = search.image;
-            self._imageResults = search.results;
+            self.set('_queryInput', {
+              data: search.image,
+              nearDuplicates: {
+                bool: search.options.nearDuplicates
+              }
+            });
+            self.set('_imageResults', search.results);
           }
         };
       },
 
+      /**
+       * Returns the blur style class for the given blur setting.
+       *
+       * @param {Boolean} blur
+       * @return {String}
+       * @private
+       */
       _getBlurStyleClass: function(blur) {
         return (blur ? 'small-blur' : '');
       },
 
+      /**
+       * Returns the auth in the given image service auth config.
+       *
+       * @param {Object} imageServiceAuth
+       * @return {String}
+       * @private
+       */
       _getRequestAuth: function(imageServiceAuth) {
         var auth = imageServiceAuth ? JSON.parse(imageServiceAuth) : {};
         if(!auth.user || !auth.password) {
@@ -388,6 +505,14 @@ limitations under the License.
         return 'Basic ' + btoa(auth.user + ':' + auth.password);
       },
 
+      /**
+       * Returns the host in the given image service host config with the given type.
+       *
+       * @param {Object} imageServiceHost
+       * @param {String} type
+       * @return {String}
+       * @private
+       */
       _getRequestHost: function(imageServiceHost, type) {
         var host = imageServiceHost ? JSON.parse(imageServiceHost) : {};
         return host[type];
@@ -395,11 +520,21 @@ limitations under the License.
 
       /**
        * Returns the title for the similar image results.
+       *
+       * @param {Number} number
+       * @return {String}
+       * @private
        */
       _getImageResultsTitle: function(number) {
         return (number ? 'Top ' + number + ' ' : 'No ') + 'Similar Image Result' + (number === 1 ? '' : 's');
       },
 
+      /**
+       * Handles the response from the image service by setting the image results and adding them to the list of previous searches.
+       *
+       * @event response
+       * @private
+       */
       _handleImageServiceResponse: function(event) {
         var self = this;
         var response = event.detail.response;
@@ -423,15 +558,58 @@ limitations under the License.
 
           // Use this.splice to force the dom-repeat to redraw itself.  Add the latest search to the start of the list.
           self.splice('_previousSearches', 0, 0, {
-            image: self._requestImage,
+            image: self._queryInput.data,
             results: _.cloneDeep(self._imageResults),
             options: {
-              nearDuplicates: self.nearDuplicates
+              nearDuplicates: self._queryInput.nearDuplicates.bool
             }
           });
         }
       },
 
+      /**
+       * Returns the style class for the selectable items based on whether the given item ID matches the selected ID.
+       *
+       * @param {Number} id
+       * @param {Number} selectedId
+       * @return {String}
+       * @private
+       */
+      _isSelected: function(id, selectedId) {
+        return id === selectedId ? 'selected' : '';
+      },
+
+      /**
+       * Selects the clicked item in the selectable list.
+       *
+       * @event tap
+       * @private
+       */
+      _selectImageEvent: function(event) {
+        this._selectImageIndex(parseInt(event.target.id));
+      },
+
+      /**
+       * Selects the image at the given index.
+       *
+       * @param {Number} index
+       * @private
+       */
+      _selectImageIndex: function(index) {
+        if(!this.loading) {
+          this.set('_selectedObject', this._images[index]);
+          this.set('_queryInput', {
+            data: this._selectedObject.data
+          });
+        }
+      },
+
+      /**
+       * Sends the request to the image service for an image of the given type (link or file upload).
+       *
+       * @param {String} type
+       * @private
+       */
       _sendXhrRequest: function(type) {
         this.set('_imageResults', []);
         this.$.xhr.url = this._getRequestHost(this.imageServiceHost, type);
@@ -444,38 +622,18 @@ limitations under the License.
       },
 
       /**
-       * Sets the request image to the uploaded file.
-       *
-       * @event success
-       * @private
-       */
-      _setRequestImageToFile: function(event) {
-        if(event.detail && event.detail.xhr && event.detail.xhr.response) {
-          var response = JSON.parse(event.detail.xhr.response);
-          if(!response.mimeType.startsWith('image')) {
-            this._uploadText = 'Image upload failed:  Not an image file!';
-            return;
-          }
-          this._uploadText = 'Image upload successful!';
-          this._uploadedImage = 'data:' + response.mimeType + ';base64,' + response.base64;
-          this._requestImage = this._uploadedImage;
-        }
-      },
-
-      /**
        * Sets the upload error message.
        *
        * @event error
        * @private
        */
       _setUploadErrorMessage: function() {
-        this._uploadText = 'Image upload failed!';
+        this._uploadText = 'Upload image failed!';
       },
 
-      _yesOrNo: function(value) {
-        return value ? 'Yes' : 'No';
-      },
-
+      /**
+       * Opens the similar image search dialog.
+       */
       open: function() {
         this.$$('#similarImageSearchDialog').open();
       }

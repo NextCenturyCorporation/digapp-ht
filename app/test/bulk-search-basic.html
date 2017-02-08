@@ -47,6 +47,7 @@ limitations under the License.
 
     test('default properties are correct', function() {
       expect(component.clearFacets).to.be.true;
+      expect(component._cleanInput).to.be.false;
       expect(component._phoneInput).to.equal('');
     });
 
@@ -62,9 +63,9 @@ limitations under the License.
       expect(component._cleanPhoneInput('1234567890')).to.equal('1234567890');
     });
 
-    test('_cleanPhoneInput does replace commas or semicolons with spaces', function() {
-      expect(component._cleanPhoneInput('1234567890,8905671234')).to.equal('1234567890 8905671234');
-      expect(component._cleanPhoneInput('1234567890;8905671234')).to.equal('1234567890 8905671234');
+    test('_cleanPhoneInput does replace commas or semicolons with newlines', function() {
+      expect(component._cleanPhoneInput('1234567890,8905671234')).to.equal('1234567890\n8905671234');
+      expect(component._cleanPhoneInput('1234567890;8905671234')).to.equal('1234567890\n8905671234');
     });
 
     test('_cleanPhoneInput does remove punctuation', function() {
@@ -78,16 +79,41 @@ limitations under the License.
       expect(component._cleanPhoneInput('phone1234567890')).to.equal('1234567890');
     });
 
-    test('_createSearchListener.onClick does nothing if _phoneInput is blank', function() {
+    test('_createCleanListener.onClick does nothing if _phoneInput is blank', function() {
+      component._cleanInput = false;
       component._phoneInput = '';
-      var listener = component._createSearchListener();
+      var listener = component._createCleanListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.searchParameters.text).to.not.exist;
+      expect(component._cleanInput).to.be.false;
+      expect(component._phoneInput).to.equal('');
+    });
+
+    test('_createCleanListener.onClick sets _phoneInput and _cleanInput', function() {
+      component._cleanInput = false;
+      component._phoneInput = '1234567890';
+      var listener = component._createCleanListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component._cleanInput).to.be.true;
+      expect(component._phoneInput).to.equal('1234567890');
+    });
+
+    test('_createCleanListener.onClick sets _phoneInput with clean phone input', function() {
+      component._cleanInput = false;
+      component._phoneInput = '(123)-456-7890 111.222.3333';
+      var listener = component._createCleanListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component._cleanInput).to.be.true;
+      expect(component._phoneInput).to.equal('1234567890\n1112223333');
     });
 
     test('_createSearchListener.onClick sets searchParameters.text and clears _phoneInput', function() {
+      component._cleanInput = true;
       component._phoneInput = '1234567890';
       var listener = component._createSearchListener();
       expect(listener).to.be.an('Object');
@@ -97,13 +123,32 @@ limitations under the License.
       expect(component._phoneInput).to.equal('');
     });
 
-    test('_createSearchListener.onClick sets searchParameters.text with cleaned input', function() {
-      component._phoneInput = '(123)-456-7890';
+    test('_createSearchListener.onClick does nothing if _phoneInput is blank', function() {
+      component._phoneInput = '';
       var listener = component._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(component.searchParameters.text).to.equal('1234567890');
+      expect(component.searchParameters.text).to.not.exist;
+    });
+
+    test('_createSearchListener.onClick does nothing if _cleanInput is false', function() {
+      component._cleanInput = false;
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.searchParameters.text).to.not.exist;
+    });
+
+    test('_createSearchListener.onClick sets searchParameters.text and clears _phoneInput', function() {
+      component._cleanInput = true;
+      component._phoneInput = '1234567890\n1112223333';
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.searchParameters.text).to.equal('1234567890 1112223333');
       expect(component._phoneInput).to.equal('');
     });
 
@@ -116,6 +161,7 @@ limitations under the License.
         annotationsFilter: 'filter',
         sort: 'sort'
       };
+      component._cleanInput = true;
       component._phoneInput = '1234567890';
       var listener = component._createSearchListener();
       expect(listener).to.be.an('Object');
@@ -137,6 +183,7 @@ limitations under the License.
         },
         key2: 'value2'
       };
+      component._cleanInput = true;
       component._phoneInput = '1234567890';
       var listener = component._createSearchListener();
       expect(listener).to.be.an('Object');
@@ -152,13 +199,19 @@ limitations under the License.
       expect(component._phoneInput).to.equal('');
     });
 
-    test('_createClearListener.onClick clears _phoneInput', function() {
+    test('_createResetListener.onClick resets _phoneInput', function() {
       component._phoneInput = '1234567890';
-      var listener = component._createClearListener();
+      var listener = component._createResetListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
       expect(component._phoneInput).to.equal('');
+    });
+
+    test('_handlePhoneInputChange sets _cleanInput to false', function() {
+      component._cleanInput = true;
+      component._handlePhoneInputChange();
+      expect(component._cleanInput).to.be.false;
     });
 
     test('_setPhoneInputToFileText sets _phoneInput', function() {
@@ -170,6 +223,13 @@ limitations under the License.
         }
       });
       expect(component._phoneInput).to.equal('1234567890');
+    });
+
+    test('_showOrHideCleanWarning returns correct value', function() {
+      expect(component._showOrHideCleanWarning(false, false)).to.equal('hide');
+      expect(component._showOrHideCleanWarning(false, true)).to.equal('');
+      expect(component._showOrHideCleanWarning(true, false)).to.equal('hide');
+      expect(component._showOrHideCleanWarning(true, true)).to.equal('hide');
     });
 
     test('open() opens the dialog', function(done) {

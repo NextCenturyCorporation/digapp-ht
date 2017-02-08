@@ -34,12 +34,13 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
       size: 1,
       sort: {}
     };
-    if(savedQuery.filter) {
-      savedQuery.filter = JSON.parse(savedQuery.esState.filter);
+    if(savedQuery.esState.filter) {
+      savedQueryBody.filter = JSON.parse(savedQuery.esState.filter);
     }
     savedQueryBody.sort[dateField] = {
       order: 'desc'
     };
+    logger.info('Query:  ' + JSON.stringify(savedQueryBody));
     return savedQueryBody;
   };
 
@@ -167,9 +168,9 @@ module.exports = function(logger, client, userIndex, userType, dataIndex, dateFi
   };
 
   var checkUsers = function(period) {
-    logger.info('========================================');
-    logger.info('Start check for period ' + period);
     return function() {
+      logger.info('------------------------------------------------------------');
+      logger.info('Start check for period ' + period);
       // Get the list of all users.  Set the size to an arbitrary big number.
       client.search({
         index: userIndex,
