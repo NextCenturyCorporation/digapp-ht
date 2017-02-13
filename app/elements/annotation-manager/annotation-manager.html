@@ -17,6 +17,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../behaviors.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="annotation-manager">
   <template>
@@ -104,7 +105,7 @@ limitations under the License.
 
   <script>
   (function() {
-    /* globals DigBehaviors */
+    /* globals _, DigBehaviors */
 
     'use strict';
 
@@ -232,13 +233,21 @@ limitations under the License.
         },
 
         /**
-         * The list of annotation change listener functions.
+         * The mapping of annotation change listener IDs to functions.
          */
         _listeners: {
-          type: Array,
+          type: Object,
           value: function() {
-            return [];
+            return {};
           }
+        },
+
+        /**
+         * The next available listener ID.
+         */
+        _nextListenerId: {
+          type: Number,
+          value: 1
         },
 
         /**
@@ -270,7 +279,9 @@ limitations under the License.
         var self = this;
         return {
           addListener: function(listener) {
-            self.push('_listeners', listener);
+            var id = self._nextListenerId++;
+            self._listeners[id] = listener;
+            return id;
           },
           createAnnotation: function(uri, cdrId, label, justification) {
             self.set('_createBody', {
@@ -304,7 +315,10 @@ limitations under the License.
                 latest: false
               }
             });
-          }
+          },
+          removeListener: function(id) {
+            delete self._listeners[id];
+          },
         };
       },
 
@@ -334,7 +348,8 @@ limitations under the License.
        */
       _notifyListeners: function(annotationId) {
         var self = this;
-        this._listeners.forEach(function(listener) {
+        _.keys(this._listeners).forEach(function(listenerId) {
+          var listener = self._listeners[listenerId];
           if(listener) {
             listener(self._createBody.uri, self._createBody.label, self._createBody.justification, annotationId);
           }
