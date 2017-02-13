@@ -24,6 +24,22 @@
 var offerTransform = (function(_, commonTransforms) {
 
   /**
+   * Returns the formatted telephone number.
+   */
+  function getFormattedTelephoneNumber(number) {
+    var output = number;
+    // Remove United States or X country code.
+    number = (number.indexOf('+1-') === 0 ? number.substring(number.indexOf('+1-') + 3) : number);
+    number = (number.indexOf('+x-') === 0 ? number.substring(number.indexOf('+x-') + 3) : number);
+    return number.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
+      if(p2 && p3 && p4) {
+        return (p1 ? p1 + '-' : '') + p2 + '-' + p3 + '-' + p4;
+      }
+      return p1 + p2 + p3 + p4;
+    });
+  }
+
+  /**
    * Returns the list of DIG image objects using the given images from the data.
    */
   /*
@@ -93,9 +109,6 @@ var offerTransform = (function(_, commonTransforms) {
   function getPhonesFromList(list, confidence) {
     return list.map(function(phone) {
       var name = phone.name || phone.key;
-      // Remove United States country code.
-      name = (name.indexOf('+1-') === 0 ? name.substring(name.indexOf('+1-') + 3) : name);
-      name = (name.indexOf('+x-') === 0 ? name.substring(name.indexOf('+x-') + 3) : name);
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var count = phone.doc_count;
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -106,7 +119,7 @@ var offerTransform = (function(_, commonTransforms) {
         icon: commonTransforms.getIronIcon('phone'),
         link: commonTransforms.getLink(phone.key, 'phone'),
         styleClass: commonTransforms.getStyleClass('phone'),
-        text: name,
+        text: getFormattedTelephoneNumber(name),
         type: 'phone'
       };
     });
@@ -719,6 +732,13 @@ var offerTransform = (function(_, commonTransforms) {
         ]);
       });
       return data;
+    },
+
+    /**
+     * Returns the formatted telephone number.
+     */
+    formattedTelephoneNumber: function(number) {
+      return getFormattedTelephoneNumber(number);
     }
   };
 });
