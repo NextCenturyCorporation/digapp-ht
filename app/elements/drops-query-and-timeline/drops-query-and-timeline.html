@@ -17,7 +17,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
-<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/json-combine/json-combine.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../drops-timeline/drops-timeline.html">
 
@@ -90,19 +90,20 @@ limitations under the License.
       last-error="{{error}}">
     </elastic-client-search>
 
-    <json-transform
-      data-in="[[_queryResults]]"
-      data-out="{{_eventDropsData}}"
-      transform-function="[[transform]]">
-    </json-transform>
+    <json-combine
+      data-in1="[[_queryResults]]"
+      data-in2="[[locationId]]"
+      data-out="{{data}}"
+      combine-function="[[transform]]">
+    </json-combine>
 
     <div class="layout horizontal center info">
       [[_info]]
     </div>
 
     <drops-timeline class="timeline"
-      data="[[_eventDropsData.data]]"
-      timestamps="[[_eventDropsData.timestamps]]"
+      data="[[data.locations]]"
+      timestamps="[[data.dates]]"
       info="{{_info}}">
     </drops-timeline> 
 
@@ -194,6 +195,13 @@ limitations under the License.
           type: String
         },
         /**
+         * The location ID to give to the transform.
+         */
+        locationId: {
+          type: Number,
+          value: null
+        },
+        /**
          * The transform for the event drops timeline query results.
          */
         transform: {
@@ -233,7 +241,8 @@ limitations under the License.
         /**
          * Results of event drops timeline query after processed through transform function.
          */
-        _eventDropsData: {
+        data: {
+          notify: true,
           type: Object
         },
         /**

@@ -55,6 +55,7 @@ DigBehaviors.StateBehavior = {
     return {
       dateCreated: config.dateCreated || {},
       country: config.country || {},
+      region: config.region || {},
       city: config.city || {},
       phone: config.phone || {},
       email: config.email || {},
@@ -84,6 +85,7 @@ DigBehaviors.StateBehavior = {
     return {
       dateCreated: config.dateCreated || {},
       country: config.country || {},
+      region: config.region || {},
       city: config.city || {},
       phone: config.phone || {},
       email: config.email || {},

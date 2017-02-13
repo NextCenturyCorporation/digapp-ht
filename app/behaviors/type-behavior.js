@@ -29,10 +29,7 @@ DigBehaviors.TypeBehavior = {
     if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller' || type === 'location')) {
       return undefined;
     }
-
-    var field = type === 'location' ? 'availableAtOrFrom.address.key' : '_id';
-
-    return '/' + type + '.html?value=' + id + '&field=' + field;
+    return '/' + type + '.html?id=' + id;
   },
 
   /**

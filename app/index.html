@@ -124,7 +124,7 @@ limitations under the License.
     <json-transform
       data-in="{{searchResults}}"
       data-out="{{records}}"
-      transform-function="[[clientConfig.transforms.webpage.webpages]]">
+      transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
 
     <!-- Facets -->
@@ -138,6 +138,19 @@ limitations under the License.
       aggregations="{{buildArray(countryAgg)}}"
       filters="[[filterArray]]"
       loading="{{countryLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      results="{{regionResult}}"
+      last-error="{{regionError}}"
+      aggregations="{{buildArray(regionAgg)}}"
+      filters="[[filterArray]]"
+      loading="{{regionLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
@@ -323,6 +336,7 @@ limitations under the License.
       name-facet-selection="[[searchParameters.name]]"
       phone-facet-selection="[[searchParameters.phone]]"
       publisher-facet-selection="[[searchParameters.website]]"
+      region-facet-selection="[[searchParameters.region]]"
       weight-facet-selection="[[searchParameters.weight]]"
       image-facet-selection="[[searchParameters.image]]"
       annotations-filter-option-selection="[[searchParameters.annotationsFilter]]"
@@ -494,7 +508,7 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
-              <!--
+              <!-- TODO
               <template is="dom-if" if="[[noFacets(searchParameters.*)]]">
                 <div class="no-selected-facets">No Selected Facets</div>
               </template>
@@ -502,6 +516,7 @@ limitations under the License.
               <div class="layout horizontal wrap">
                 <selected-facets-display facet-selection="{{searchParameters.dateCreated}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.country}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.region}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.city}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.phone}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.email}}"></selected-facets-display>
@@ -537,8 +552,8 @@ limitations under the License.
             </div>
           </paper-toolbar>
 
-          <iron-pages attr-for-selected="data-type" selected="webpage">
-            <section data-type="webpage">
+          <iron-pages attr-for-selected="data-type" selected="ads">
+            <section data-type="ads">
               <div class="layout horizontal facet filter-header" title="Toggle All Facets" on-tap="toggleAllFacetLists">
                 <span class="flex">Facets</span>
                 <span>[[getToggleAllFacetsText(facetListsExpanded)]]</span>
@@ -547,7 +562,7 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
-              <!--
+              <!-- TODO
               <div id="date" class="layout horizontal facet filter-header" title="Toggle Dates" on-tap="toggleList">
                 <span class="flex">Date</span>
                 <iron-icon id="date-icon-opened" icon="icons:expand-less"></iron-icon>
@@ -570,8 +585,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="countryAgg"
-                field="mainEntity.availableAtOrFrom.address.addressCountry"
+                name="country"
+                field="fields.country.relaxed.key"
                 count="{{countryCount}}"
                 ejs-aggregation="{{countryAgg}}"
                 type="terms"
@@ -580,7 +595,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[countryResult]]"
-                data-in2="countryAgg"
+                data-in2="country"
                 data-out="{{countryResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -626,6 +641,69 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
+              <div id="region" class="layout horizontal facet filter-header" title="Toggle States/Regions" on-tap="toggleList">
+                <span class="flex">State/Region [[getCount(regionResultList)]]</span>
+                <iron-icon id="region-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="region-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="region"
+                field="fields.state.relaxed.key"
+                count="{{regionCount}}"
+                ejs-aggregation="{{regionAgg}}"
+                type="terms"
+                order="{{regionSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-combine
+                data-in1="[[regionResult]]"
+                data-in2="region"
+                data-out="{{regionResultList}}"
+                combine-function="[[generateListFromQueryResults]]">
+              </json-combine>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <aggregation-popup
+                    aggregation-count="{{regionCount}}"
+                    items="[[regionResultList]]"
+                    error="[[regionError]]"
+                    loading="[[regionLoading]]"
+                    item-type="States/Regions"
+                    count-type="Ads"
+                    count-property="doc_count"
+                    id-property="key"
+                    text-property="key"
+                    order-by="{{regionSortOrder}}">
+                  </aggregation-popup>
+                </div>
+                <template is="dom-if" if="[[regionResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort order-by="{{regionSortOrder}}"></aggregation-sort>
+                  </div>
+                </template>
+              </div>
+
+              <iron-collapse id="region-list" class="filter-list" opened>
+                <feature-aggregation
+                  hide-no-data-text hide-show-more small
+                  count-property="doc_count"
+                  id-property="key"
+                  text-property="key"
+                  items="[[regionResultList]]">
+                </feature-aggregation>
+                <elastic-error error="[[regionError]]" message="{{regionErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[regionResultList.length]]"
+                  error="[[regionErrorMessage]]"
+                  loading="[[regionLoading]]"
+                  empty="No States/Regions">
+                </status-text>
+              </iron-collapse>
+
+              <div class="h-divider"></div>
+
               <div id="city" class="layout horizontal facet filter-header" title="Toggle Cities" on-tap="toggleList">
                 <span class="flex">City [[getCount(cityResultList)]]</span>
                 <iron-icon id="city-icon-opened" icon="icons:expand-less"></iron-icon>
@@ -633,8 +711,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="cityAgg"
-                field="mainEntity.availableAtOrFrom.address.key"
+                name="city"
+                field="fields.city.relaxed.key"
                 count="{{cityCount}}"
                 ejs-aggregation="{{cityAgg}}"
                 type="terms"
@@ -644,12 +722,12 @@ limitations under the License.
               <json-transform
                 data-in="{{cityResult}}"
                 data-out="{{cityAndStateResult}}"
-                transform-function="[[clientConfig.transforms.filterAggs.cityResults]]">
+                transform-function="[[clientConfig.transforms.filterAggs.cities]]">
               </json-transform>
 
               <json-combine
                 data-in1="[[cityAndStateResult]]"
-                data-in2="cityAgg"
+                data-in2="city"
                 data-out="{{cityResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -665,7 +743,7 @@ limitations under the License.
                     count-type="Ads"
                     count-property="doc_count"
                     id-property="key"
-                    text-property="key"
+                    text-property="text"
                     order-by="{{citySortOrder}}">
                   </aggregation-popup>
                 </div>
@@ -680,7 +758,7 @@ limitations under the License.
                 <feature-aggregation hide-no-data-text hide-show-more small
                   count-property="doc_count"
                   id-property="key"
-                  text-property="key"
+                  text-property="text"
                   items="[[cityResultList]]">
                 </feature-aggregation>
                 <elastic-error error="[[cityError]]" message="{{cityErrorMessage}}"></elastic-error>
@@ -701,19 +779,20 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="phoneAgg"
-                field="mentionsPhone"
+                name="phone"
+                field="fields.phone.relaxed.key"
                 count="{{phoneCount}}"
                 ejs-aggregation="{{phoneAgg}}"
                 type="terms"
                 order="{{phoneSortOrder}}">
               </elastic-client-aggregation-builder>
 
-              <json-transform
-                data-in="{{phoneResult.aggregations.phoneAgg.phoneAgg.buckets}}"
+              <json-combine
+                data-in1="[[phoneResult]]"
+                data-in2="phone"
                 data-out="{{phoneResultList}}"
-                transform-function="[[clientConfig.transforms.phone.cleanPhoneBuckets]]">
-              </json-transform>
+                combine-function="[[generateListFromQueryResults]]">
+              </json-combine>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
@@ -726,7 +805,7 @@ limitations under the License.
                     count-type="Ads"
                     count-property="doc_count"
                     id-property="key"
-                    text-property="text"
+                    text-property="key"
                     order-by="{{phoneSortOrder}}">
                   </aggregation-popup>
                 </div>
@@ -741,7 +820,7 @@ limitations under the License.
                 <feature-aggregation hide-no-data-text hide-show-more small
                   id-property="key"
                   count-property="doc_count"
-                  text-property="text"
+                  text-property="key"
                   items="[[phoneResultList]]">
                 </feature-aggregation>
                 <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
@@ -762,19 +841,20 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="emailAgg"
-                field="mentionsEmail"
+                name="email"
+                field="fields.email.relaxed.key"
                 count="{{emailCount}}"
                 ejs-aggregation="{{emailAgg}}"
                 type="terms"
                 order="{{emailSortOrder}}">
               </elastic-client-aggregation-builder>
 
-              <json-transform
-                data-in="{{emailResult.aggregations.emailAgg.emailAgg.buckets}}"
+              <json-combine
+                data-in1="[[emailResult]]"
+                data-in2="email"
                 data-out="{{emailResultList}}"
-                transform-function="[[clientConfig.transforms.email.cleanEmailBuckets]]">
-              </json-transform>
+                combine-function="[[generateListFromQueryResults]]">
+              </json-combine>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
@@ -787,7 +867,7 @@ limitations under the License.
                     count-type="Ads"
                     count-property="doc_count"
                     id-property="key"
-                    text-property="text"
+                    text-property="key"
                     order-by="{{emailSortOrder}}">
                   </aggregation-popup>
                 </div>
@@ -802,7 +882,7 @@ limitations under the License.
                 <feature-aggregation hide-no-data-text hide-show-more small
                   count-property="doc_count"
                   id-property="key"
-                  text-property="text"
+                  text-property="key"
                   items="[[emailResultList]]">
                 </feature-aggregation>
                 <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
@@ -823,8 +903,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="publisherAgg"
-                field="publisher.name.raw"
+                name="publisher"
+                field="tld"
                 count="{{publisherCount}}"
                 ejs-aggregation="{{publisherAgg}}"
                 type="terms"
@@ -833,7 +913,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[publisherResult]]"
-                data-in2="publisherAgg"
+                data-in2="publisher"
                 data-out="{{publisherResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -885,8 +965,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="nameAgg"
-                field="mainEntity.itemOffered.name.raw"
+                name="name"
+                field="fields.name.relaxed.key"
                 count="{{nameCount}}"
                 ejs-aggregation="{{nameAgg}}"
                 type="terms"
@@ -895,7 +975,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[nameResult]]"
-                data-in2="nameAgg"
+                data-in2="name"
                 data-out="{{nameResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -947,8 +1027,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="ageAgg"
-                field="mainEntity.itemOffered.age"
+                name="age"
+                field="fields.age.relaxed.key"
                 count="{{ageCount}}"
                 ejs-aggregation="{{ageAgg}}"
                 type="terms"
@@ -957,7 +1037,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[ageResult]]"
-                data-in2="ageAgg"
+                data-in2="age"
                 data-out="{{ageResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1009,8 +1089,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="ethnicityAgg"
-                field="mainEntity.itemOffered.ethnicity"
+                name="ethnicity"
+                field="fields.ethnicity.relaxed.key"
                 count="{{ethnicityCount}}"
                 ejs-aggregation="{{ethnicityAgg}}"
                 type="terms"
@@ -1019,7 +1099,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[ethnicityResult]]"
-                data-in2="ethnicityAgg"
+                data-in2="ethnicity"
                 data-out="{{ethnicityResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1071,8 +1151,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="heightAgg"
-                field="mainEntity.itemOffered.height"
+                name="height"
+                field="fields.height.relaxed.key"
                 count="{{heightCount}}"
                 ejs-aggregation="{{heightAgg}}"
                 type="terms"
@@ -1081,7 +1161,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[heightResult]]"
-                data-in2="heightAgg"
+                data-in2="height"
                 data-out="{{heightResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1133,8 +1213,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="weightAgg"
-                field="mainEntity.itemOffered.weight"
+                name="weight"
+                field="fields.weight.relaxed.key"
                 count="{{weightCount}}"
                 ejs-aggregation="{{weightAgg}}"
                 type="terms"
@@ -1143,7 +1223,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[weightResult]]"
-                data-in2="weightAgg"
+                data-in2="weight"
                 data-out="{{weightResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1195,8 +1275,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="hairColorAgg"
-                field="mainEntity.itemOffered.hairColor"
+                name="hair"
+                field="fields.hair-color.relaxed.key"
                 count="{{hairColorCount}}"
                 ejs-aggregation="{{hairColorAgg}}"
                 type="terms"
@@ -1205,7 +1285,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[hairColorResult]]"
-                data-in2="hairColorAgg"
+                data-in2="hair"
                 data-out="{{hairColorResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1257,8 +1337,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="eyeColorAgg"
-                field="mainEntity.itemOffered.eyeColor"
+                name="eye"
+                field="fields.eye-color.relaxed.key"
                 count="{{eyeColorCount}}"
                 ejs-aggregation="{{eyeColorAgg}}"
                 type="terms"
@@ -1267,7 +1347,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[eyeColorResult]]"
-                data-in2="eyeColorAgg"
+                data-in2="eye"
                 data-out="{{eyeColorResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1310,6 +1390,7 @@ limitations under the License.
                 </status-text>
               </iron-collapse>
 
+              <!-- TODO
               <div class="h-divider"></div>
 
               <div id="image" class="layout horizontal facet filter-header" title="Toggle Images" on-tap="toggleList">
@@ -1319,8 +1400,8 @@ limitations under the License.
               </div>
 
               <elastic-client-aggregation-builder
-                name="imageAgg"
-                field="hasImagePart.url.raw"
+                name="image"
+                field="fields.image.relaxed.key"
                 count="{{imageCount}}"
                 ejs-aggregation="{{imageAgg}}"
                 type="terms"
@@ -1329,7 +1410,7 @@ limitations under the License.
 
               <json-combine
                 data-in1="[[imageResult]]"
-                data-in2="imageAgg"
+                data-in2="image"
                 data-out="{{imageResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
@@ -1372,13 +1453,13 @@ limitations under the License.
                   empty="No Images">
                 </status-text>
               </iron-collapse>
+              -->
             </section>
 
             <section data-type="phone">phone</section>
+            <section data-type="image">seller</section>
             <section data-type="email">email</section>
             <section data-type="adultservice">provider</section>
-            <section data-type="seller">seller</section>
-            <section data-type="webpage">webpage</section>
             <section data-type=''>ALL</section>
           </iron-pages>
         </paper-header-panel>
@@ -1407,6 +1488,7 @@ limitations under the License.
             client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
             new-tab="true"
+            item-name-property="title"
             query-results="{{records.data}}"
             total-results="{{records.count}}"
             shown-results="{{shownRecords}}"
@@ -1480,7 +1562,7 @@ limitations under the License.
       };
 
       app.getElasticTypes = function() {
-        return ['webpage'];
+        return ['ads'];
       };
 
       app.isSaveButtonDisabled = function(searchResults, searchError) {
@@ -1578,11 +1660,12 @@ limitations under the License.
         return (app.facetListsExpanded ? 'icons:expand-less' : 'icons:expand-more');
       };
 
-      app.generateListFromQueryResults = function(results, name) {
-        if(results && results.aggregations && results.aggregations[name] && results.aggregations[name][name] && results.aggregations[name][name].buckets) {
-          return results.aggregations[name][name].buckets;
+      app.generateListFromQueryResults = function(results, property) {
+        var list = [];
+        if(results && results.aggregations && results.aggregations[property] && results.aggregations[property][property] && results.aggregations[property][property].buckets) {
+          list = list.concat(results.aggregations[property][property].buckets);
         }
-        return [];
+        return list;
       };
 
       app.getCount = function(list) {

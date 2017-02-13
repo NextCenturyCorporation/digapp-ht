@@ -18,7 +18,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
-<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/json-combine/json-combine.html">
 <link rel="import" href="../behaviors.html">
 
 <dom-module id="location-timeline">
@@ -86,8 +86,8 @@ limitations under the License.
 
     <elastic-client-search
       client="[[client]]"
-      index="[[index]]"
-      elastic-types='["offer"]'
+      index="[[indexName]]"
+      elastic-types="[[indexTypes]]"
       query="[[offerQuery]]"
       aggregations="[[buildArray(datesAggregation)]]"
       filters="[[filters]]"
@@ -97,11 +97,12 @@ limitations under the License.
       last-error="{{error}}">
     </elastic-client-search>
 
-    <json-transform
-      data-in="[[queryResults]]"
+    <json-combine
+      data-in1="[[queryResults]]"
+      data-in2="[[locationId]]"
       data-out="{{results}}"
-      transform-function="[[offerTransform]]">
-    </json-transform>
+      combine-function="[[offerTransform]]">
+    </json-combine>
   </template>
 
   <script>
@@ -209,8 +210,15 @@ limitations under the License.
         /**
          * The elasticsearch index to query.
          */
-        index: {
+        indexName: {
           type: String
+        },
+
+        /**
+         * The elasticsearch index types to query.
+         */
+        indexTypes: {
+          type: Array
         },
 
         /**
@@ -218,6 +226,14 @@ limitations under the License.
          */
         filters: {
           type: Object
+        },
+
+        /**
+         * The location ID to give to the offer transform function (if any).
+         */
+        locationId: {
+          type: Number,
+          value: null
         },
 
         /**

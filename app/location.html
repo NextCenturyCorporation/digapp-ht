@@ -82,27 +82,27 @@
     <!-- Offer query -->
     <elastic-client-query-builder
       type="term"
-      fields="[[params.field]]"
-      values="[[location.key]]"
+      fields='"fields.city.relaxed.key"'
+      values="[[location.id]]"
       ejs-query="{{locationOffersQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
+      elastic-types='["ads"]'
       page="{{pageNum}}"
       page-size="{{pageSize}}"
       query="[[locationOffersQuery]]"
       aggregations="[]"
       filters="[[filterList]]"
-      sort-field="validFrom"
+      sort-field="fields.posting-date.strict.key"
       sort-order="desc"
       results="{{offersResults}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
-      source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
+      source-include='["doc_id", "fields", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
@@ -115,20 +115,22 @@
     <location-timeline
       aggregation-count="100"
       location-aggregation-name="locations"
-      location-aggregation-field="availableAtOrFrom.address.key"
+      location-aggregation-field="fields.city.relaxed.key"
       date-aggregation-name="dates"
-      date-aggregation-field="validFrom"
+      date-aggregation-field="fields.posting-date.strict.key"
       email-aggregation-name="emails"
-      email-aggregation-field="mainEntityOfPage.mentionsEmail"
+      email-aggregation-field="fields.email.relaxed.key"
       phone-aggregation-name="phones"
-      phone-aggregation-field="mainEntityOfPage.mentionsPhone"
+      phone-aggregation-field="fields.phone.relaxed.key"
       publisher-aggregation-name="publishers"
-      publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
-      query-field="availableAtOrFrom.address.key"
-      query-value="[[location.key]]"
+      publisher-aggregation-field="tld"
+      query-field="fields.city.relaxed.key"
+      query-value="[[location.id]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       filters="[[filterList]]"
+      location-id="[[location.id]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
       count="[[locationOffers.count]]"
       interval="{{locationTimelineInterval}}"
@@ -138,7 +140,7 @@
     </location-timeline>
 
     <json-combine
-      data-in1="[[location.key]]"
+      data-in1="[[location.id]]"
       data-in2="[[timelineData.dates]]"
       data-out="{{timelineData.strippedDates}}"
       combine-function="[[clientConfig.transforms.offer.removeNoteFromLocationTimeline]]">
@@ -150,7 +152,7 @@
       es-type="[[config.logType]]"
       supertype="Location"
       subtype="Open"
-      value="[[params.value]]"
+      value="[[location.id]]"
       username="[[config.username]]">
     </dig-logger>
 
@@ -177,7 +179,7 @@
             <iron-icon class="iron-icon-huge entity-location-font" icon="communication:location-on"></iron-icon>
             <section>
               <div class="paper-font-headline">
-                Location: [[location.longName]]
+                Location: [[location.name]]
               </div>
               <template is="dom-if" if="[[locationOffers.count]]">
                 <div class="paper-font-subhead">
@@ -209,8 +211,8 @@
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
             user-id="[[userId]]"
-            entity-id="[[location.key]]"
-            entity-name="[[location.longName]]"
+            entity-id="[[location.id]]"
+            entity-name="[[location.name]]"
             entity-type="location"
             run-user-query-callback="[[runUserQueryCallback]]"
             save-user-data-callback="{{saveUserDataCallback}}"
@@ -246,10 +248,16 @@
 
                 <!-- Leaflet map -->
                 <section class="where flex-auto">
+                  <json-combine
+                    data-in1="[[location.id]]"
+                    data-in2="[[eventDropsData.allLocations]]"
+                    data-out="{{mapLocations}}"
+                    combine-function="[[clientConfig.transforms.offer.locationPageMap]]">
+                  </json-combine>
+
                   <leaflet-wrapper
-                    text-property="longName"
-                    data="{{location.mapLocations.mapLocations}}"
-                    text-property="name"
+                    text-property="textAndCount"
+                    data="[[mapLocations]]"
                     custom-icons="[[customMapIcons]]"
                     restamp
                     cluster-markers>
@@ -257,83 +265,13 @@
                 </section>
 
                 <section class="where-details flex-none">
-                  <!-- Similar/related locations -->
-                  <elastic-client-filter-builder
-                    type="terms"
-                    field="availableAtOrFrom.address.addressLocality"
-                    values="[[buildArray(location.locality, location.region)]]"
-                    ejs-filter="{{ejsLocalityFilter}}">
-                  </elastic-client-filter-builder>
-
-                  <elastic-client-filter-builder
-                    type="terms"
-                    field="availableAtOrFrom.address.addressRegion"
-                    values="[[buildArray(location.locality, location.region)]]"
-                    ejs-filter="{{ejsRegionFilter}}">
-                  </elastic-client-filter-builder>
-
-                  <elastic-client-filter-builder
-                    type="or"
-                    field="null"
-                    values="[[buildArray(ejsLocalityFilter, ejsRegionFilter)]]"
-                    ejs-filter="{{similarLocsAggFilter}}">
-                  </elastic-client-filter-builder>
-
-                  <!-- only use first 10 locations for now -->
-                  <elastic-client-aggregation-builder
-                    name="cityAgg"
-                    type="terms"
-                    count="0"
-                    field="availableAtOrFrom.address.key"
-                    ejs-aggregation="{{cityAgg}}">
-                  </elastic-client-aggregation-builder>
- 
-                  <elastic-client-aggregation-builder
-                    name="similarLocsAgg"
-                    type="filter"
-                    count="0"
-                    filter="[[similarLocsAggFilter]]"
-                    nested-aggregations="{{buildArray(cityAgg)}}"
-                    ejs-aggregation="{{locsFilterAggregation}}"
-                    field="">
-                  </elastic-client-aggregation-builder>
-
-                  <elastic-client-search
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    elastic-types='["offer"]'
-                    query="null"
-                    aggregations="[[locsFilterAggregation]]"
-                    page-size="0"
-                    filters="[[filterList]]"
-                    results="{{similarLocsResults}}"
-                    loading="{{similarLocsLoading}}"
-                    last-error="{{similarLocsError}}">
-                  </elastic-client-search>
-
-                  <json-combine
-                    data-in1="[[location.key]]"
-                    data-in2="[[similarLocsResults]]"
-                    data-out="{{similarLocations}}"
-                    combine-function="[[clientConfig.transforms.offer.similarLocations]]">
-                  </json-combine>
-
-                  <json-combine
-                    data-in1="[[location]]"
-                    data-in2="[[similarLocsResults]]"
-                    data-out="{{location.mapLocations}}"
-                    combine-function="[[clientConfig.transforms.offer.locationPageMap]]">
-                  </json-combine>
-
                   <feature-aggregation class="flex location"
-                    item-type="Locations with Same City or State Name"
-                    count-type="Ads"
-                    id-property="key"
+                    item-type="Locations"
+                    count-type="Shared Ads"
                     count-property="count"
-                    text-property="name"
-                    items="[[similarLocations.similarLocations]]"
+                    items="[[eventDropsData.otherLocations]]"
                     selected-ids="{{selected}}"
-                    loading="[[similarLocsLoading]]">
+                    loading="[[locationsLoading]]">
                   </feature-aggregation>
                 </section>
               </paper-material>
@@ -352,13 +290,15 @@
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     date-hist-name="dates"
-                    date-hist-field="validFrom"
+                    date-hist-field="fields.posting-date.strict.key"
                     location-agg-name="locations"
-                    location-agg-field="availableAtOrFrom.address.key"
-                    index-types='["offer"]'
+                    location-agg-field="fields.city.relaxed.key"
+                    location-id="[[location.id]]"
+                    index-types='["ads"]'
                     query="[[locationOffersQuery]]"
                     filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
+                    data="{{eventDropsData}}"
+                    transform="[[clientConfig.transforms.offer.createEventDropsTimeline]]">
                   </drops-query-and-timeline>
                 </section>
               </paper-material>
@@ -384,13 +324,13 @@
 
                   <feature-query-and-display
                     aggregation-name="phone"
-                    aggregation-field="mainEntityOfPage.mentionsPhone"
+                    aggregation-field="fields.phone.relaxed.key"
                     aggregation-count="100"
                     selected="{{filterCollection.phone}}"
                     query="[[locationOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{phoneError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
@@ -400,7 +340,7 @@
                     header="{{phoneHeader}}"
                     item-type="Phone"
                     count-type="Ads"
-                    entity-name="[[location.locality]]"
+                    entity-name="[[location.city]]"
                     show-checkboxes
                     show-other-counts>
                   </feature-query-and-display>
@@ -428,13 +368,13 @@
 
                   <feature-query-and-display
                     aggregation-name="email"
-                    aggregation-field="mainEntityOfPage.mentionsEmail"
+                    aggregation-field="fields.email.relaxed.key"
                     aggregation-count="100"
                     selected="{{filterCollection.email}}"
                     query="[[locationOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{emailError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
@@ -444,7 +384,7 @@
                     header="{{emailHeader}}"
                     item-type="Email"
                     count-type="Ads"
-                    entity-name="[[location.locality]]"
+                    entity-name="[[location.city]]"
                     show-checkboxes
                     show-other-counts>
                   </feature-query-and-display>
@@ -465,8 +405,8 @@
                   <div class="note">Note:  Showing Only the Top 100 Attributes of Each Type</div>
 
                   <people-features
-                    query-field="availableAtOrFrom.address.key"
-                    query-value="[[location.key]]"
+                    query-field="fields.city.relaxed.key"
+                    query-value="[[location.id]]"
                     aggregation-count="100"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
@@ -503,13 +443,13 @@
 
                   <feature-query-and-display
                     aggregation-name="publisher"
-                    aggregation-field="mainEntityOfPage.publisher.name"
+                    aggregation-field="tld"
                     aggregation-count="100"
                     selected="{{filterCollection.publisher}}"
                     query="[[locationOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{publisherError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
@@ -544,6 +484,7 @@
 
                   <itinerary-list
                     parts-property="locations"
+                    part-name-property="text"
                     data="[[timelineData.strippedDates]]"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
@@ -572,7 +513,7 @@
 
                   <zoomable-bar-chart timeline
                     bar-property="date"
-                    label-property="name"
+                    label-property="text"
                     stack-property="locations"
                     data="[[timelineData.dates]]"
                     default-label="Unknown Location(s)"
@@ -608,6 +549,7 @@
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
+                    item-name-property="title"
                     query-results="[[locationOffers.data]]"
                     total-results="{{locationOffers.count}}"
                     shown-results="{{shownOffers}}"
@@ -657,26 +599,31 @@
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
 
+    // Support legacy links.
+    if(app.params.field && app.params.value) {
+      app.params.id = app.params.value;
+    }
+
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
     app.createLocationProperties = function() {
-      var locationKey = app.params.value.replace(/%20/g, ' ');
-      var locationData = locationKey.split(':');
+      var id = app.params.id.replace(/%20/g, ' ');
+      var locationData = id.split(':');
+      var city = locationData.length ? locationData[0] : '';
+      var state = locationData.length > 1 ? locationData[1] : '';
+      var country = locationData.length > 2 ? locationData[2] : '';
+      var name = country ? ((state ? ((city ? (city + ', ') : '') + state + ', ') : '') + country) : 'Unknown Location';
 
       return {
-        key: locationKey,
-        longitude: locationData[3],
-        latitude: locationData[4],
-        locality: locationData[0],
-        region: locationData[1],
-        name: locationData[0] + ', ' + locationData[1],
-        longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2]
+        id: id,
+        city: city || 'Unknown Location',
+        name: name
       };
     };
 
-    app.location = app.createLocationProperties();
+    app.location = app.createLocationProperties(app.params.id);
 
     app.generateLink = function() {
       this.$.stateManager.generateLink();

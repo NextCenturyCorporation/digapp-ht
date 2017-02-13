@@ -21,29 +21,32 @@
 /* exported filterAggTransform */
 /* jshint camelcase:false */
 
-var filterAggTransform = (function(_) {
+var filterAggTransform = (function() {
   return {
-    cityResults: function(data) {
-      var cityResultsObj = {};
-
-      if(data && data.aggregations && data.aggregations.cityAgg &&
-          data.aggregations.cityAgg.cityAgg.buckets) {
-
-        cityResultsObj.aggregations = {cityAgg: {cityAgg: {buckets: []}}};
-
-        _.each(data.aggregations.cityAgg.cityAgg.buckets, function(record) {
-          var newObj = {};
-          newObj.key = record.key;
-          var keys = record.key.split(':');
-          newObj.text = keys[0] + ', ' + keys[1];
+    cities: function(data) {
+      var buckets = [];
+      if(data && data.aggregations && data.aggregations.city && data.aggregations.city.city.buckets) {
+        buckets = data.aggregations.city.city.buckets.map(function(bucket) {
+          var keySplit = bucket.key.split(':');
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          newObj.doc_count = record.doc_count;
+          return {
+            doc_count: bucket.doc_count,
+            key: bucket.key,
+            text: (keySplit.length > 1 ? keySplit[0] + ', ' + keySplit[1] : '')
+          };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-          cityResultsObj.aggregations.cityAgg.cityAgg.buckets.push(newObj);
         });
       }
-      return cityResultsObj;
+
+      return {
+        aggregations: {
+          city: {
+            city: {
+              buckets: buckets
+            }
+          }
+        }
+      };
     }
   };
 });

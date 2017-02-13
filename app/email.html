@@ -95,58 +95,29 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <!-- Email query -->
-
     <elastic-client-query-builder
       type="term"
-      fields="[[params.field]]"
-      values="[[params.value]]"
-      ejs-query="{{emailQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["email"]'
-      query="[[emailQuery]]"
-      aggregations="[]"
-      filters="[]"
-      results="{{emailResults}}"
-      last-error="{{error}}"
-      source-include='["uri", "name"]'>
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[emailResults]]"
-      data-out="{{email}}"
-      transform-function="[[clientConfig.transforms.email.email]]">
-    </json-transform>
-
-    <!-- Offer query -->
-
-    <elastic-client-query-builder
-      type="term"
-      fields='"mainEntityOfPage.mentionsEmail"'
-      values="[[email.id]]"
+      fields='"fields.email.relaxed.key"'
+      values="[[params.id]]"
       ejs-query="{{emailOffersQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
+      elastic-types='["ads"]'
       page="{{pageNum}}"
       page-size="{{pageSize}}"
       query="[[emailOffersQuery]]"
       aggregations="[]"
       filters="[[filterList]]"
-      sort-field="validFrom"
+      sort-field="fields.posting-date.strict.key"
       sort-order="desc"
       results="{{offersResults}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
-      source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
+      source-include='["doc_id", "fields", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
@@ -156,7 +127,7 @@ limitations under the License.
     </json-transform>
 
     <json-combine
-      data-in1="[[email.id]]"
+      data-in1="[[params.id]]"
       data-in2="[[emailOffers.data]]"
       data-out="{{strippedOffers}}"
       combine-function="[[clientConfig.transforms.offer.removeDescriptorFromOffers]]">
@@ -166,19 +137,20 @@ limitations under the License.
 
     <location-timeline
       location-aggregation-name="locations"
-      location-aggregation-field="availableAtOrFrom.address.key"
+      location-aggregation-field="fields.city.relaxed.key"
       date-aggregation-name="dates"
-      date-aggregation-field="validFrom"
+      date-aggregation-field="fields.posting-date.strict.key"
       email-aggregation-name="emails"
-      email-aggregation-field="mainEntityOfPage.mentionsEmail"
+      email-aggregation-field="fields.email.relaxed.key"
       phone-aggregation-name="phones"
-      phone-aggregation-field="mainEntityOfPage.mentionsPhone"
+      phone-aggregation-field="fields.phone.relaxed.key"
       publisher-aggregation-name="publishers"
-      publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
-      query-field="mainEntityOfPage.mentionsEmail"
-      query-value="[[email.id]]"
+      publisher-aggregation-field="tld"
+      query-field="fields.email.relaxed.key"
+      query-value="[[params.id]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       filters="[[filterList]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
       count="[[emailOffers.count]]"
@@ -189,7 +161,7 @@ limitations under the License.
     </location-timeline>
 
     <json-combine
-      data-in1="[[email.id]]"
+      data-in1="[[params.id]]"
       data-in2="[[timelineData.dates]]"
       data-out="{{timelineData.strippedDates}}"
       combine-function="[[clientConfig.transforms.offer.removeNoteFromLocationTimeline]]">
@@ -228,7 +200,7 @@ limitations under the License.
             <iron-icon class="iron-icon-huge entity-email-font" icon="communication:email"></iron-icon>
             <section>
               <div class="paper-font-headline">
-                Email: <span>[[email.emailAddress]]</span>
+                Email: <span>[[params.id]]</span>
               </div>
               <template is="dom-if" if="[[emailOffers.count]]">
                 <div class="paper-font-subhead">
@@ -257,7 +229,7 @@ limitations under the License.
 
           <annotate-record client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
-            item="{{email}}"
+            item-id="{{params.id}}"
             item-type="email address"
             current-user="[[config.username]]">
           </annotate-record>
@@ -267,8 +239,8 @@ limitations under the License.
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
             user-id="[[userId]]"
-            entity-id="[[email.id]]"
-            entity-name="[[email.emailAddress]]"
+            entity-id="[[params.id]]"
+            entity-name="[[params.id]]"
             entity-type="email"
             run-user-query-callback="[[runUserQueryCallback]]"
             save-user-data-callback="{{saveUserDataCallback}}"
@@ -313,7 +285,7 @@ limitations under the License.
 
                   <zoomable-bar-chart timeline
                     bar-property="date"
-                    label-property="name"
+                    label-property="text"
                     stack-property="locations"
                     data="[[timelineData.dates]]"
                     default-label="Unknown Location(s)"
@@ -342,12 +314,12 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="phone"
-                    aggregation-field="mainEntityOfPage.mentionsPhone"
+                    aggregation-field="fields.phone.relaxed.key"
                     selected="{{filterCollection.phone}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{phoneError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
@@ -356,7 +328,7 @@ limitations under the License.
                     header="{{phoneHeader}}"
                     item-type="Phone"
                     count-type="Ads"
-                    entity-name="[[email.emailAddress]]"
+                    entity-name="[[params.id]]"
                     show-checkboxes
                     show-other-counts>
                   </feature-query-and-display>
@@ -380,22 +352,22 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="email"
-                    aggregation-field="mainEntityOfPage.mentionsEmail"
+                    aggregation-field="fields.email.relaxed.key"
                     selected="{{filterCollection.email}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{emailError}}"
                     filter-list="[[filterList]]"
-                    ignore-id="[[email.id]]"
+                    ignore-id="[[params.id]]"
                     feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
                     data-property="email"
                     header-property="title"
                     header="{{otherEmailHeader}}"
                     item-type="Email"
                     count-type="Ads"
-                    entity-name="[[email.emailAddress]]"
+                    entity-name="[[params.id]]"
                     show-checkboxes
                     show-other-counts>
                   </feature-query-and-display>
@@ -414,8 +386,8 @@ limitations under the License.
                   </div>
 
                   <people-features
-                    query-field="mainEntityOfPage.mentionsEmail"
-                    query-value="[[email.id]]"
+                    query-field="fields.phone.relaxed.key"
+                    query-value="[[params.id]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
                     filter-list="[[filterList]]"
@@ -447,19 +419,18 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="publisher"
-                    aggregation-field="mainEntityOfPage.publisher.name"
+                    aggregation-field="tld"
                     selected="{{filterCollection.publisher}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{publisherError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
                     data-property="publisher"
                     header-property="title"
                     header="{{publisherHeader}}"
-                    data-text-property="id"
                     item-type="Website"
                     count-type="Ads"
                     show-checkboxes>
@@ -482,8 +453,8 @@ limitations under the License.
                   </template>
 
                   <image-query-and-display
-                    image-query-field="isImagePartOf.mentionsEmail"
-                    image-query-values="[[email.id]]"
+                    image-query-field="fields.image.relaxed.key"
+                    image-query-values="[[params.id]]"
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     index-types='["image"]'
@@ -514,6 +485,7 @@ limitations under the License.
 
                   <itinerary-list
                     parts-property="locations"
+                    part-name-property="text"
                     data="[[timelineData.strippedDates]]"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
@@ -542,7 +514,7 @@ limitations under the License.
                 <template is="dom-if" if="[[locationData.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
-                      text-property="longName"
+                      text-property="textAndCount"
                       data="{{locationData}}"
                       cluster-markers>
                     </leaflet-wrapper>
@@ -558,12 +530,12 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="location"
-                    aggregation-field="availableAtOrFrom.address.key"
+                    aggregation-field="fields.city.relaxed.key"
                     selected="{{filterCollection.location}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{locationError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
@@ -572,7 +544,6 @@ limitations under the License.
                     header-property="title"
                     header="{{locationHeader}}"
                     data-id-property="key"
-                    data-text-property="name"
                     item-type="Location"
                     count-type="Ads"
                     show-checkboxes>
@@ -595,13 +566,13 @@ limitations under the License.
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     date-hist-name="dates"
-                    date-hist-field="validFrom"
+                    date-hist-field="fields.posting-date.strict.key"
                     location-agg-name="locations"
-                    location-agg-field="availableAtOrFrom.address.key"
-                    index-types='["offer"]'
+                    location-agg-field="fields.city.relaxed.key"
+                    index-types='["ads"]'
                     query="[[emailOffersQuery]]"
                     filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
+                    transform="[[clientConfig.transforms.offer.createEventDropsTimeline]]">
                   </drops-query-and-timeline>
                 </section>
               </paper-material>
@@ -630,6 +601,7 @@ limitations under the License.
                   <records-list
                     client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
+                    item-name-property="title"
                     query-results="[[strippedOffers]]"
                     total-results="{{emailOffers.count}}"
                     shown-results="{{shownOffers}}"
@@ -676,11 +648,16 @@ limitations under the License.
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
 
+    // Support legacy links.
+    if(app.params.field && app.params.value) {
+      app.params.id = '+' + app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
+    }
+
+    app.params.id = decodeURIComponent(app.params.id);
+
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
-
-    app.email = {};
 
     app.generateLink = function() {
       this.$.stateManager.generateLink();
