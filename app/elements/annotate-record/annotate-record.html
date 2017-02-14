@@ -239,7 +239,8 @@ limitations under the License.
          * The annotation manager.
          */
         annotationManager: {
-          type: Object
+          type: Object,
+          observer: '_addAnnotationChangeListener'
         },
 
         /**
@@ -313,6 +314,14 @@ limitations under the License.
         noink: {
           type: Boolean,
           value: false
+        },
+        _listenerId: {
+          type: Number
+        }
+      },
+      detached: function() {
+        if(this.annotationManager && this._listenerId >= 0) {
+          this.annotationManager.removeListener(this._listenerId);
         }
       },
       closeDropdownMenu: function() {
@@ -374,10 +383,7 @@ limitations under the License.
           this.annotationResult.id = undefined;
           this.annotationResult.source.label = this.label;
           this.annotationResult.source.justification = this.justification;
-          var self = this;
-          this.annotationManager.createAnnotation(this.item.id, this.getCdrId(this.item), this.label, this.justification, function(id) {
-            self.annotationResult.id = id;
-          });
+          this.annotationManager.createAnnotation(this.item.id, this.getCdrId(this.item), this.label, this.justification);
         }
       },
       selectVeryRelevant: function() {
@@ -411,6 +417,22 @@ limitations under the License.
           this.label = this.noAnswer;
           this.justification = '';
         }
+      },
+      _addAnnotationChangeListener: function(annotationManager) {
+        this._listenerId = annotationManager.addListener(this._createAnnotationChangeListener());
+      },
+      _createAnnotationChangeListener: function() {
+        var self = this;
+        return function(itemId, label, justification, annotationId) {
+          if(self.item.id === itemId) {
+            self.set('label', label);
+            self.set('justification', justification);
+            if(!self.annotationResult) {
+              self.annotationResult = {};
+            }
+            self.set('annotationResult.id', annotationId);
+          }
+        };
       }
     });
   })();

@@ -64,9 +64,21 @@ limitations under the License.
       expect(component.annotationType).to.equal('myType');
       expect(component.username).to.equal('myUser');
       expect(component.doNotQuery).to.be.false;
+      expect(component._listeners).to.deep.equal({});
+      expect(component._nextListenerId).to.equal(1);
+      expect(component._annotationQuery).to.not.exist;
+      expect(component._createBody).to.not.exist;
+      expect(component._createResults).to.not.exist;
+      expect(component._notRelevantAnnotationFilter).to.not.exist;
+      expect(component._notRelevantAnnotationResults).to.not.exist;
+      expect(component._relevantAnnotationFilter).to.not.exist;
+      expect(component._relevantAnnotationResults).to.not.exist;
+      expect(component._updateId).to.not.exist;
+      expect(component._updateBody).to.not.exist;
+      expect(component._updateResults).to.not.exist;
     });
 
-    test('annotationManager is set correctly', function() {
+    test('annotationManager getter functions are set correctly', function() {
       expect(component.annotationManager).to.be.an('Object');
       expect(component.annotationManager.getAnnotationIndex).to.be.a('Function');
       expect(component.annotationManager.getAnnotationIndex()).to.equal('myIndex');
@@ -78,7 +90,16 @@ limitations under the License.
       expect(component.annotationManager.getWhyTheAnnotationIsRelevant()).to.equal('');
     });
 
-    test('annotationManager.createAnnotation sets _createBody', function() {
+    test('annotationManager.addListener does add the listener', function() {
+      expect(component.annotationManager.addListener).to.be.a('Function');
+      component.annotationManager.addListener('myListener');
+      expect(component._listeners).to.deep.equal({
+        1: 'myListener'
+      });
+      expect(component._nextListenerId).to.equal(2);
+    });
+
+    test('annotationManager.createAnnotation does set _createBody', function() {
       expect(component.annotationManager.createAnnotation).to.be.a('Function');
       expect(component._createBody).to.not.exist;
       component.annotationManager.createAnnotation('myUri', 'myCdrId', 'myLabel', 'myJustification');
@@ -93,7 +114,30 @@ limitations under the License.
       expect(component._createBody.timestamp).to.be.a('Date');
     });
 
-    test('setting _relevantAnnotationResults and _notRelevantAnnotationResults sets annotations', function(done) {
+    test('annotationManager.markAnnotationDeprecated does set _updateId and _updateBody', function() {
+      expect(component.annotationManager.markAnnotationDeprecated).to.be.a('Function');
+      component._listeners = {
+        1: 'myListener'
+      };
+      component.annotationManager.markAnnotationDeprecated('testId');
+      expect(component._updateId).to.equal('testId');
+      expect(component._updateBody).to.deep.equal({
+        doc: {
+          latest: false
+        }
+      });
+    });
+
+    test('annotationManager.removeListener does remove the listener', function() {
+      expect(component.annotationManager.removeListener).to.be.a('Function');
+      component._listeners = {
+        1: 'myListener'
+      };
+      component.annotationManager.removeListener(1);
+      expect(component._listeners).to.deep.equal({});
+    });
+
+    test('setting _relevantAnnotationResults and _notRelevantAnnotationResults does set annotations', function(done) {
       component._relevantAnnotationResults = {
         aggregations: {
           annotations: {
@@ -127,6 +171,26 @@ limitations under the License.
         });
         done();
       });
+    });
+
+    test('_notifyListeners does call the listeners', function(done) {
+      var listener = function(uri, label, justification, annotationId) {
+        expect(uri).to.equal('myUri');
+        expect(label).to.equal('myLabel');
+        expect(justification).to.equal('myJustification');
+        expect(annotationId).to.equal('myAnnotationId');
+        done();
+      };
+
+      component._listeners = {
+        1: listener
+      };
+      component._createBody = {
+        uri: 'myUri',
+        label: 'myLabel',
+        justification: 'myJustification'
+      };
+      component._notifyListeners('myAnnotationId');
     });
   });
 

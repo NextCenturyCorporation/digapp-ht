@@ -47,6 +47,7 @@ limitations under the License.
         type: 'offer'
       };
       element.annotationManager = {
+        addListener: function() {},
         getAnnotationIndex: function() {
           return 'annotationIndex';
         },
@@ -58,7 +59,8 @@ limitations under the License.
         },
         getWhyTheAnnotationIsRelevant: function() {
           return 'why';
-        }
+        },
+        removeListener: function() {}
       };
       flush(function() {
         done();
@@ -350,6 +352,48 @@ limitations under the License.
       element.$$('#dropdownMenu').fire('iron-overlay-opened');
       element.listen(element.$$('#dropdownMenu'), 'iron-overlay-closed', 'closeListener');
       element.$$('#dropdownMenu').fire('iron-overlay-closed');
+    });
+
+    test('setting annotationManager does call annotationManager.addListener', function(done) {
+      element.annotationManager = {
+        addListener: function(listener) {
+          assert.isFunction(listener);
+          done();
+        },
+        getAnnotationIndex: function() {
+          return 'annotationIndex';
+        },
+        getAnnotationType: function() {
+          return 'annotationType';
+        },
+        getUsername: function() {
+          return 'mockUser';
+        },
+        getWhyTheAnnotationIsRelevant: function() {
+          return 'why';
+        }
+      };
+    });
+
+    test('_addAnnotationChangeListener does call annotationManager.addListener', function(done) {
+      element.annotationManager.addListener = function(listener) {
+        assert.isFunction(listener);
+        done();
+      };
+
+      element._addAnnotationChangeListener(element.annotationManager);
+    });
+
+    test('_createAnnotationChangeListener does return a listener that does set label, justification, and annotationResult.id', function() {
+      var listener = element._createAnnotationChangeListener();
+      assert.isFunction(listener);
+      element.item = {
+        id: 'testItemId'
+      };
+      listener('testItemId', 'testLabel', 'testJustification', 'testAnnotationId');
+      assert.equal(element.label, 'testLabel');
+      assert.equal(element.justification, 'testJustification');
+      assert.equal(element.annotationResult.id, 'testAnnotationId');
     });
 
     test('paper-icon-button does not have noink attribute', function() {
