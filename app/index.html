@@ -369,14 +369,14 @@ limitations under the License.
         -->
 
         <div class="bottom v-divider"></div>
-        <div class="bottom flex">
-          <elastic-client-input class="white-input-container"
-            field="_all"
-            value="{{searchParameters.text}}"
-            query="{{ejsQuery}}"
-            label="[[createSearchInputLabel(advancedSearch)]]"
-            advanced="[[advancedSearch]]">
-          </elastic-client-input>
+
+        <div class="white-input-container bottom flex">
+          <paper-button class="layout horizontal center bottom"
+            style$="{{fieldsDropdownBtnStyle(fieldsDropdownOpened)}}" on-tap="toggleSearchFieldsDropdownPanel"
+            title="View Search Options">
+            <iron-icon icon="search" class="bottom"></iron-icon>
+            <span class="search-options-title">View Search Options</span>
+          </paper-button>
         </div>
 
         <a class="bottom" href="." style="color: #ffffff;">
@@ -494,6 +494,38 @@ limitations under the License.
           </div>
         </iron-dropdown>
       </paper-toolbar>
+
+      <!-- search fields dropdown panel -->
+      <iron-dropdown id="fieldsDropdown" opened="{{fieldsDropdownOpened}}" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="80" horizontal-offset="150">
+        <div class="dropdown-content search-options">
+          <span>Enter text for the fields you would like to search on. For reporting purposes, check each field that you would like included in your reports.</span>
+          <div style="horizontal layout wrap flex">
+            <template is="dom-repeat" items="[[searchFields]]" as="item">
+              <div class="horizontal layout end fields-container">
+                <paper-input class="fields-container"
+                  label="{{item.title}}"
+                  value="{{item.value}}">
+                </paper-input>
+                <paper-checkbox noink checked="{{item.includeInReports}}"></paper-checkbox>
+              </div>
+            </template>
+          </div>
+
+          <div class="h-divider"></div>
+          <div class="horizontal layout center-justified">
+            <button-action text="Search" on-tap="addToSearchFieldSelection"></button-action>
+          </div>
+        </div>
+      </iron-dropdown>
+
+      <!-- selected search fields shown here -->
+      <iron-collapse id="selectedSearchFields" opened="{{selectedSearchFieldsOpened}}" class="horizontal layout paper-header">
+        <div class="search-fields-selected">
+          <!--TODO: Placeholder to act as observer here until new search implementation is better stamped out/componentized-->
+          <span>{{updateSearchFields(searchFieldSelection.*)}}</span>
+          <selected-facets-display facet-selection="{{searchFieldSelection}}"></selected-facets-display>
+        </div>
+      </iron-collapse>
 
       <paper-drawer-panel drawer-width="320px">
 
@@ -1529,6 +1561,72 @@ limitations under the License.
       DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+
+      /* search dropdown panel code */
+      app.searchFieldSelection = {};
+
+      app.selectedSearchFieldsOpened = false;
+
+      app.searchFields = [
+        {title: 'Phone Number', value: '', includeInReports: false},
+        {title: 'Email', value: '', includeInReports: false},
+        {title: 'Street Address', value: '', includeInReports: false},
+        {title: 'Social Media ID', value: '', includeInReports: false},
+        {title: 'Review Site ID', value: '', includeInReports: false},
+        {title: 'Name', value: '', includeInReports: false},
+        {title: 'Location', value: '', includeInReports: false},
+        {title: 'Age', value: '', includeInReports: false},
+        {title: 'Ethnicity', value: '', includeInReports: false},
+        {title: 'Price', value: '', includeInReports: false},
+        //{title: 'Tattoos', value: '', includeInReports: false},
+        //{title: 'Multiple Providers', value: '', includeInReports: false},
+        {title: 'Hair Color', value: '', includeInReports: false},
+        {title: 'Services', value: '', includeInReports: false},
+        {title: 'Height', value: '', includeInReports: false},
+        {title: 'Weight', value: '', includeInReports: false},
+        {title: 'Eye Color', value: '', includeInReports: false},
+        {title: 'Post Date', value: '', includeInReports: false}
+      ];
+
+      app.updateSearchFields = function(changes) {
+        if(changes.value && changes.value.key && (!changes.value.enabled)) {
+          var currentItem = app.searchFields[changes.value.index];
+          app.set('searchFields.' + changes.value.index,
+            {title:  currentItem.title, value: '', includeInReports: currentItem.includeInReports});
+        }
+
+        if(!_.find(app.searchFieldSelection, {enabled: true})) {
+          app.selectedSearchFieldsOpened = false;
+        }
+      };
+
+      app.addToSearchFieldSelection = function() {
+        _.each(app.searchFields, function(item, index) {
+          if(item.value !== '') {
+            app.set(['searchFieldSelection', item.title], {
+              text: item.value,
+              key: item.value,
+              enabled: true,
+              category: item.title,
+              index: index
+            });
+            if(!app.selectedSearchFieldsOpened) {
+              app.selectedSearchFieldsOpened = true;
+            }
+          } else if(item.value === '' && app.searchFieldSelection[item.title]) {
+            app.set(['searchFieldSelection', item.title, 'enabled'], false);
+          }
+        });
+      };
+
+      app.toggleSearchFieldsDropdownPanel = function() {
+        this.fieldsDropdownOpened = !this.fieldsDropdownOpened;
+      };
+
+      app.fieldsDropdownBtnStyle = function(opened) {
+        return opened ? 'color: yellowgreen;' : '';
+      };
+      /* end search dropdown panel code */
 
       app.createAnnotationOptionsBuckets = function() {
         return [{
