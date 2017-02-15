@@ -507,9 +507,30 @@ limitations under the License.
                   value="{{item.value}}">
                 </paper-input>
                 <paper-checkbox noink checked="{{item.includeInReports}}"></paper-checkbox>
+                <!--TODO: temporarily querying elasticsearch directly -->
+                <elastic-client-query-builder
+                  type="match"
+                  fields="{{item.field}}"
+                  values="{{item.value}}"
+                  ejs-query="{{item.query}}">
+                </elastic-client-query-builder>
               </div>
             </template>
           </div>
+
+          <!--TODO: temporarily querying elasticsearch directly -->
+          <elastic-client-query-builder
+            type="match_all"
+            fields='null'
+            values='null'
+            ejs-query="{{matchAllQuery}}">
+          </elastic-client-query-builder>
+
+          <elastic-client-query-builder
+            type="bool"
+            ejs-bool-queries="[[boolQueryArray]]"
+            ejs-query="{{ejsQuery}}">
+          </elastic-client-query-builder>
 
           <div class="h-divider"></div>
           <div class="horizontal layout center-justified">
@@ -1568,24 +1589,25 @@ limitations under the License.
       app.selectedSearchFieldsOpened = false;
 
       app.searchFields = [
-        {title: 'Phone Number', value: '', includeInReports: false},
-        {title: 'Email', value: '', includeInReports: false},
-        {title: 'Street Address', value: '', includeInReports: false},
-        {title: 'Social Media ID', value: '', includeInReports: false},
-        {title: 'Review Site ID', value: '', includeInReports: false},
-        {title: 'Name', value: '', includeInReports: false},
-        {title: 'Location', value: '', includeInReports: false},
-        {title: 'Age', value: '', includeInReports: false},
-        {title: 'Ethnicity', value: '', includeInReports: false},
-        {title: 'Price', value: '', includeInReports: false},
-        //{title: 'Tattoos', value: '', includeInReports: false},
-        //{title: 'Multiple Providers', value: '', includeInReports: false},
-        {title: 'Hair Color', value: '', includeInReports: false},
-        {title: 'Services', value: '', includeInReports: false},
-        {title: 'Height', value: '', includeInReports: false},
-        {title: 'Weight', value: '', includeInReports: false},
-        {title: 'Eye Color', value: '', includeInReports: false},
-        {title: 'Post Date', value: '', includeInReports: false}
+        {title: 'Phone Number', field: 'fields.phone.relaxed.name', value: '', includeInReports: false},
+        {title: 'Email', field: 'fields.email.relaxed.name', value: '', includeInReports: false},
+        //{title: 'Street Address', value: '', includeInReports: false},
+        //{title: 'Social Media ID', value: '', includeInReports: false},
+        //{title: 'Review Site ID', value: '', includeInReports: false},
+        {title: 'Name', field: 'fields.name.relaxed.name', value: '', includeInReports: false},
+        // location uses city for now
+        {title: 'Location', field: 'fields.city.relaxed.name', value: '', includeInReports: false},
+        {title: 'Age', field: 'fields.age.relaxed.name', value: '', includeInReports: false},
+        {title: 'Ethnicity', field: 'fields.ethnicty.relaxed.name', value: '', includeInReports: false},
+        {title: 'Price', field: 'fields.price.relaxed.name', value: '', includeInReports: false},
+         //{title: 'Tattoos', value: '', includeInReports: false},
+         //{title: 'Multiple Providers', value: '', includeInReports: false},
+        {title: 'Hair Color', field: 'fields.hair-color.relaxed.name', value: '', includeInReports: false},
+        //{title: 'Services', value: '', includeInReports: false},
+        {title: 'Height', field: 'fields.height.relaxed.name', value: '', includeInReports: false},
+        {title: 'Weight', field: 'fields.weight.relaxed.name', value: '', includeInReports: false},
+        {title: 'Eye Color', field: 'fields.eye-color.relaxed.name', value: '', includeInReports: false},
+        {title: 'Post Date', field: 'fields.posting-date.relaxed.name', value: '', includeInReports: false}
       ];
 
       app.updateSearchFields = function(changes) {
@@ -1593,6 +1615,22 @@ limitations under the License.
           var currentItem = app.searchFields[changes.value.index];
           app.set('searchFields.' + changes.value.index,
             {title:  currentItem.title, value: '', includeInReports: currentItem.includeInReports});
+
+          // remove query from boolQueryArray
+          var boolQueryIndex = _.findIndex(app.boolQueryArray, function(item) {
+            var obj = item.toJSON();
+            return obj.match && (obj.match[changes.value.field] !== undefined);
+          });
+          app.boolQueryArray.splice(boolQueryIndex, 1);
+          if(app.boolQueryArray.length > 0) {
+            var arrCopy = _.cloneDeep(app.boolQueryArray);
+            app.set('boolQueryArray', []);
+            app.set('boolQueryArray', arrCopy);
+          } else {
+            // if boolQueryArray now empty, revert to match all query
+            app.set('boolQueryArray', []);
+            app.set('boolQueryArray', [app.matchAllQuery]);
+          }
         }
 
         if(!_.find(app.searchFieldSelection, {enabled: true})) {
@@ -1601,15 +1639,20 @@ limitations under the License.
       };
 
       app.addToSearchFieldSelection = function() {
+        var arrayForBoolQuery = [];
         _.each(app.searchFields, function(item, index) {
           if(item.value !== '') {
             app.set(['searchFieldSelection', item.title], {
               text: item.value,
+              field: item.field,
               key: item.value,
               enabled: true,
               category: item.title,
               index: index
             });
+
+            arrayForBoolQuery.push(item.query);
+
             if(!app.selectedSearchFieldsOpened) {
               app.selectedSearchFieldsOpened = true;
             }
@@ -1617,6 +1660,7 @@ limitations under the License.
             app.set(['searchFieldSelection', item.title, 'enabled'], false);
           }
         });
+        app.set('boolQueryArray', arrayForBoolQuery);
       };
 
       app.toggleSearchFieldsDropdownPanel = function() {
