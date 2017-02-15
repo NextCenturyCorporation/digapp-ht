@@ -42,18 +42,19 @@ var webpageTransform = (function(_, commonTransforms, offerTransform) {
 
     webpageRevisions: function(data) {
       if(data && data.aggregations) {
-        var total = 0;
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        var total = data.aggregations.revisions.doc_count;
         var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
-          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           total += bucket.doc_count;
           return {
             date: commonTransforms.getDate(bucket.key_as_string),
-            icon: commonTransforms.getIronIcon('date'),
-            styleClass: commonTransforms.getStyleClass('date'),
-            count: bucket.doc_count
+            list: [{
+              count: bucket.doc_count,
+              label: 'Revision on ' + commonTransforms.getDate(bucket.key_as_string)
+            }]
           };
-          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         return (total < 2 ? [] : revisions);
       }
       return [];
