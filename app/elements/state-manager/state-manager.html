@@ -25,6 +25,7 @@ limitations under the License.
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../clipboard.html">
+<link rel="import" href="../lodash.html">
 <link rel="import" href="../uuid.html">
 
 <dom-module id="state-manager">
@@ -106,7 +107,7 @@ limitations under the License.
   (function() {
     'use strict';
 
-    /* globals Clipboard, DigBehaviors, uuid */
+    /* globals _, Clipboard, DigBehaviors, uuid */
     Polymer({
       is: 'state-manager',
 
@@ -301,10 +302,12 @@ limitations under the License.
        */
       generateLink: function() {
         var state = this._createStringifiedState(this.filterCollection, this.pageType);
-        if(state === this._stringifiedState) {
+        if(this._isEmptyState(JSON.parse(state))) {
+          this._updateUrlAndShowDialog();
+        } else if(state === this._stringifiedState) {
           this.$$('#linkDialog').open();
         } else {
-          this._stringifiedState = this._createStringifiedState(this.filterCollection, this.pageType);
+          this._stringifiedState = state;
         }
       },
 
@@ -348,6 +351,17 @@ limitations under the License.
           this._validateId = false;
           this._populateCreationBody(this.stateId, this.filterCollection, this.pageType);
         }
+      },
+
+      /**
+       * Returns whether the keys in the given state object are all empty.
+       */
+      _isEmptyState: function(state) {
+        var empty = true;
+        _.keys(state).forEach(function(key) {
+          empty = empty && _.isEmpty(state[key]);
+        });
+        return empty;
       },
 
       /**
