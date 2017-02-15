@@ -29,9 +29,9 @@ var offerTransform = (function(_, commonTransforms) {
   function getFormattedTelephoneNumber(number) {
     var output = number;
     // Remove United States or X country code.
-    number = (number.indexOf('+1-') === 0 ? number.substring(number.indexOf('+1-') + 3) : number);
-    number = (number.indexOf('+x-') === 0 ? number.substring(number.indexOf('+x-') + 3) : number);
-    return number.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
+    output = (output.indexOf('+1-') === 0 ? output.substring(output.indexOf('+1-') + 3) : output);
+    output = (output.indexOf('+x-') === 0 ? output.substring(output.indexOf('+x-') + 3) : output);
+    return output.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
       if(p2 && p3 && p4) {
         return (p1 ? p1 + '-' : '') + p2 + '-' + p3 + '-' + p4;
       }
@@ -732,6 +732,26 @@ var offerTransform = (function(_, commonTransforms) {
         ]);
       });
       return data;
+    },
+
+    revisions: function(data) {
+      if(data && data.aggregations) {
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        var total = data.aggregations.revisions.doc_count;
+        var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
+          total += bucket.doc_count;
+          return {
+            date: commonTransforms.getDate(bucket.key_as_string),
+            list: [{
+              count: bucket.doc_count,
+              label: 'Revision on ' + commonTransforms.getDate(bucket.key_as_string)
+            }]
+          };
+        });
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        return (total < 2 ? [] : revisions);
+      }
+      return [];
     },
 
     /**
