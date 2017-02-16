@@ -67,9 +67,7 @@ DigBehaviors.StateBehavior = {
       hairColor: config.hairColor || {},
       height: config.height || {},
       weight: config.weight || {},
-      hasImage: config.hasImage || {},
       image: config.image || {},
-      annotationsFilter: annotationsFilter ? _.cloneDeep(annotationsFilter) : {},
       sort: config.sort || '',
       text: (config.text || config.text === null) ? config.text : ''
     };
@@ -97,7 +95,6 @@ DigBehaviors.StateBehavior = {
       hairColor: config.hairColor || {},
       height: config.height || {},
       weight: config.weight || {},
-      hasImage: config.hasImage || {},
       image: config.image || {},
       sort: config.sort || '',
       text: config.text || ''
