@@ -66,6 +66,12 @@ limitations under the License.
         <span class="link" title="[[_getLabel(data.length, type)]] to PDF" on-tap="_exportToPdf">PDF</span>
       </div>
     </template>
+
+    <template is="dom-repeat" items="[[_dataForPdf]]">
+      <template is="dom-repeat" items="[[item.images]]" as="image">
+        <img id$="[[image.id]]" crossorigin="anonymous" src="/downloadImage/[[image.source]]" style="display:none"/>
+      </template>
+    </template>
   </template>
 
   <script>
@@ -75,6 +81,7 @@ limitations under the License.
     Polymer({
       is: 'export-button',
 
+      /* globals pdfMake */
       properties: {
         /**
          * The data to transform and export.
@@ -184,9 +191,16 @@ limitations under the License.
           });
 
           item.images.forEach(function(image) {
+            var imageElement = document.getElementById(image.id);
+            var canvas = document.createElement('canvas');
+            canvas.width = imageElement.width;
+            canvas.height = imageElement.height;
+            canvas.getContext('2d').drawImage(imageElement, 0, 0);
+            var source = canvas.toDataURL('image/jpeg');
             doc.content.push({
-              fontSize: 12,
-              text: image.source
+              fit: [500, 250],
+              image: source,
+              margin: [0, 0, 0, 10]
             });
           });
         });

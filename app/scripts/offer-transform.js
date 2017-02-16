@@ -728,7 +728,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           images: result.images.map(function(image) {
             return {
               id: 'image' + nextId++,
-              source: image.source
+              source: encodeURIComponent(image.source)
             };
           }),
           paragraphs: []

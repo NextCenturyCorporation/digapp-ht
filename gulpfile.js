@@ -293,6 +293,9 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
   var configProxyOptions = url.parse('http://localhost:9000/config');
   configProxyOptions.route = '/config';
 
+  var downloadProxyOptions = url.parse('http://localhost:9000/download');
+  downloadProxyOptions.route = '/download';
+
   var uploadProxyOptions = url.parse('http://localhost:9000/upload');
   uploadProxyOptions.route = '/upload';
 
@@ -314,7 +317,7 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
     // https: true,
     server: {
       baseDir: ['.tmp', 'app'],
-      middleware: [proxy(configProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
+      middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
     }
   });
 
@@ -328,6 +331,9 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
 gulp.task('serve:dist', ['default', 'nodemon'], function() {
   var configProxyOptions = url.parse('http://localhost:9000/config');
   configProxyOptions.route = '/config';
+
+  var downloadProxyOptions = url.parse('http://localhost:9000/download');
+  downloadProxyOptions.route = '/download';
 
   var uploadProxyOptions = url.parse('http://localhost:9000/upload');
   uploadProxyOptions.route = '/upload';
@@ -349,7 +355,7 @@ gulp.task('serve:dist', ['default', 'nodemon'], function() {
     //       will present a certificate warning in the browser.
     // https: true,
     server: dist(),
-    middleware: [proxy(configProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
+    middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
   });
 });
 
