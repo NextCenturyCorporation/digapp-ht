@@ -80,7 +80,7 @@ var offerTransform = (function(_, commonTransforms) {
 
   function getDate(record, path) {
     var date = getSingleItemFromRecord(record, path);
-    return commonTransforms.getDate(date);
+    return commonTransforms.getDate(date) || 'No Date';
   }
 
   function getEmailsFromList(list, confidence) {
@@ -215,7 +215,7 @@ var offerTransform = (function(_, commonTransforms) {
       link: commonTransforms.getLink(location.key, 'location'),
       styleClass: commonTransforms.getStyleClass('location'),
       text: text,
-      textAndCount: text + ' (' + count + ')',
+      textAndCount: text + (count ? (' (' + count + ')') : ''),
       textAndCountry: text + (country ? (', ' + country) : ''),
       type: 'location'
     };
@@ -473,8 +473,8 @@ var offerTransform = (function(_, commonTransforms) {
     return timeline;
   }
 
-  function getTitle(length, name, suffix) {
-    return (length || 'No') + ' ' + name + (length === 1 ? '' : (suffix || 's'));
+  function getTitle(length, name, sayOther, suffix) {
+    return (length || 'No') + (sayOther ? ' Other ' : ' ') + name + (length === 1 ? '' : (suffix || 's'));
   }
 
   return {
@@ -565,7 +565,9 @@ var offerTransform = (function(_, commonTransforms) {
                 date: new Date(dateBucket.key),
                 count: dateBucket.doc_count
               });
-              dates.push(dateBucket.key);
+              if(!locationId || locationId === city) {
+                dates.push(dateBucket.key);
+              }
             }
             /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           });
@@ -589,7 +591,7 @@ var offerTransform = (function(_, commonTransforms) {
           return {
             count: dateObject.count,
             date: dateObject.date,
-            name: name
+            name: location.name
           };
         });
 
@@ -614,52 +616,33 @@ var offerTransform = (function(_, commonTransforms) {
 
     offerPhones: function(data, ignoreId) {
       var phones = [];
-      var ignore = false;
+      var sayOther = false;
       if(data && data.aggregations && data.aggregations.phone && data.aggregations.phone.phone) {
         phones = getPhonesFromList(data.aggregations.phone.phone.buckets || []).filter(function(phone) {
-          ignore = ignore || phone.key === ignoreId;
-          return phone.key !== ignoreId;
+          var result = ignoreId ? phone.id !== ignoreId : true;
+          sayOther = sayOther || !result;
+          return result;
         });
       }
       return {
-        title: getTitle(phones.length, 'Telephone Number'),
+        title: getTitle(phones.length, 'Telephone Number', sayOther),
         phone: phones
       };
     },
 
     offerEmails: function(data, ignoreId) {
       var emails = [];
-      var ignore = false;
+      var sayOther = false;
       if(data && data.aggregations && data.aggregations.email && data.aggregations.email.email) {
         emails = getEmailsFromList(data.aggregations.email.email.buckets || []).filter(function(email) {
-          ignore = ignore || email.key === ignoreId;
-          return email.key !== ignoreId;
+          var result = ignoreId ? email.id !== ignoreId : true;
+          sayOther = sayOther || !result;
+          return result;
         });
       }
       return {
-        title: getTitle(emails.length, 'Email Address', 'es'),
+        title: getTitle(emails.length, 'Email Address', sayOther, 'es'),
         email: emails
-      };
-    },
-
-    providerAttributes: function(data) {
-      var output = [];
-      if(data && data.aggregations && data.aggregations.attribute && data.aggregations.attribute.attribute) {
-        output = getProviderAttributesFromList(data.aggregations.attribute.attribute.buckets || []);
-      }
-      return {
-        data: output
-      };
-    },
-
-    offerPublishers: function(data) {
-      var publishers = [];
-      if(data && data.aggregations && data.aggregations.publisher && data.aggregations.publisher.publisher) {
-        publishers = getPublishersFromList(data.aggregations.publisher.publisher.buckets || []);
-      }
-      return {
-        title: getTitle(publishers.length, 'Website'),
-        publisher: publishers
       };
     },
 
@@ -675,6 +658,27 @@ var offerTransform = (function(_, commonTransforms) {
       return {
         title: getTitle(locations.length, 'Location'),
         location: locations
+      };
+    },
+
+    offerProviderAttributes: function(data) {
+      var attributes = [];
+      if(data && data.aggregations && data.aggregations.attribute && data.aggregations.attribute.attribute) {
+        attributes = getProviderAttributesFromList(data.aggregations.attribute.attribute.buckets || []);
+      }
+      return {
+        attribute: attributes
+      };
+    },
+
+    offerPublishers: function(data) {
+      var publishers = [];
+      if(data && data.aggregations && data.aggregations.publisher && data.aggregations.publisher.publisher) {
+        publishers = getPublishersFromList(data.aggregations.publisher.publisher.buckets || []);
+      }
+      return {
+        title: getTitle(publishers.length, 'Website'),
+        publisher: publishers
       };
     },
 
@@ -739,7 +743,6 @@ var offerTransform = (function(_, commonTransforms) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         var total = data.aggregations.revisions.doc_count;
         var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
-          total += bucket.doc_count;
           return {
             date: commonTransforms.getDate(bucket.key_as_string),
             list: [{
