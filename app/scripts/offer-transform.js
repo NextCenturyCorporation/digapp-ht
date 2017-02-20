@@ -687,7 +687,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     },
 
-    createExportData: function(results) {
+    createExportDataForCsv: function(results) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
       var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];
       results.forEach(function(result) {
@@ -705,6 +705,72 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         }).join('; ');
         data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, result.description.replace(/\n/g, ' ')]);
       });
+      return data;
+    },
+
+    createExportDataForPdf: function(results) {
+      var linkPrefix = window.location.hostname + ':' + window.location.port;
+      var data = [];
+      var nextId = 1;
+
+      results.forEach(function(result) {
+        var locations = result.locations.map(function(location) {
+          return location.text;
+        }).join(', ');
+        var phones = result.phones.map(function(phone) {
+          return phone.text;
+        }).join(', ');
+        var emails = result.emails.map(function(email) {
+          return email.text;
+        }).join(', ');
+
+        var item = {
+          images: result.images.map(function(image) {
+            return {
+              id: 'image' + nextId++,
+              source: encodeURIComponent(image.source)
+            };
+          }),
+          paragraphs: []
+        };
+
+        item.paragraphs.push({
+          big: true,
+          label: result.name,
+          value: ''
+        });
+        item.paragraphs.push({
+          label: 'Posting Date:  ',
+          value: result.date
+        });
+        item.paragraphs.push({
+          label: 'Location(s):  ',
+          value: locations
+        });
+        item.paragraphs.push({
+          label: 'Telephone Number(s):  ',
+          value: phones
+        });
+        item.paragraphs.push({
+          label: 'Email Address(es):  ',
+          value: emails
+        });
+        item.paragraphs.push({
+          label: 'Description:  ',
+          value: result.description.replace(/\n/g, ' ')
+        });
+        item.paragraphs.push({
+          label: 'URL:  ',
+          value: result.url
+        });
+        item.paragraphs.push({
+          label: 'DIG URL:  ',
+          value: linkPrefix + result.link
+        });
+
+        data.push(item);
+      });
+
       return data;
     }
   };

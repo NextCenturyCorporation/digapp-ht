@@ -18,6 +18,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../pdfmake.html">
 
 <dom-module id="export-button">
   <template>
@@ -27,14 +28,26 @@ limitations under the License.
         display: block;
       }
 
-      a[is=csv-download] {
+      div {
         color: var(--secondary-text-color);
         font-size: 16px;
         font-weight: 500;
       }
 
-      a[is=csv-download]:hover {
+      a[is=csv-download],
+      .link {
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        text-decoration: underline;
+      }
+
+      a[is=csv-download]:hover,
+      .link:hover {
         color: var(--primary-text-color);
+      }
+
+      iron-icon {
+        margin-top: 2px;
       }
 
       span {
@@ -43,10 +56,21 @@ limitations under the License.
     </style>
 
     <template is="dom-if" if="[[data.length]]">
-      <a is="csv-download" data="[[_exportData]]" download="[[filename]]" class="layout horizontal center" title="[[_getLabel(data.length, type)]]">
+      <div class="layout horizontal center">
         <iron-icon icon="file-download"></iron-icon>
-        <span>[[_getLabel(data.length, type)]]</span>
-      </a>
+        <span>[[_getLabel(data.length, type)]]:</span>
+        <a is="csv-download" data="[[_dataForCsv]]" download="[[filename]].csv" title="[[_getLabel(data.length, type)]] to CSV">
+          <span>CSV</span>
+        </a>
+        <span>|</span>
+        <span class="link" title="[[_getLabel(data.length, type)]] to PDF" on-tap="_exportToPdf">PDF</span>
+      </div>
+    </template>
+
+    <template is="dom-repeat" items="[[_dataForPdf]]">
+      <template is="dom-repeat" items="[[item.images]]" as="image">
+        <img id$="[[image.id]]" crossorigin="anonymous" src="/downloadImage/[[image.source]]" style="display:none"/>
+      </template>
     </template>
   </template>
 
@@ -57,6 +81,7 @@ limitations under the License.
     Polymer({
       is: 'export-button',
 
+      /* globals pdfMake */
       properties: {
         /**
          * The data to transform and export.
@@ -70,13 +95,20 @@ limitations under the License.
          */
         filename: {
           type: String,
-          value: 'data.csv'
+          value: 'data'
         },
 
         /**
-         * The function to transform the input data into export data.
+         * The function to transform the input data into CSV export data.
          */
-        transformFunction: {
+        csvTransformFunction: {
+          type: Function
+        },
+
+        /**
+         * The function to transform the input data into PDF export data.
+         */
+        pdfTransformFunction: {
           type: Function
         },
 
@@ -89,20 +121,99 @@ limitations under the License.
         },
 
         /**
-         * The export data for the csv-download component.
+         * The CSV export data for the csv-download component.
          */
-        _exportData: {
+        _dataForCsv: {
           type: Array,
           // Use computed rather than a json-transform component because we must observe changes on data.length rather than data itself.
-          computed: '_computeExportData(data.length, transformFunction)'
+          computed: '_computeDataForCsv(data.length, csvTransformFunction)'
+        },
+
+        /**
+         * The PDF export data.
+         */
+        _dataForPdf: {
+          notify: true,
+          type: Array,
+          // Use computed rather than a json-transform component because we must observe changes on data.length rather than data itself.
+          computed: '_computeDataForPdf(data.length, pdfTransformFunction)'
         }
       },
 
       /**
-       * Computes the export data using the input data and the transform function.
+       * Computes the CSV export data using the input data and the transform function.
        */
-      _computeExportData: function() {
-        return this.transformFunction(this.data);
+      _computeDataForCsv: function() {
+        return this.csvTransformFunction(this.data);
+      },
+
+      /**
+       * Computes the PDF export data using the input data and the transform function.
+       */
+      _computeDataForPdf: function() {
+        return this.pdfTransformFunction(this.data);
+      },
+
+      /**
+       * Creates and returns the PDF content for pdfMake.
+       */
+      _createPdfContent: function() {
+        var doc = {
+          content: []
+        };
+
+        this._dataForPdf.forEach(function(item, index) {
+          if(index) {
+            doc.content.push({
+              pageBreak: 'after',
+              text: ''
+            });
+          }
+
+          item.paragraphs.forEach(function(object) {
+            doc.content.push({
+              fontSize: object.big ? 16 : 12,
+              margin: [0, 0, 0, 10],
+              text: [{
+                bold: true,
+                text: object.label
+              }, {
+                text: object.value
+              }]
+            });
+          });
+
+          doc.content.push({
+            bold: true,
+            fontSize: 12,
+            margin: [0, 0, 0, 10],
+            text: 'Image(s):'
+          });
+
+          item.images.forEach(function(image) {
+            var imageElement = document.getElementById(image.id);
+            var canvas = document.createElement('canvas');
+            canvas.width = imageElement.width;
+            canvas.height = imageElement.height;
+            canvas.getContext('2d').drawImage(imageElement, 0, 0);
+            var source = canvas.toDataURL('image/jpeg');
+            doc.content.push({
+              fit: [500, 250],
+              image: source,
+              margin: [0, 0, 0, 10]
+            });
+          });
+        });
+
+        return doc;
+      },
+
+      /**
+       * Creates a PDF from the data and downloads it automatically with pdfMake.
+       */
+      _exportToPdf: function() {
+        var doc = this._createPdfContent();
+        pdfMake.createPdf(doc).download(this.filename + '.pdf');
       },
 
       /**

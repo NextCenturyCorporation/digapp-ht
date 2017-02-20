@@ -43,25 +43,28 @@ limitations under the License.
     setup(function() {
       component = fixture('export-button-fixture');
       component.data = [];
-      component.transformFunction = function(data) {
-        return data.map(function(item) {
-          return {
-            property: item
-          };
-        });
+      component.csvTransformFunction = function() {
+        return [];
+      };
+      component.pdfTransformFunction = function() {
+        return [];
       };
     });
 
     test('properties are set correctly', function() {
       expect(component.data).to.deep.equal([]);
-      expect(component.filename).to.equal('data.csv');
-      expect(component.transformFunction).to.be.a('Function');
+      expect(component.filename).to.equal('data');
+      expect(component.csvTransformFunction).to.be.a('Function');
+      expect(component.pdfTransformFunction).to.be.a('Function');
       expect(component.type).to.equal('Result');
-      expect(component._exportData).to.deep.equal([]);
+      expect(component._dataForCsv).to.deep.equal([]);
+      expect(component._dataForPdf).to.deep.equal([]);
     });
 
-    test('does not show a csv-download', function() {
+    test('does not show a csv-download, link, or img', function() {
       expect(component.$$('a')).to.not.exist;
+      expect(component.$$('.link')).to.not.exist;
+      expect(component.$$('img')).to.not.exist;
     });
   });
 
@@ -71,13 +74,29 @@ limitations under the License.
     setup(function(done) {
       component = fixture('export-button-fixture');
       component.data = ['a', 'b', 'c'];
-      component.filename = 'file.csv';
-      component.transformFunction = function(data) {
+      component.filename = 'file';
+      component.csvTransformFunction = function(data) {
         return data.map(function(item) {
           return {
             property: item
           };
         });
+      };
+      component.pdfTransformFunction = function(data) {
+        var paragraphs = data.map(function(item, index) {
+          return {
+            big: (index === 1),
+            label: 'label-' + item,
+            value: 'value-' + item
+          };
+        });
+        return [{
+          images: [{
+            id: 'imageId',
+            source: 'imageSource'
+          }],
+          paragraphs: paragraphs
+        }];
       };
       component.type = 'Type';
       flush(done);
@@ -85,31 +104,92 @@ limitations under the License.
 
     test('properties are set correctly', function() {
       expect(component.data).to.deep.equal(['a', 'b', 'c']);
-      expect(component.filename).to.equal('file.csv');
-      expect(component.transformFunction).to.be.a('Function');
+      expect(component.filename).to.equal('file');
+      expect(component.csvTransformFunction).to.be.a('Function');
+      expect(component.pdfTransformFunction).to.be.a('Function');
       expect(component.type).to.equal('Type');
-      expect(component._exportData).to.deep.equal([{
+      expect(component._dataForCsv).to.deep.equal([{
         property: 'a'
       }, {
         property: 'b'
       }, {
         property: 'c'
       }]);
+      expect(component._dataForPdf).to.deep.equal([{
+        images: [{
+          id: 'imageId',
+          source: 'imageSource'
+        }],
+        paragraphs: [{
+          big: false,
+          label: 'label-a',
+          value: 'value-a'
+        }, {
+          big: true,
+          label: 'label-b',
+          value: 'value-b'
+        }, {
+          big: false,
+          label: 'label-c',
+          value: 'value-c'
+        }]
+      }]);
     });
 
-    test('does show a csv-download', function() {
+    test('does show a csv-download, link, and img', function() {
       expect(component.$$('a')).to.exist;
+      expect(component.$$('a').getAttribute('download')).to.equal('file.csv');
       expect(component.$$('a').getAttribute('is')).to.equal('csv-download');
+      expect(component.$$('a').getAttribute('title')).to.equal('Export 3 Types to CSV');
+      expect(component.$$('.link')).to.exist;
+      expect(component.$$('.link').getAttribute('title')).to.equal('Export 3 Types to PDF');
+      expect(component.$$('img')).to.exist;
+      expect(component.$$('img').getAttribute('crossorigin')).to.equal('anonymous');
+      expect(component.$$('img').getAttribute('id')).to.equal('imageId');
+      expect(component.$$('img').getAttribute('src')).to.equal('/downloadImage/imageSource');
+      expect(component.$$('img').getAttribute('style')).to.equal('display:none');
     });
 
-    test('_computeExportData returns correctly', function() {
-      expect(component._computeExportData()).to.deep.equal([{
-        property: 'a'
-      }, {
-        property: 'b'
-      }, {
-        property: 'c'
-      }]);
+    test('_createPdfContent returns correctly', function() {
+      expect(component._createPdfContent()).to.deep.equal({
+        content: [{
+          fontSize: 12,
+          margin: [0, 0, 0, 10],
+          text: [{
+            bold: true,
+            text: 'label-a'
+          }, {
+            text: 'value-a'
+          }]
+        }, {
+          fontSize: 16,
+          margin: [0, 0, 0, 10],
+          text: [{
+            bold: true,
+            text: 'label-b'
+          }, {
+            text: 'value-b'
+          }]
+        }, {
+          fontSize: 12,
+          margin: [0, 0, 0, 10],
+          text: [{
+            bold: true,
+            text: 'label-c'
+          }, {
+            text: 'value-c'
+          }]
+        }, {
+          bold: true,
+          fontSize: 12,
+          margin: [0, 0, 0, 10],
+          text: 'Image(s):'
+        }, {
+          fit: [500, 250],
+          image: 'data:,',
+          margin: [0, 0, 0, 10]
+        }]
+      });
     });
 
     test('_getLabel returns correctly', function() {
