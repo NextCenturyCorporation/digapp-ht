@@ -492,20 +492,24 @@ limitations under the License.
       <!-- search fields dropdown panel -->
       <iron-dropdown id="fieldsDropdown" opened="{{fieldsDropdownOpened}}" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="80" horizontal-offset="150">
         <div class="dropdown-content search-options">
-          <span>Enter text for the fields you would like to search on. For reporting purposes, check each field that you would like included in your reports.</span>
+          <div class="h-divider"></div>
+
+          <div class="header">Enter text for the fields you would like to search on. For reporting purposes, check each field that you would like included in your reports.</div>
+
           <div style="horizontal layout wrap flex">
             <template is="dom-repeat" items="[[searchFields]]" as="item">
-              <div class="horizontal layout end fields-container">
-                <paper-input class="fields-container"
-                  label="{{item.title}}"
-                  value="{{item.value}}">
+              <div class="horizontal layout center fields-container">
+                <paper-input id$="input_[[item.key]]"
+                  label="[[item.title]]"
+                  value="{{item.input}}">
                 </paper-input>
+                <paper-icon-button icon="add" title="Add Search Term" on-tap="addSearchTerm"></paper-icon-button>
                 <paper-checkbox noink checked="{{item.includeInReports}}"></paper-checkbox>
                 <!--TODO: temporarily querying elasticsearch directly -->
                 <elastic-client-query-builder
                   type="match"
-                  fields="{{item.field}}"
-                  values="{{item.value}}"
+                  fields="[[item.field]]"
+                  values="[[item.value]]"
                   ejs-query="{{item.query}}">
                 </elastic-client-query-builder>
               </div>
@@ -527,9 +531,12 @@ limitations under the License.
           </elastic-client-query-builder>
 
           <div class="h-divider"></div>
+
           <div class="horizontal layout center-justified">
-            <button-action text="Search" on-tap="addToSearchFieldSelection"></button-action>
+            <button-action text="Search" on-tap="updateSearch"></button-action>
           </div>
+
+          <div class="h-divider"></div>
         </div>
       </iron-dropdown>
 
@@ -538,7 +545,18 @@ limitations under the License.
         <div class="search-fields-selected">
           <!--TODO: Placeholder to act as observer here until new search implementation is better stamped out/componentized-->
           <span>{{updateSearchFields(searchFieldSelection.*)}}</span>
-          <selected-facets-display facet-selection="{{searchFieldSelection}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.age}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.date}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.email}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.ethnicity}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.eye}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.hair}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.height}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.location}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.name}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.phone}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.price}}"></selected-facets-display>
+          <selected-facets-display facet-selection="{{searchFieldSelection.weight}}"></selected-facets-display>
         </div>
       </iron-collapse>
 
@@ -1580,80 +1598,88 @@ limitations under the License.
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
       /* search dropdown panel code */
-      app.searchFieldSelection = {};
+      app.searchFieldSelection = {
+        age: {},
+        date: {},
+        email: {},
+        ethnicity: {},
+        eye: {},
+        hair: {},
+        height: {},
+        location: {},
+        name: {},
+        phone: {},
+        price: {},
+        weight: {}
+      };
 
       app.selectedSearchFieldsOpened = false;
 
       app.searchFields = [
-        {title: 'Phone Number', field: 'fields.phone.relaxed.name', value: '', includeInReports: false},
-        {title: 'Email', field: 'fields.email.relaxed.name', value: '', includeInReports: false},
-        //{title: 'Street Address', value: '', includeInReports: false},
-        //{title: 'Social Media ID', value: '', includeInReports: false},
-        //{title: 'Review Site ID', value: '', includeInReports: false},
-        {title: 'Name', field: 'fields.name.relaxed.name', value: '', includeInReports: false},
-        // location uses city for now
-        {title: 'Location', field: 'fields.city.relaxed.name', value: '', includeInReports: false},
-        {title: 'Age', field: 'fields.age.relaxed.name', value: '', includeInReports: false},
-        {title: 'Ethnicity', field: 'fields.ethnicty.relaxed.name', value: '', includeInReports: false},
-        {title: 'Price', field: 'fields.price.relaxed.name', value: '', includeInReports: false},
-         //{title: 'Tattoos', value: '', includeInReports: false},
-         //{title: 'Multiple Providers', value: '', includeInReports: false},
-        {title: 'Hair Color', field: 'fields.hair-color.relaxed.name', value: '', includeInReports: false},
-        //{title: 'Services', value: '', includeInReports: false},
-        {title: 'Height', field: 'fields.height.relaxed.name', value: '', includeInReports: false},
-        {title: 'Weight', field: 'fields.weight.relaxed.name', value: '', includeInReports: false},
-        {title: 'Eye Color', field: 'fields.eye-color.relaxed.name', value: '', includeInReports: false},
-        {title: 'Post Date', field: 'fields.posting-date.relaxed.name', value: '', includeInReports: false}
+        {key: 'phone', title: 'Telephone Number', field: 'fields.phone.relaxed.name', value: '', includeInReports: false},
+        {key: 'email', title: 'Email Address', field: 'fields.email.relaxed.name', value: '', includeInReports: false},
+        {key: 'name', title: 'Name', field: 'fields.name.relaxed.name', value: '', includeInReports: false},
+        {key: 'location', title: 'Location', field: 'fields.city.relaxed.name', value: '', includeInReports: false},
+        {key: 'age', title: 'Age', field: 'fields.age.relaxed.name', value: '', includeInReports: false},
+        {key: 'ethnicity', title: 'Ethnicity', field: 'fields.ethnicty.relaxed.name', value: '', includeInReports: false},
+        {key: 'price', title: 'Price', field: 'fields.price.relaxed.name', value: '', includeInReports: false},
+        {key: 'hair', title: 'Hair Color', field: 'fields.hair-color.relaxed.name', value: '', includeInReports: false},
+        {key: 'height', title: 'Height', field: 'fields.height.relaxed.name', value: '', includeInReports: false},
+        {key: 'weight', title: 'Weight', field: 'fields.weight.relaxed.name', value: '', includeInReports: false},
+        {key: 'eye', title: 'Eye Color', field: 'fields.eye-color.relaxed.name', value: '', includeInReports: false},
+        {key: 'date', title: 'Post Date', field: 'fields.posting-date.relaxed.name', value: '', includeInReports: false}
       ];
 
-      app.updateSearchFields = function(changes) {
-        if(changes.value && changes.value.key && (!changes.value.enabled)) {
-          var currentItem = app.searchFields[changes.value.index];
-          app.set('searchFields.' + changes.value.index,
-            {title:  currentItem.title, value: '', includeInReports: currentItem.includeInReports});
-
-          // remove query from boolQueryArray
-          var boolQueryIndex = _.findIndex(app.boolQueryArray, function(item) {
-            var obj = item.toJSON();
-            return obj.match && (obj.match[changes.value.field] !== undefined);
+      app.addSearchTerm = function(event) {
+        var index = event.model.index;
+        var item = event.model.item;
+        if(item.input) {
+          app.set(['searchFieldSelection', item.key, item.input], {
+            text: item.input,
+            field: item.field,
+            key: item.input,
+            enabled: true,
+            category: item.title,
+            index: index
           });
-          app.boolQueryArray.splice(boolQueryIndex, 1);
-          if(app.boolQueryArray.length > 0) {
-            var arrCopy = _.cloneDeep(app.boolQueryArray);
-            app.set('boolQueryArray', []);
-            app.set('boolQueryArray', arrCopy);
-          } else {
-            // if boolQueryArray now empty, revert to match all query
-            app.set('boolQueryArray', []);
-            app.set('boolQueryArray', [app.matchAllQuery]);
-          }
-        }
 
-        if(!_.find(app.searchFieldSelection, {enabled: true})) {
-          app.selectedSearchFieldsOpened = false;
+          // Set the elasticsearch query value to be a space-delimited string of all values for the field.
+          app.set(['searchFields', index, 'value'], item.value ? item.value + ' ' + item.input : item.input);
+
+          // Clear the input value and the input element.  (Must do both!)
+          app.set(['searchFields', index, 'input'], '');
+          document.querySelector('#input_' + item.key).value = '';
+
+          if(!app.selectedSearchFieldsOpened) {
+            app.selectedSearchFieldsOpened = true;
+          }
         }
       };
 
-      app.addToSearchFieldSelection = function() {
+      app.updateSearchFields = function(changes) {
+        if(changes.value && changes.value.key && (!changes.value.enabled)) {
+          var changedKey = changes.value.key;
+          var changedField = changes.value.field;
+          var changedIndex = changes.value.index;
+          var changedTerms = app.searchFields[changedIndex];
+          var updatedValue = changedTerms.value.split(' ').filter(function(value) {
+            return value !== changedKey;
+          }).join(' ');
+          app.set(['searchFields', changedIndex, 'value'], updatedValue);
+        }
+
+        app.selectedSearchFieldsOpened = _.keys(app.searchFieldSelection).some(function(key) {
+          return _.find(app.searchFieldSelection[key], {
+            enabled: true
+          });
+        });
+      };
+
+      app.updateSearch = function() {
         var arrayForBoolQuery = [];
-        _.each(app.searchFields, function(item, index) {
-          if(item.value !== '') {
-            app.set(['searchFieldSelection', item.title], {
-              text: item.value,
-              field: item.field,
-              key: item.value,
-              enabled: true,
-              category: item.title,
-              index: index
-            });
-
+        _.each(app.searchFields, function(item) {
+          if(item.value) {
             arrayForBoolQuery.push(item.query);
-
-            if(!app.selectedSearchFieldsOpened) {
-              app.selectedSearchFieldsOpened = true;
-            }
-          } else if(item.value === '' && app.searchFieldSelection[item.title]) {
-            app.set(['searchFieldSelection', item.title, 'enabled'], false);
           }
         });
         app.set('boolQueryArray', arrayForBoolQuery);
@@ -1746,6 +1772,7 @@ limitations under the License.
 
       app.showAll = function() {
         this.$.menuDropdown.close();
+        app.set('boolQueryArray', [app.matchAllQuery]);
         app.set('searchParameters.text', null);
       };
 
