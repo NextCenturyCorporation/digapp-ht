@@ -53,23 +53,24 @@ DigBehaviors.StateBehavior = {
    */
   buildSearchStateForUI: function(config, annotationsFilter) {
     return {
-      dateCreated: config.dateCreated || {},
-      country: config.country || {},
-      region: config.region || {},
-      city: config.city || {},
-      phone: config.phone || {},
-      email: config.email || {},
-      website: config.website || {},
-      name: config.name || {},
       age: config.age || {},
+      city: config.city || {},
+      country: config.country || {},
+      dateEnd: config.dateEnd || {},
+      dateStart: config.dateStart || {},
+      email: config.email || {},
       ethnicity: config.ethnicity || {},
       eyeColor: config.eyeColor || {},
       hairColor: config.hairColor || {},
       height: config.height || {},
-      weight: config.weight || {},
       image: config.image || {},
-      sort: config.sort || '',
-      text: (config.text || config.text === null) ? config.text : ''
+      name: config.name || {},
+      phone: config.phone || {},
+      price: config.price || {},
+      region: config.region || {},
+      website: config.website || {},
+      weight: config.weight || {},
+      sort: config.sort || ''
     };
   },
 

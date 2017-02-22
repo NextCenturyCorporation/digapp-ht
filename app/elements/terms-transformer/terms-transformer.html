@@ -1,0 +1,126 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="terms-transformer">
+  <template>
+    <style>
+    </style>
+  </template>
+
+  <script>
+    /* globals _ */
+    Polymer({
+      is: 'terms-transformer',
+
+      properties: {
+        category: {
+          type: String,
+          value: ''
+        },
+
+        field: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The list of selected IDs as strings.
+         *
+         * @type {Array}
+         */
+        list: {
+          notify: true,
+          type: Array
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The object that maps each selected ID to an object with properties:
+         * {String} category, {Boolean} enabled, {String} field, {String} key, {String} text
+         *
+         * @type {Object}
+         */
+        object: {
+          notify: true,
+          type: Object
+        }
+      },
+
+      observers: [
+        '_updateList(object.*)',
+        '_updateObject(list)'
+      ],
+
+      _updateObject: function() {
+        var self = this;
+
+        _.keys(this.object).forEach(function(id) {
+          var previous = self.object[id].enabled;
+          self.object[id].enabled = (self.list.indexOf(id) >= 0);
+          if(previous !== self.object[id].enabled) {
+            self.notifyPath('object.' + id + '.enabled');
+          }
+        });
+
+        (this.list || []).forEach(function(id) {
+          if(!self.object[id]) {
+            self.object[id] = {
+              category: self.category,
+              enabled: true,
+              field: self.field,
+              key: id,
+              text: id
+            };
+            self.notifyPath('object.' + id);
+          }
+        });
+      },
+
+      _updateList: function() {
+        var self = this;
+
+        _.keys(this.object).forEach(function(id) {
+          var index = self.list.indexOf(id);
+          if(self.object[id].enabled && index < 0) {
+            self.list.push(id);
+          }
+          if(!self.object[id].enabled && index >= 0) {
+            self.list.splice(index, 1);
+          }
+        });
+
+        var idsToDelete = [];
+        (this.list || []).forEach(function(id) {
+          if(!self.object[id] || !self.object[id].enabled) {
+            idsToDelete.push(id);
+          }
+        });
+        idsToDelete.forEach(function(id) {
+          var index = self.list.indexOf(id);
+          if(index >= 0) {
+            self.list.splice(index, 1);
+          }
+        });
+      }
+    });
+  </script>
+</dom-module>

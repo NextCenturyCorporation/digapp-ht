@@ -1,0 +1,199 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../elasticjs.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="query-builder">
+  <template>
+    <elastic-client-query-builder id="builder"></elastic-client-query-builder>
+  </template>
+
+  <script>
+  (function() {
+    /* globals _, ejs */
+    'use strict';
+
+    Polymer({
+      is: 'query-builder',
+
+      properties: {
+        ageField: {
+          type: String
+        },
+
+        cityField: {
+          type: String
+        },
+
+        countryField: {
+          type: String
+        },
+
+        dateField: {
+          type: String
+        },
+
+        emailField: {
+          type: String
+        },
+
+        ethnicityField: {
+          type: String
+        },
+
+        eyeField: {
+          type: String
+        },
+
+        hairField: {
+          type: String
+        },
+
+        heightField: {
+          type: String
+        },
+
+        imageField: {
+          type: String
+        },
+
+        nameField: {
+          type: String
+        },
+
+        phoneField: {
+          type: String
+        },
+
+        priceField: {
+          type: String
+        },
+
+        regionField: {
+          type: String
+        },
+
+        websiteField: {
+          type: String
+        },
+
+        weightField: {
+          type: String
+        },
+
+        /**
+         * The parameters for the query.
+         */
+        searchParameters: {
+          type: Object
+        },
+
+        /**
+         * The computed query object.
+         */
+        query: {
+          computed: '_buildQuery(searchParameters.*)',
+          notify: true,
+          type: Array,
+          value: function() {
+            return ejs.MatchAllQuery();
+          }
+        }
+      },
+
+      _buildBooleanQuery: function(queries) {
+        // TODO Use elastic-client-query-builder
+        var booleanQuery = ejs.BoolQuery();
+        queries.forEach(function(query) {
+          booleanQuery.must(query);
+        });
+        return booleanQuery;
+      },
+
+      _buildDateRangeQuery: function() {
+        // TODO
+        return undefined;
+      },
+
+      _buildMatchQuery: function(field, value) {
+        return this.$$('#builder').buildQuery('match', field, value);
+      },
+
+      _buildQuery: function() {
+        var self = this;
+        var queries = [];
+
+        _.keys(this.searchParameters).forEach(function(group) {
+          var field = self._getField(group);
+          var value = _.keys(self.searchParameters[group]).filter(function(key) {
+            return self.searchParameters[group][key].enabled;
+          }).map(function(key) {
+            return key;
+          }).join(' ');
+          var query = field ? (group === 'dateStart' || group === 'dateEnd' ? self._buildDateRangeQuery(field, value) : self._buildMatchQuery(field, value)) : undefined;
+          if(query) {
+            queries.push(query);
+          }
+        });
+
+        var newQuery = !queries.length ? ejs.MatchAllQuery() : (queries.length === 1 ? queries[0] : this._buildBooleanQuery(queries));
+        var difference = !_.isEqual(newQuery.toJSON(), this.query.toJSON());
+        return difference ? newQuery : this.query;
+      },
+
+      _getField: function(group) {
+        switch(group) {
+          case 'age':
+            return this.ageField;
+          case 'city':
+            return this.cityField;
+          case 'country':
+            return this.countryField;
+          case 'dateEnd':
+          case 'dateStart':
+            return this.dateField;
+          case 'email':
+            return this.emailField;
+          case 'ethnicity':
+            return this.ethnicityField;
+          case 'eyeColor':
+            return this.eyeField;
+          case 'hairColor':
+            return this.hairField;
+          case 'height':
+            return this.heightField;
+          case 'image':
+            return this.imageField;
+          case 'name':
+            return this.nameField;
+          case 'phone':
+            return this.phoneField;
+          case 'region':
+            return this.regionField;
+          case 'website':
+            return this.websiteField;
+          case 'weight':
+            return this.weightField;
+        }
+        return undefined;
+      }
+    });
+  })();
+  </script>
+</dom-module>
