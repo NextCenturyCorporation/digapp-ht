@@ -154,6 +154,19 @@ limitations under the License.
       index="[[config.elasticIndex]]"
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
+      results="{{websiteResult}}"
+      last-error="{{websiteError}}"
+      aggregations="{{buildArray(websiteAgg)}}"
+      filters="[]"
+      loading="{{websiteLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
       results="{{countryResult}}"
       last-error="{{countryError}}"
       aggregations="{{buildArray(countryAgg)}}"
@@ -219,11 +232,11 @@ limitations under the License.
       index="[[config.elasticIndex]]"
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
-      results="{{websiteResult}}"
-      last-error="{{websiteError}}"
-      aggregations="{{buildArray(websiteAgg)}}"
+      results="{{priceResult}}"
+      last-error="{{priceError}}"
+      aggregations="{{buildArray(priceAgg)}}"
       filters="[]"
-      loading="{{websiteLoading}}"
+      loading="{{priceLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
@@ -271,32 +284,6 @@ limitations under the License.
       index="[[config.elasticIndex]]"
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
-      results="{{heightResult}}"
-      last-error="{{heightError}}"
-      aggregations="{{buildArray(heightAgg)}}"
-      filters="[]"
-      loading="{{heightLoading}}"
-      properties-ready="{{processRequest}}">
-    </elastic-client-search>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types="[[getElasticTypes()]]"
-      query="[[ejsQuery]]"
-      results="{{weightResult}}"
-      last-error="{{weightError}}"
-      aggregations="{{buildArray(weightAgg)}}"
-      filters="[]"
-      loading="{{weightLoading}}"
-      properties-ready="{{processRequest}}">
-    </elastic-client-search>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types="[[getElasticTypes()]]"
-      query="[[ejsQuery]]"
       results="{{hairColorResult}}"
       last-error="{{hairColorError}}"
       aggregations="{{buildArray(hairColorAgg)}}"
@@ -315,6 +302,32 @@ limitations under the License.
       aggregations="{{buildArray(eyeColorAgg)}}"
       filters="[]"
       loading="{{eyeColorLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      results="{{heightResult}}"
+      last-error="{{heightError}}"
+      aggregations="{{buildArray(heightAgg)}}"
+      filters="[]"
+      loading="{{heightLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      results="{{weightResult}}"
+      last-error="{{weightError}}"
+      aggregations="{{buildArray(weightAgg)}}"
+      filters="[]"
+      loading="{{weightLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
@@ -615,6 +628,77 @@ limitations under the License.
 
               <div class="h-divider"></div>
               -->
+
+              <div id="website" class="layout horizontal facet filter-header" title="Toggle [[websiteConfig.title]]" on-tap="toggleList">
+                <span class="flex">[[getLabelAndCount(websiteConfig.title, websiteResultList)]]</span>
+                <iron-icon id="website-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="website-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="[[websiteConfig.key]]"
+                field="[[websiteConfig.aggregationField]]"
+                count="{{websiteCount}}"
+                ejs-aggregation="{{websiteAgg}}"
+                type="terms"
+                order="{{websiteSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-combine
+                data-in1="[[websiteResult]]"
+                data-in2="[[websiteConfig.key]]"
+                data-out="{{websiteResultList}}"
+                combine-function="[[generateListFromQueryResults]]">
+              </json-combine>
+
+              <terms-transformer
+                category="[[websiteConfig.title]]"
+                field="[[websiteConfig.field]]"
+                list="{{websiteSelectedList}}"
+                object="{{searchParameters.website}}">
+              </terms-transformer>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <aggregation-popup
+                    aggregation-count="{{websiteCount}}"
+                    items="[[websiteResultList]]"
+                    error="[[websiteError]]"
+                    loading="[[websiteLoading]]"
+                    item-type="[[websiteConfig.title]]"
+                    count-type="Ads"
+                    count-property="doc_count"
+                    id-property="key"
+                    text-property="key"
+                    order-by="{{websiteSortOrder}}">
+                  </aggregation-popup>
+                </div>
+                <template is="dom-if" if="[[websiteResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort order-by="{{websiteSortOrder}}"></aggregation-sort>
+                  </div>
+                </template>
+              </div>
+
+              <iron-collapse id="website-list" class="filter-list" opened>
+                <feature-aggregation show-checkboxes
+                  hide-no-data-text hide-show-more small
+                  count-property="doc_count"
+                  id-property="key"
+                  text-property="key"
+                  items="[[websiteResultList]]"
+                  selected-ids="{{websiteSelectedList}}">
+                </feature-aggregation>
+                <elastic-error error="[[websiteError]]" message="{{websiteErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[websiteResultList.length]]"
+                  error="[[websiteErrorMessage]]"
+                  loading="[[websiteLoading]]"
+                  empty="No [[websiteConfig.title]]">
+                </status-text>
+              </iron-collapse>
+
+              <div class="h-divider"></div>
 
               <div id="country" class="layout horizontal facet filter-header" title="Toggle [[countryConfig.title]]" on-tap="toggleList">
                 <span class="flex">[[getLabelAndCount(countryConfig.title, countryResultList)]]</span>
@@ -977,72 +1061,72 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
-              <div id="website" class="layout horizontal facet filter-header" title="Toggle [[websiteConfig.title]]" on-tap="toggleList">
-                <span class="flex">[[getLabelAndCount(websiteConfig.title, websiteResultList)]]</span>
-                <iron-icon id="website-icon-opened" icon="icons:expand-less"></iron-icon>
-                <iron-icon id="website-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              <div id="price" class="layout horizontal facet filter-header" title="Toggle [[priceConfig.title]]" on-tap="toggleList">
+                <span class="flex">[[getLabelAndCount(priceConfig.title, priceResultList)]]</span>
+                <iron-icon id="price-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="price-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
-                name="[[websiteConfig.key]]"
-                field="[[websiteConfig.aggregationField]]"
-                count="{{websiteCount}}"
-                ejs-aggregation="{{websiteAgg}}"
+                name="[[priceConfig.key]]"
+                field="[[priceConfig.aggregationField]]"
+                count="{{priceCount}}"
+                ejs-aggregation="{{priceAgg}}"
                 type="terms"
-                order="{{websiteSortOrder}}">
+                order="{{priceSortOrder}}">
               </elastic-client-aggregation-builder>
 
               <json-combine
-                data-in1="[[websiteResult]]"
-                data-in2="[[websiteConfig.key]]"
-                data-out="{{websiteResultList}}"
+                data-in1="[[priceResult]]"
+                data-in2="[[priceConfig.key]]"
+                data-out="{{priceResultList}}"
                 combine-function="[[generateListFromQueryResults]]">
               </json-combine>
 
               <terms-transformer
-                category="[[websiteConfig.title]]"
-                field="[[websiteConfig.field]]"
-                list="{{websiteSelectedList}}"
-                object="{{searchParameters.website}}">
+                category="[[priceConfig.title]]"
+                field="[[priceConfig.field]]"
+                list="{{priceSelectedList}}"
+                object="{{searchParameters.price}}">
               </terms-transformer>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
                   <aggregation-popup
-                    aggregation-count="{{websiteCount}}"
-                    items="[[websiteResultList]]"
-                    error="[[websiteError]]"
-                    loading="[[websiteLoading]]"
-                    item-type="[[websiteConfig.title]]"
+                    aggregation-count="{{priceCount}}"
+                    items="[[priceResultList]]"
+                    error="[[priceError]]"
+                    loading="[[priceLoading]]"
+                    item-type="[[priceConfig.title]]"
                     count-type="Ads"
                     count-property="doc_count"
                     id-property="key"
                     text-property="key"
-                    order-by="{{websiteSortOrder}}">
+                    order-by="{{priceSortOrder}}">
                   </aggregation-popup>
                 </div>
-                <template is="dom-if" if="[[websiteResultList.length]]">
+                <template is="dom-if" if="[[priceResultList.length]]">
                   <div class="self-end">
-                    <aggregation-sort order-by="{{websiteSortOrder}}"></aggregation-sort>
+                    <aggregation-sort order-by="{{priceSortOrder}}"></aggregation-sort>
                   </div>
                 </template>
               </div>
 
-              <iron-collapse id="website-list" class="filter-list" opened>
+              <iron-collapse id="price-list" class="filter-list" opened>
                 <feature-aggregation show-checkboxes
                   hide-no-data-text hide-show-more small
                   count-property="doc_count"
                   id-property="key"
                   text-property="key"
-                  items="[[websiteResultList]]"
-                  selected-ids="{{websiteSelectedList}}">
+                  items="[[priceResultList]]"
+                  selected-ids="{{priceSelectedList}}">
                 </feature-aggregation>
-                <elastic-error error="[[websiteError]]" message="{{websiteErrorMessage}}"></elastic-error>
+                <elastic-error error="[[priceError]]" message="{{priceErrorMessage}}"></elastic-error>
                 <status-text
-                  count="[[websiteResultList.length]]"
-                  error="[[websiteErrorMessage]]"
-                  loading="[[websiteLoading]]"
-                  empty="No [[websiteConfig.title]]">
+                  count="[[priceResultList.length]]"
+                  error="[[priceErrorMessage]]"
+                  loading="[[priceLoading]]"
+                  empty="No [[priceConfig.title]]">
                 </status-text>
               </iron-collapse>
 
@@ -1261,6 +1345,148 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
+              <div id="eye-color" class="layout horizontal facet filter-header" title="Toggle [[eyeColorConfig.title]]" on-tap="toggleList">
+                <span class="flex">[[getLabelAndCount(eyeColorConfig.title, eyeColorResultList)]]</span>
+                <iron-icon id="eye-color-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="eye-color-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="[[eyeColorConfig.key]]"
+                field="[[eyeColorConfig.aggregationField]]"
+                count="{{eyeColorCount}}"
+                ejs-aggregation="{{eyeColorAgg}}"
+                type="terms"
+                order="{{eyeColorSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-combine
+                data-in1="[[eyeColorResult]]"
+                data-in2="[[eyeColorConfig.key]]"
+                data-out="{{eyeColorResultList}}"
+                combine-function="[[generateListFromQueryResults]]">
+              </json-combine>
+
+              <terms-transformer
+                category="[[eyeColorConfig.title]]"
+                field="[[eyeColorConfig.field]]"
+                list="{{eyeColorSelectedList}}"
+                object="{{searchParameters.eyeColor}}">
+              </terms-transformer>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <aggregation-popup
+                    aggregation-count="{{eyeColorCount}}"
+                    items="[[eyeColorResultList]]"
+                    error="[[eyeColorError]]"
+                    loading="[[eyeColorLoading]]"
+                    item-type="[[eyeColorConfig.title]]"
+                    count-type="Ads"
+                    count-property="doc_count"
+                    id-property="key"
+                    text-property="key"
+                    order-by="{{eyeColorSortOrder}}">
+                  </aggregation-popup>
+                </div>
+                <template is="dom-if" if="[[eyeColorResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort order-by="{{eyeColorSortOrder}}"></aggregation-sort>
+                  </div>
+                </template>
+              </div>
+
+              <iron-collapse id="eye-color-list" class="filter-list" opened>
+                <feature-aggregation show-checkboxes
+                  hide-no-data-text hide-show-more small
+                  count-property="doc_count"
+                  id-property="key"
+                  text-property="key"
+                  items="[[eyeColorResultList]]"
+                  selected-ids="{{eyeColorSelectedList}}">
+                </feature-aggregation>
+                <elastic-error error="[[eyeColorError]]" message="{{eyeColorErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[eyeColorResultList.length]]"
+                  error="[[eyeColorErrorMessage]]"
+                  loading="[[eyeColorLoading]]"
+                  empty="No [[eyeColorConfig.title]]">
+                </status-text>
+              </iron-collapse>
+
+              <div class="h-divider"></div>
+
+              <div id="hair-color" class="layout horizontal facet filter-header" title="Toggle [[hairColorConfig.title]]" on-tap="toggleList">
+                <span class="flex">[[getLabelAndCount(hairColorConfig.title, hairColorResultList)]]</span>
+                <iron-icon id="hair-color-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="hair-color-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="[[hairColorConfig.key]]"
+                field="[[hairColorConfig.aggregationField]]"
+                count="{{hairColorCount}}"
+                ejs-aggregation="{{hairColorAgg}}"
+                type="terms"
+                order="{{hairColorSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-combine
+                data-in1="[[hairColorResult]]"
+                data-in2="[[hairColorConfig.key]]"
+                data-out="{{hairColorResultList}}"
+                combine-function="[[generateListFromQueryResults]]">
+              </json-combine>
+
+              <terms-transformer
+                category="[[hairColorConfig.title]]"
+                field="[[hairColorConfig.field]]"
+                list="{{hairColorSelectedList}}"
+                object="{{searchParameters.hairColor}}">
+              </terms-transformer>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <aggregation-popup
+                    aggregation-count="{{hairColorCount}}"
+                    items="[[hairColorResultList]]"
+                    error="[[hairColorError]]"
+                    loading="[[hairColorLoading]]"
+                    item-type="[[hairColorConfig.title]]"
+                    count-type="Ads"
+                    count-property="doc_count"
+                    id-property="key"
+                    text-property="key"
+                    order-by="{{hairColorSortOrder}}">
+                  </aggregation-popup>
+                </div>
+                <div class="self-end">
+                  <template is="dom-if" if="[[hairColorResultList.length]]">
+                    <aggregation-sort order-by="{{hairColorSortOrder}}"></aggregation-sort>
+                  </template>
+                </div>
+              </div>
+
+              <iron-collapse id="hair-color-list" class="filter-list" opened>
+                <feature-aggregation show-checkboxes
+                  hide-no-data-text hide-show-more small
+                  count-property="doc_count"
+                  id-property="key"
+                  text-property="key"
+                  items="[[hairColorResultList]]"
+                  selected-ids="{{hairColorSelectedList}}">
+                </feature-aggregation>
+                <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[hairColorResultList.length]]"
+                  error="[[hairColorErrorMessage]]"
+                  loading="[[hairColorLoading]]"
+                  empty="No [[hairColorConfig.title]]">
+                </status-text>
+              </iron-collapse>
+
+              <div class="h-divider"></div>
+
               <div id="height" class="layout horizontal facet filter-header" title="Toggle [[heightConfig.title]]" on-tap="toggleList">
                 <span class="flex">[[getLabelAndCount(heightConfig.title, heightResultList)]]</span>
                 <iron-icon id="height-icon-opened" icon="icons:expand-less"></iron-icon>
@@ -1398,148 +1624,6 @@ limitations under the License.
                   error="[[weightErrorMessage]]"
                   loading="[[weightLoading]]"
                   empty="No [[weightConfig.title]]">
-                </status-text>
-              </iron-collapse>
-
-              <div class="h-divider"></div>
-
-              <div id="hair-color" class="layout horizontal facet filter-header" title="Toggle [[hairColorConfig.title]]" on-tap="toggleList">
-                <span class="flex">[[getLabelAndCount(hairColorConfig.title, hairColorResultList)]]</span>
-                <iron-icon id="hair-color-icon-opened" icon="icons:expand-less"></iron-icon>
-                <iron-icon id="hair-color-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
-              </div>
-
-              <elastic-client-aggregation-builder
-                name="[[hairColorConfig.key]]"
-                field="[[hairColorConfig.aggregationField]]"
-                count="{{hairColorCount}}"
-                ejs-aggregation="{{hairColorAgg}}"
-                type="terms"
-                order="{{hairColorSortOrder}}">
-              </elastic-client-aggregation-builder>
-
-              <json-combine
-                data-in1="[[hairColorResult]]"
-                data-in2="[[hairColorConfig.key]]"
-                data-out="{{hairColorResultList}}"
-                combine-function="[[generateListFromQueryResults]]">
-              </json-combine>
-
-              <terms-transformer
-                category="[[hairColorConfig.title]]"
-                field="[[hairColorConfig.field]]"
-                list="{{hairColorSelectedList}}"
-                object="{{searchParameters.hairColor}}">
-              </terms-transformer>
-
-              <div class="horizontal layout">
-                <div class="flex self-start">
-                  <aggregation-popup
-                    aggregation-count="{{hairColorCount}}"
-                    items="[[hairColorResultList]]"
-                    error="[[hairColorError]]"
-                    loading="[[hairColorLoading]]"
-                    item-type="[[hairColorConfig.title]]"
-                    count-type="Ads"
-                    count-property="doc_count"
-                    id-property="key"
-                    text-property="key"
-                    order-by="{{hairColorSortOrder}}">
-                  </aggregation-popup>
-                </div>
-                <div class="self-end">
-                  <template is="dom-if" if="[[hairColorResultList.length]]">
-                    <aggregation-sort order-by="{{hairColorSortOrder}}"></aggregation-sort>
-                  </template>
-                </div>
-              </div>
-
-              <iron-collapse id="hair-color-list" class="filter-list" opened>
-                <feature-aggregation show-checkboxes
-                  hide-no-data-text hide-show-more small
-                  count-property="doc_count"
-                  id-property="key"
-                  text-property="key"
-                  items="[[hairColorResultList]]"
-                  selected-ids="{{hairColorSelectedList}}">
-                </feature-aggregation>
-                <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
-                <status-text
-                  count="[[hairColorResultList.length]]"
-                  error="[[hairColorErrorMessage]]"
-                  loading="[[hairColorLoading]]"
-                  empty="No [[hairColorConfig.title]]">
-                </status-text>
-              </iron-collapse>
-
-              <div class="h-divider"></div>
-
-              <div id="eye-color" class="layout horizontal facet filter-header" title="Toggle [[eyeColorConfig.title]]" on-tap="toggleList">
-                <span class="flex">[[getLabelAndCount(eyeColorConfig.title, eyeColorResultList)]]</span>
-                <iron-icon id="eye-color-icon-opened" icon="icons:expand-less"></iron-icon>
-                <iron-icon id="eye-color-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
-              </div>
-
-              <elastic-client-aggregation-builder
-                name="[[eyeColorConfig.key]]"
-                field="[[eyeColorConfig.aggregationField]]"
-                count="{{eyeColorCount}}"
-                ejs-aggregation="{{eyeColorAgg}}"
-                type="terms"
-                order="{{eyeColorSortOrder}}">
-              </elastic-client-aggregation-builder>
-
-              <json-combine
-                data-in1="[[eyeColorResult]]"
-                data-in2="[[eyeColorConfig.key]]"
-                data-out="{{eyeColorResultList}}"
-                combine-function="[[generateListFromQueryResults]]">
-              </json-combine>
-
-              <terms-transformer
-                category="[[eyeColorConfig.title]]"
-                field="[[eyeColorConfig.field]]"
-                list="{{eyeColorSelectedList}}"
-                object="{{searchParameters.eyeColor}}">
-              </terms-transformer>
-
-              <div class="horizontal layout">
-                <div class="flex self-start">
-                  <aggregation-popup
-                    aggregation-count="{{eyeColorCount}}"
-                    items="[[eyeColorResultList]]"
-                    error="[[eyeColorError]]"
-                    loading="[[eyeColorLoading]]"
-                    item-type="[[eyeColorConfig.title]]"
-                    count-type="Ads"
-                    count-property="doc_count"
-                    id-property="key"
-                    text-property="key"
-                    order-by="{{eyeColorSortOrder}}">
-                  </aggregation-popup>
-                </div>
-                <template is="dom-if" if="[[eyeColorResultList.length]]">
-                  <div class="self-end">
-                    <aggregation-sort order-by="{{eyeColorSortOrder}}"></aggregation-sort>
-                  </div>
-                </template>
-              </div>
-
-              <iron-collapse id="eye-color-list" class="filter-list" opened>
-                <feature-aggregation show-checkboxes
-                  hide-no-data-text hide-show-more small
-                  count-property="doc_count"
-                  id-property="key"
-                  text-property="key"
-                  items="[[eyeColorResultList]]"
-                  selected-ids="{{eyeColorSelectedList}}">
-                </feature-aggregation>
-                <elastic-error error="[[eyeColorError]]" message="{{eyeColorErrorMessage}}"></elastic-error>
-                <status-text
-                  count="[[eyeColorResultList.length]]"
-                  error="[[eyeColorErrorMessage]]"
-                  loading="[[eyeColorLoading]]"
-                  empty="No [[eyeColorConfig.title]]">
                 </status-text>
               </iron-collapse>
 
@@ -1745,7 +1829,7 @@ limitations under the License.
         includeInReports: false
       };
       app.eyeColorConfig = {
-        key: 'eye',
+        key: 'eyeColor',
         title: 'Provider Eye Color',
         field: 'fields.eye-color.relaxed.name',
         aggregationField: 'fields.eye-color.relaxed.key',
@@ -1753,7 +1837,7 @@ limitations under the License.
         includeInReports: false
       };
       app.hairColorConfig = {
-        key: 'hair',
+        key: 'hairColor',
         title: 'Provider Hair Color',
         field: 'fields.hair-color.relaxed.name',
         aggregationField: 'fields.hair-color.relaxed.key',
