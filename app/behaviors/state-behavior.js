@@ -45,12 +45,12 @@ DigBehaviors.StateBehavior = {
   },
 
   /**
-   * Builds and returns the search state object for the UI from the given config object.
+   * Builds and returns the search state object from the given config object.
    *
    * @param {Object} config
    * @return {Object}
    */
-  buildSearchStateForUI: function(config) {
+  buildSearchState: function(config) {
     return {
       age: config.age || {},
       city: config.city || {},
@@ -71,34 +71,6 @@ DigBehaviors.StateBehavior = {
       website: config.website || {},
       weight: config.weight || {},
       sort: config.sort || ''
-    };
-  },
-
-  /**
-   * Builds and returns the search state object for elasticsearch from the given config object.
-   *
-   * @param {Object} config
-   * @return {Object}
-   */
-  buildSearchStateForES: function(config) {
-    return {
-      dateCreated: config.dateCreated || {},
-      country: config.country || {},
-      region: config.region || {},
-      city: config.city || {},
-      phone: config.phone || {},
-      email: config.email || {},
-      website: config.website || {},
-      name: config.name || {},
-      age: config.age || {},
-      ethnicity: config.ethnicity || {},
-      eyeColor: config.eyeColor || {},
-      hairColor: config.hairColor || {},
-      height: config.height || {},
-      weight: config.weight || {},
-      image: config.image || {},
-      sort: config.sort || '',
-      text: config.text || ''
     };
   }
 };
