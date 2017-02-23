@@ -45,13 +45,12 @@ DigBehaviors.StateBehavior = {
   },
 
   /**
-   * Builds and returns the search state object for the UI from the given config object and annotations filter.
+   * Builds and returns the search state object for the UI from the given config object.
    *
    * @param {Object} config
-   * @param {Object} annotationsFilter
    * @return {Object}
    */
-  buildSearchStateForUI: function(config, annotationsFilter) {
+  buildSearchStateForUI: function(config) {
     return {
       age: config.age || {},
       city: config.city || {},
@@ -64,6 +63,7 @@ DigBehaviors.StateBehavior = {
       hairColor: config.hairColor || {},
       height: config.height || {},
       image: config.image || {},
+      location: config.location || {},
       name: config.name || {},
       phone: config.phone || {},
       price: config.price || {},

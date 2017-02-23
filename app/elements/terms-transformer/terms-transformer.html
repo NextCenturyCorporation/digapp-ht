@@ -29,14 +29,15 @@ limitations under the License.
       is: 'terms-transformer',
 
       properties: {
+        /**
+         * (Required)
+         *
+         * The category for the object.
+         *
+         * @type {String}
+         */
         category: {
-          type: String,
-          value: ''
-        },
-
-        field: {
-          type: String,
-          value: ''
+          type: String
         },
 
         /**
@@ -55,12 +56,23 @@ limitations under the License.
          * (Optional|Output)
          *
          * The object that maps each selected ID to an object with properties:
-         * {String} category, {Boolean} enabled, {String} field, {String} key, {String} text
+         * {String} category, {Boolean} enabled, {String} key, {String} text
          *
          * @type {Object}
          */
         object: {
           notify: true,
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
+         * A function to transform the ID into the text for the object.
+         *
+         * @type {Function}
+         */
+        textFunction: {
           type: Object
         }
       },
@@ -81,7 +93,6 @@ limitations under the License.
             self.object[id] = {
               category: self.object[id].category,
               enabled: newEnabled,
-              field: self.object[id].field,
               key: self.object[id].key,
               text: self.object[id].text
             };
@@ -95,9 +106,8 @@ limitations under the License.
             self.object[id] = {
               category: self.category,
               enabled: true,
-              field: self.field,
               key: id,
-              text: id
+              text: self.textFunction ? self.textFunction(id) : id
             };
             // Must notifyPath on * because it will not handle an id with a period correctly.
             self.notifyPath('object.*', self.object[id]);

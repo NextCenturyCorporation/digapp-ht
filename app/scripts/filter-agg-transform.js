@@ -22,17 +22,21 @@
 /* jshint camelcase:false */
 
 var filterAggTransform = (function() {
+  function cityIdToText(id) {
+    var idPartList = id.split(':');
+    return (idPartList.length > 1 ? idPartList[0] + ', ' + idPartList[1] : '');
+  }
+
   return {
     cities: function(data) {
       var buckets = [];
       if(data && data.aggregations && data.aggregations.city && data.aggregations.city.city.buckets) {
         buckets = data.aggregations.city.city.buckets.map(function(bucket) {
-          var keySplit = bucket.key.split(':');
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
             doc_count: bucket.doc_count,
             key: bucket.key,
-            text: (keySplit.length > 1 ? keySplit[0] + ', ' + keySplit[1] : '')
+            text: cityIdToText(bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
@@ -47,6 +51,10 @@ var filterAggTransform = (function() {
           }
         }
       };
+    },
+
+    cityIdToText: function(id) {
+      return cityIdToText(id);
     }
   };
 });
