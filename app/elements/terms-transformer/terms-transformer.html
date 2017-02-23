@@ -82,6 +82,43 @@ limitations under the License.
         '_updateObject(list)'
       ],
 
+      /**
+       * Creates and returns an object that maps each ID in the given list to an object with properties:
+       * {String} category, {Boolean} enabled, {String} key, {String} text
+       *
+       * @param {Array} list
+       * @return {Object}
+       */
+      createObjectFromList: function(list) {
+        var self = this;
+        var object = {};
+        list.forEach(function(id) {
+          object[id] = self._createObjectProperty(true, id, self.textFunction ? self.textFunction(id) : id);
+        });
+        return object;
+      },
+
+      /**
+       * Creates and returns an object with properties:
+       * {String} category, {Boolean} enabled, {String} key, {String} text
+       *
+       * @param {Boolean} enabled
+       * @param {String} id
+       * @param {String} text
+       * @return {Object}
+       */
+      _createObjectProperty: function(enabled, id, text) {
+        return {
+          category: this.category,
+          enabled: enabled,
+          key: id,
+          text: text
+        };
+      },
+
+      /**
+       * Updates the global object property using the data in the global list property.
+       */
       _updateObject: function() {
         var self = this;
 
@@ -90,12 +127,7 @@ limitations under the License.
           var newEnabled = (self.list.indexOf(id) >= 0);
           if(oldEnabled !== newEnabled) {
             // Must recreate the object here rather than just setting the enabled property in order for notifyPath to work correctly.
-            self.object[id] = {
-              category: self.object[id].category,
-              enabled: newEnabled,
-              key: self.object[id].key,
-              text: self.object[id].text
-            };
+            self.object[id] = self._createObjectProperty(newEnabled, self.object[id].key, self.object[id].text);
             // Must notifyPath on * because it will not handle an id with a period correctly.
             self.notifyPath('object.*', self.object[id]);
           }
@@ -103,18 +135,16 @@ limitations under the License.
 
         (this.list || []).forEach(function(id) {
           if(!self.object[id]) {
-            self.object[id] = {
-              category: self.category,
-              enabled: true,
-              key: id,
-              text: self.textFunction ? self.textFunction(id) : id
-            };
+            self.object[id] = self._createObjectProperty(true, id, self.textFunction ? self.textFunction(id) : id);
             // Must notifyPath on * because it will not handle an id with a period correctly.
             self.notifyPath('object.*', self.object[id]);
           }
         });
       },
 
+      /**
+       * Updates the global list property using the data in the global object property.
+       */
       _updateList: function() {
         var self = this;
 

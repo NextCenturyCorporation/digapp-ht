@@ -24,6 +24,7 @@ limitations under the License.
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
+<link rel="import" href="../terms-transformer/terms-transformer.html">
 
 <dom-module id="bulk-search">
   <template>
@@ -42,6 +43,8 @@ limitations under the License.
         display: none;
       }
     </style>
+
+    <terms-transformer category="[[category]]"></terms-transformer>
 
     <paper-dialog id="bulkSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="settings layout vertical">
@@ -114,6 +117,17 @@ limitations under the License.
       behaviors: [DigBehaviors.StateBehavior],
 
       properties: {
+        /**
+         * The category of the phone search parameters.
+         *
+         * @type {String}
+         * @default ''
+         */
+        category: {
+          type: String,
+          value: ''
+        },
+
         /**
          * Whether to clear all selected facets whenever a search is run.
          *
@@ -195,7 +209,8 @@ limitations under the License.
           // Remove all non-digit, non-whitespace characters.
           .replace(/[^\d\s]/g, '')
           // Remove extra spaces.
-          .replace(/\s+/g, '\n');
+          .replace(/\s+/g, '\n')
+          .trim();
       },
 
       /**
@@ -237,17 +252,19 @@ limitations under the License.
         return {
           onClick: function() {
             if(self._phoneInput && self._cleanInput) {
-              var searchText = self._phoneInput.replace(/\n/g, ' ');
+              var termsTransformer = self.$$('terms-transformer');
+              var phoneArray = self._phoneInput.replace(/\n/g, ' ').split(' ');
+              var phoneParameter = termsTransformer.createObjectFromList(phoneArray);
               self.$$('#bulkSearchDialog').close();
               self.set('processRequest', false);
               if(self.clearFacets) {
                 // From DigBehaviors.StateBehavior
                 self.set('searchParameters', self.buildSearchStateForUI({
                   sort: self.searchParameters.sort,
-                  text: searchText
-                }, self.searchParameters.annotationsFilter));
+                  phone: phoneParameter
+                }));
               } else {
-                self.set('searchParameters.text', searchText);
+                self.set('searchParameters.phone', phoneParameter);
               }
               self.set('processRequest', true);
               self.set('_phoneInput', '');
