@@ -74,10 +74,19 @@ limitations under the License.
         var self = this;
 
         _.keys(this.object).forEach(function(id) {
-          var previous = self.object[id].enabled;
-          self.object[id].enabled = (self.list.indexOf(id) >= 0);
-          if(previous !== self.object[id].enabled) {
-            self.notifyPath('object.' + id + '.enabled');
+          var oldEnabled = self.object[id].enabled;
+          var newEnabled = (self.list.indexOf(id) >= 0);
+          if(oldEnabled !== newEnabled) {
+            // Must recreate the object here rather than just setting the enabled property in order for notifyPath to work correctly.
+            self.object[id] = {
+              category: self.object[id].category,
+              enabled: newEnabled,
+              field: self.object[id].field,
+              key: self.object[id].key,
+              text: self.object[id].text
+            };
+            // Must notifyPath on * because it will not handle an id with a period correctly.
+            self.notifyPath('object.*', self.object[id]);
           }
         });
 
@@ -90,7 +99,8 @@ limitations under the License.
               key: id,
               text: id
             };
-            self.notifyPath('object.' + id);
+            // Must notifyPath on * because it will not handle an id with a period correctly.
+            self.notifyPath('object.*', self.object[id]);
           }
         });
       },
