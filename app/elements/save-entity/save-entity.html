@@ -15,12 +15,9 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 
 <dom-module id="save-entity">
   <template>
-    <paper-icon-button icon="icons:save" disabled="[[_saveDisabled]]" title="Save [[entityName]]" on-tap="getNewestDataAndSave"></paper-icon-button>
-
     <elastic-update
       client="[[client]]"
       index="[[userIndex]]"
@@ -162,6 +159,20 @@ limitations under the License.
         },
 
         /**
+         * (Output)
+         *
+         * Whether the save button is disabled.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        saveDisabled: {
+          nofity: true,
+          type: Boolean,
+          value: false
+        },
+
+        /**
          * Whether the user has demanded to save the entity.
          *
          * @type {Boolean}
@@ -169,18 +180,6 @@ limitations under the License.
          * @private
          */
         _saveDemanded: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether the save button is disabled.
-         *
-         * @type {Boolean}
-         * @default false
-         * @private
-         */
-        _saveDisabled: {
           type: Boolean,
           value: false
         },
@@ -214,7 +213,8 @@ limitations under the License.
        * Runs the callback to get the newest user data.
        */
       getNewestDataAndSave: function() {
-        this.set('_saveDisabled', true);
+        this.set('saveDisabled', true);
+        this.notifyPath('saveDisabled', true);
         this.set('_saveDemanded', true);
         if(this.runUserQueryCallback) {
           this.runUserQueryCallback();
@@ -300,9 +300,11 @@ limitations under the License.
        */
       _updateSaveDisabled: function() {
         var self = this;
-        this.set('_saveDisabled', this.existingEntities.some(function(entity) {
+        var saveDisabled = this.existingEntities.some(function(entity) {
           return entity.id === self.entityId;
-        }));
+        });
+        this.set('saveDisabled', saveDisabled);
+        this.notifyPath('saveDisabled', saveDisabled);
       }
     });
   })();
