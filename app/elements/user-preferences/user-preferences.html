@@ -81,15 +81,6 @@ limitations under the License.
       paper-listbox paper-item {
         cursor: pointer;
       }
-
-      .entity-action {
-        color: var(--primary-text-color);
-        text-decoration: none;
-      }
-
-      .entity-action:hover {
-        color: var(--secondary-text-color);
-      }
     </style>
 
     <paper-icon-button
@@ -289,22 +280,6 @@ limitations under the License.
               </div>
             </template>
           </div>
-
-          <div class="divider"></div>
-
-          <div class="layout vertical">
-            <div class="name">Saved Entities</div>
-            <template is="dom-repeat" items="[[entities]]" as="entity">
-              <div class="layout horizontal saved-item">
-                <a class="entity-action" href$="[[getPageLink(entity.id, entity.type)]]" target="_blank" title="Open [[entity.name]]">
-                  <paper-icon-button icon="icons:open-in-new" noink></paper-icon-button>
-                </a>
-                <paper-icon-button class="entity-action" icon="icons:delete" title="Delete [[entity.name]] from Saved Entities" on-tap="_deleteEntity"></paper-icon-button>
-                <paper-icon-button class$="[[getTypeStyleClass(entity.type)]]" icon$="[[getTypeIcon(entity.type)]]" disabled></paper-icon-button>
-                <span class="tall flex">[[entity.name]]</span>
-              </div>
-            </template>
-          </div>
         </template>
 
         <template is="dom-if" if="{{!userRecordExists}}" restamp="true">
@@ -319,7 +294,7 @@ limitations under the License.
       index="[[userIndex]]"
       elastic-type="[[userType]]"
       id="{{userId}}"
-      body='{{_userUpdateBody}}'
+      body='{{userUpdateBody}}'
       results="{{_updatedUser}}"
       last-error="{{updateError}}">
     </elastic-update>
@@ -333,7 +308,7 @@ limitations under the License.
     Polymer({
       is: 'user-preferences',
 
-      behaviors: [DigBehaviors.StateBehavior, DigBehaviors.TypeBehavior],
+      behaviors: [DigBehaviors.StateBehavior],
 
       properties: {
         /**
@@ -478,16 +453,6 @@ limitations under the License.
         },
 
         /**
-         * The saved entities for this user.
-         */
-        entities: {
-          type: Array,
-          value: function() {
-            return [];
-          }
-        },
-
-        /**
          * Whether a notification query is being viewed and the notification date associated with that query.
          */
         notificationQueryDate: {
@@ -501,6 +466,14 @@ limitations under the License.
         sortNewest: {
           type: String,
           value: ''
+        },
+
+        /**
+         * Document info to pass into the elastic-update component
+         */
+        userUpdateBody: {
+          notify: true,
+          type: Object
         },
 
         /**
@@ -519,13 +492,6 @@ limitations under the License.
         },
 
         /**
-         * Document info to pass into the elastic-update component
-         */
-        _userUpdateBody: {
-          type: Object,
-          readOnly: true
-        },
-        /**
          * Result from elastic-update.
          */
         _updatedUser: {
@@ -540,6 +506,7 @@ limitations under the License.
           type: Boolean,
           notify: true
         },
+
         /**
          * Tracks if query is being reloaded via _runSearch (if not, need to reset notification properties)
          */
@@ -571,7 +538,7 @@ limitations under the License.
             if(self.emailAddress) {
               self.set('noEmailAddress', false);
 
-              self._set_userUpdateBody({
+              self.set('userUpdateBody', {
                 doc: {
                   emailAddress: self.emailAddress
                 }
@@ -588,7 +555,7 @@ limitations under the License.
         var self = this;
         this.advancedSearch = !this.advancedSearch;
 
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             advancedSearch: self.advancedSearch
           }
@@ -602,7 +569,7 @@ limitations under the License.
         var self = this;
         this.blurImages = !this.blurImages;
 
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             blurImages: self.blurImages
           }
@@ -614,7 +581,7 @@ limitations under the License.
        */
       _toggleNotificationAlert: function() {
         var self = this;
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             savedQueries: self.searches
           }
@@ -643,7 +610,7 @@ limitations under the License.
             } else {
               self.push('searches', self._copyReceivedSearch(self.receivedSearches[index]));
               self.splice('receivedSearches', index, 1);
-              self._set_userUpdateBody({
+              self.set('userUpdateBody', {
                 doc: {
                   savedQueries: self.searches,
                   receivedQueries: self.receivedSearches
@@ -670,23 +637,10 @@ limitations under the License.
         var self = this;
         self.splice('searches', this._saveOverIndex, 1, self._copyReceivedSearch(event.model.search));
         self.splice('receivedSearches', event.model.index, 1);
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             savedQueries: self.searches,
             receivedQueries: self.receivedSearches
-          }
-        });
-      },
-
-      /**
-       * Deletes the given saved entity.
-       */
-      _deleteEntity: function(event) {
-        var self = this;
-        self.splice('entities', event.model.index, 1);
-        self._set_userUpdateBody({
-          doc: {
-            savedEntities: self.entities
           }
         });
       },
@@ -697,7 +651,7 @@ limitations under the License.
       _deleteSearch: function(event) {
         var self = this;
         self.splice('searches', event.model.index, 1);
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             savedQueries: self.searches
           }
@@ -710,7 +664,7 @@ limitations under the License.
       _deleteReceivedSearch: function(event) {
         var self = this;
         self.splice('receivedSearches', event.model.index, 1);
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             receivedQueries: self.receivedSearches
           }
@@ -726,7 +680,7 @@ limitations under the License.
           return;
         }
         var self = this;
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             notificationFrequency: self.notificationFrequency
           }
@@ -823,7 +777,7 @@ limitations under the License.
 
         search.lastRunDate = new Date();
         self.splice('searches', index, 1, search);
-        self._set_userUpdateBody({
+        self.set('userUpdateBody', {
           doc: {
             savedQueries: self.searches
           }
