@@ -45,7 +45,6 @@ var webpageTransform = (function(_, commonTransforms, offerTransform) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         var total = data.aggregations.revisions.doc_count;
         var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
-          total += bucket.doc_count;
           return {
             date: commonTransforms.getDate(bucket.key_as_string),
             list: [{
