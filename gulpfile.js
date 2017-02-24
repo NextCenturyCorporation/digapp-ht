@@ -210,7 +210,8 @@ gulp.task('copy', function() {
   ]).pipe(gulp.dest(dist('scripts')));
 
   var sourceMaps = gulp.src([
-    'app/bower_components/web-animations-js/web-animations-next-lite.min.js.map'
+    'app/bower_components/web-animations-js/web-animations-next-lite.min.js.map',
+    'app/bower_components/pdfmake/build/pdfmake.min.js.map'
   ]).pipe(gulp.dest(dist('elements')));
 
   return merge(app, behaviors, bower, scripts, sourceMaps)
@@ -292,6 +293,9 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
   var configProxyOptions = url.parse('http://localhost:9000/config');
   configProxyOptions.route = '/config';
 
+  var downloadProxyOptions = url.parse('http://localhost:9000/download');
+  downloadProxyOptions.route = '/download';
+
   var uploadProxyOptions = url.parse('http://localhost:9000/upload');
   uploadProxyOptions.route = '/upload';
 
@@ -313,7 +317,7 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
     // https: true,
     server: {
       baseDir: ['.tmp', 'app'],
-      middleware: [proxy(configProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
+      middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
     }
   });
 
@@ -327,6 +331,9 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
 gulp.task('serve:dist', ['default', 'nodemon'], function() {
   var configProxyOptions = url.parse('http://localhost:9000/config');
   configProxyOptions.route = '/config';
+
+  var downloadProxyOptions = url.parse('http://localhost:9000/download');
+  downloadProxyOptions.route = '/download';
 
   var uploadProxyOptions = url.parse('http://localhost:9000/upload');
   uploadProxyOptions.route = '/upload';
@@ -348,7 +355,7 @@ gulp.task('serve:dist', ['default', 'nodemon'], function() {
     //       will present a certificate warning in the browser.
     // https: true,
     server: dist(),
-    middleware: [proxy(configProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
+    middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
   });
 });
 

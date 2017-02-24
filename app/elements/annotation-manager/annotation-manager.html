@@ -16,7 +16,13 @@ limitations under the License.
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
+<link rel="import" href="../../bower_components/elastic-update/elastic-update.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-filter-builder/elastic-client-filter-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../behaviors.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="annotation-manager">
   <template>
@@ -104,7 +110,7 @@ limitations under the License.
 
   <script>
   (function() {
-    /* globals DigBehaviors */
+    /* globals _, DigBehaviors */
 
     'use strict';
 
@@ -189,6 +195,13 @@ limitations under the License.
         },
 
         /**
+         * The filter for latest dates in both annotations aggregations.
+         */
+        _latestFilter: {
+          type: Object
+        },
+
+        /**
          * The filter for the 'not relevant' annotations aggregation.
          */
         _notRelevantAnnotationFilter: {
@@ -232,10 +245,21 @@ limitations under the License.
         },
 
         /**
-         * The callback function to use after a create request.
+         * The mapping of annotation change listener IDs to functions.
          */
-        _createCallback: {
-          type: Object
+        _listeners: {
+          type: Object,
+          value: function() {
+            return {};
+          }
+        },
+
+        /**
+         * The next available listener ID.
+         */
+        _nextListenerId: {
+          type: Number,
+          value: 1
         },
 
         /**
@@ -266,8 +290,12 @@ limitations under the License.
       _buildAnnotationManager: function() {
         var self = this;
         return {
-          createAnnotation: function(uri, cdrId, label, justification, callback) {
-            self.set('_createCallback', callback);
+          addListener: function(listener) {
+            var id = self._nextListenerId++;
+            self._listeners[id] = listener;
+            return id;
+          },
+          createAnnotation: function(uri, cdrId, label, justification) {
             self.set('_createBody', {
               user: self.username,
               uri: uri,
@@ -299,7 +327,10 @@ limitations under the License.
                 latest: false
               }
             });
-          }
+          },
+          removeListener: function(id) {
+            delete self._listeners[id];
+          },
         };
       },
 
@@ -325,6 +356,19 @@ limitations under the License.
       },
 
       /**
+       * Notifies all listeners of the newly created annotation.
+       */
+      _notifyListeners: function(annotationId) {
+        var self = this;
+        _.keys(this._listeners).forEach(function(listenerId) {
+          var listener = self._listeners[listenerId];
+          if(listener) {
+            listener(self._createBody.uri, self._createBody.label, self._createBody.justification, annotationId);
+          }
+        });
+      },
+
+      /**
        * After creating a new annotation, query for 'relevant' and 'not relevant' annotations again after a short timeout (wait for elasticsearch to re-index).
        */
       _onCreateDone: function(results) {
@@ -336,10 +380,7 @@ limitations under the License.
               self.$$('#notRelevantSearch').search();
             }, 1000);
           }
-          if(this._createCallback) {
-            this._createCallback(results._id);
-            this.set('_createCallback', undefined);
-          }
+          this._notifyListeners(results._id);
         }
       }
     });

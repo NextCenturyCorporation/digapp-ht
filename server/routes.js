@@ -23,6 +23,8 @@
 var errors = require('./components/errors');
 var config = require('./config/environment');
 var path = require('path');
+var request = require('request');
+
 var multer = require('multer');
 var storage = multer.memoryStorage();
 var upload = multer({
@@ -54,6 +56,11 @@ module.exports = function(app) {
         });
     });
 
+    app.get('/downloadImage/:link', function(req, res) {
+      var link = decodeURIComponent(req.params.link);
+      req.pipe(request(link)).pipe(res);
+    });
+
     app.post('/upload', upload.array('file'), function(req, res) {
       res.status(200).send(req.files[0].buffer.toString());
     });
@@ -61,6 +68,7 @@ module.exports = function(app) {
     app.post('/uploadImage', upload.array('file'), function(req, res) {
         res.status(200).send({mimeType: req.files[0].mimetype, base64: req.files[0].buffer.toString('base64')});
     });
+
     // All undefined asset or api routes should return a 404
     app.route('/:url(api|auth|components|app|bower_components|assets)/*')
     .get(errors[404]);

@@ -18,17 +18,21 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/iron-dropdown/iron-dropdown.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-item/paper-icon-item.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item-body.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-styles/paper-styles.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
 <link rel="import" href="../behaviors.html">
 
 <dom-module id="annotate-record">
   <template>
+    <style include="iron-flex"></style>
     <style>
       :host {
         display: block;
@@ -235,7 +239,8 @@ limitations under the License.
          * The annotation manager.
          */
         annotationManager: {
-          type: Object
+          type: Object,
+          observer: '_addAnnotationChangeListener'
         },
 
         /**
@@ -308,6 +313,14 @@ limitations under the License.
         noink: {
           type: Boolean,
           value: false
+        },
+        _listenerId: {
+          type: Number
+        }
+      },
+      detached: function() {
+        if(this.annotationManager && this._listenerId >= 0) {
+          this.annotationManager.removeListener(this._listenerId);
         }
       },
       closeDropdownMenu: function() {
@@ -369,10 +382,7 @@ limitations under the License.
           this.annotationResult.id = undefined;
           this.annotationResult.source.label = this.label;
           this.annotationResult.source.justification = this.justification;
-          var self = this;
-          this.annotationManager.createAnnotation(this.itemId, this.getCdrId(this.itemId, this.itemType), this.label, this.justification, function(id) {
-            self.annotationResult.id = id;
-          });
+          this.annotationManager.createAnnotation(this.itemId, this.getCdrId(this.itemId, this.itemType), this.label, this.justification);
         }
       },
       selectVeryRelevant: function() {
@@ -406,6 +416,22 @@ limitations under the License.
           this.label = this.noAnswer;
           this.justification = '';
         }
+      },
+      _addAnnotationChangeListener: function(annotationManager) {
+        this._listenerId = annotationManager.addListener(this._createAnnotationChangeListener());
+      },
+      _createAnnotationChangeListener: function() {
+        var self = this;
+        return function(itemId, label, justification, annotationId) {
+          if(self.item.id === itemId) {
+            self.set('label', label);
+            self.set('justification', justification);
+            if(!self.annotationResult) {
+              self.annotationResult = {};
+            }
+            self.set('annotationResult.id', annotationId);
+          }
+        };
       }
     });
   })();
