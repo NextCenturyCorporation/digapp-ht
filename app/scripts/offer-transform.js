@@ -755,7 +755,7 @@ var offerTransform = (function(_, commonTransforms) {
         }).join(', ');
 
         var item = {
-          images: result.images.map(function(image) {
+          images: (result.images || []).map(function(image) {
             return {
               id: 'image' + nextId++,
               source: encodeURIComponent(image.source)

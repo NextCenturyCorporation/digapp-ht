@@ -57,11 +57,11 @@ limitations under the License.
 
     test('entities transform function given empty input does return empty array', function() {
       expect(clientConfig.config.transforms.entity.entities()).to.deep.equal([]);
-      expect(clientConfig.config.transforms.entity.entities({})).to.deep.equal([]);
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([], {})).to.deep.equal([]);
+      expect(clientConfig.config.transforms.entity.entities([], {
         hits: {}
       })).to.deep.equal([]);
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([], {
         hits: {
           hits: []
         }
@@ -69,14 +69,19 @@ limitations under the License.
     });
 
     test('entities transform function given email input does return correct array', function() {
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
         hits: {
           hits: [{
-            _id: 1,
             _source: {
-              name: 'testEmail'
-            },
-            _type: 'email'
+              fields: {
+                email: {
+                  relaxed: [{
+                    key: 1,
+                    name: 'testEmail'
+                  }]
+                }
+              }
+            }
           }]
         }
       })).to.deep.equal([{
@@ -87,14 +92,19 @@ limitations under the License.
     });
 
     test('entities transform function given image input does return correct array', function() {
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
         hits: {
           hits: [{
-            _id: 2,
             _source: {
-              url: ['testImage']
-            },
-            _type: 'image'
+              fields: {
+                image: {
+                  relaxed: [{
+                    key: 2,
+                    name: 'testImage'
+                  }]
+                }
+              }
+            }
           }]
         }
       })).to.deep.equal([{
@@ -105,14 +115,19 @@ limitations under the License.
     });
 
     test('entities transform function given offer input does return correct array', function() {
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
         hits: {
           hits: [{
             _id: 3,
             _source: {
-              title: ['testOffer']
-            },
-            _type: 'offer'
+              fields: {
+                title: {
+                  strict: [{
+                    name: 'testOffer'
+                  }]
+                }
+              }
+            }
           }]
         }
       })).to.deep.equal([{
@@ -123,14 +138,19 @@ limitations under the License.
     });
 
     test('entities transform function given phone input does return correct array', function() {
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
         hits: {
           hits: [{
-            _id: 4,
             _source: {
-              name: 'testPhone'
-            },
-            _type: 'phone'
+              fields: {
+                phone: {
+                  relaxed: [{
+                    key: 4,
+                    name: 'testPhone'
+                  }]
+                }
+              }
+            }
           }]
         }
       })).to.deep.equal([{
@@ -141,32 +161,105 @@ limitations under the License.
     });
 
     test('entities transform function given multi-type input does return correct array', function() {
-      expect(clientConfig.config.transforms.entity.entities({
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
         hits: {
           hits: [{
-            _id: 1,
+            _id: 3,
             _source: {
-              name: 'testEmail'
-            },
-            _type: 'email'
+              fields: {
+                email: {
+                  relaxed: [{
+                    key: 1,
+                    name: 'testEmail'
+                  }]
+                },
+                image: {
+                  relaxed: [{
+                    key: 2,
+                    name: 'testImage'
+                  }]
+                },
+                phone: {
+                  relaxed: [{
+                    key: 4,
+                    name: 'testPhone'
+                  }]
+                },
+                title: {
+                  strict: [{
+                    name: 'testOffer'
+                  }]
+                }
+              }
+            }
+          }]
+        }
+      })).to.deep.equal([{
+        id: 3,
+        name: 'testOffer',
+        type: 'offer'
+      }, {
+        id: 1,
+        name: 'testEmail',
+        type: 'email'
+      }, {
+        id: 2,
+        name: 'testImage',
+        type: 'image'
+      }, {
+        id: 4,
+        name: 'testPhone',
+        type: 'phone'
+      }]);
+    });
+
+    test('entities transform function given multi-element input does return correct array', function() {
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
+        hits: {
+          hits: [{
+            _source: {
+              fields: {
+                email: {
+                  relaxed: [{
+                    key: 1,
+                    name: 'testEmail'
+                  }]
+                }
+              }
+            }
           }, {
-            _id: 2,
             _source: {
-              url: ['testImage']
-            },
-            _type: 'image'
+              fields: {
+                image: {
+                  relaxed: [{
+                    key: 2,
+                    name: 'testImage'
+                  }]
+                }
+              }
+            }
           }, {
             _id: 3,
             _source: {
-              title: ['testOffer']
-            },
-            _type: 'offer'
+              fields: {
+                title: {
+                  strict: [{
+                    name: 'testOffer'
+                  }]
+                }
+              }
+            }
           }, {
-            _id: 4,
             _source: {
-              name: 'testPhone'
-            },
-            _type: 'phone'
+              fields: {
+                phone: {
+                  relaxed: [{
+                    key: 4,
+                    name: 'testPhone'
+                  }]
+                }
+              }
+            }
           }]
         }
       })).to.deep.equal([{
@@ -181,6 +274,88 @@ limitations under the License.
         id: 3,
         name: 'testOffer',
         type: 'offer'
+      }, {
+        id: 4,
+        name: 'testPhone',
+        type: 'phone'
+      }]);
+    });
+
+    test('entities transform function given repeat input does return correct array', function() {
+      expect(clientConfig.config.transforms.entity.entities([1, 2, 3, 4], {
+        hits: {
+          hits: [{
+            _id: 3,
+            _source: {
+              fields: {
+                email: {
+                  relaxed: [{
+                    key: 1,
+                    name: 'testEmail'
+                  }]
+                },
+                image: {
+                  relaxed: [{
+                    key: 2,
+                    name: 'testImage'
+                  }]
+                },
+                phone: {
+                  relaxed: [{
+                    key: 4,
+                    name: 'testPhone'
+                  }]
+                },
+                title: {
+                  strict: [{
+                    name: 'testOffer'
+                  }]
+                }
+              }
+            }
+          }, {
+            _id: 3,
+            _source: {
+              fields: {
+                email: {
+                  relaxed: [{
+                    key: 1,
+                    name: 'testEmail'
+                  }]
+                },
+                image: {
+                  relaxed: [{
+                    key: 2,
+                    name: 'testImage'
+                  }]
+                },
+                phone: {
+                  relaxed: [{
+                    key: 4,
+                    name: 'testPhone'
+                  }]
+                },
+                title: {
+                  strict: [{
+                    name: 'testOffer'
+                  }]
+                }
+              }
+            }
+          }]
+        }
+      })).to.deep.equal([{
+        id: 3,
+        name: 'testOffer',
+        type: 'offer'
+      }, {
+        id: 1,
+        name: 'testEmail',
+        type: 'email'
+      }, {
+        id: 2,
+        name: 'testImage',
+        type: 'image'
       }, {
         id: 4,
         name: 'testPhone',
