@@ -1,0 +1,132 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+
+<dom-module id="entity-query">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <elastic-client-query-builder
+      type="terms"
+      fields="[[fields]]"
+      values="[[values]]"
+      ejs-query="{{_query}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
+      client="[[client]]"
+      index="[[indexName]]"
+      query="[[_query]]"
+      page="{{page}}"
+      page-size="{{pageSize}}"
+      aggregations="[]"
+      filters="[]"
+      results="{{_results}}"
+      loading="{{loading}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[_results]]"
+      data-out="{{totalCount}}"
+      transform-function="[[_createTotalCountFunction()]]">
+    </json-transform>
+
+    <json-transform
+      data-in="[[_results]]"
+      data-out="{{entities}}"
+      transform-function="[[transformFunction]]">
+    </json-transform>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'entity-query',
+
+      properties: {
+        client: {
+          type: Object
+        },
+
+        entities: {
+          notify: true,
+          type: Array
+        },
+
+        fields: {
+          type: Array
+        },
+
+        indexName: {
+          type: String
+        },
+
+        loading: {
+          notify: true,
+          type: Boolean
+        },
+
+        page: {
+          notify: true,
+          type: Number
+        },
+
+        pageSize: {
+          notify: true,
+          type: Number
+        },
+
+        totalCount: {
+          notify: true,
+          type: Number
+        },
+
+        transformFunction: {
+          type: Object
+        },
+
+        values: {
+          type: Array
+        },
+
+        _query: {
+          type: Object
+        },
+
+        _results: {
+          type: Object
+        }
+      },
+
+      _createTotalCountFunction: function() {
+        return function(data) {
+          return data && data.hits && data.hits.total ? data.hits.total : 0;
+        };
+      }
+    });
+  })();
+  </script>
+</dom-module>

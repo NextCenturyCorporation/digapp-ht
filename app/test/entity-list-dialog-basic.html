@@ -42,22 +42,53 @@ limitations under the License.
 
     setup(function() {
       element = fixture('entity-list-dialog-fixture');
-      element.searchParameters = {};
     });
 
-    test('entities is empty by default', function() {
-      expect(element.entities).to.deep.equal([]);
+    test('_selected is set to annotation by default', function() {
+      expect(element._selected).to.equal('annotation');
     });
 
-    test('does have paper-dialog element', function() {
+    test('other properties are undefined by default', function() {
+      expect(element.annotationIds).to.not.exist;
+      expect(element.annotationManager).to.not.exist;
+      expect(element.client).to.not.exist;
+      expect(element.entities).to.not.exist;
+      expect(element.idField).to.not.exist;
+      expect(element.indexName).to.not.exist;
+      expect(element.transformFunction).to.not.exist;
+      expect(element.userUpdateBody).to.not.exist;
+    });
+
+    test('does have paper-dialog and iron-pages elements', function() {
       expect(element.$$('paper-dialog')).to.exist;
       expect(element.$$('paper-dialog').id).to.equal('entityListDialog');
+      expect(element.$$('iron-pages')).to.exist;
+      expect(element.$$('iron-pages').selected).to.equal('annotation');
     });
 
     test('getPageLink, getTypeIcon, and getTypeStyleClass are defined', function() {
       expect(element.getPageLink).to.be.a('Function');
       expect(element.getTypeIcon).to.be.a('Function');
       expect(element.getTypeStyleClass).to.be.a('Function');
+    });
+
+    test('setting entities does set entityIds', function() {
+      expect(element._entityIds).to.not.exist;
+      element.entities = [{
+        id: 'a'
+      }, {
+        id: 'b'
+      }];
+      expect(element._entityIds).to.deep.equal(['a', 'b']);
+    });
+
+    test('_computeEntityIds does return the correct array', function() {
+      expect(element._computeEntityIds([])).to.deep.equal([]);
+      expect(element._computeEntityIds([{
+        id: 'a'
+      }, {
+        id: 'b'
+      }])).to.deep.equal(['a', 'b']);
     });
 
     test('_deleteEntity does set userUpdateBody and set entities to empty array', function() {
@@ -89,6 +120,25 @@ limitations under the License.
           savedEntities: ['a']
         }
       });
+    });
+
+    test('_selectAnnotationList does set _selected to annotation', function() {
+      element._selected = 'entity';
+      element._selectAnnotationList();
+      expect(element._selected).to.equal('annotation');
+    });
+
+    test('_selectEntityList does set _selected to entity', function() {
+      element._selected = 'annotation';
+      element._selectEntityList();
+      expect(element._selected).to.equal('entity');
+    });
+
+    test('_selectedStyleClass does return the correct style classes', function() {
+      expect(element._selectedStyleClass('a', 'a')).to.equal('selected');
+      expect(element._selectedStyleClass('a', 'b')).to.equal('');
+      expect(element._selectedStyleClass('b', 'a')).to.equal('');
+      expect(element._selectedStyleClass('b', 'b')).to.equal('selected');
     });
 
     test('open() opens the dialog', function(done) {
