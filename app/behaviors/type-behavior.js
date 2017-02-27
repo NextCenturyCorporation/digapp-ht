@@ -53,6 +53,26 @@ DigBehaviors.TypeBehavior = {
   },
 
   /**
+   * Returns the name for the given type.
+   */
+  getTypeName: function(type) {
+    switch(type) {
+      case 'cache': return 'Cached Webpage';
+      case 'date': return 'Date';
+      case 'email': return 'Email Address';
+      case 'image': return 'Image';
+      case 'location': return 'Location';
+      case 'money': return 'Price';
+      case 'offer': return 'Ad';
+      case 'phone': return 'Telephone Number';
+      case 'provider': return 'Provider';
+      case 'seller': return 'Seller';
+      case 'webpage': return 'Website';
+    }
+    return 'icons:polymer';
+  },
+
+  /**
    * Returns the style class for the given type.
    */
   getTypeStyleClass: function(type) {

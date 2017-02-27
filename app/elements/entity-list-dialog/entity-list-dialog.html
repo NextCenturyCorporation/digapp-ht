@@ -1,0 +1,380 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
+<link rel="import" href="../../bower_components/paginated-list/paginated-list.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../styles/icon-styles.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../annotate-record/annotate-record.html">
+<link rel="import" href="../behaviors.html">
+<link rel="import" href="../entity-query/entity-query.html">
+
+<dom-module id="entity-list-dialog">
+  <template>
+    <style include="iron-flex"></style>
+    <style include="icon-styles"></style>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .settings > * {
+        margin: 5px;
+      }
+
+      .link {
+        border: 2px solid var(--text-primary-color);
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 20px;
+        font-weight: bold;
+        padding: 8px;
+      }
+
+      .selected {
+        border: 2px solid var(--primary-text-color);
+      }
+
+      .saved-item {
+        margin: 5px 5px 0;
+      }
+
+      .entity-action {
+        color: var(--primary-text-color);
+        text-decoration: none;
+      }
+
+      .entity-action:hover {
+        color: var(--secondary-text-color);
+      }
+    </style>
+
+    <entity-query
+      client="[[client]]"
+      fields="[[idField]]"
+      index-name="[[indexName]]"
+      transform-function="[[transformFunction]]"
+      values="[[annotationIds]]"
+      entities="{{_annotationTotalArray}}"
+      loading="{{_annotationLoading}}"
+      page="{{_annotationPage}}"
+      page-size="{{_annotationPageSize}}"
+      total-count="{{_annotationTotalCount}}">
+    </entity-query>
+
+    <entity-query
+      client="[[client]]"
+      fields="[[idField]]"
+      index-name="[[indexName]]"
+      transform-function="[[transformFunction]]"
+      values="[[_entityIds]]"
+      entities="{{_entityTotalArray}}"
+      loading="{{_entityLoading}}"
+      page="{{_entityPage}}"
+      page-size="{{_entityPageSize}}"
+      total-count="{{_entityTotalCount}}">
+    </entity-query>
+
+    <paper-dialog id="entityListDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="settings layout vertical">
+        <div class="layout horizontal">
+          <span class="bold tall flex">Annotated and Saved Pages</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
+
+        <div class="divider"></div>
+
+        <div></div>
+
+        <div class="layout horizontal">
+          <span class$="link [[_selectedStyleClass(_selected, 'annotation')]]" title="Click to View Annotated Pages" on-tap="_selectAnnotationList">View Annotated Pages</span>
+          <span class$="link [[_selectedStyleClass(_selected, 'entity')]]" title="Click to View Saved Pages" on-tap="_selectEntityList">View Saved Pages</span>
+        </div>
+
+        <iron-pages attr-for-selected="name" selected="[[_selected]]">
+          <paginated-list name="annotation"
+            items="[[_annotationTotalArray]]"
+            total-items="[[_annotationTotalCount]]"
+            loading="[[_annotationLoading]]"
+            load-type="Pages"
+            page-size="[[_annotationPageSize]]"
+            page="{{_annotationPage}}"
+            shown-items="{{_annotationShownArray}}">
+
+            <template is="dom-repeat" items="[[_annotationShownArray]]" as="entity">
+              <div class="layout horizontal saved-item">
+                <a class="entity-action" href$="[[getPageLink(entity.id, entity.type)]]" target="_blank" title="Open [[entity.name]]">
+                  <paper-icon-button icon="icons:open-in-new" noink></paper-icon-button>
+                </a>
+                <paper-icon-button class$="[[getTypeStyleClass(entity.type)]]" title$="[[getTypeName(entity.type)]]" icon$="[[getTypeIcon(entity.type)]]" disabled></paper-icon-button>
+                <span class="tall flex">[[entity.name]]</span>
+                <annotate-record class="layout vertical center-justified"
+                  client="[[client]]"
+                  annotation-manager="[[annotationManager]]"
+                  item="[[entity]]"
+                  item-type="[[entity.type]]">
+                </annotate-record>
+              </div>
+            </template>
+          </paginated-list>
+
+          <paginated-list name="entity"
+            items="[[_entityTotalArray]]"
+            total-items="[[_entityTotalCount]]"
+            loading="[[_entityLoading]]"
+            load-type="Pages"
+            page-size="[[_entityPageSize]]"
+            page="{{_entityPage}}"
+            shown-items="{{_entityShownArray}}">
+
+            <template is="dom-repeat" items="[[_entityShownArray]]" as="entity">
+              <div class="layout horizontal saved-item">
+                <a class="entity-action" href$="[[getPageLink(entity.id, entity.type)]]" target="_blank" title="Open [[entity.name]]">
+                  <paper-icon-button icon="icons:open-in-new" noink></paper-icon-button>
+                </a>
+                <paper-icon-button class$="[[getTypeStyleClass(entity.type)]]" title$="[[getTypeName(entity.type)]]" icon$="[[getTypeIcon(entity.type)]]" disabled></paper-icon-button>
+                <span class="tall flex">[[entity.name]]</span>
+                <paper-icon-button class="entity-action" icon="icons:delete" title="Delete [[entity.name]] from Saved Pages" on-tap="_deleteEntity"></paper-icon-button>
+              </div>
+            </template>
+          </paginated-list>
+        </iron-pages>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    /* globals DigBehaviors */
+    Polymer({
+      is: 'entity-list-dialog',
+
+      behaviors: [DigBehaviors.TypeBehavior],
+
+      properties: {
+        /**
+         * The list of string IDs for the annotated entities for this user.
+         */
+        annotationIds: {
+          type: Array
+        },
+
+        /**
+         * The annotation manager object.
+         */
+        annotationManager: {
+          type: Object
+        },
+
+        /**
+         * The elasticsearch client object.
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The saved entities for this user.
+         */
+        entities: {
+          notify: true,
+          type: Array
+        },
+
+        /**
+         * The entity ID field.
+         */
+        idField: {
+          type: String
+        },
+
+        /**
+         * The elasticsearch index name.
+         */
+        indexName: {
+          type: String
+        },
+
+        /**
+         * The entity transform function.
+         */
+        transformFunction: {
+          type: Object
+        },
+
+        /**
+         * The body for the elasticsearch update for the user to delete a saved entity on demand.
+         */
+        userUpdateBody: {
+          notify: true,
+          type: Object
+        },
+
+        /**
+         * Whether the annotation query is loading.
+         */
+        _annotationLoading: {
+          type: Boolean
+        },
+
+        /**
+         * The entity page number.
+         */
+        _annotationPage: {
+          type: Number
+        },
+
+        /**
+         * The annotation page size.
+         */
+        _annotationPageSize: {
+          type: Number,
+          value: 50
+        },
+
+        /**
+         * The list of annotations shown to the user.
+         */
+        _annotationShownArray: {
+          type: Array
+        },
+
+        /**
+         * The list of annotations.
+         */
+        _annotationTotalArray: {
+          type: Array
+        },
+
+        /**
+         * The total count of annotations.
+         */
+        _annotationTotalCount: {
+          type: Number
+        },
+
+        /**
+         * The list of string IDs for the saved entities for this user.
+         */
+        _entityIds: {
+          computed: '_computeEntityIds(entities)',
+          type: Array
+        },
+
+        /**
+         * Whether the entity query is loading.
+         */
+        _entityLoading: {
+          type: Boolean
+        },
+
+        /**
+         * The entity page number.
+         */
+        _entityPage: {
+          type: Number
+        },
+
+        /**
+         * The entity page size.
+         */
+        _entityPageSize: {
+          type: Number,
+          value: 50
+        },
+
+        /**
+         * The list of entities shown to the user.
+         */
+        _entityShownArray: {
+          type: Array
+        },
+
+        /**
+         * The list of entities.
+         */
+        _entityTotalArray: {
+          type: Array
+        },
+
+        /**
+         * The total count of entities.
+         */
+        _entityTotalCount: {
+          type: Number
+        },
+
+        /**
+         * The selected iron-page (annotation or entity).
+         */
+        _selected: {
+          type: String,
+          value: 'annotation'
+        }
+      },
+
+      /**
+       * Returns the IDs for the entities in the given list.
+       */
+      _computeEntityIds: function(entities) {
+        return entities.map(function(entity) {
+          return entity.id;
+        });
+      },
+
+      /**
+       * Deletes the given saved entity.
+       */
+      _deleteEntity: function(event) {
+        var self = this;
+        self.splice('entities', event.model.index, 1);
+        self.set('userUpdateBody', {
+          doc: {
+            savedEntities: self.entities
+          }
+        });
+      },
+
+      _selectAnnotationList: function() {
+        this.set('_selected', 'annotation');
+      },
+
+      _selectEntityList: function() {
+        this.set('_selected', 'entity');
+      },
+
+      _selectedStyleClass: function(selected, type) {
+        return selected === type ? 'selected' : '';
+      },
+
+      /**
+       * Opens the dialog.
+       */
+      open: function() {
+        this.$$('#entityListDialog').open();
+      }
+    });
+  })();
+  </script>
+</dom-module>

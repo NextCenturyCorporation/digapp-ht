@@ -270,6 +270,15 @@ limitations under the License.
             </section>
           </div>
 
+          <state-manager id="stateManager"
+            client="[[esclient]]"
+            state-index="[[config.filterStatesIndex]]"
+            state-type="[[config.filterStatesType]]"
+            state-id="[[params.state]]"
+            filter-collection="{}"
+            process-request="{{processRequest}}">
+          </state-manager>
+
           <annotate-record client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
             item-id="[[params.id]]"
@@ -277,7 +286,7 @@ limitations under the License.
             current-user="[[config.username]]">
           </annotate-record>
 
-          <save-entity
+          <save-entity id="saveEntity"
             client="[[esclient]]"
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
@@ -287,6 +296,7 @@ limitations under the License.
             entity-type="offer"
             run-user-query-callback="[[runUserQueryCallback]]"
             save-user-data-callback="{{saveUserDataCallback}}"
+            save-disabled="{{saveEntityDisabled}}"
             existing-entities="{{userEntities}}">
           </save-entity>
 
@@ -301,9 +311,40 @@ limitations under the License.
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
             save-user-data-callback="[[saveUserDataCallback]]"
-            run-user-query-callback="{{runUserQueryCallback}}">
+            run-user-query-callback="{{runUserQueryCallback}}"
+            user-update-body="{{userUpdateBody}}">
           </load-user-info>
 
+          <entity-list-dialog id="entityListDialog"
+            entities="{{userEntities}}"
+            user-update-body="{{userUpdateBody}}">
+          </entity-list-dialog>
+
+          <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="More Options" on-tap="toggleMenu"></paper-icon-button>
+
+          <iron-dropdown id="menuDropdown" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="40">
+            <div class="dropdown-content">
+              <paper-icon-item title="Generate a Link for this Page with the Selected Filters" on-tap="generateLink">
+                <iron-icon icon="link" item-icon></iron-icon>
+                Generate Link
+              </paper-icon-item>
+
+              <paper-icon-item disabled$="[[saveEntityDisabled]]" title="Save This Ad" on-tap="saveEntity">
+                <iron-icon icon="save" item-icon></iron-icon>
+                Save This Ad
+              </paper-icon-item>
+
+              <paper-icon-item title="View Annotated & Saved Pages" on-tap="openEntityListDialog">
+                <iron-icon icon="pageview" item-icon></iron-icon>
+                View Annotated & Saved Pages
+              </paper-icon-item>
+
+              <paper-icon-item title="Contact DIG Support" on-tap="emailSupport">
+                <iron-icon icon="communication:contact-mail" item-icon></iron-icon>
+                Contact DIG Support
+              </paper-icon-item>
+            </div>
+          </iron-dropdown>
         </section>
 
         <!-- Entity body -->
@@ -704,6 +745,33 @@ limitations under the License.
 
     app.buildMoreLikeThisValue = function(name, desc) {
       return name + ' ' + desc;
+    };
+
+    app.toggleMenu = function() {
+      if(this.$.menuDropdown.style.display === 'none') {
+        this.$.menuDropdown.open();
+      } else {
+        this.$.menuDropdown.close();
+      }
+    };
+
+    app.generateLink = function() {
+      this.$.menuDropdown.close();
+      this.$.stateManager.generateLink();
+    };
+
+    app.saveEntity = function() {
+      this.$.menuDropdown.close();
+      this.$.saveEntity.getNewestDataAndSave();
+    };
+
+    app.openEntityListDialog = function() {
+      this.$.menuDropdown.close();
+      this.$.entityListDialog.open();
+    };
+
+    app.emailSupport = function() {
+      window.open('mailto:dig-support@nextcentury.com');
     };
   })(document);
   </script>
