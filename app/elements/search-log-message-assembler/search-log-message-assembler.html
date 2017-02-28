@@ -15,6 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="search-log-message-assembler">
   <template>
@@ -22,6 +23,7 @@ limitations under the License.
 
   <script>
   (function() {
+    /* globals _ */
     'use strict';
 
     Polymer({
@@ -61,6 +63,9 @@ limitations under the License.
         imageSelected: {
           type: Object
         },
+        locationSelected: {
+          type: Object
+        },
         nameSelected: {
           type: Object
         },
@@ -97,6 +102,7 @@ limitations under the License.
         '_assembleLogMessage(hairSelected.*)',
         '_assembleLogMessage(heightSelected.*)',
         '_assembleLogMessage(imageSelected.*)',
+        '_assembleLogMessage(locationSelected.*)',
         '_assembleLogMessage(nameSelected.*)',
         '_assembleLogMessage(phoneSelected.*)',
         '_assembleLogMessage(priceSelected.*)',
@@ -118,6 +124,7 @@ limitations under the License.
           this._getSelectedString(this.hairSelected, 'hair_color'),
           this._getSelectedString(this.heightSelected, 'height'),
           this._getSelectedString(this.imageSelected, 'image'),
+          this._getSelectedString(this.locationSelected, 'location'),
           this._getSelectedString(this.nameSelected, 'name'),
           this._getSelectedString(this.phoneSelected, 'phone'),
           this._getSelectedString(this.priceSelected, 'price'),
@@ -135,15 +142,25 @@ limitations under the License.
         }
       },
 
-      _getSelectedString: function(objectSelected, category) {
-        if(!objectSelected) {
+      _getSelectedString: function(selected, category) {
+        if(!selected) {
           return '';
         }
 
-        var list = Object.keys(objectSelected).filter(function(key) {
-          return objectSelected[key].enabled;
-        }).map(function(key) {
-          return '"' + objectSelected[key].text.replace(/\"/g, '\\"') + '"';
+        var list = [];
+
+        if(_.isArray(selected)) {
+          list = selected;
+        } else if(_.isObject(selected)) {
+          list = _.keys(selected).filter(function(key) {
+            return selected[key].enabled;
+          }).map(function(key) {
+            return selected[key].text;
+          });
+        }
+
+        list = list.map(function(string) {
+          return '"' + string.replace(/\"/g, '\\"') + '"';
         });
 
         return list.length ? (category + ':[' + list.join(',') + ']') : '';
