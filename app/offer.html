@@ -364,119 +364,50 @@ limitations under the License.
             <!-- Left pane -->
             <div class="flex layout vertical">
 
-              <!-- What section (item details) -->
+              <!-- Map -->
               <paper-material>
-                <section class="what">
-                  <!-- Phone numbers if available -->
-                  <template is="dom-if" if="{{offer.phones.length}}">
-                    <div class="what-section">
-                      <div class="flex">
-                        <div class="desc-header layout horizontal center entity-phone-font">
-                          Telephone Numbers:
-                        </div>
-                        <icon-label-grid
-                          icon-style-class-property="styleClass"
-                          data="[[offer.phones]]">
-                        </icon-label-grid>
-                      </div>
-                    </div>
-                    <hr>
-                  </template>
-
-                  <!-- Emails if available -->
-                  <template is="dom-if" if="{{offer.emails.length}}">
-                    <div class="what-section">
-                      <div class="flex">
-                        <div class="desc-header emails layout horizontal center entity-email-font">
-                          Email Addresses:
-                        </div>
-                        <icon-label-grid
-                          icon-style-class-property="styleClass"
-                          data="[[offer.emails]]">
-                        </icon-label-grid>
-                      </div>
-                    </div>
-                    <hr>
-                  </template>
-
-                  <!-- Price if available -->
-                  <template is="dom-if" if="{{offer.prices.length}}">
-                    <div class="what-section">
-                      <div class="flex">
-                        <div class="desc-header layout horizontal center entity-money-font">
-                          Price:
-                        </div>
-                        <icon-label-grid
-                          icon-style-class-property="styleClass"
-                          data="[[offer.prices]]">
-                        </icon-label-grid>
-                      </div>
-                    </div>
-                    <hr>
-                  </template>
-
-                  <!-- Webpage -->
-                  <div class="what-section">
-                    <div class="layout vertical flex">
-                      <div class="desc-header layout horizontal center entity-webpage-font">
-                        Webpage:
-                      </div>
-                      <icon-label-grid class="wide"
-                        icon-style-class-property="styleClass"
-                        data="[[offer.webpages]]">
-                      </icon-label-grid>
-                      <icon-label-grid class="wide"
-                        icon-style-class-property="styleClass"
-                        data="[[offer.caches]]">
-                      </icon-label-grid>
-                    </div>
+                <!-- City summary -->
+                <section class="where-header flex-none">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[locationHeader]]</div>
                   </div>
+                </section>
 
-                  <hr>
+                <json-transform
+                  data-in="[[offer.locations]]"
+                  data-out="{{locationHeader}}"
+                  transform-function="[[clientConfig.transforms.offer.offerLocationsTitle]]">
+                </json-transform>
 
-                  <!-- Description -->
-                  <div class="what-section">
-                    <div class="flex-12">
-                      <div class="desc-header">Description:</div>
-                      <div class="desc-body">[[offer.description]]</div>
-                    </div>
-                  </div>
+                <!-- Leaflet map -->
+                <template is="dom-if" if="[[offer.locations.length]]">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper
+                      text-property="textAndCount"
+                      data="[[offer.locations]]"
+                      cluster-markers>
+                    </leaflet-wrapper>
+                  </section>
+                </template>
+
+                <!-- City summary -->
+                <section class="where-details location-section flex-none">
+                  <template is="dom-if" if="[[locationError]]">
+                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
+                    <div>[[locationErrorMessage]]</div>
+                  </template>
+
+                  <icon-label-grid class="wide"
+                    icon-style-class-property="styleClass"
+                    data="[[offer.locations]]">
+                  </icon-label-grid>
                 </section>
               </paper-material>
 
               <div class="h-divider"></div>
-
-              <paper-material>
-                <section class="photos">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                    <div>[[imageDisplayTitle]]</div>
-                  </div>
-
-                  <template is="dom-if" if="[[imageError]]">
-                    <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
-                    <div>[[imageErrorMessage]]</div>
-                  </template>
-
-                  <image-query-and-display
-                    image-query-field="fields.image.relaxed.key"
-                    image-query-values="[[params.id]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["image"]'
-                    image-transform="[[clientConfig.transforms.image.images]]"
-                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                    image-results="{{imageResults}}"
-                    image-display-title="{{imageDisplayTitle}}"
-                    error="{{imageError}}"
-                    blur="[[blurImages]]"
-                    image-query-source-include='["url", "uri"]'>
-                  </image-query-and-display>
-                </section>
-              </paper-material>
 
               <!-- Provider Section -->
-              <div class="h-divider"></div>
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
@@ -563,6 +494,37 @@ limitations under the License.
                 </section>
               </paper-material>
 
+              <div class="h-divider"></div>
+
+              <paper-material>
+                <section class="photos">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
+                    <div>[[imageDisplayTitle]]</div>
+                  </div>
+
+                  <template is="dom-if" if="[[imageError]]">
+                    <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
+                    <div>[[imageErrorMessage]]</div>
+                  </template>
+
+                  <image-query-and-display
+                    image-query-field="fields.image.relaxed.key"
+                    image-query-values="[[params.id]]"
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    index-types='["image"]'
+                    image-transform="[[clientConfig.transforms.image.images]]"
+                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
+                    image-results="{{imageResults}}"
+                    image-display-title="{{imageDisplayTitle}}"
+                    error="{{imageError}}"
+                    blur="[[blurImages]]"
+                    image-query-source-include='["url", "uri"]'>
+                  </image-query-and-display>
+                </section>
+              </paper-material>
+
               <!-- Revisions Timeline -->
               <template is="dom-if" if="[[revisionTimeline.length]]">
                 <div class="h-divider"></div>
@@ -645,44 +607,84 @@ limitations under the License.
 
             <!-- Right Pane -->
             <div class="flex layout vertical">
-              <!-- Map -->
+
+              <!-- What section (item details) -->
               <paper-material>
-                <!-- City summary -->
-                <section class="where-header flex-none">
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[locationHeader]]</div>
-                  </div>
-                </section>
-
-                <json-transform
-                  data-in="[[offer.locations]]"
-                  data-out="{{locationHeader}}"
-                  transform-function="[[clientConfig.transforms.offer.offerLocationsTitle]]">
-                </json-transform>
-
-                <!-- Leaflet map -->
-                <template is="dom-if" if="[[offer.locations.length]]">
-                  <section class="where flex-auto">
-                    <leaflet-wrapper
-                      text-property="textAndCount"
-                      data="[[offer.locations]]"
-                      cluster-markers>
-                    </leaflet-wrapper>
-                  </section>
-                </template>
-
-                <!-- City summary -->
-                <section class="where-details location-section flex-none">
-                  <template is="dom-if" if="[[locationError]]">
-                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
-                    <div>[[locationErrorMessage]]</div>
+                <section class="what">
+                  <!-- Phone numbers if available -->
+                  <template is="dom-if" if="{{offer.phones.length}}">
+                    <div class="what-section">
+                      <div class="flex">
+                        <div class="desc-header layout horizontal center entity-phone-font">
+                          Telephone Numbers:
+                        </div>
+                        <icon-label-grid
+                          icon-style-class-property="styleClass"
+                          data="[[offer.phones]]">
+                        </icon-label-grid>
+                      </div>
+                    </div>
+                    <hr>
                   </template>
 
-                  <icon-label-grid class="wide"
-                    icon-style-class-property="styleClass"
-                    data="[[offer.locations]]">
-                  </icon-label-grid>
+                  <!-- Emails if available -->
+                  <template is="dom-if" if="{{offer.emails.length}}">
+                    <div class="what-section">
+                      <div class="flex">
+                        <div class="desc-header emails layout horizontal center entity-email-font">
+                          Email Addresses:
+                        </div>
+                        <icon-label-grid
+                          icon-style-class-property="styleClass"
+                          data="[[offer.emails]]">
+                        </icon-label-grid>
+                      </div>
+                    </div>
+                    <hr>
+                  </template>
+
+                  <!-- Price if available -->
+                  <template is="dom-if" if="{{offer.prices.length}}">
+                    <div class="what-section">
+                      <div class="flex">
+                        <div class="desc-header layout horizontal center entity-money-font">
+                          Price:
+                        </div>
+                        <icon-label-grid
+                          icon-style-class-property="styleClass"
+                          data="[[offer.prices]]">
+                        </icon-label-grid>
+                      </div>
+                    </div>
+                    <hr>
+                  </template>
+
+                  <!-- Webpage -->
+                  <div class="what-section">
+                    <div class="layout vertical flex">
+                      <div class="desc-header layout horizontal center entity-webpage-font">
+                        Webpage:
+                      </div>
+                      <icon-label-grid class="wide"
+                        icon-style-class-property="styleClass"
+                        data="[[offer.webpages]]">
+                      </icon-label-grid>
+                      <icon-label-grid class="wide"
+                        icon-style-class-property="styleClass"
+                        data="[[offer.caches]]">
+                      </icon-label-grid>
+                    </div>
+                  </div>
+
+                  <hr>
+
+                  <!-- Description -->
+                  <div class="what-section">
+                    <div class="flex-12">
+                      <div class="desc-header">Description:</div>
+                      <div class="desc-body">[[offer.description]]</div>
+                    </div>
+                  </div>
                 </section>
               </paper-material>
 

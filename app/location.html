@@ -146,6 +146,14 @@
       combine-function="[[clientConfig.transforms.offer.removeNoteFromLocationTimeline]]">
     </json-combine>
 
+    <!-- Map Data -->
+    <json-combine
+      data-in1="[[location.id]]"
+      data-in2="[[eventDropsData.allLocations]]"
+      data-out="{{mapLocations}}"
+      combine-function="[[clientConfig.transforms.offer.locationPageMap]]">
+    </json-combine>
+
     <dig-logger
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
@@ -283,16 +291,15 @@
 
               <!-- Map -->
               <paper-material>
+                <section class="where-header flex-none">
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[getMapHeader(location, eventDropsData.otherLocations)]]</div>
+                  </div>
+                </section>
 
                 <!-- Leaflet map -->
                 <section class="where flex-auto">
-                  <json-combine
-                    data-in1="[[location.id]]"
-                    data-in2="[[eventDropsData.allLocations]]"
-                    data-out="{{mapLocations}}"
-                    combine-function="[[clientConfig.transforms.offer.locationPageMap]]">
-                  </json-combine>
-
                   <leaflet-wrapper
                     text-property="textAndCount"
                     data="[[mapLocations]]"
@@ -303,6 +310,11 @@
                 </section>
 
                 <section class="where-details flex-none">
+                  <template is="dom-if" if="[[eventDropsError]]">
+                    <elastic-error error="[[eventDropsError]]" message="{{eventDropsErrorMessage}}"></elastic-error>
+                    <div>[[eventDropsErrorMessage]]</div>
+                  </template>
+
                   <feature-aggregation class="flex location"
                     item-type="Locations"
                     count-type="Shared Ads"
@@ -311,33 +323,6 @@
                     selected-ids="{{selected}}"
                     loading="[[locationsLoading]]">
                   </feature-aggregation>
-                </section>
-              </paper-material>
-
-              <div class="h-divider"></div>
-
-              <!-- Event drops timeline -->
-              <paper-material>
-                <section>
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="editor:bubble-chart"></iron-icon>
-                    <div class="flex">Location Drops Timeline</div>
-                  </div>
-
-                  <drops-query-and-timeline
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    date-hist-name="dates"
-                    date-hist-field="fields.posting-date.strict.key"
-                    location-agg-name="locations"
-                    location-agg-field="fields.city.relaxed.key"
-                    location-id="[[location.id]]"
-                    index-types='["ads"]'
-                    query="[[locationOffersQuery]]"
-                    filter-list="[[filterList]]"
-                    data="{{eventDropsData}}"
-                    transform="[[clientConfig.transforms.offer.createEventDropsTimeline]]">
-                  </drops-query-and-timeline>
                 </section>
               </paper-material>
 
@@ -431,38 +416,6 @@
 
               <div class="h-divider"></div>
 
-              <!-- Services -->
-              <paper-material>
-                <section class="who">
-
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
-                    <div>Summary of Provider Attributes</div>
-                  </div>
-
-                  <div class="note">Note:  Showing Only the Top 100 Attributes of Each Type</div>
-
-                  <people-features
-                    query-field="fields.city.relaxed.key"
-                    query-value="[[location.id]]"
-                    aggregation-count="100"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    filter-list="[[filterList]]"
-                    selected-name="{{filterCollection.name}}"
-                    selected-age="{{filterCollection.age}}"
-                    selected-ethnicity="{{filterCollection.ethnicity}}"
-                    selected-eye-color="{{filterCollection.eyeColor}}"
-                    selected-hair-color="{{filterCollection.hairColor}}"
-                    selected-height="{{filterCollection.height}}"
-                    selected-weight="{{filterCollection.weight}}"
-                    transforms="[[clientConfig.transforms.offer]]">
-                  </people-features>
-                </section>
-              </paper-material>
-
-              <div class="h-divider"></div>
-
               <paper-material>
                 <section class="who publisher-section">
                   <div class="paper-font-title layout horizontal start center">
@@ -503,9 +456,41 @@
                 </section>
               </paper-material>
 
-              <!-- Itinerary section -->
               <div class="h-divider"></div>
 
+              <!-- Services -->
+              <paper-material>
+                <section class="who">
+
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
+                    <div>Summary of Provider Attributes</div>
+                  </div>
+
+                  <div class="note">Note:  Showing Only the Top 100 Attributes of Each Type</div>
+
+                  <people-features
+                    query-field="fields.city.relaxed.key"
+                    query-value="[[location.id]]"
+                    aggregation-count="100"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    filter-list="[[filterList]]"
+                    selected-name="{{filterCollection.name}}"
+                    selected-age="{{filterCollection.age}}"
+                    selected-ethnicity="{{filterCollection.ethnicity}}"
+                    selected-eye-color="{{filterCollection.eyeColor}}"
+                    selected-hair-color="{{filterCollection.hairColor}}"
+                    selected-height="{{filterCollection.height}}"
+                    selected-weight="{{filterCollection.weight}}"
+                    transforms="[[clientConfig.transforms.offer]]">
+                  </people-features>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Itinerary section -->
               <paper-material>
                 <section class="who">
                   <div class="paper-font-title layout horizontal start center">
@@ -560,6 +545,34 @@
                     chart-title="{{barChartTitle}}"
                     loading="[[loadingLocationTimeline]]">
                   </zoomable-bar-chart>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Event drops timeline -->
+              <paper-material>
+                <section>
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big" icon="editor:bubble-chart"></iron-icon>
+                    <div class="flex">Location Drops Timeline</div>
+                  </div>
+
+                  <drops-query-and-timeline
+                    client="[[esclient]]"
+                    index="[[config.elasticIndex]]"
+                    date-hist-name="dates"
+                    date-hist-field="fields.posting-date.strict.key"
+                    location-agg-name="locations"
+                    location-agg-field="fields.city.relaxed.key"
+                    location-id="[[location.id]]"
+                    index-types='["ads"]'
+                    query="[[locationOffersQuery]]"
+                    filter-list="[[filterList]]"
+                    data="{{eventDropsData}}"
+                    error="{{eventDropsError}}"
+                    transform="[[clientConfig.transforms.offer.createEventDropsTimeline]]">
+                  </drops-query-and-timeline>
                 </section>
               </paper-material>
 
@@ -689,6 +702,10 @@
 
     app.emailSupport = function() {
       window.open('mailto:dig-support@nextcentury.com');
+    };
+
+    app.getMapHeader = function(location, otherLocations) {
+      return location.city + (otherLocations.length ? ' and ' + otherLocations.length + ' Other Location' + (otherLocations.length > 1 ? 's' : '') : '');
     };
 
     app.customMapIcons = [

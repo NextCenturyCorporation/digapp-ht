@@ -309,30 +309,56 @@ limitations under the License.
             <!-- Left Pane -->
             <div class="flex layout vertical">
 
+              <!-- Map -->
               <paper-material>
-                <section class="when">
+                <!-- City summary -->
+                <section class="where-header flex-none">
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <div>[[barChartTitle]]</div>
+                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
+                    <div>[[locationHeader]]</div>
                   </div>
+                </section>
 
-                  <template is="dom-if" if="[[locationTimelineError]]">
-                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
-                    <div>[[locationTimelineErrorMessage]]</div>
+                <!-- Leaflet map -->
+                <template is="dom-if" if="[[locationData.length]]">
+                  <section class="where flex-auto">
+                    <leaflet-wrapper
+                      text-property="textAndCount"
+                      data="{{locationData}}"
+                      cluster-markers>
+                    </leaflet-wrapper>
+                  </section>
+                </template>
+
+                <!-- City summary -->
+                <section class="where-details location-section flex-none">
+                  <template is="dom-if" if="[[locationError]]">
+                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
+                    <div>[[locationErrorMessage]]</div>
                   </template>
 
-                  <zoomable-bar-chart timeline
-                    bar-property="date"
-                    label-property="text"
-                    stack-property="locations"
-                    data="[[timelineData.dates]]"
-                    default-label="Unknown Location(s)"
-                    source="Ads"
-                    interval="[[locationTimelineInterval]]"
-                    chart-title="{{barChartTitle}}"
-                    loading="[[loadingLocationTimeline]]">
-                  </zoomable-bar-chart>
+                  <feature-query-and-display
+                    aggregation-name="location"
+                    aggregation-field="fields.city.relaxed.key"
+                    selected="{{filterCollection.location}}"
+                    query="[[emailOffersQuery]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["ads"]'
+                    error="{{locationError}}"
+                    filter-list="[[filterList]]"
+                    feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
+                    data-property="location"
+                    data="{{locationData}}"
+                    header-property="title"
+                    header="{{locationHeader}}"
+                    data-id-property="key"
+                    item-type="Location"
+                    count-type="Ads"
+                    show-checkboxes>
+                  </feature-query-and-display>
                 </section>
+
               </paper-material>
 
               <div class="h-divider"></div>
@@ -414,35 +440,6 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
-              <!-- Services -->
-              <paper-material>
-                <section class="who">
-
-                  <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
-                    <div>Summary of Provider Attributes</div>
-                  </div>
-
-                  <people-features
-                    query-field="fields.phone.relaxed.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    filter-list="[[filterList]]"
-                    selected-name="{{filterCollection.name}}"
-                    selected-age="{{filterCollection.age}}"
-                    selected-ethnicity="{{filterCollection.ethnicity}}"
-                    selected-eye-color="{{filterCollection.eyeColor}}"
-                    selected-hair-color="{{filterCollection.hairColor}}"
-                    selected-height="{{filterCollection.height}}"
-                    selected-weight="{{filterCollection.weight}}"
-                    transforms="[[clientConfig.transforms.offer]]">
-                  </people-features>
-                </section>
-              </paper-material>
-
-              <div class="h-divider"></div>
-
               <paper-material>
                 <section class="who publisher-section">
                   <div class="paper-font-title layout horizontal start center">
@@ -473,6 +470,35 @@ limitations under the License.
                     count-type="Ads"
                     show-checkboxes>
                   </feature-query-and-display>
+                </section>
+              </paper-material>
+
+              <div class="h-divider"></div>
+
+              <!-- Services -->
+              <paper-material>
+                <section class="who">
+
+                  <div class="paper-font-title layout horizontal start center">
+                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
+                    <div>Summary of Provider Attributes</div>
+                  </div>
+
+                  <people-features
+                    query-field="fields.phone.relaxed.key"
+                    query-value="[[params.id]]"
+                    client="[[esclient]]"
+                    index-name="[[config.elasticIndex]]"
+                    filter-list="[[filterList]]"
+                    selected-name="{{filterCollection.name}}"
+                    selected-age="{{filterCollection.age}}"
+                    selected-ethnicity="{{filterCollection.ethnicity}}"
+                    selected-eye-color="{{filterCollection.eyeColor}}"
+                    selected-hair-color="{{filterCollection.hairColor}}"
+                    selected-height="{{filterCollection.height}}"
+                    selected-weight="{{filterCollection.weight}}"
+                    transforms="[[clientConfig.transforms.offer]]">
+                  </people-features>
                 </section>
               </paper-material>
 
@@ -538,56 +564,31 @@ limitations under the License.
             <!-- Right Pane -->
             <div class="flex layout vertical">
 
-              <!-- Map -->
+              <!-- Timeline -->
               <paper-material>
-                <!-- City summary -->
-                <section class="where-header flex-none">
+                <section class="when">
                   <div class="paper-font-title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[locationHeader]]</div>
+                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                    <div>[[barChartTitle]]</div>
                   </div>
-                </section>
 
-                <!-- Leaflet map -->
-                <template is="dom-if" if="[[locationData.length]]">
-                  <section class="where flex-auto">
-                    <leaflet-wrapper
-                      text-property="textAndCount"
-                      data="{{locationData}}"
-                      cluster-markers>
-                    </leaflet-wrapper>
-                  </section>
-                </template>
-
-                <!-- City summary -->
-                <section class="where-details location-section flex-none">
-                  <template is="dom-if" if="[[locationError]]">
-                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
-                    <div>[[locationErrorMessage]]</div>
+                  <template is="dom-if" if="[[locationTimelineError]]">
+                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
+                    <div>[[locationTimelineErrorMessage]]</div>
                   </template>
 
-                  <feature-query-and-display
-                    aggregation-name="location"
-                    aggregation-field="fields.city.relaxed.key"
-                    selected="{{filterCollection.location}}"
-                    query="[[emailOffersQuery]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["ads"]'
-                    error="{{locationError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
-                    data-property="location"
-                    data="{{locationData}}"
-                    header-property="title"
-                    header="{{locationHeader}}"
-                    data-id-property="key"
-                    item-type="Location"
-                    count-type="Ads"
-                    show-checkboxes>
-                  </feature-query-and-display>
+                  <zoomable-bar-chart timeline
+                    bar-property="date"
+                    label-property="text"
+                    stack-property="locations"
+                    data="[[timelineData.dates]]"
+                    default-label="Unknown Location(s)"
+                    source="Ads"
+                    interval="[[locationTimelineInterval]]"
+                    chart-title="{{barChartTitle}}"
+                    loading="[[loadingLocationTimeline]]">
+                  </zoomable-bar-chart>
                 </section>
-
               </paper-material>
 
               <div class="h-divider"></div>
