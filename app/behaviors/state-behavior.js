@@ -57,6 +57,7 @@ DigBehaviors.StateBehavior = {
       country: config.country || {},
       dateEnd: config.dateEnd || {},
       dateStart: config.dateStart || {},
+      description: config.description || {},
       email: config.email || {},
       ethnicity: config.ethnicity || {},
       eyeColor: config.eyeColor || {},
@@ -68,6 +69,7 @@ DigBehaviors.StateBehavior = {
       phone: config.phone || {},
       price: config.price || {},
       region: config.region || {},
+      title: config.title || {},
       website: config.website || {},
       weight: config.weight || {},
       sort: config.sort || ''
