@@ -112,12 +112,21 @@ limitations under the License.
          * The computed query object.
          */
         query: {
-          computed: '_buildQuery(searchParameters.*)',
+          computed: '_buildQuery(searchParameters.*, active)',
           notify: true,
-          type: Array,
+          type: Object,
           value: function() {
-            return ejs.MatchAllQuery();
+            return undefined;
           }
+        },
+
+        /**
+         * Whether or not to build query.
+         */
+        active: {
+          type: Boolean,
+          value: true,
+          notify: true
         }
       },
 
@@ -140,6 +149,10 @@ limitations under the License.
       },
 
       _buildQuery: function() {
+        if(!this.active) {
+          return;
+        }
+
         var self = this;
         var queries = [];
 
@@ -157,7 +170,7 @@ limitations under the License.
         });
 
         var newQuery = !queries.length ? ejs.MatchAllQuery() : (queries.length === 1 ? queries[0] : this._buildBooleanQuery(queries));
-        var difference = !_.isEqual(newQuery.toJSON(), this.query.toJSON());
+        var difference = this.query === undefined || !_.isEqual(newQuery.toJSON(), this.query.toJSON());
         return difference ? newQuery : this.query;
       },
 

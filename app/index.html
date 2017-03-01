@@ -114,7 +114,8 @@ limitations under the License.
       website-field="[[websiteConfig.queryField]]"
       weight-field="[[weightConfig.queryField]]"
       search-parameters="[[searchParameters]]"
-      query="{{ejsQuery}}">
+      query="{{ejsQuery}}"
+      active="{{searchIsActive}}">
     </query-builder>
 
     <!-- Main Search Query -->
@@ -570,6 +571,27 @@ limitations under the License.
           </div>
 
           <div style="horizontal layout wrap flex">
+            <selected-facets-display facet-selection="{{tempSearchParameters.dateStart}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.dateEnd}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.website}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.location}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.country}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.region}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.price}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.city}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.phone}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.email}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.name}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.age}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.ethnicity}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.height}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.weight}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.hairColor}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.eyeColor}}"></selected-facets-display>
+            <selected-facets-display facet-selection="{{tempSearchParameters.image}}"></selected-facets-display>
+          </div>
+
+          <div style="horizontal layout wrap flex">
             <template is="dom-repeat" items="[[searchFields]]" as="item">
               <div class="horizontal layout center fields-container">
                 <paper-input id$="input_[[item.key]]"
@@ -583,7 +605,10 @@ limitations under the License.
           </div>
 
           <div class="horizontal layout center-justified">
-            <button-action class="inline" text="Search" on-tap="toggleSearchFieldsDialog"></button-action>
+            <button-action class="inline" text="Search" disabled="{{!hasUserInput(tempSearchParameters.*)}}"
+              on-tap="processSearch">
+            </button-action>
+            <button-action class="inline" text="Cancel" on-tap="cancelSearch"></button-action>
           </div>
         </div>
       </paper-dialog>
@@ -617,6 +642,7 @@ limitations under the License.
                 <selected-facets-display facet-selection="{{searchParameters.location}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.country}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.region}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.price}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.city}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.phone}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.email}}"></selected-facets-display>
@@ -1960,6 +1986,10 @@ limitations under the License.
         includeInReports: false
       };
 
+      app.userCanceled = false;
+
+      app.searchIsActive = false;
+
       app.searchFields = [
         //dateEndConfig,
         //dateStartConfig,
@@ -1977,6 +2007,30 @@ limitations under the License.
         app.weightConfig
       ];
 
+      // keeps track of search parameters entered in search popup - cleared if user clicks 'cancel', otherwise it is
+      // added to the other selected facets when the user clicks 'search'.
+      app.tempSearchParameters = DigBehaviors.StateBehavior.buildSearchState({});
+
+      // checks if user entered anything in search dialog
+      app.hasUserInput = function() {
+        var hasInput = false;
+
+        _.each(_.keys(app.tempSearchParameters), function(key) {
+          _.each(_.keys(app.tempSearchParameters[key]), function(value) {
+            if(app.tempSearchParameters[key][value].enabled) {
+              hasInput = true;
+              return false;
+            }
+          });
+          if(hasInput) {
+            return false;
+          }
+        });
+
+        return hasInput;
+      };
+
+      // adds search terms to tempSearchParameters
       app.addSearchTerm = function(event) {
         var item = event.model.item;
         if(item.value) {
@@ -1984,14 +2038,14 @@ limitations under the License.
             key: item.key
           });
 
-          app.searchParameters[item.key][item.value] = {
+          app.tempSearchParameters[item.key][item.value] = {
             category: item.title,
             enabled: true,
             key: item.value,
             text: item.value
           };
 
-          app.notifyPath(['searchParameters', item.key, '*'], {
+          app.notifyPath(['tempSearchParameters', item.key, '*'], {
             category: item.title,
             enabled: true,
             key: item.value,
@@ -2006,6 +2060,43 @@ limitations under the License.
 
       app.toggleSearchFieldsDialog = function() {
         this.searchFieldsDialogOpened = !this.searchFieldsDialogOpened;
+      };
+
+      // add tempSearchParameters to searchParameters when applicable
+      app.processSearch = function() {
+        if(app.hasUserInput() === false) {
+          return;
+        }
+
+        app.searchIsActive = true;
+        _.each(_.keys(app.tempSearchParameters), function(key) {
+          _.each(_.keys(app.tempSearchParameters[key]), function(value) {
+            app.searchParameters[key][value] = {
+              category: app.tempSearchParameters[key][value].category,
+              enabled: true,
+              key: value,
+              text: app.tempSearchParameters[key][value].text
+            };
+
+            app.notifyPath(['searchParameters', key, '*'], {
+              category: app.tempSearchParameters[key][value].category,
+              enabled: true,
+              key: value,
+              text: app.tempSearchParameters[key][value].text
+            });
+          });
+        });
+
+        app.set('tempSearchParameters', DigBehaviors.StateBehavior.buildSearchState({}));
+
+        app.toggleSearchFieldsDialog();
+      };
+
+      // clear tempSeachParameters and close dialog when user cancels
+      app.cancelSearch = function() {
+        app.userCanceled = true;
+        app.set('tempSearchParameters', DigBehaviors.StateBehavior.buildSearchState({}));
+        app.toggleSearchFieldsDialog();
       };
 
       app.fieldsDropdownBtnStyle = function(opened) {
@@ -2077,6 +2168,8 @@ limitations under the License.
       app.showAll = function() {
         this.$.menuDropdown.close();
         app.set('searchParameters', DigBehaviors.StateBehavior.buildSearchState({}));
+        app.searchIsActive = true;
+        app.toggleProcessRequest();
       };
 
       app.toggleMenu = function() {
@@ -2141,7 +2234,9 @@ limitations under the License.
       };
 
       app.toggleProcessRequest = function() {
-        app.processRequest = !app.searchFieldsDialogOpened;
+        app.processRequest = app.searchIsActive && !app.searchFieldsDialogOpened && !app.userCanceled;
+        // reset user canceled variable
+        app.userCanceled = false;
       };
     })(document);
   </script>
