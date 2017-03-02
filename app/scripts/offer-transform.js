@@ -437,6 +437,8 @@ var offerTransform = (function(_, commonTransforms) {
           }
           locationObject.notes = createLocationTimelineNotes(locationBucket);
           return locationObject;
+        }).filter(function(location) {
+          return location.latitude && location.longitude && location.text;
         });
 
         if(sum < bucket.doc_count) {
@@ -600,16 +602,18 @@ var offerTransform = (function(_, commonTransforms) {
         });
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-        location.name = location.text;
-        location.dates = locationDates.map(function(dateObject) {
-          return {
-            count: dateObject.count,
-            date: dateObject.date,
-            name: location.name
-          };
-        });
+        if(location.latitude && location.longitude && location.text) {
+          location.name = location.text;
+          location.dates = locationDates.map(function(dateObject) {
+            return {
+              count: dateObject.count,
+              date: dateObject.date,
+              name: location.name
+            };
+          });
 
-        locations.push(location);
+          locations.push(location);
+        }
       });
 
       var locationWithId = !locationId ? locations : locations.filter(function(location) {

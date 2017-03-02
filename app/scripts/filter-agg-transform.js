@@ -39,6 +39,8 @@ var filterAggTransform = (function() {
             text: cityIdToText(bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        }).filter(function(location) {
+          return location.text;
         });
       }
 
