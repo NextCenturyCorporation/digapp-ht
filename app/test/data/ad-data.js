@@ -97,7 +97,7 @@ var AD_DATA = {
               'name': 'black'
             }]
           },
-          'hair-color': {
+          'hair_color': {
             'strict': [{
               'key': 'black',
               'name': 'black'
