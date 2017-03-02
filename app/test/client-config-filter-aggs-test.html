@@ -38,8 +38,9 @@ limitations under the License.
   /* jshint -W030 */
   suite('<client-config> tests for filter aggregation functions', function() {
     var element;
+
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-    var data = {
+    var cityData = {
       aggregations: {
         city: {
           city: {
@@ -78,54 +79,102 @@ limitations under the License.
         }
       }
     };
+
+    var filterData = {
+      aggregations: {
+        property: {
+          property: {
+            buckets: [{
+              key: 123,
+              doc_count: 20
+            }, {
+              key: 'UPPERCASE',
+              doc_count: 10
+            }, {
+              key: 'lowercase',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    };
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
     setup(function() {
       element = fixture('client-config-fixture');
     });
 
-    test('filter aggregations transfrom does have cities function', function() {
+    test('filter aggregations transfrom does have cityList function', function() {
       assert.isObject(element.config);
       assert.isObject(element.config.transforms);
       assert.isObject(element.config.transforms.filterAggs);
-      assert.isFunction(element.config.transforms.filterAggs.cities);
+      assert.isFunction(element.config.transforms.filterAggs.cityList);
     });
 
-    test('cities function does create city aggregation buckets', function() {
-      var cities = element.config.transforms.filterAggs.cities(data);
-      assert.equal(cities.aggregations.city.city.buckets.length, 10);
-      assert.equal(cities.aggregations.city.city.buckets[0].key, 'Ontario:California:United States:-117.65089:34.06334');
-      assert.equal(cities.aggregations.city.city.buckets[1].key, 'Los Angeles:California:United States:-118.24368:34.05223');
-      assert.equal(cities.aggregations.city.city.buckets[2].key, 'Mumbai:State of Maharashtra:India:72.88261:19.07283');
-      assert.equal(cities.aggregations.city.city.buckets[3].key, 'Melbourne:Florida:United States:-80.60811:28.08363');
-      assert.equal(cities.aggregations.city.city.buckets[4].key, 'Bakersfield:California:United States:-119.01871:35.37329');
-      assert.equal(cities.aggregations.city.city.buckets[5].key, 'Dallas:Texas:United States:-96.80667:32.78306');
-      assert.equal(cities.aggregations.city.city.buckets[6].key, 'Shanghai:Shanghai Shi:China:121.45806:31.22222');
-      assert.equal(cities.aggregations.city.city.buckets[7].key, 'Miami:Florida:United States:-80.19366:25.77427');
-      assert.equal(cities.aggregations.city.city.buckets[8].key, 'New York:New York:United States:-74.00597:40.71427');
-      assert.equal(cities.aggregations.city.city.buckets[9].key, 'Oklahoma City:Oklahoma:United States:-97.51643:35.46756');
-      assert.equal(cities.aggregations.city.city.buckets[0].text, 'Ontario, California');
-      assert.equal(cities.aggregations.city.city.buckets[1].text, 'Los Angeles, California');
-      assert.equal(cities.aggregations.city.city.buckets[2].text, 'Mumbai, State of Maharashtra');
-      assert.equal(cities.aggregations.city.city.buckets[3].text, 'Melbourne, Florida');
-      assert.equal(cities.aggregations.city.city.buckets[4].text, 'Bakersfield, California');
-      assert.equal(cities.aggregations.city.city.buckets[5].text, 'Dallas, Texas');
-      assert.equal(cities.aggregations.city.city.buckets[6].text, 'Shanghai, Shanghai Shi');
-      assert.equal(cities.aggregations.city.city.buckets[7].text, 'Miami, Florida');
-      assert.equal(cities.aggregations.city.city.buckets[8].text, 'New York, New York');
-      assert.equal(cities.aggregations.city.city.buckets[9].text, 'Oklahoma City, Oklahoma');
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      assert.equal(cities.aggregations.city.city.buckets[0].doc_count, 11);
-      assert.equal(cities.aggregations.city.city.buckets[1].doc_count, 10);
-      assert.equal(cities.aggregations.city.city.buckets[2].doc_count, 10);
-      assert.equal(cities.aggregations.city.city.buckets[3].doc_count, 9);
-      assert.equal(cities.aggregations.city.city.buckets[4].doc_count, 8);
-      assert.equal(cities.aggregations.city.city.buckets[5].doc_count, 8);
-      assert.equal(cities.aggregations.city.city.buckets[6].doc_count, 8);
-      assert.equal(cities.aggregations.city.city.buckets[7].doc_count, 7);
-      assert.equal(cities.aggregations.city.city.buckets[8].doc_count, 7);
-      assert.equal(cities.aggregations.city.city.buckets[9].doc_count, 7);
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    test('cityList function does create a city list from the given aggregation buckets', function() {
+      var cityList = element.config.transforms.filterAggs.cityList(cityData, 'city');
+      assert.deepEqual(cityList, [{
+        count: 11,
+        id: 'Ontario:California:United States:-117.65089:34.06334',
+        text: 'Ontario, California'
+      }, {
+        count: 10,
+        id: 'Los Angeles:California:United States:-118.24368:34.05223',
+        text: 'Los Angeles, California'
+      }, {
+        count: 10,
+        id: 'Mumbai:State of Maharashtra:India:72.88261:19.07283',
+        text: 'Mumbai, State of Maharashtra'
+      }, {
+        count: 9,
+        id: 'Melbourne:Florida:United States:-80.60811:28.08363',
+        text: 'Melbourne, Florida'
+      }, {
+        count: 8,
+        id: 'Bakersfield:California:United States:-119.01871:35.37329',
+        text: 'Bakersfield, California'
+      }, {
+        count: 8,
+        id: 'Dallas:Texas:United States:-96.80667:32.78306',
+        text: 'Dallas, Texas'
+      }, {
+        count: 8,
+        id: 'Shanghai:Shanghai Shi:China:121.45806:31.22222',
+        text: 'Shanghai, Shanghai Shi'
+      }, {
+        count: 7,
+        id: 'Miami:Florida:United States:-80.19366:25.77427',
+        text: 'Miami, Florida'
+      }, {
+        count: 7,
+        id: 'New York:New York:United States:-74.00597:40.71427',
+        text: 'New York, New York'
+      }, {
+        count: 7,
+        id: 'Oklahoma City:Oklahoma:United States:-97.51643:35.46756',
+        text: 'Oklahoma City, Oklahoma'
+      }]);
+    });
+
+    test('filter aggregations transfrom does have filterList function', function() {
+      assert.isObject(element.config);
+      assert.isObject(element.config.transforms);
+      assert.isObject(element.config.transforms.filterAggs);
+      assert.isFunction(element.config.transforms.filterAggs.filterList);
+    });
+
+    test('filterList function does create a filter list from the given aggregation buckets', function() {
+      var filterList = element.config.transforms.filterAggs.filterList(filterData, 'property');
+      assert.deepEqual(filterList, [{
+        count: 20,
+        id: '123'
+      }, {
+        count: 10,
+        id: 'uppercase'
+      }, {
+        count: 5,
+        id: 'lowercase'
+      }]);
     });
 
     test('filter aggregations transfrom does have cityIdToText function', function() {

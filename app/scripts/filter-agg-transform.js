@@ -28,31 +28,35 @@ var filterAggTransform = (function() {
   }
 
   return {
-    cities: function(data) {
-      var buckets = [];
-      if(data && data.aggregations && data.aggregations.city && data.aggregations.city.city.buckets) {
-        buckets = data.aggregations.city.city.buckets.map(function(bucket) {
+    cityList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
-            doc_count: bucket.doc_count,
-            key: bucket.key,
-            text: cityIdToText(bucket.key)
+            count: bucket.doc_count,
+            id: ('' + bucket.key),
+            text: cityIdToText('' + bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        }).filter(function(location) {
-          return location.text;
+        }).filter(function(city) {
+          return city.text;
         });
       }
+      return [];
+    },
 
-      return {
-        aggregations: {
-          city: {
-            city: {
-              buckets: buckets
-            }
-          }
-        }
-      };
+    filterList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: ('' + bucket.key).toLowerCase()
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
     },
 
     cityIdToText: function(id) {
