@@ -1,0 +1,381 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>client-config</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/client-config/client-config.html">
+</head>
+
+<body>
+<test-fixture id="client-config-fixture">
+  <template>
+    <client-config></client-config>
+  </template>
+</test-fixture>
+
+<script>
+  'use strict';
+  /* globals expect, fixture, setup, suite, test */
+  /* jshint -W030 */
+
+  suite('<client-config> search transform tests', function() {
+    var clientConfig;
+
+    var DEFAULT_QUERY = {
+      SPARQL: {
+        'group-by': undefined,
+        select: {
+          variables: [{
+            type: 'simple',
+            variable: '?doc_id'
+          }, {
+            type: 'simple',
+            variable: '?fields'
+          }, {
+            type: 'simple',
+            variable: '?tld'
+          }, {
+            type: 'simple',
+            variable: '?url'
+          }]
+        },
+        where: {
+          clauses: [],
+          filters: [],
+          type: 'Ad',
+          variable: '?ad'
+        }
+      },
+      type: 'Point Fact'
+    };
+
+    var GROUP_BY = {
+      limit: 50,
+      offset: 0
+    };
+
+    var SELECT_VARIABLES = {
+      variables: [{
+        type: 'simple',
+        variable: '?doc_id'
+      }, {
+        type: 'simple',
+        variable: '?fields'
+      }, {
+        type: 'simple',
+        variable: '?tld'
+      }, {
+        type: 'simple',
+        variable: '?url'
+      }]
+    };
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('does define search transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.exist;
+      expect(clientConfig.config.transforms).to.exist;
+      expect(clientConfig.config.transforms.search).to.exist;
+      expect(clientConfig.config.transforms.search.search).to.be.a('Function');
+    });
+
+    test('search transform function given empty input does return default query', function() {
+      expect(clientConfig.config.transforms.search.search()).to.deep.equal(DEFAULT_QUERY);
+      expect(clientConfig.config.transforms.search.search(1)).to.deep.equal(DEFAULT_QUERY);
+      expect(clientConfig.config.transforms.search.search(1, 50)).to.deep.equal(DEFAULT_QUERY);
+      expect(clientConfig.config.transforms.search.search(1, 50, {})).to.deep.equal(DEFAULT_QUERY);
+    });
+
+    test('search transform function given page size above 1 does return correct query', function() {
+      var data = {
+        title: {
+          title1: {
+            enabled: true,
+            key: 'title1'
+          }
+        }
+      };
+
+      expect(clientConfig.config.transforms.search.search(2, 50, data).SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 50
+      });
+
+      expect(clientConfig.config.transforms.search.search(2, 100, data).SPARQL['group-by']).to.deep.equal({
+        limit: 100,
+        offset: 100
+      });
+
+      expect(clientConfig.config.transforms.search.search(5, 50, data).SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 200
+      });
+
+      expect(clientConfig.config.transforms.search.search(5, 100, data).SPARQL['group-by']).to.deep.equal({
+        limit: 100,
+        offset: 400
+      });
+    });
+
+    test('search transform function given search parameters of same type does return correct query', function() {
+      var output = clientConfig.config.transforms.search.search(1, 50, {
+        title: {
+          title1: {
+            enabled: true,
+            key: 'title1'
+          },
+          title2: {
+            enabled: true,
+            key: 'title2'
+          }
+        }
+      });
+
+      expect(output.type).to.equal('Point Fact');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL.select).to.deep.equal(SELECT_VARIABLES);
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'title1',
+        isOptional: true,
+        predicate: 'title'
+      }, {
+        constraint: 'title2',
+        isOptional: true,
+        predicate: 'title'
+      }]);
+    });
+
+    test('search transform function given disabled search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.search(1, 50, {
+        title: {
+          title1: {
+            enabled: true,
+            key: 'title1'
+          },
+          title2: {
+            enabled: false,
+            key: 'title2'
+          }
+        }
+      });
+
+      expect(output.type).to.equal('Point Fact');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL.select).to.deep.equal(SELECT_VARIABLES);
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'title1',
+        isOptional: true,
+        predicate: 'title'
+      }]);
+    });
+
+    test('search transform function given search parameters of multiple types does return correct query', function() {
+      var output = clientConfig.config.transforms.search.search(1, 50, {
+        age: {
+          age1: {
+            enabled: true,
+            key: 'age1'
+          }
+        },
+        city: {
+          city1: {
+            enabled: true,
+            key: 'city1'
+          }
+        },
+        country: {
+          country1: {
+            enabled: true,
+            key: 'country1'
+          }
+        },
+        description: {
+          description1: {
+            enabled: true,
+            key: 'description1'
+          }
+        },
+        email: {
+          email1: {
+            enabled: true,
+            key: 'email1'
+          }
+        },
+        ethnicity: {
+          ethnicity1: {
+            enabled: true,
+            key: 'ethnicity1'
+          }
+        },
+        eyeColor: {
+          eyeColor1: {
+            enabled: true,
+            key: 'eyeColor1'
+          }
+        },
+        hairColor: {
+          hairColor1: {
+            enabled: true,
+            key: 'hairColor1'
+          }
+        },
+        height: {
+          height1: {
+            enabled: true,
+            key: 'height1'
+          }
+        },
+        name: {
+          name1: {
+            enabled: true,
+            key: 'name1'
+          }
+        },
+        phone: {
+          phone1: {
+            enabled: true,
+            key: 'phone1'
+          }
+        },
+        price: {
+          price1: {
+            enabled: true,
+            key: 'price1'
+          }
+        },
+        region: {
+          region1: {
+            enabled: true,
+            key: 'region1'
+          }
+        },
+        title: {
+          title1: {
+            enabled: true,
+            key: 'title1'
+          }
+        },
+        website: {
+          website1: {
+            enabled: true,
+            key: 'website1'
+          }
+        },
+        weight: {
+          weight1: {
+            enabled: true,
+            key: 'weight1'
+          }
+        }
+      });
+
+      expect(output.type).to.equal('Point Fact');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL.select).to.deep.equal(SELECT_VARIABLES);
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'age1',
+        isOptional: true,
+        predicate: 'age'
+      }, {
+        constraint: 'city1',
+        isOptional: true,
+        predicate: 'city'
+      }, {
+        constraint: 'country1',
+        isOptional: true,
+        predicate: 'country'
+      }, {
+        constraint: 'description1',
+        isOptional: true,
+        predicate: 'description'
+      }, {
+        constraint: 'email1',
+        isOptional: true,
+        predicate: 'email'
+      }, {
+        constraint: 'ethnicity1',
+        isOptional: true,
+        predicate: 'ethnicity'
+      }, {
+        constraint: 'eyeColor1',
+        isOptional: true,
+        predicate: 'eye'
+      }, {
+        constraint: 'hairColor1',
+        isOptional: true,
+        predicate: 'hair'
+      }, {
+        constraint: 'height1',
+        isOptional: true,
+        predicate: 'height'
+      }, {
+        constraint: 'name1',
+        isOptional: true,
+        predicate: 'name'
+      }, {
+        constraint: 'phone1',
+        isOptional: true,
+        predicate: 'phone'
+      }, {
+        constraint: 'price1',
+        isOptional: true,
+        predicate: 'price'
+      }, {
+        constraint: 'region1',
+        isOptional: true,
+        predicate: 'state'
+      }, {
+        constraint: 'title1',
+        isOptional: true,
+        predicate: 'title'
+      }, {
+        constraint: 'website1',
+        isOptional: true,
+        predicate: 'tld'
+      }, {
+        constraint: 'weight1',
+        isOptional: true,
+        predicate: 'weight'
+      }]);
+    });
+  });
+</script>
+</body>
+</html>

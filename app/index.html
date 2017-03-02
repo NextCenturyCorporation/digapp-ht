@@ -95,7 +95,6 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <!--TODO: temporarily querying elasticsearch directly -->
     <query-builder
       age-field="[[ageConfig.queryField]]"
       city-field="[[cityConfig.queryField]]"
@@ -120,33 +119,19 @@ limitations under the License.
       active="{{searchIsActive}}">
     </query-builder>
 
-    <!-- Main Search Query -->
-    <elastic-client-highlight-builder
-      fields='["*"]'
-      pre-tags="<highlight>"
-      post-tags="</highlight>"
-      number-of-fragments="0"
-      ejs-highlight="{{highlight}}">
-    </elastic-client-highlight-builder>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
+    <query-transformer
+      active="[[searchIsActive]]"
+      error="{{searchError}}"
+      loading="{{searchLoading}}"
       page="{{pageNum}}"
       page-size="50"
-      elastic-types="[[getElasticTypes()]]"
-      query="[[ejsQuery]]"
+      process-request="[[processRequest]]"
+      result-function="[[clientConfig.transforms.search.result]]"
       results="{{searchResults}}"
-      last-error="{{searchError}}"
-      result-count="{{resultCount}}"
-      aggregations="[]"
-      filters="[]"
-      sort="{{sort}}"
-      highlight="[[highlight]]"
-      loading="{{loading}}"
-      request-as-json="{{esRequest}}"
-      properties-ready="{{processRequest}}">
-    </elastic-client-search>
+      search-parameters="[[searchParameters]]"
+      search-function="[[clientConfig.transforms.search.search]]"
+      url="[[config.queryUrl]]">
+    </query-transformer>
 
     <json-transform
       data-in="{{searchResults}}"
@@ -462,7 +447,7 @@ limitations under the License.
         <load-user-info class="bottom"
           show-search
           client="[[esclient]]"
-          loading="[[loading]]"
+          loading="[[searchLoading]]"
           username="[[config.username]]"
           user-id="{{userId}}"
           user-record-exists="{{userRecordExists}}"
@@ -1823,7 +1808,7 @@ limitations under the License.
             shown-results="{{shownRecords}}"
             page="{{pageNum}}"
             page-size="50"
-            loading="{{loading}}"
+            loading="{{searchLoading}}"
             type="Result"
             records-list-title="{{recordsListTitle}}"
             current-user="[[config.username]]"
@@ -2038,13 +2023,9 @@ limitations under the License.
         });
       };
 
-      app.updateSearchParametersFromFields = function(event) {
-        this.searchFields.forEach(function(searchConfig, index) {
+      app.updateSearchParametersFromFields = function() {
+        this.searchFields.forEach(function(searchConfig) {
           if(searchConfig.value) {
-            var index = _.findIndex(app.searchFields, {
-              key: searchConfig.key
-            });
-
             var terms = searchConfig.value.split(',').map(function(term) {
               return term.trim();
             });

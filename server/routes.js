@@ -52,7 +52,8 @@ module.exports = function(app) {
             userIndex: config.userIndex,
             userType: config.userType,
             imageServiceAuth: config.imageServiceAuth,
-            imageServiceHost: config.imageServiceHost
+            imageServiceHost: config.imageServiceHost,
+            queryUrl: config.queryUrl
         });
     });
 

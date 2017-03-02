@@ -234,6 +234,18 @@ var offerTransform = (function(_, commonTransforms) {
     return getUniqueLocationsFromList(locations.strict, 'strict').concat(getUniqueLocationsFromList(locations.relaxed, 'relaxed'));
   }
 
+  function getHighlightedText(record, path1, path2) {
+    if(record.highlight) {
+      if(record.highlight[path1] && record.highlight[path1].length && record.highlight[path1][0]) {
+        return record.highlight[path1][0];
+      }
+      if(record.highlight[path2] && record.highlight[path2].length && record.highlight[path2][0]) {
+        return record.highlight[path2][0];
+      }
+    }
+    return undefined;
+  }
+
   function getOfferObject(record) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
@@ -287,6 +299,7 @@ var offerTransform = (function(_, commonTransforms) {
         text: 'Open Cached Webpage',
         type: 'cache'
       }],
+      highlightedText: getHighlightedText(record, 'fields.title.strict.name', 'fields.title.relaxed.name'),
       details: []
     };
 
@@ -297,6 +310,7 @@ var offerTransform = (function(_, commonTransforms) {
     });
     offer.details.push({
       name: 'Description',
+      highlightedText: getHighlightedText(record, 'fields.description.strict.name', 'fields.description.relaxed.name'),
       text: offer.description
     });
     offer.details.push({
