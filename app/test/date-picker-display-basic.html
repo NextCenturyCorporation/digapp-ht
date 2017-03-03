@@ -1,0 +1,212 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>date-picker-display</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/date-picker-display/date-picker-display.html">
+</head>
+
+<body>
+<test-fixture id="date-picker-display-fixture">
+  <template>
+    <date-picker-display
+      key="beginDate"
+      prefix-label="From"
+      date-identifier="begin"
+      title="Begin Date">
+    </date-picker-display>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, setup, fixture, assert, flush, moment */
+  /* jshint -W030 */
+  suite('date-picker-display tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('date-picker-display-fixture');
+      flush(function() {
+        done();
+      });
+    });
+
+    test('properties are initialized correctly', function() {
+      assert.isNull(element.date);
+      assert.equal(element.facetLabelFormat, 'MM/DD/YYYY');
+      assert.equal(element.key, 'beginDate');
+      assert.equal(element.prefixLabel, 'From');
+      assert.equal(element.dateIdentifier, 'begin');
+      assert.equal(element.title, 'Begin Date');
+      assert.equal(element._buttonLabel, 'Click to set begin date');
+    });
+
+    test('date dialog is closed initially', function() {
+      assert.isFalse(element.$.dateDialog.opened);
+    });
+
+    test('facetSelection changes trigger _updateDisplay', function(done) {
+      element.facetSelection = {
+        'beginDate': {
+          text: '10/05/2015',
+          date: '2015-10-05T00:00:00',
+          enabled: true,
+          category: 'Begin Date'
+        }
+      };
+      flush(function() {
+        assert.equal(element._buttonLabel, 'From: October 5, 2015');
+        assert.deepEqual(element.date, moment('2015-10-05T00:00:00').toDate());
+        done();
+      });
+    });
+
+    test('_formatDateToESString returns correct string value', function() {
+      var dateVal = new Date('August 30, 2016 12:15:05');
+      assert.equal(element._formatDateToESString(dateVal), '2016-08-30T00:00:00');
+    });
+
+    test('_formatDate returns correct string value', function() {
+      var dateVal = new Date('August 30, 2016 12:15:05');
+      assert.equal(element._formatDate(dateVal, 'MM/DD/YYYY'), '08/30/2016');
+      assert.equal(element._formatDate(dateVal, 'MMMM Do YYYY, h:mm:ss a'), 'August 30th 2016, 12:15:05 pm');
+    });
+
+    test('_updateFacetSelection test', function() {
+      element._updateFacetSelection('endDate', 'End Date', new Date('August 30, 2016 12:15:05'));
+      assert.deepEqual(element.facetSelection.endDate, {
+        key: 'endDate',
+        text: '08/30/2016',
+        date: '2016-08-30T00:00:00',
+        enabled: true,
+        category: 'End Date'
+      });
+    });
+
+    test('_checkDateEquality test', function() {
+      assert.isTrue(element._checkDateEquality(new Date('August 30, 2016 06:55:55'),
+        new Date('August 30, 2016 12:15:05')));
+      assert.isFalse(element._checkDateEquality(new Date('August 29, 2016 06:55:55'),
+        new Date('August 30, 2016 06:55:55')));
+    });
+
+    test('_openDateDialog test', function(done) {
+      element._openDateDialog();
+      flush(function() {
+        assert.isTrue(element.$.dateDialog.opened);
+        done();
+      });
+    });
+
+    test('_closeDateDialog does nothing if dialog not confirmed', function(done) {
+      var eventToPassIn = {
+        detail: {
+          confirmed: false
+        }
+      };
+      element._closeDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.isNull(element.date);
+        assert.deepEqual(element.facetSelection, {});
+        done();
+      });
+    });
+
+    test('_closeDateDialog does nothing if date selections have not changed', function(done) {
+      element.date = new Date('October 5, 2015 12:15:05');
+      element.$.datePicker.date = new Date('October 5, 2015 11:45:05');
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.deepEqual(element.date, new Date('October 5, 2015 12:15:05'));
+        assert.deepEqual(element.facetSelection, {});
+        done();
+      });
+    });
+
+    test('_closeDateDialog updates date and facetSelection', function(done) {
+      element.date = new Date('October 5, 2015 12:15:05');
+      element.$.datePicker.date = new Date('October 11, 2015 12:45:05');
+      var eventToPassIn = {
+        detail: {
+          confirmed: true
+        }
+      };
+
+      element._closeDateDialog(eventToPassIn);
+
+      flush(function() {
+        assert.deepEqual(element.date, new Date('October 11, 2015'));
+        assert.deepEqual(element.facetSelection, {
+          'beginDate': {
+            text: '10/11/2015',
+            key: 'beginDate',
+            date: '2015-10-11T00:00:00',
+            enabled: true,
+            category: 'Begin Date'
+          }
+        });
+        done();
+      });
+    });
+
+    test('_updateDisplay if facetSelection is empty', function(done) {
+      element.date = new Date('October 5, 2015 12:15:05');
+
+      element._updateDisplay();
+
+      flush(function() {
+        assert.isNull(element.date);
+        done();
+      });
+    });
+
+    test('_updateDisplay if facetSelection is not empty', function(done) {
+      element.date = new Date('October 5, 2015 12:15:05');
+      element.facetSelection = {
+        'beginDate': {
+          key: 'beginDate',
+          text: '10/05/2015',
+          date: '2015-10-05T00:00:00',
+          enabled: false,
+          category: 'Begin Date'
+        }
+      };
+
+      element._updateDisplay();
+
+      flush(function() {
+        assert.isNull(element.date);
+        done();
+      });
+    });
+  });
+</script>
+</body>
+</html>
