@@ -15,6 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../behaviors.html">
 
 <dom-module id="query-transformer">
   <template>
@@ -38,13 +39,16 @@ limitations under the License.
 
   <script>
   (function() {
+    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'query-transformer',
 
+      behaviors: [DigBehaviors.FilterBehavior],
+
       properties: {
-        active: {
+        demand: {
           type: Boolean
         },
 
@@ -103,7 +107,7 @@ limitations under the License.
       },
 
       observers: [
-        '_transform(active, page, pageSize, processRequest, searchFunction, searchParameters.*)'
+        '_transform(demand, page, pageSize, processRequest, searchFunction, searchParameters.*)'
       ],
 
       _exists: function(object) {
@@ -111,9 +115,17 @@ limitations under the License.
       },
 
       _transform: function() {
-        if(this.active && this.processRequest && this.searchFunction) {
+        if(this.processRequest && this.searchFunction) {
+          // From DigBehaviors.FilterBehavior
+          var noSearchParameters = this.areAllDisabled(this.searchParameters);
+
           this.set('error', null);
           this.set('results', null);
+
+          if(noSearchParameters && !this.demand) {
+            return;
+          }
+
           this.set('_body', this.searchFunction(this.page, this.pageSize, this.searchParameters));
         }
       }

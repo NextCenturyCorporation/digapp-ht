@@ -116,11 +116,11 @@ limitations under the License.
       weight-field="[[weightConfig.queryField]]"
       search-parameters="[[searchParameters]]"
       query="{{ejsQuery}}"
-      active="{{searchIsActive}}">
+      demand="[[demandSearch]]">
     </query-builder>
 
     <query-transformer
-      active="[[searchIsActive]]"
+      demand="[[demandSearch]]"
       error="{{searchError}}"
       loading="{{searchLoading}}"
       page="{{pageNum}}"
@@ -132,6 +132,8 @@ limitations under the License.
       search-function="[[clientConfig.transforms.search.search]]"
       url="[[config.queryUrl]]">
     </query-transformer>
+
+    <demand-search demand="{{demandSearch}}"></demand-search>
 
     <json-transform
       data-in="{{searchResults}}"
@@ -1760,6 +1762,7 @@ limitations under the License.
   <script src="bower_components/lodash/dist/lodash.js"></script>
   <script src="behaviors/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
+  <script src="behaviors/filter-behavior.js"></script>
   <script src="behaviors/state-behavior.js"></script>
 
   <script>
@@ -1919,8 +1922,6 @@ limitations under the License.
 
       app.userCanceled = false;
 
-      app.searchIsActive = false;
-
       app.searchFields = [
         //dateEndConfig,
         //dateStartConfig,
@@ -2002,7 +2003,6 @@ limitations under the License.
           return;
         }
 
-        app.searchIsActive = true;
         app.toggleSearchFieldsDialog();
       };
 
@@ -2035,14 +2035,7 @@ limitations under the License.
       };
 
       app.noSearchParameters = function() {
-        return _.keys(app.searchParameters).every(function(facet) {
-          if(facet === 'sort' || _.isEmpty(app.searchParameters[facet])) {
-            return true;
-          }
-          return _.keys(app.searchParameters[facet]).every(function(key) {
-            return !app.searchParameters[facet][key].enabled;
-          });
-        });
+        return DigBehaviors.FilterBehavior.areAllDisabled(this.searchParameters, ['sort']);
       };
 
       app.openBatchPhoneSearchDialog = function() {
@@ -2068,7 +2061,7 @@ limitations under the License.
       app.showAll = function() {
         this.$.menuDropdown.close();
         app.set('searchParameters', DigBehaviors.StateBehavior.buildSearchState({}));
-        app.searchIsActive = true;
+        app.demandSearch = true;
         app.toggleProcessRequest();
       };
 
@@ -2122,7 +2115,7 @@ limitations under the License.
       };
 
       app.toggleProcessRequest = function() {
-        app.processRequest = app.searchIsActive && !app.searchFieldsDialogOpened && !app.userCanceled;
+        app.processRequest = !app.searchFieldsDialogOpened && !app.userCanceled;
         // reset user canceled variable
         app.userCanceled = false;
       };

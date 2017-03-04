@@ -40,10 +40,10 @@ limitations under the License.
 
     setup(function() {
       element = fixture('query-transformer-fixture');
+      element.demand = false;
     });
 
     test('properties are set to default values', function() {
-      expect(element.active).to.not.exist;
       expect(element.error).to.not.exist;
       expect(element.loading).to.not.exist;
       expect(element.processRequest).to.not.exist;
@@ -78,9 +78,7 @@ limitations under the License.
       })).to.be.true;
     });
 
-    test('setting active, processRequest, searchFunction, and searchParameters does set _body', function() {
-      element.active = true;
-      expect(element._body).to.not.exist;
+    test('setting processRequest, searchFunction, and searchParameters does set _body', function() {
       element.processRequest = true;
       expect(element._body).to.not.exist;
       var functionCalled = false;
@@ -93,30 +91,18 @@ limitations under the License.
         return 'body';
       };
       expect(element._body).to.not.exist;
-      element.searchParameters = 'searchParameters';
+      element.searchParameters = {
+        type: {
+          term: {
+            enabled: true
+          }
+        }
+      };
       expect(element._body).to.equal('body');
       expect(functionCalled).to.be.true;
     });
 
-    test('setting active to false does not set _body', function() {
-      element.active = false;
-      expect(element._body).to.not.exist;
-      element.processRequest = true;
-      expect(element._body).to.not.exist;
-      var functionCalled = false;
-      element.searchFunction = function() {
-        functionCalled = true;
-        return 'body';
-      };
-      expect(element._body).to.not.exist;
-      element.searchParameters = 'searchParameters';
-      expect(element._body).to.not.exist;
-      expect(functionCalled).to.be.false;
-    });
-
     test('setting processRequest to false does not set _body', function() {
-      element.active = true;
-      expect(element._body).to.not.exist;
       element.processRequest = false;
       expect(element._body).to.not.exist;
       var functionCalled = false;
@@ -125,34 +111,100 @@ limitations under the License.
         return 'body';
       };
       expect(element._body).to.not.exist;
-      element.searchParameters = 'searchParameters';
+      element.searchParameters = {
+        type: {
+          term: {
+            enabled: true
+          }
+        }
+      };
       expect(element._body).to.not.exist;
       expect(functionCalled).to.be.false;
     });
 
     test('setting searchFunction to null does not set _body', function() {
-      element.active = true;
-      expect(element._body).to.not.exist;
       element.processRequest = true;
       expect(element._body).to.not.exist;
       element.searchFunction = null;
       expect(element._body).to.not.exist;
-      element.searchParameters = 'searchParameters';
+      element.searchParameters = {
+        type: {
+          term: {
+            enabled: true
+          }
+        }
+      };
       expect(element._body).to.not.exist;
+    });
+
+    test('setting empty searchParameters does not set _body', function() {
+      element.processRequest = true;
+      expect(element._body).to.not.exist;
+      var functionCalled = false;
+      element.searchFunction = function() {
+        functionCalled = true;
+        return 'body';
+      };
+      expect(element._body).to.not.exist;
+      element.searchParameters = {};
+      expect(element._body).to.not.exist;
+      expect(functionCalled).to.be.false;
+    });
+
+    test('setting disabled searchParameters does not set _body', function() {
+      element.processRequest = true;
+      expect(element._body).to.not.exist;
+      var functionCalled = false;
+      element.searchFunction = function() {
+        functionCalled = true;
+        return 'body';
+      };
+      expect(element._body).to.not.exist;
+      element.searchParameters = {
+        type: {
+          term: {
+            enabled: false
+          }
+        }
+      };
+      expect(element._body).to.not.exist;
+      expect(functionCalled).to.be.false;
+    });
+
+    test('setting empty searchParameters with demand does set _body', function() {
+      element.demand = true;
+      expect(element._body).to.not.exist;
+      element.processRequest = true;
+      expect(element._body).to.not.exist;
+      var functionCalled = false;
+      element.searchFunction = function() {
+        functionCalled = true;
+        return 'body';
+      };
+      expect(element._body).to.not.exist;
+      element.searchParameters = {};
+      expect(element._body).to.equal('body');
+      expect(functionCalled).to.be.true;
     });
 
     test('error and results are set to null before _body is set', function() {
       element.error = 'error';
       element.results = 'results';
 
-      element.active = true;
       element.processRequest = true;
+      expect(element._body).to.not.exist;
       element.searchFunction = function() {
         expect(element.error).to.be.null;
         expect(element.results).to.be.null;
         return 'body';
       };
-      element.searchParameters = 'searchParameters';
+      element.searchParameters = {
+        type: {
+          term: {
+            enabled: true
+          }
+        }
+      };
       expect(element._body).to.equal('body');
     });
   });
