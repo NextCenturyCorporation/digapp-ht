@@ -84,7 +84,7 @@ var AD_DATA = {
               'name': 'United States'
             }]
           },
-          'eye-color': {
+          'eye_color': {
             'strict': [{
               'key': 'brown',
               'name': 'brown'

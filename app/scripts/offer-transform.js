@@ -273,7 +273,7 @@ var offerTransform = (function(_, commonTransforms) {
       ages: getProviderAttributesFromRecord(record, '_source.fields.age'),
       ethnicities: getProviderAttributesFromRecord(record, '_source.fields.ethnicity'),
       hairColors: getProviderAttributesFromRecord(record, '_source.fields.hair_color'),
-      eyeColors: getProviderAttributesFromRecord(record, '_source.fields.eye-color'),
+      eyeColors: getProviderAttributesFromRecord(record, '_source.fields.eye_color'),
       heights: getProviderAttributesFromRecord(record, '_source.fields.height'),
       weights: getProviderAttributesFromRecord(record, '_source.fields.weight'),
       date: {
