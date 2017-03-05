@@ -160,7 +160,7 @@ var offerTransform = (function(_, commonTransforms) {
         id: attribute.key,
         icon: commonTransforms.getIronIcon('provider'),
         styleClass: commonTransforms.getStyleClass('provider'),
-        text: attribute.name || attribute.key,
+        text: attribute.name ? ('' + attribute.name).toLowerCase() : ('' + attribute.key).toLowerCase(),
         type: 'provider'
       };
     });
