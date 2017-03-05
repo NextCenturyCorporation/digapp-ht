@@ -45,6 +45,49 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   }
 
   /**
+   * Returns the formatted telephone number.
+   */
+  function getFormattedPhone(phone) {
+    var output = phone;
+    // Remove United States or X country code.
+    output = (output.indexOf('+1-') === 0 ? output.substring(output.indexOf('+1-') + 3) : output);
+    output = (output.indexOf('+x-') === 0 ? output.substring(output.indexOf('+x-') + 3) : output);
+    return output.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
+      if(p2 && p3 && p4) {
+        return (p1 ? p1 + '-' : '') + p2 + '-' + p3 + '-' + p4;
+      }
+      return p1 + p2 + p3 + p4;
+    });
+  }
+
+  /**
+   * Returns the location data from the given ID formatted as city:state:country:longitude:latitude.
+   */
+  function getLocationDataFromId(id) {
+    var idList = id ? id.split(':') : [];
+
+    if(idList.length < 5) {
+      return {};
+    }
+
+    var city = idList[0];
+    var state = idList[1];
+    var country = idList[2];
+    var longitude = idList[3];
+    var latitude = idList[4];
+    var text = state ? ((city ? (city + ', ') : '') + state) : 'Unknown Location';
+
+    return {
+      city: city,
+      country: country,
+      latitude: latitude,
+      longitude: longitude,
+      state: state,
+      text: text
+    };
+  }
+
+  /**
   * Changes the key/value names of buckets given from an aggregation
   * to names preferred by the user.
   */
@@ -59,6 +102,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
     },
 
     /**
+     * Returns the formatted telephone number.
+     */
+    getFormattedPhone: function(phone) {
+      return getFormattedPhone(phone);
+    },
+
+    /**
      * Returns the iron icon for the given type.
      */
     getIronIcon: function(type) {
@@ -70,6 +120,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
      */
     getLink: function(id, type) {
       return getLink(id, type);
+    },
+
+    /**
+     * Returns the location data from the given ID formatted as city:state:country:longitude:latitude.
+     */
+    getLocationDataFromId: function(id) {
+      return getLocationDataFromId(id);
     },
 
     /**

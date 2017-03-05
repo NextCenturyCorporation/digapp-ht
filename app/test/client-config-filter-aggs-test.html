@@ -98,6 +98,31 @@ limitations under the License.
         }
       }
     };
+
+    var phoneData = {
+      aggregations: {
+        property: {
+          property: {
+            buckets: [{
+              key: '1234567890',
+              doc_count: 80
+            }, {
+              key: '+1-1112223333',
+              doc_count: 40
+            }, {
+              key: '+2-4445556666',
+              doc_count: 20
+            }, {
+              key: '+1234-7778889999',
+              doc_count: 10
+            }, {
+              key: '+x-9876543210',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    };
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
     setup(function() {
@@ -174,6 +199,38 @@ limitations under the License.
       }, {
         count: 5,
         id: 'lowercase'
+      }]);
+    });
+
+    test('filter aggregations transfrom does have phoneList function', function() {
+      assert.isObject(element.config);
+      assert.isObject(element.config.transforms);
+      assert.isObject(element.config.transforms.filterAggs);
+      assert.isFunction(element.config.transforms.filterAggs.phoneList);
+    });
+
+    test('phoneList function does create a phone list from the given aggregation buckets', function() {
+      var phoneList = element.config.transforms.filterAggs.phoneList(phoneData, 'property');
+      assert.deepEqual(phoneList, [{
+        count: 80,
+        id: '1234567890',
+        text: '123-456-7890'
+      }, {
+        count: 40,
+        id: '+1-1112223333',
+        text: '111-222-3333'
+      }, {
+        count: 20,
+        id: '+2-4445556666',
+        text: '+2-444-555-6666'
+      }, {
+        count: 10,
+        id: '+1234-7778889999',
+        text: '+1234-777-888-9999'
+      }, {
+        count: 5,
+        id: '+x-9876543210',
+        text: '987-654-3210'
       }]);
     });
 

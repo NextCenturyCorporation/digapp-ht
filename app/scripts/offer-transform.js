@@ -24,22 +24,6 @@
 var offerTransform = (function(_, commonTransforms) {
 
   /**
-   * Returns the formatted telephone number.
-   */
-  function getFormattedTelephoneNumber(number) {
-    var output = number;
-    // Remove United States or X country code.
-    output = (output.indexOf('+1-') === 0 ? output.substring(output.indexOf('+1-') + 3) : output);
-    output = (output.indexOf('+x-') === 0 ? output.substring(output.indexOf('+x-') + 3) : output);
-    return output.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
-      if(p2 && p3 && p4) {
-        return (p1 ? p1 + '-' : '') + p2 + '-' + p3 + '-' + p4;
-      }
-      return p1 + p2 + p3 + p4;
-    });
-  }
-
-  /**
    * Returns the list of DIG image objects using the given images from the data.
    */
   /*
@@ -119,7 +103,7 @@ var offerTransform = (function(_, commonTransforms) {
         icon: commonTransforms.getIronIcon('phone'),
         link: commonTransforms.getLink(phone.key, 'phone'),
         styleClass: commonTransforms.getStyleClass('phone'),
-        text: getFormattedTelephoneNumber(name),
+        text: commonTransforms.getFormattedPhone(name),
         type: 'phone'
       };
     });
@@ -188,18 +172,7 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function getUniqueLocation(location, confidence) {
-    var keySplit = location.key && location.key.length ? location.key.split(':') : [];
-
-    if(keySplit.length < 5) {
-      return {};
-    }
-
-    var city = keySplit[0];
-    var state = keySplit[1];
-    var country = keySplit[2];
-    var latitude = keySplit[4];
-    var longitude = keySplit[3];
-    var text = state ? ((city ? (city + ', ') : '') + state) : 'Unknown Location';
+    var data = commonTransforms.getLocationDataFromId(location.key);
 
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
     var count = location.doc_count;
@@ -209,14 +182,14 @@ var offerTransform = (function(_, commonTransforms) {
       confidence: confidence,
       count: count,
       id: location.key,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: data.latitude,
+      longitude: data.longitude,
       icon: commonTransforms.getIronIcon('location'),
       link: commonTransforms.getLink(location.key, 'location'),
       styleClass: commonTransforms.getStyleClass('location'),
-      text: text,
-      textAndCount: text + (count ? (' (' + count + ')') : ''),
-      textAndCountry: text + (country ? (', ' + country) : ''),
+      text: data.text,
+      textAndCount: data.text + (count ? (' (' + count + ')') : ''),
+      textAndCountry: data.text + (data.country ? (', ' + data.country) : ''),
       type: 'location'
     };
   }
@@ -847,7 +820,7 @@ var offerTransform = (function(_, commonTransforms) {
      * Returns the formatted telephone number.
      */
     formattedTelephoneNumber: function(number) {
-      return getFormattedTelephoneNumber(number);
+      return commonTransforms.getFormattedPhone(number);
     }
   };
 });

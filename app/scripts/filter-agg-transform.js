@@ -21,12 +21,7 @@
 /* exported filterAggTransform */
 /* jshint camelcase:false */
 
-var filterAggTransform = (function() {
-  function cityIdToText(id) {
-    var cityIdList = id && id.length ? id.split(':') : [];
-    return (cityIdList.length > 1 ? cityIdList[0] + ', ' + cityIdList[1] : '');
-  }
-
+var filterAggTransform = (function(commonTransforms) {
   return {
     cityList: function(data, property) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
@@ -34,8 +29,8 @@ var filterAggTransform = (function() {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
             count: bucket.doc_count,
-            id: ('' + bucket.key),
-            text: cityIdToText('' + bucket.key)
+            id: bucket.key,
+            text: commonTransforms.getLocationDataFromId(bucket.key).text || ''
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         }).filter(function(city) {
@@ -59,8 +54,23 @@ var filterAggTransform = (function() {
       return [];
     },
 
+    phoneList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: bucket.key,
+            text: commonTransforms.getFormattedPhone(bucket.key)
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
+    },
+
     cityIdToText: function(id) {
-      return cityIdToText(id);
+      return commonTransforms.getLocationDataFromId(id).text || '';
     }
   };
 });
