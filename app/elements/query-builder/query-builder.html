@@ -150,9 +150,23 @@ limitations under the License.
         return booleanQuery;
       },
 
-      _buildDateRangeQuery: function() {
-        // TODO
-        return undefined;
+      _buildDateRangeQuery: function(field, value) {
+        // TODO use elastic-client-query-builder
+        if(value === undefined || !_.keys(value).length) {
+          return;
+        }
+
+        var rangeQuery = ejs.RangeQuery(field);
+
+        if(value.dateStart && value.dateStart.enabled) {
+          rangeQuery.gte(value.dateStart.date);
+        }
+
+        if(value.dateEnd && value.dateEnd.enabled) {
+          rangeQuery.lte(value.dateEnd.date);
+        }
+
+        return rangeQuery;
       },
 
       _buildMatchQuery: function(field, value) {
@@ -170,7 +184,7 @@ limitations under the License.
           }).map(function(key) {
             return key;
           }).join(' ');
-          var query = field ? (group === 'dateStart' || group === 'dateEnd' ? self._buildDateRangeQuery(field, value) : self._buildMatchQuery(field, value)) : undefined;
+          var query = field ? (group === 'postingDate' ? self._buildDateRangeQuery(field, self.searchParameters[group]) : self._buildMatchQuery(field, value)) : undefined;
           if(query) {
             queries.push(query);
           }
@@ -193,8 +207,7 @@ limitations under the License.
             return this.cityField;
           case 'country':
             return this.countryField;
-          case 'dateEnd':
-          case 'dateStart':
+          case 'postingDate':
             return this.dateField;
           case 'description':
             return this.descriptionField;

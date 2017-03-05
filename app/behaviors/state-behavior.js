@@ -58,8 +58,6 @@ DigBehaviors.StateBehavior = {
       age: config.age || {},
       city: config.city || {},
       country: config.country || {},
-      dateEnd: config.dateEnd || {},
-      dateStart: config.dateStart || {},
       description: config.description || {},
       email: config.email || {},
       ethnicity: config.ethnicity || {},
@@ -71,6 +69,8 @@ DigBehaviors.StateBehavior = {
       location: config.location || {},
       name: config.name || {},
       phone: config.phone || {},
+      // start and end dates will be keys within postingDate
+      postingDate: config.postingDate ||{},
       price: config.price || {},
       region: config.region || {},
       services: config.services || {},

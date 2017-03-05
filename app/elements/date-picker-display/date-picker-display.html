@@ -29,13 +29,13 @@ A component used to display a date picker used for filtering.
 
 Example:
 
-    <date-range-display
+    <date-picker-display
       facet-selection="{{dateFacetSelection}}">
-    </date-range-display>
+    </date-picker-display>
 
 ### Styling
 
-`<date-range-display>` provides the following custom properties and mixins
+`<date-picker-display>` provides the following custom properties and mixins
 for styling:
 
 Custom property | Description | Default
@@ -46,7 +46,7 @@ Custom property | Description | Default
 @demo demo/index.html
 -->
 
-<dom-module id="date-range-display">
+<dom-module id="date-picker-display">
   <template>
     <style include="iron-flex"></style>
     <style>
@@ -71,53 +71,30 @@ Custom property | Description | Default
         height: 10px;
       }
     </style>
-    <div class="vertical layout">
-      <div class="horizontal layout">
-        <paper-button class="date-select flex-auto" on-tap="_openBeginDateDialog">
-          <iron-icon icon="icons:date-range"></iron-icon>{{beginDateLabel}}
-        </paper-button>
-        <paper-dialog id="beginDateDialog" class="paper-date-picker-dialog" modal on-iron-overlay-closed="_closeBeginDateDialog">
-          <paper-date-picker id="beginDatePicker" heading-format="MMMM Do" force-narrow></paper-date-picker>
-          <div class="buttons">
-            <paper-button dialog-dismiss>Cancel</paper-button>
-            <paper-button dialog-confirm>OK</paper-button>
-          </div>
-        </paper-dialog>
-      </div>
-      <div class="h-divider"></div>
-      <div class="horizontal layout">
-        <paper-button class="date-select flex-auto" on-tap="_openEndDateDialog">
-          <iron-icon icon="icons:date-range"></iron-icon>{{endDateLabel}}
-        </paper-button>
-        <paper-dialog id="endDateDialog" class="paper-date-picker-dialog" modal on-iron-overlay-closed="_closeEndDateDialog">
-          <paper-date-picker id="endDatePicker" heading-format="MMMM Do" force-narrow></paper-date-picker>
-          <div class="buttons">
-            <paper-button dialog-dismiss>Cancel</paper-button>
-            <paper-button dialog-confirm>OK</paper-button>
-          </div>
-        </paper-dialog>
-      </div>
+    <div class="horizontal layout">
+      <paper-button class="date-select flex-auto" on-tap="_openDateDialog">
+        <iron-icon icon="icons:date-range"></iron-icon>{{_buttonLabel}}
+      </paper-button>
+      <paper-dialog id="dateDialog" class="paper-date-picker-dialog" modal on-iron-overlay-closed="_closeDateDialog">
+        <paper-date-picker id="datePicker" heading-format="MMMM Do" force-narrow></paper-date-picker>
+        <div class="buttons">
+          <paper-button dialog-dismiss>Cancel</paper-button>
+          <paper-button dialog-confirm>OK</paper-button>
+        </div>
+      </paper-dialog>
     </div>
   </template>
 
   <script>
     /* globals moment, _ */
     Polymer({
-      is: 'date-range-display',
+      is: 'date-picker-display',
 
       properties: {
         /**
-         * Start date for the range filter.
+         * Date object for the filter.
          */
-        beginDate: {
-          type: Date,
-          value: null,
-          notify: true
-        },
-        /**
-         * End date for the range filter.
-         */
-        endDate: {
+        date: {
           type: Date,
           value: null,
           notify: true
@@ -140,16 +117,34 @@ Custom property | Description | Default
           notify: true
         },
         /**
-         * Label for current beginDate to use on date picker button
+         * Unique identifier in facetSelection for date object
          */
-        beginDateLabel: {
-          computed: '_computeLabel("From", "begin", beginDate)'
+        key: {
+          type: String
         },
         /**
-         * Label for current endDate to use on date picker button
+         * Title as it should appear in facetSelection
          */
-        endDateLabel: {
-          computed: '_computeLabel("To", "end", endDate)'
+        title: {
+          type: String
+        },
+        /**
+         * Prefix to use for label (e.g. "From" or "To")
+         */
+        prefixLabel: {
+          type: String
+        },
+        /**
+         * Date identifier (e.g. "begin" or "end")
+         */
+        dateIdentifier: {
+          type: String
+        },
+        /**
+         * Label for current date to use on date picker button
+         */
+        _buttonLabel: {
+          computed: '_computeLabel(prefixLabel, dateIdentifier, date)'
         }
       },
       observers: [
@@ -159,8 +154,8 @@ Custom property | Description | Default
        * Creates a string representation of a date to display back to the
        * user in the following format: August 2, 2016
        *
-       * @param {String} prefixLabel (either "From" or "To")
-       * @param {String} dateIdentifier (either "begin" or "end")
+       * @param {String} prefixLabel (e.g. "From" or "To")
+       * @param {String} dateIdentifier (e.g. "begin" or "end")
        * @param {Date} date
        * @return {String} label to display, empty string if no date exists
        */
@@ -195,22 +190,24 @@ Custom property | Description | Default
        * Updates the facetSelection object to indicate a selected filter
        * based on the parameters.
        *
-       * @param {String} dateCategory - identifier to use in facetSelection object,
-       * either 'Begin Date' or 'End Date'
+       * @param {String} key - identifier to use in facetSelection object
+       * @param {String} title - title to display in facetSelection object
        * @param {Date} date - date selected to display back to the user
        */
-      _updateFacetSelection: function(dateCategory, date) {
-        this.facetSelection[dateCategory] = {
+      _updateFacetSelection: function(key, title, date) {
+        this.facetSelection[key] = {
+          key: key,
           text: this._formatDate(date, this.facetLabelFormat),
           date: this._formatDateToESString(date),
           enabled: true,
-          category: dateCategory
+          category: title
         };
         this.notifyPath('facetSelection.*', {
+          key: key,
           text: this._formatDate(date, this.facetLabelFormat),
           date: this._formatDateToESString(date),
           enabled: true,
-          category: dateCategory
+          category: title
         });
       },
       /**
@@ -224,91 +221,51 @@ Custom property | Description | Default
         return this._formatDateToESString(dateA) === this._formatDateToESString(dateB);
       },
       /**
-       * Shows date picker in order to select a beginDate
+       * Shows date picker in order to select a date
        */
-      _openBeginDateDialog: function() {
-        this.$.beginDateDialog.toggle();
+      _openDateDialog: function() {
+        this.$.dateDialog.toggle();
       },
       /**
-       * Shows date picker in order to select an endDate
-       */
-      _openEndDateDialog: function() {
-        this.$.endDateDialog.toggle();
-      },
-      /**
-       * Closes the date picker used to select a beginDate. If a date
-       * is confirmed and it is different from the previous beginDate,
-       * update beginDate accordingly.
+       * Closes the date picker used to select a date. If a date
+       * is confirmed and it is different from the previous date,
+       * update date accordingly.
        *
        * @event iron-overlay-closed
        */
-      _closeBeginDateDialog: function(event) {
+      _closeDateDialog: function(event) {
         if(event.detail.confirmed) {
-          var newDate = this.$.beginDatePicker.date;
+          var newDate = this.$.datePicker.date;
 
-          if(this.beginDate && this._checkDateEquality(this.beginDate, newDate)) {
+          if(this.date && this._checkDateEquality(this.date, newDate)) {
             return;
           }
 
-          this.beginDate = newDate;
-          if(this.beginDate) {
-            this._updateFacetSelection('Begin Date', this.beginDate);
+          this.date = newDate;
+          if(this.date) {
+            this._updateFacetSelection(this.key, this.title, this.date);
           }
         }
       },
       /**
-       * Closes the date picker used to select an endDate. If a date
-       * is confirmed and it is different from the previous endDate,
-       * update endDate accordingly.
-       *
-       * @event iron-overlay-closed
-       */
-      _closeEndDateDialog: function(event) {
-        if(event.detail.confirmed) {
-          var newDate = this.$.endDatePicker.date;
-
-          if(this.endDate && this._checkDateEquality(this.endDate, newDate)) {
-            return;
-          }
-          this.endDate = newDate;
-          if(this.endDate) {
-            this._updateFacetSelection('End Date', this.endDate);
-          }
-        }
-      },
-      /**
-       * When facet selection changes, ensure date objects are updated if needed.
+       * When facet selection changes, ensure date object is updated if needed.
        */
       _updateDisplay: function() {
         var me = this;
-        if(_.isEqual(this.facetSelection, {})) {
-          if(me.beginDate !== null) {
-            me.beginDate = null;
-          }
-          if(me.endDate !== null) {
-            me.endDate = null;
+        if(_.isEqual(this.facetSelection, {}) || me.facetSelection[me.key] === undefined) {
+          if(me.date !== null) {
+            me.date = null;
           }
           return;
         }
 
-        if(me.facetSelection['Begin Date']) {
-          if(me.facetSelection['Begin Date'].enabled === false) {
-            me.beginDate = null;
-          } else {
-            me.beginDate = moment(me.facetSelection['Begin Date'].date).toDate();
-            me.$.beginDatePicker.date = moment(me.facetSelection['Begin Date'].date).toDate();
-          }
+        if(me.facetSelection[me.key] && me.facetSelection[me.key].enabled === false) {
+          me.date = null;
+        } else {
+          me.date = moment(me.facetSelection[me.key].date).toDate();
+          me.$.datePicker.date = moment(me.facetSelection[me.key].date).toDate();
         }
-
-        if(me.facetSelection['End Date']) {
-          if(me.facetSelection['End Date'].enabled === false) {
-            me.endDate = null;
-          } else {
-            me.endDate = moment(me.facetSelection['End Date'].date).toDate();
-            me.$.endDatePicker.date = moment(me.facetSelection['End Date'].date).toDate();
-          }
-        }
-      },
+      }
     });
   </script>
 </dom-module>
