@@ -111,6 +111,7 @@ limitations under the License.
       phone-field="[[phoneConfig.queryField]]"
       price-field="[[priceConfig.queryField]]"
       region-field="[[regionConfig.queryField]]"
+      services-field="[[servicesConfig.queryField]]"
       title-field="[[titleConfig.queryField]]"
       website-field="[[websiteConfig.queryField]]"
       weight-field="[[weightConfig.queryField]]"
@@ -232,6 +233,20 @@ limitations under the License.
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
       page-size="0"
+      results="{{servicesResult}}"
+      last-error="{{servicesError}}"
+      aggregations="{{buildArray(servicesAgg)}}"
+      filters="[]"
+      loading="{{servicesLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      page-size="0"
       results="{{priceResult}}"
       last-error="{{priceError}}"
       aggregations="{{buildArray(priceAgg)}}"
@@ -251,6 +266,20 @@ limitations under the License.
       aggregations="{{buildArray(nameAgg)}}"
       filters="[]"
       loading="{{nameLoading}}"
+      properties-ready="{{processRequest}}">
+    </elastic-client-search>
+
+    <elastic-client-search
+      client="[[esclient]]"
+      index="[[config.elasticIndex]]"
+      elastic-types="[[getElasticTypes()]]"
+      query="[[ejsQuery]]"
+      page-size="0"
+      results="{{genderResult}}"
+      last-error="{{genderError}}"
+      aggregations="{{buildArray(genderAgg)}}"
+      filters="[]"
+      loading="{{genderLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
@@ -288,11 +317,11 @@ limitations under the License.
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
       page-size="0"
-      results="{{hairColorResult}}"
-      last-error="{{hairColorError}}"
-      aggregations="{{buildArray(hairColorAgg)}}"
+      results="{{eyeColorResult}}"
+      last-error="{{eyeColorError}}"
+      aggregations="{{buildArray(eyeColorAgg)}}"
       filters="[]"
-      loading="{{hairColorLoading}}"
+      loading="{{eyeColorLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
@@ -302,11 +331,11 @@ limitations under the License.
       elastic-types="[[getElasticTypes()]]"
       query="[[ejsQuery]]"
       page-size="0"
-      results="{{eyeColorResult}}"
-      last-error="{{eyeColorError}}"
-      aggregations="{{buildArray(eyeColorAgg)}}"
+      results="{{hairColorResult}}"
+      last-error="{{hairColorError}}"
+      aggregations="{{buildArray(hairColorAgg)}}"
       filters="[]"
-      loading="{{eyeColorLoading}}"
+      loading="{{hairColorLoading}}"
       properties-ready="{{processRequest}}">
     </elastic-client-search>
 
@@ -394,6 +423,7 @@ limitations under the License.
       email-selected="[[searchParameters.email]]"
       ethnicity-selected="[[searchParameters.ethnicity]]"
       eye-selected="[[searchParameters.eyeColor]]"
+      gender-selected="[[searchParameters.gender]]"
       hair-selected="[[searchParameters.hairColor]]"
       height-selected="[[searchParameters.height]]"
       image-selected="[[searchParameters.image]]"
@@ -402,6 +432,7 @@ limitations under the License.
       phone-selected="[[searchParameters.phone]]"
       price-selected="[[searchParameters.price]]"
       region-selected="[[searchParameters.region]]"
+      services-selected="[[searchParameters.services]]"
       title-selected="[[searchParameters.title]]"
       website-selected="[[searchParameters.website]]"
       weight-selected="[[searchParameters.weight]]"
@@ -647,12 +678,14 @@ limitations under the License.
                 <selected-facets-display facet-selection="{{searchParameters.city}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.phone}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.email}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.services}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.price}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.name}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.gender}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.age}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.ethnicity}}"></selected-facets-display>
-                <selected-facets-display facet-selection="{{searchParameters.hairColor}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.eyeColor}}"></selected-facets-display>
+                <selected-facets-display facet-selection="{{searchParameters.hairColor}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.height}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.weight}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.image}}"></selected-facets-display>
@@ -1095,6 +1128,74 @@ limitations under the License.
 
               <div class="h-divider"></div>
 
+              <div id="services" class="layout horizontal facet filter-header" title="Toggle [[servicesConfig.title]]" on-tap="toggleList">
+                <span class="flex">[[getLabelAndCount(servicesConfig.title, servicesResultList)]]</span>
+                <iron-icon id="services-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="services-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="[[servicesConfig.key]]"
+                field="[[servicesConfig.aggregationField]]"
+                count="{{servicesCount}}"
+                ejs-aggregation="{{servicesAgg}}"
+                type="terms"
+                order="{{servicesSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-combine
+                data-in1="[[servicesResult]]"
+                data-in2="[[servicesConfig.key]]"
+                data-out="{{servicesResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="[[servicesConfig.title]]"
+                list="{{servicesSelectedList}}"
+                object="{{searchParameters.services}}">
+              </terms-transformer>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <aggregation-popup
+                    aggregation-count="{{servicesCount}}"
+                    items="[[servicesResultList]]"
+                    error="[[servicesError]]"
+                    loading="[[servicesLoading]]"
+                    item-type="[[servicesConfig.title]]"
+                    count-type="Ads"
+                    text-property="id"
+                    order-by="{{servicesSortOrder}}"
+                    selected-ids="{{servicesSelectedList}}">
+                  </aggregation-popup>
+                </div>
+                <template is="dom-if" if="[[servicesResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort order-by="{{servicesSortOrder}}"></aggregation-sort>
+                  </div>
+                </template>
+              </div>
+
+              <iron-collapse id="services-list" class="filter-list" opened>
+                <feature-aggregation show-checkboxes
+                  checkbox-name="Search"
+                  hide-no-data-text hide-show-more small
+                  text-property="id"
+                  items="[[servicesResultList]]"
+                  selected-ids="{{servicesSelectedList}}">
+                </feature-aggregation>
+                <elastic-error error="[[servicesError]]" message="{{servicesErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[servicesResultList.length]]"
+                  error="[[servicesErrorMessage]]"
+                  loading="[[servicesLoading]]"
+                  empty="No [[servicesConfig.title]]">
+                </status-text>
+              </iron-collapse>
+
+              <div class="h-divider"></div>
+
               <div id="price" class="layout horizontal facet filter-header" title="Toggle [[priceConfig.title]]" on-tap="toggleList">
                 <span class="flex">[[getLabelAndCount(priceConfig.title, priceResultList)]]</span>
                 <iron-icon id="price-icon-opened" icon="icons:expand-less"></iron-icon>
@@ -1226,6 +1327,74 @@ limitations under the License.
                   error="[[nameErrorMessage]]"
                   loading="[[nameLoading]]"
                   empty="No [[nameConfig.title]]">
+                </status-text>
+              </iron-collapse>
+
+              <div class="h-divider"></div>
+
+              <div id="gender" class="layout horizontal facet filter-header" title="Toggle [[genderConfig.title]]" on-tap="toggleList">
+                <span class="flex">[[getLabelAndCount(genderConfig.title, genderResultList)]]</span>
+                <iron-icon id="gender-icon-opened" icon="icons:expand-less"></iron-icon>
+                <iron-icon id="gender-icon-closed" icon="icons:expand-more" style="display: none;"></iron-icon>
+              </div>
+
+              <elastic-client-aggregation-builder
+                name="[[genderConfig.key]]"
+                field="[[genderConfig.aggregationField]]"
+                count="{{genderCount}}"
+                ejs-aggregation="{{genderAgg}}"
+                type="terms"
+                order="{{genderSortOrder}}">
+              </elastic-client-aggregation-builder>
+
+              <json-combine
+                data-in1="[[genderResult]]"
+                data-in2="[[genderConfig.key]]"
+                data-out="{{genderResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="[[genderConfig.title]]"
+                list="{{genderSelectedList}}"
+                object="{{searchParameters.gender}}">
+              </terms-transformer>
+
+              <div class="horizontal layout">
+                <div class="flex self-start">
+                  <aggregation-popup
+                    aggregation-count="{{genderCount}}"
+                    items="[[genderResultList]]"
+                    error="[[genderError]]"
+                    loading="[[genderLoading]]"
+                    item-type="[[genderConfig.title]]"
+                    count-type="Ads"
+                    text-property="id"
+                    order-by="{{genderSortOrder}}"
+                    selected-ids="{{genderSelectedList}}">
+                  </aggregation-popup>
+                </div>
+                <template is="dom-if" if="[[genderResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort order-by="{{genderSortOrder}}"></aggregation-sort>
+                  </div>
+                </template>
+              </div>
+
+              <iron-collapse id="gender-list" class="filter-list" opened>
+                <feature-aggregation show-checkboxes
+                  checkbox-name="Search"
+                  hide-no-data-text hide-show-more small
+                  text-property="id"
+                  items="[[genderResultList]]"
+                  selected-ids="{{genderSelectedList}}">
+                </feature-aggregation>
+                <elastic-error error="[[genderError]]" message="{{genderErrorMessage}}"></elastic-error>
+                <status-text
+                  count="[[genderResultList.length]]"
+                  error="[[genderErrorMessage]]"
+                  loading="[[genderLoading]]"
+                  empty="No [[genderConfig.title]]">
                 </status-text>
               </iron-collapse>
 
@@ -1782,7 +1951,7 @@ limitations under the License.
 
       app.ageConfig = {
         key: 'age',
-        title: 'Provider Age',
+        title: 'Age of Provider',
         queryField: 'fields.age.relaxed.name',
         aggregationField: 'fields.age.relaxed.key',
         value: ''
@@ -1831,28 +2000,35 @@ limitations under the License.
       };
       app.ethnicityConfig = {
         key: 'ethnicity',
-        title: 'Provider Ethnicity',
+        title: 'Ethnicity of Provider',
         queryField: 'fields.ethnicty.relaxed.name',
         aggregationField: 'fields.ethnicty.relaxed.key',
         value: ''
       };
       app.eyeColorConfig = {
         key: 'eyeColor',
-        title: 'Provider Eye Color',
+        title: 'Eye Color of Provider',
         queryField: 'fields.eye_color.relaxed.name',
         aggregationField: 'fields.eye_color.relaxed.key',
         value: ''
       };
+      app.genderConfig = {
+        key: 'gender',
+        title: 'Gender of Provider',
+        queryField: 'fields.genderrelaxed.name',
+        aggregationField: 'fields.genderrelaxed.key',
+        value: ''
+      };
       app.hairColorConfig = {
         key: 'hairColor',
-        title: 'Provider Hair Color',
+        title: 'Hair Color of Provider',
         queryField: 'fields.hair_color.relaxed.name',
         aggregationField: 'fields.hair_color.relaxed.key',
         value: ''
       };
       app.heightConfig = {
         key: 'height',
-        title: 'Provider Height (cm)',
+        title: 'Height (cm) of Provider',
         queryField: 'fields.height.relaxed.name',
         aggregationField: 'fields.height.relaxed.key',
         value: ''
@@ -1872,7 +2048,7 @@ limitations under the License.
       };
       app.nameConfig = {
         key: 'name',
-        title: 'Provider Name',
+        title: 'Name of Provider',
         queryField: 'fields.name.relaxed.name',
         aggregationField: 'fields.name.relaxed.key',
         value: ''
@@ -1886,7 +2062,7 @@ limitations under the License.
       };
       app.priceConfig = {
         key: 'price',
-        title: 'Price',
+        title: 'Price of Provider',
         queryField: 'fields.price.relaxed.name',
         aggregationField: 'fields.price.relaxed.key',
         value: ''
@@ -1896,6 +2072,13 @@ limitations under the License.
         title: 'State/Region',
         queryField: 'fields.state.relaxed.name',
         aggregationField: 'fields.state.relaxed.key',
+        value: ''
+      };
+      app.servicesConfig = {
+        key: 'services',
+        title: 'Services Provided',
+        queryField: 'fields.service.relaxed.name',
+        aggregationField: 'fields.service.relaxed.key',
         value: ''
       };
       app.titleConfig = {
@@ -1914,7 +2097,7 @@ limitations under the License.
       };
       app.weightConfig = {
         key: 'weight',
-        title: 'Provider Weight (kg)',
+        title: 'Weight (kg) of Provider',
         queryField: 'fields.weight.relaxed.name',
         aggregationField: 'fields.weight.relaxed.key',
         value: ''
@@ -1931,8 +2114,10 @@ limitations under the License.
         app.locationConfig,
         app.phoneConfig,
         app.emailConfig,
+        app.servicesConfig,
         app.priceConfig,
         app.nameConfig,
+        app.genderConfig,
         app.ageConfig,
         app.ethnicityConfig,
         app.eyeColorConfig,

@@ -29,6 +29,7 @@ var searchTransform = (function(_) {
       case 'email': return 'email';
       case 'ethnicity': return 'ethnicity';
       case 'eyeColor': return 'eye';
+      case 'gender': return 'gender';
       case 'hairColor': return 'hair';
       case 'height': return 'height';
       case 'image': return '';
@@ -37,6 +38,7 @@ var searchTransform = (function(_) {
       case 'phone': return 'phone';
       case 'price': return 'price';
       case 'region': return 'state';
+      case 'services': return 'service';
       case 'title': return 'title';
       case 'website': return 'tld';
       case 'weight': return 'weight';

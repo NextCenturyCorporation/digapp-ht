@@ -30,16 +30,19 @@ DigBehaviors.StateBehavior = {
    */
   buildEntityState: function(config) {
     return {
-      email: config.email || [],
-      phone: config.phone || [],
-      publisher: config.publisher || [],
-      location: config.location || [],
-      name: config.name || [],
       age: config.age || [],
+      email: config.email || [],
       ethnicity: config.ethnicity || [],
       eyeColor: config.eyeColor || [],
+      gender: config.gender || [],
       hairColor: config.hairColor || [],
       height: config.height || [],
+      location: config.location || [],
+      name: config.name || [],
+      phone: config.phone || [],
+      price: config.price || [],
+      publisher: config.publisher || [],
+      services: config.services || [],
       weight: config.weight || []
     };
   },
@@ -61,6 +64,7 @@ DigBehaviors.StateBehavior = {
       email: config.email || {},
       ethnicity: config.ethnicity || {},
       eyeColor: config.eyeColor || {},
+      gender: config.gender || {},
       hairColor: config.hairColor || {},
       height: config.height || {},
       image: config.image || {},
@@ -69,6 +73,7 @@ DigBehaviors.StateBehavior = {
       phone: config.phone || {},
       price: config.price || {},
       region: config.region || {},
+      services: config.services || {},
       title: config.title || {},
       website: config.website || {},
       weight: config.weight || {},

@@ -188,6 +188,29 @@ var AD_DATA = {
               'name': 'sweet'
             }]
           },
+          'gender': {
+            'strict': [{
+              'key': 'female',
+              'name': 'female'
+            }],
+            'relaxed': [{
+              'key': 'female',
+              'name': 'female'
+            }]
+          },
+          'service': {
+            'strict': [{
+              'key': 'massage',
+              'name': 'massage'
+            }],
+            'relaxed': [{
+              'key': 'massage',
+              'name': 'massage'
+            }, {
+              'key': 'deep tissue',
+              'name': 'deep tissue'
+            }]
+          },
           'posting-date': {
             'strict': [{
               'key': '2017-02-06T00:00:00',

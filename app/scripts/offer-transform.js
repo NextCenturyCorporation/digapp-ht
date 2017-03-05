@@ -135,10 +135,10 @@ var offerTransform = (function(_, commonTransforms) {
       return list.map(function(price) {
         return {
           confidence: confidence,
-          icon: commonTransforms.getIronIcon('money'),
-          styleClass: commonTransforms.getStyleClass('money'),
+          icon: commonTransforms.getIronIcon('provider'),
+          styleClass: commonTransforms.getStyleClass('provider'),
           text: price.key,
-          type: 'money'
+          type: 'provider'
         };
       }).filter(function(price) {
         return price.text !== '-per-min';
@@ -267,11 +267,13 @@ var offerTransform = (function(_, commonTransforms) {
       description: getSingleItemFromRecord(record, '_source.fields.description') || 'No Description',
       phones: getPhonesFromRecord(record, '_source.fields.phone'),
       emails: getEmailsFromRecord(record, '_source.fields.email'),
-      prices: getPricesFromRecord(record, '_source.fields.price'),
       locations: getUniqueLocationsFromRecord(record, '_source.fields.city'),
+      services: getProviderAttributesFromRecord(record, '_source.fields.service'),
+      prices: getPricesFromRecord(record, '_source.fields.price'),
       names: getProviderAttributesFromRecord(record, '_source.fields.name'),
       ages: getProviderAttributesFromRecord(record, '_source.fields.age'),
       ethnicities: getProviderAttributesFromRecord(record, '_source.fields.ethnicity'),
+      genders: getProviderAttributesFromRecord(record, '_source.fields.gender'),
       hairColors: getProviderAttributesFromRecord(record, '_source.fields.hair_color'),
       eyeColors: getProviderAttributesFromRecord(record, '_source.fields.eye_color'),
       heights: getProviderAttributesFromRecord(record, '_source.fields.height'),
