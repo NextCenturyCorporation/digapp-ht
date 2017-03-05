@@ -281,7 +281,7 @@ var offerTransform = (function(_, commonTransforms) {
       date: {
         icon: commonTransforms.getIronIcon('date'),
         styleClass: commonTransforms.getStyleClass('date'),
-        text: getDate(record, '_source.fields.posting-date'),
+        text: getDate(record, '_source.fields.posting_date'),
         type: 'date'
       },
       publishers: getPublishersFromList([{

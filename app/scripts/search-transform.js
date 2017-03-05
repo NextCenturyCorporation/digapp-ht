@@ -23,8 +23,6 @@ var searchTransform = (function(_) {
       case 'age': return 'age';
       case 'city': return 'city';
       case 'country': return 'country';
-      case 'dateEnd': return 'posting-date';
-      case 'dateStart': return 'posting-date';
       case 'description': return 'description';
       case 'email': return 'email';
       case 'ethnicity': return 'ethnicity';
@@ -62,13 +60,9 @@ var searchTransform = (function(_) {
           var predicate = getPredicate(type);
           _.keys(searchParameters[type]).forEach(function(term) {
             if(searchParameters[type][term].enabled) {
-              if(type === 'dateStart') {
+              if(type === 'postingDate') {
                 // TODO Add to filters
-              }
-              if(type === 'dateEnd') {
-                // TODO Add to filters
-              }
-              if(type !== 'dateStart' && type !== 'dateEnd') {
+              } else {
                 clauses.push({
                   constraint: searchParameters[type][term].key,
                   isOptional: true,

@@ -211,7 +211,7 @@ var AD_DATA = {
               'name': 'deep tissue'
             }]
           },
-          'posting-date': {
+          'posting_date': {
             'strict': [{
               'key': '2017-02-06T00:00:00',
               'name': '2017-02-06T00:00:00'
