@@ -33,7 +33,6 @@ var searchTransform = (function(_) {
       case 'hairColor': return 'hair';
       case 'height': return 'height';
       case 'image': return '';
-      case 'location': return 'location';
       case 'name': return 'name';
       case 'phone': return 'phone';
       case 'price': return 'price';
