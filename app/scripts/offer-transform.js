@@ -188,7 +188,7 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function getUniqueLocation(location, confidence) {
-    var keySplit = location.key.split(':');
+    var keySplit = location.key && location.key.length ? location.key.split(':') : [];
 
     if(keySplit.length < 5) {
       return {};

@@ -23,8 +23,8 @@
 
 var filterAggTransform = (function() {
   function cityIdToText(id) {
-    var idPartList = id.split(':');
-    return (idPartList.length > 1 ? idPartList[0] + ', ' + idPartList[1] : '');
+    var cityIdList = id && id.length ? id.split(':') : [];
+    return (cityIdList.length > 1 ? cityIdList[0] + ', ' + cityIdList[1] : '');
   }
 
   return {
