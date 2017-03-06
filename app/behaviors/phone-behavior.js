@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* globals DigBehaviors, _ */
+/* globals DigBehaviors */
 /* exported DigBehaviors */
 var DigBehaviors = DigBehaviors || {};
 

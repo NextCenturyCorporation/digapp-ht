@@ -119,6 +119,7 @@ var optimizeHtmlTask = function(src, dest) {
 gulp.task('jslint', function() {
   return gulp.src([
       'app/*.html',
+      'app/behaviors/*.js',
       'app/elements/**/*.html',
       'app/scripts/*.js',
       'app/test/*.html',
