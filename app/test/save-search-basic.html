@@ -54,21 +54,16 @@ limitations under the License.
             }
           }
         };
-        element.esRequest = {
-          query: {
-            query_string: {
-              query: 'blonde hair',
-              fields: [
-                 '_all'
-              ]
-            }
-          },
-          filter: {
-            and: {
-              filters: [{
-                match_all: {}
-              }]
-            }
+        element.esQuery = {
+          toJSON: function() {
+            return {
+              query_string: {
+                query: 'blonde hair',
+                fields: [
+                   '_all'
+                ]
+              }
+            };
           }
         };
         flush(function() {
@@ -95,21 +90,14 @@ limitations under the License.
         assert.equal(element.userType, 'user');
         assert.isTrue(element.userRecordExists);
         assert.isUndefined(element.updateError);
-        assert.deepEqual(element.esRequest, {
-          query: {
-            query_string: {
-              query: 'blonde hair',
-              fields: [
-                 '_all'
-              ]
-            }
-          },
-          filter: {
-            and: {
-              filters: [{
-                match_all: {}
-              }]
-            }
+        assert.isObject(element.esQuery);
+        assert.isFunction(element.esQuery.toJSON);
+        assert.deepEqual(element.esQuery.toJSON(), {
+          query_string: {
+            query: 'blonde hair',
+            fields: [
+               '_all'
+            ]
           }
         });
         assert.equal(element._savedSearchName, '');
@@ -195,8 +183,8 @@ limitations under the License.
           weight: {},
           sort: ''
         }));
-        assert.equal(searchRecord.esState.query, JSON.stringify(element.esRequest.query));
-        assert.equal(searchRecord.esState.filter, JSON.stringify(element.esRequest.filter));
+        assert.equal(searchRecord.esState.query, JSON.stringify(element.esQuery));
+        assert.isUndefined(searchRecord.esState.filter);
         assert.equal(searchRecord.createdBy, element.username);
         assert.isNotNull(searchRecord.createdAt);
         assert.isNotNull(searchRecord.lastRunDate);
@@ -251,8 +239,8 @@ limitations under the License.
           weight: {},
           sort: ''
         }));
-        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esRequest.query));
-        assert.equal(element.existingSearches[0].esState.filter, JSON.stringify(element.esRequest.filter));
+        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esQuery));
+        assert.isUndefined(element.existingSearches[0].esState.filter);
         assert.equal(element.existingSearches[0].createdBy, element.username);
       });
 
@@ -358,8 +346,8 @@ limitations under the License.
           weight: {},
           sort: ''
         }));
-        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esRequest.query));
-        assert.equal(element.existingSearches[0].esState.filter, JSON.stringify(element.esRequest.filter));
+        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esQuery));
+        assert.isUndefined(element.existingSearches[0].esState.filter);
         assert.equal(element.existingSearches[0].createdBy, element.username);
         assert.deepEqual(element._userUpdateBody, {doc: {savedQueries: element.existingSearches}});
       });
@@ -421,8 +409,8 @@ limitations under the License.
           weight: {},
           sort: ''
         }));
-        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esRequest.query));
-        assert.equal(element.existingSearches[0].esState.filter, JSON.stringify(element.esRequest.filter));
+        assert.equal(element.existingSearches[0].esState.query, JSON.stringify(element.esQuery));
+        assert.isUndefined(element.existingSearches[0].esState.filter);
         assert.equal(element.existingSearches[0].createdBy, element.username);
         assert.deepEqual(element._userUpdateBody, {doc: {savedQueries: element.existingSearches}});
       });
