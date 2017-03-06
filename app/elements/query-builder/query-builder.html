@@ -114,6 +114,13 @@ limitations under the License.
         },
 
         /**
+         * A type of query to ignore, if any.
+         */
+        ignoreType: {
+          type: String
+        },
+
+        /**
          * The parameters for the query.
          */
         searchParameters: {
@@ -169,6 +176,10 @@ limitations under the License.
         return rangeQuery;
       },
 
+      _buildDefaultQuery: function() {
+        return ejs.MatchAllQuery();
+      },
+
       _buildMatchQuery: function(field, value) {
         return this.$$('#builder').buildQuery('match', field, value);
       },
@@ -176,6 +187,9 @@ limitations under the License.
       _buildQuery: function() {
         var self = this;
         var queries = [];
+
+        // If the ignoreType would build a query then build the default query if all other types are disabled.
+        var ignoreTypeHasQuery = false;
 
         _.keys(this.searchParameters).forEach(function(group) {
           var field = self._getField(group);
@@ -186,15 +200,19 @@ limitations under the License.
           }).join(' ');
           var query = field ? (group === 'postingDate' ? self._buildDateRangeQuery(field, self.searchParameters[group]) : self._buildMatchQuery(field, value)) : undefined;
           if(query) {
-            queries.push(query);
+            if(group === self.ignoreType) {
+              ignoreTypeHasQuery = true;
+            } else {
+              queries.push(query);
+            }
           }
         });
 
-        if(!queries.length && !this.demand) {
+        if(!queries.length && !this.demand && !ignoreTypeHasQuery) {
           return null;
         }
 
-        var newQuery = !queries.length ? ejs.MatchAllQuery() : (queries.length === 1 ? queries[0] : this._buildBooleanQuery(queries));
+        var newQuery = !queries.length ? this._buildDefaultQuery() : (queries.length === 1 ? queries[0] : this._buildBooleanQuery(queries));
         var difference = !this.query || !_.isEqual(newQuery.toJSON(), this.query.toJSON());
         return difference ? newQuery : this.query;
       },
