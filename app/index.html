@@ -1029,9 +1029,10 @@ limitations under the License.
 
         <div class="search-fields-dialog">
           <div class="layout horizontal flex">
-            <div class="layout vertical right-space">
+            <div class="layout vertical center-justified right-space">
               <div class="name">Instructions:</div>
             </div>
+
             <div class="layout vertical flex">
               <div class="text">
                 Enter words or phrases as search terms in one or more of the text fields below.
@@ -1043,27 +1044,26 @@ limitations under the License.
             </div>
           </div>
 
-          <div style="horizontal layout wrap flex">
+          <div class="horizontal layout center-justified date-fields-container">
+            <template is="dom-repeat" items="[[dateFields]]" as="item">
+              <date-picker-display
+                facet-selection="{{item.value}}"
+                key="{{item.key}}"
+                prefix-label="{{item.prefixLabel}}"
+                date-identifier="{{item.dateIdentifier}}"
+                title="{{item.title}}">
+              </date-picker-display>
+            </template>
+          </div>
+
+          <div class="search-fields-container">
             <template is="dom-repeat" items="[[searchFields]]" as="item">
-              <div class="horizontal layout center fields-container">
-                <template is="dom-if" if="{{isDateField(item.key)}}">
-                  <date-picker-display class="flex-6"
-                    facet-selection="{{item.value}}"
-                    key="{{item.key}}"
-                    prefix-label="{{item.prefixLabel}}"
-                    date-identifier="{{item.dateIdentifier}}"
-                    title="{{item.title}}">
-                  </date-picker-display>
-                </template>
-                <template is="dom-if" if="{{!isDateField(item.key)}}">
-                  <paper-input class="flex-4"
-                    id$="input_[[item.key]]"
-                    label="[[item.title]]"
-                    value="{{item.value}}"
-                    on-keydown="checkSearchFieldInputKey">
-                  </paper-input>
-                </template>
-              </div>
+              <paper-input
+                id$="input_[[item.key]]"
+                label="[[item.title]]"
+                value="{{item.value}}"
+                on-keydown="checkSearchFieldInputKey">
+              </paper-input>
             </template>
           </div>
 
@@ -2564,7 +2564,10 @@ limitations under the License.
         app.eyeColorConfig,
         app.hairColorConfig,
         app.heightConfig,
-        app.weightConfig,
+        app.weightConfig
+      ];
+
+      app.dateFields = [
         app.dateStartConfig,
         app.dateEndConfig
       ];
@@ -2605,27 +2608,27 @@ limitations under the License.
 
       app.updateSearchParametersFromFields = function() {
         this.searchFields.forEach(function(searchConfig) {
-          if(app.isDateField(searchConfig.key)) {
-            if(searchConfig.value[searchConfig.key] && searchConfig.value[searchConfig.key].enabled) {
-              var dateObject = searchConfig.value[searchConfig.key];
-              app.updateDateAndNotify(dateObject.key, dateObject.date, dateObject.text, dateObject.category, true);
+          var terms = searchConfig.value.split(',').map(function(term) {
+            return searchConfig.key === 'phone' ? DigBehaviors.PhoneBehavior.getUnformattedPhones(term) : term.trim();
+          });
+
+          _.keys(app.searchParameters[searchConfig.key]).forEach(function(term) {
+            if(app.searchParameters[searchConfig.key][term].enabled && terms.indexOf(term) < 0) {
+              app.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, false);
             }
-          } else {
-            var terms = searchConfig.value.split(',').map(function(term) {
-              return searchConfig.key === 'phone' ? DigBehaviors.PhoneBehavior.getUnformattedPhones(term) : term.trim();
-            });
+          });
 
-            _.keys(app.searchParameters[searchConfig.key]).forEach(function(term) {
-              if(app.searchParameters[searchConfig.key][term].enabled && terms.indexOf(term) < 0) {
-                app.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, false);
-              }
-            });
+          terms.forEach(function(term) {
+            if(term) {
+              app.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, true);
+            }
+          });
+        });
 
-            terms.forEach(function(term) {
-              if(term) {
-                app.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, true);
-              }
-            });
+        this.dateFields.forEach(function(dateConfig) {
+          if(dateConfig.value[dateConfig.key] && dateConfig.value[dateConfig.key].enabled) {
+            var dateObject = dateConfig.value[dateConfig.key];
+            app.updateDateAndNotify(dateObject.key, dateObject.date, dateObject.text, dateObject.category, true);
           }
         });
       };
@@ -2634,14 +2637,14 @@ limitations under the License.
         // Set or clear the search fields whenever the dialog is opened.
         if(!this.searchFieldsDialogOpened) {
           this.searchFields.forEach(function(searchConfig, index) {
-            if(!app.isDateField(searchConfig.key)) {
-              // Must update both the property value and the input element value!
-              app.set(['searchFields', index, 'value'], searchConfig.value);
-              document.querySelector('#input_' + searchConfig.key).value = searchConfig.value;
-            } else {
-              // set date objects to empty
-              app.set(['searchFields', index, 'value'], {});
-            }
+            // Must update both the property value and the input element value!
+            app.set(['searchFields', index, 'value'], searchConfig.value);
+            document.querySelector('#input_' + searchConfig.key).value = searchConfig.value;
+          });
+
+          this.dateFields.forEach(function(dateConfig, index) {
+            // set date objects to empty
+            app.set(['dateFields', index, 'value'], {});
           });
         }
 
@@ -2662,10 +2665,6 @@ limitations under the License.
       app.cancelSearch = function() {
         app.userCanceled = true;
         app.toggleSearchFieldsDialog();
-      };
-
-      app.isDateField = function(key) {
-        return key === 'dateStart' || key === 'dateEnd';
       };
       /* end search dropdown panel code */
 
