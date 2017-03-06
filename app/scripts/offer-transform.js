@@ -77,7 +77,7 @@ var offerTransform = (function(_, commonTransforms) {
         count: count,
         id: email.key,
         icon: commonTransforms.getIronIcon('email'),
-        link: commonTransforms.getLink(encodeURIComponent(email.key), 'email'),
+        link: commonTransforms.getLink(email.key, 'email'),
         styleClass: commonTransforms.getStyleClass('email'),
         text: decodeURIComponent(email.name || email.key),
         type: 'email'

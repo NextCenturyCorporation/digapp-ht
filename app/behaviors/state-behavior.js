@@ -22,6 +22,13 @@ var DigBehaviors = DigBehaviors || {};
  * Polymer behavior for state-related utility functions.
  */
 DigBehaviors.StateBehavior = {
+  updateLegacyId: function(id) {
+    if(id.startsWith('http://dig.isi.edu/ht/data/')) {
+      return decodeURIComponent(id.substring(id.lastIndexOf('/') + 1));
+    }
+    return id;
+  },
+
   /**
    * Builds and returns the entity state object from the given config object.
    *
@@ -29,7 +36,7 @@ DigBehaviors.StateBehavior = {
    * @return {Object}
    */
   buildEntityState: function(config) {
-    return {
+    var state = {
       age: config.age || [],
       email: config.email || [],
       ethnicity: config.ethnicity || [],
@@ -45,6 +52,14 @@ DigBehaviors.StateBehavior = {
       services: config.services || [],
       weight: config.weight || []
     };
+
+    // Fix legacy IDs.
+    var self = this;
+    _.keys(state).forEach(function(type) {
+      state[type] = state[type].map(self.updateLegacyId);
+    });
+
+    return state;
   },
 
   /**
@@ -54,7 +69,7 @@ DigBehaviors.StateBehavior = {
    * @return {Object}
    */
   buildSearchState: function(config) {
-    return {
+    var state = {
       age: config.age || {},
       city: config.city || {},
       country: config.country || {},
@@ -70,7 +85,7 @@ DigBehaviors.StateBehavior = {
       name: config.name || {},
       phone: config.phone || {},
       // start and end dates will be keys within postingDate
-      postingDate: config.postingDate ||{},
+      postingDate: config.postingDate || {},
       price: config.price || {},
       region: config.region || {},
       services: config.services || {},
@@ -79,5 +94,17 @@ DigBehaviors.StateBehavior = {
       weight: config.weight || {},
       sort: config.sort || ''
     };
+
+    // Fix legacy IDs.
+    var self = this;
+    _.keys(state).forEach(function(type) {
+      if(type !== 'postingDate' && type !== 'sort') {
+        _.keys(state[type]).forEach(function(term) {
+          state[type][term].key = self.updateLegacyId(state[type][term].key);
+        });
+      }
+    });
+
+    return state;
   }
 };

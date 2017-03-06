@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* globals DigBehaviors, _ */
+/* globals DigBehaviors */
 /* exported DigBehaviors */
 var DigBehaviors = DigBehaviors || {};
 
@@ -29,7 +29,15 @@ DigBehaviors.TypeBehavior = {
     if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller' || type === 'location')) {
       return undefined;
     }
-    return '/' + type + '.html?id=' + id;
+
+    var linkId = id;
+    if(linkId.startsWith('http://dig.isi.edu/ht/data/')) {
+      linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
+    }
+    if(type === 'email') {
+      linkId = encodeURIComponent(linkId);
+    }
+    return '/' + type + '.html?id=' + linkId;
   },
 
   /**
@@ -49,7 +57,7 @@ DigBehaviors.TypeBehavior = {
       case 'seller': return 'icons:group-work';
       case 'webpage': return 'av:web';
     }
-    return 'icons:polymer';
+    return '';
   },
 
   /**
@@ -69,7 +77,7 @@ DigBehaviors.TypeBehavior = {
       case 'seller': return 'Seller';
       case 'webpage': return 'Website';
     }
-    return 'icons:polymer';
+    return '';
   },
 
   /**
