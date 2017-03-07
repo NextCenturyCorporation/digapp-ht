@@ -62,7 +62,7 @@ var searchTransform = (function(_) {
             if(searchParameters[type][term].enabled) {
               if(type === 'postingDate') {
                 // TODO Add to filters
-              } else {
+              } else if(predicate) {
                 clauses.push({
                   constraint: searchParameters[type][term].key,
                   isOptional: true,

@@ -26,11 +26,12 @@ var filterAggTransform = (function(commonTransforms) {
     cityList: function(data, property) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
         return data.aggregations[property][property].buckets.map(function(bucket) {
+          var city = commonTransforms.getLocationDataFromId(bucket.key).city;
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
             count: bucket.doc_count,
-            id: bucket.key,
-            text: commonTransforms.getLocationDataFromId(bucket.key).text || ''
+            id: city,
+            text: city
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         }).filter(function(city) {
