@@ -222,16 +222,19 @@ var offerTransform = (function(_, commonTransforms) {
   function getOfferObject(record) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
-    var domain = _.get(record, '_source.tld');
 
-    if(!id || !url || !domain) {
+    if(!id || !url) {
       return {};
     }
+
+    var rank = _.get(record, '_score');
+    var domain = _.get(record, '_source.tld');
 
     var offer = {
       id: id,
       url: url,
-      domain: domain,
+      rank: rank ? rank.toFixed(2) : rank,
+      domain: domain || 'No Domain',
       type: 'offer',
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),

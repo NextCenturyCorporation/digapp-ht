@@ -1,6 +1,7 @@
 var AD_DATA = {
   'hits': {
     'hits': [{
+      '_score': 1.234,
       '_source': {
         'doc_id': 'FB19C30D81EC27912DC9A3905BDF1BE5484D6697EDA2C5A5BDAFF220887A9965',
         'tld': 'google.com',
