@@ -33,6 +33,7 @@ var searchTransform = (function(_) {
       case 'image': return '';
       case 'name': return 'name';
       case 'phone': return 'phone';
+      case 'postingDate': return 'posting_date';
       case 'price': return 'price';
       case 'region': return 'state';
       case 'services': return 'service';
@@ -54,6 +55,7 @@ var searchTransform = (function(_) {
       var clauses = [];
       var filters = [];
       var groupBy;
+      var hasDateFilter = false;
 
       if(!_.isEmpty(searchParameters)) {
         _.keys(searchParameters).forEach(function(type) {
@@ -61,7 +63,26 @@ var searchTransform = (function(_) {
           _.keys(searchParameters[type]).forEach(function(term) {
             if(searchParameters[type][term].enabled) {
               if(type === 'postingDate') {
-                // TODO Add to filters
+                hasDateFilter = true;
+
+                if(filters.length === 0) {
+                  filters.push({});
+                }
+
+                if(!filters[0].operator) {
+                  filters[0].operator = 'and';
+                }
+
+                if(!filters[0].clauses) {
+                  filters[0].clauses = [];
+                }
+
+                filters[0].clauses.push({
+                  constraint: searchParameters[type][term].date,
+                  operator: term === 'dateStart' ? '>' : '<',
+                  variable: '?date'
+                });
+
               } else if(predicate) {
                 clauses.push({
                   constraint: searchParameters[type][term].key,
@@ -72,6 +93,14 @@ var searchTransform = (function(_) {
             }
           });
         });
+
+        if(hasDateFilter) {
+          clauses.push({
+            isOptional: false,
+            predicate: 'posting_date',
+            variable: '?date'
+          });
+        }
 
         groupBy = (!page || !pageSize) ? undefined : {
           limit: pageSize,
