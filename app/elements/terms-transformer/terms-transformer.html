@@ -121,6 +121,7 @@ limitations under the License.
        */
       _updateObject: function() {
         var self = this;
+        var notifyIds = {};
 
         _.keys(this.object).forEach(function(id) {
           var oldEnabled = self.object[id].enabled;
@@ -128,17 +129,21 @@ limitations under the License.
           if(oldEnabled !== newEnabled) {
             // Must recreate the object here rather than just setting the enabled property in order for notifyPath to work correctly.
             self.object[id] = self._createObjectProperty(newEnabled, self.object[id].key, self.object[id].text);
-            // Must notifyPath on * because it will not handle an id with a period correctly.
-            self.notifyPath('object.*', self.object[id]);
+            notifyIds[id] = true;
           }
         });
 
         (this.list || []).forEach(function(id) {
           if(!self.object[id]) {
             self.object[id] = self._createObjectProperty(true, id, self.textFunction ? self.textFunction(id) : id);
-            // Must notifyPath on * because it will not handle an id with a period correctly.
-            self.notifyPath('object.*', self.object[id]);
+            notifyIds[id] = true;
           }
+        });
+
+        // Must notify AFTER all updates.
+        _.keys(notifyIds).forEach(function(id) {
+          // Must notifyPath on * because it will not handle an id with a period correctly.
+          self.notifyPath('object.*', self.object[id]);
         });
       },
 
