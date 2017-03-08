@@ -21,7 +21,7 @@
 /* exported filterAggTransform */
 /* jshint camelcase:false */
 
-var filterAggTransform = (function(commonTransforms) {
+var filterAggTransform = (function(_, commonTransforms) {
   return {
     cityList: function(data, property) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
@@ -44,10 +44,14 @@ var filterAggTransform = (function(commonTransforms) {
     filterList: function(data, property) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
         return data.aggregations[property][property].buckets.map(function(bucket) {
+          var id = ('' + bucket.key).toLowerCase();
+          if(id.endsWith('.0') && !_.isNaN(parseInt(id))) {
+            id = id.slice(0, -2);
+          }
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
             count: bucket.doc_count,
-            id: ('' + bucket.key).toLowerCase()
+            id: id
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
