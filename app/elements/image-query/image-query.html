@@ -1,0 +1,153 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../behaviors.html">
+
+<dom-module id="image-query">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <elastic-client-query-builder
+      type="term"
+      fields="[[queryField]]"
+      values="[[queryValue]]"
+      ejs-query="{{_query}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-aggregation-builder
+      name="[[aggregationName]]"
+      type="terms"
+      count="0"
+      field="[[aggregationField]]"
+      ejs-aggregation="{{_aggregation}}">
+    </elastic-client-aggregation-builder>
+
+    <elastic-client-search
+      client="[[client]]"
+      index="[[indexName]]"
+      elastic-types="[[indexType]]"
+      query="[[_query]]"
+      page-size="0"
+      aggregations="[[buildArray(_aggregation)]]"
+      filters="[]"
+      results="{{_results}}"
+      loading="{{loading}}"
+      last-error="{{error}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[_results]]"
+      data-out="{{totalCount}}"
+      transform-function="[[_createTotalCountFunction()]]">
+    </json-transform>
+
+    <json-transform
+      data-in="[[_results]]"
+      data-out="{{images}}"
+      transform-function="[[transformFunction]]">
+    </json-transform>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    /* globals DigBehaviors */
+    Polymer({
+      is: 'image-query',
+
+      behaviors: [DigBehaviors.ArrayBehavior],
+
+      properties: {
+        aggregationField: {
+          type: String
+        },
+
+        aggregationName: {
+          type: String
+        },
+
+        client: {
+          type: Object
+        },
+
+        error: {
+          notify: true,
+          type: Object
+        },
+
+        images: {
+          notify: true,
+          type: Array
+        },
+
+        indexName: {
+          type: String
+        },
+
+        indexType: {
+          type: String
+        },
+
+        loading: {
+          notify: true,
+          type: Boolean
+        },
+
+        queryField: {
+          type: String
+        },
+
+        queryValue: {
+          type: String
+        },
+
+        totalCount: {
+          notify: true,
+          type: Number
+        },
+
+        transformFunction: {
+          type: Object
+        },
+
+        _query: {
+          type: Object
+        },
+
+        _results: {
+          type: Object
+        }
+      },
+
+      _createTotalCountFunction: function() {
+        return function(data) {
+          return data && data.hits && data.hits.total ? data.hits.total : 0;
+        };
+      }
+    });
+  })();
+  </script>
+</dom-module>
