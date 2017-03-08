@@ -49,7 +49,7 @@ var imageTransform = (function(_, commonTransforms) {
             link: commonTransforms.getLink(bucket.key, 'image'),
             source: bucket.key,
             styleClass: commonTransforms.getStyleClass('image'),
-            text: 'Image ' + bucket.key
+            text: ''
           });
         });
       }
