@@ -26,9 +26,9 @@ var searchTransform = (function(_) {
       case 'description': return 'description';
       case 'email': return 'email';
       case 'ethnicity': return 'ethnicity';
-      case 'eyeColor': return 'eye';
+      case 'eyeColor': return 'eye_color';
       case 'gender': return 'gender';
-      case 'hairColor': return 'hair';
+      case 'hairColor': return 'hair_color';
       case 'height': return 'height';
       case 'image': return '';
       case 'name': return 'name';

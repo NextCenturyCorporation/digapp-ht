@@ -119,6 +119,7 @@ var offerTransform = (function(_, commonTransforms) {
       return list.map(function(price) {
         return {
           confidence: confidence,
+          id: price.key,
           icon: commonTransforms.getIronIcon('provider'),
           styleClass: commonTransforms.getStyleClass('provider'),
           text: price.key,
@@ -219,6 +220,33 @@ var offerTransform = (function(_, commonTransforms) {
     return undefined;
   }
 
+  function addHighlights(data, record, paths) {
+    if(record.highlight) {
+      var cleanHighlight = function(text) {
+        return text.replace(/\<\/?em\>/g, '').toLowerCase();
+      };
+
+      var highlights = {};
+
+      paths.forEach(function(path) {
+        if(record.highlight[path] && record.highlight[path].length) {
+          record.highlight[path].forEach(function(highlight) {
+            highlights[cleanHighlight(highlight)] = true;
+          });
+        }
+      });
+
+      _.keys(highlights).forEach(function(highlight) {
+        data.forEach(function(item) {
+          if(item.id && ('' + item.id).toLowerCase().indexOf(highlight) >= 0) {
+            item.highlight = true;
+          }
+        });
+      });
+    }
+    return data;
+  }
+
   function getOfferObject(record) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
@@ -241,17 +269,17 @@ var offerTransform = (function(_, commonTransforms) {
       styleClass: commonTransforms.getStyleClass('offer'),
       title: getSingleItemFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleItemFromRecord(record, '_source.fields.description') || 'No Description',
+      locations: getUniqueLocationsFromRecord(record, '_source.fields.city'),
       phones: getPhonesFromRecord(record, '_source.fields.phone'),
       emails: getEmailsFromRecord(record, '_source.fields.email'),
-      locations: getUniqueLocationsFromRecord(record, '_source.fields.city'),
       services: getProviderAttributesFromRecord(record, '_source.fields.service'),
       prices: getPricesFromRecord(record, '_source.fields.price'),
       names: getProviderAttributesFromRecord(record, '_source.fields.name'),
+      genders: getProviderAttributesFromRecord(record, '_source.fields.gender'),
       ages: getProviderAttributesFromRecord(record, '_source.fields.age'),
       ethnicities: getProviderAttributesFromRecord(record, '_source.fields.ethnicity'),
-      genders: getProviderAttributesFromRecord(record, '_source.fields.gender'),
-      hairColors: getProviderAttributesFromRecord(record, '_source.fields.hair_color'),
       eyeColors: getProviderAttributesFromRecord(record, '_source.fields.eye_color'),
+      hairColors: getProviderAttributesFromRecord(record, '_source.fields.hair_color'),
       heights: getProviderAttributesFromRecord(record, '_source.fields.height'),
       weights: getProviderAttributesFromRecord(record, '_source.fields.weight'),
       date: {
@@ -280,6 +308,28 @@ var offerTransform = (function(_, commonTransforms) {
       highlightedText: getHighlightedText(record, 'fields.title.strict.name', 'fields.title.relaxed.name'),
       details: []
     };
+
+    offer.locations = addHighlights(offer.locations, record, [
+        'fields.city.strict.name',
+        'fields.city.relaxed.name',
+        'fields.state.strict.name',
+        'fields.state.relaxed.name',
+        'fields.country.strict.name',
+        'fields.country.relaxed.name'
+    ]);
+    offer.phones = addHighlights(offer.phones, record, ['fields.phone.strict.name', 'fields.phone.relaxed.name']);
+    offer.emails = addHighlights(offer.emails, record, ['fields.email.strict.name', 'fields.email.relaxed.name']);
+    offer.services = addHighlights(offer.services, record, ['fields.service.strict.name', 'fields.service.relaxed.name']);
+    offer.prices = addHighlights(offer.prices, record, ['fields.price.strict.name', 'fields.price.relaxed.name']);
+    offer.names = addHighlights(offer.names, record, ['fields.name.strict.name', 'fields.name.relaxed.name']);
+    offer.genders = addHighlights(offer.genders, record, ['fields.gender.strict.name', 'fields.gender.relaxed.name']);
+    offer.ages = addHighlights(offer.ages, record, ['fields.age.strict.name', 'fields.age.relaxed.name']);
+    offer.ethnicities = addHighlights(offer.ethnicities, record, ['fields.ethnicity.strict.name', 'fields.ethnicity.relaxed.name']);
+    offer.eyeColors = addHighlights(offer.eyeColors, record, ['fields.eye_color.strict.name', 'fields.eye_color.relaxed.name']);
+    offer.hairColors = addHighlights(offer.hairColors, record, ['fields.hair_color.strict.name', 'fields.hair_color.relaxed.name']);
+    offer.heights = addHighlights(offer.heights, record, ['fields.height.strict.name', 'fields.height.relaxed.name']);
+    offer.weights = addHighlights(offer.weights, record, ['fields.weight.strict.name', 'fields.weight.relaxed.name']);
+    offer.publishers = addHighlights(offer.publishers, record, ['tld']);
 
     offer.details.push({
       name: 'Url',

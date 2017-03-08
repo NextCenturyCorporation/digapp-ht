@@ -89,7 +89,7 @@ limitations under the License.
       }
 
       .low-confidence {
-        color: var(--paper-yellow-600);
+        color: var(--paper-orange-600);
       }
 
       .descriptor {
@@ -132,7 +132,8 @@ limitations under the License.
 
       icon-label {
         display: inline-block;
-        margin-right: 5px;
+        border-radius: 5px;
+        padding: 0 5px;
 
         --icon-label-text: {
           color: var(--secondary-text-color);
@@ -152,6 +153,14 @@ limitations under the License.
         --icon-label-link-hover: {
           color: var(--primary-text-color);
         };
+      }
+
+      .highlight {
+        background-color: yellow;
+      }
+
+      .padded {
+        padding: 0 5px;
       }
 
       .hide {
@@ -198,7 +207,7 @@ limitations under the License.
       </div>
 
       <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[_getProperty(item, itemNameProperty)]]">
+        <div class="text padded" title$="[[_getProperty(item, itemNameProperty)]]">
           <strong>
             <highlighted-text tags="em" text="[[_getHeaderText(item, itemHighlightedTextProperty, itemNameProperty)]]"></highlighted-text>
           </strong>
@@ -206,7 +215,7 @@ limitations under the License.
 
         <div class="horizontal layout wrap single-record-text" secondary>
           <div class="flex-1">
-            <icon-label
+            <icon-label class$="[[_isHighlighted(item.date, descriptorHighlightProperty)]]"
               title="Open [[_getProperty(item.date, descriptorTextProperty)]]"
               icon="[[_getProperty(item.date, descriptorIconProperty)]]"
               icon-style-class="[[_getProperty(item.date, descriptorIconStyleClassProperty)]]"
@@ -216,7 +225,7 @@ limitations under the License.
             </icon-label>
           </div>
           <div class="flex-1">
-            <icon-label
+            <icon-label class$="[[_isHighlighted(item.publishers, descriptorHighlightProperty)]]"
               title="Open [[_getSingleProperty(item.publishers, descriptorTextProperty)]]"
               icon="[[_getSingleProperty(item.publishers, descriptorIconProperty)]]"
               icon-style-class="[[_getSingleProperty(item.publishers, descriptorIconStyleClassProperty)]]"
@@ -231,11 +240,11 @@ limitations under the License.
           <div class="horizontal layout wrap single-record-text" secondary>
             <div class="vertical layout flex-1">
               <template is="dom-if" if="[[!item.locations.length]]">
-                <div secondary>No Locations</div>
+                <div class="padded" secondary>No Locations</div>
               </template>
               <template is="dom-repeat" items="[[item.locations]]" as="location">
                 <div secondary>
-                  <icon-label
+                  <icon-label class$="[[_isHighlighted(location, descriptorHighlightProperty)]]"
                     title="Open [[_getProperty(location, descriptorTextProperty)]]"
                     icon="[[_getProperty(location, descriptorIconProperty)]]"
                     icon-style-class="[[_getProperty(location, descriptorIconStyleClassProperty)]]"
@@ -253,11 +262,11 @@ limitations under the License.
 
             <div class="vertical layout flex-1">
               <template is="dom-if" if="[[!item.services.length]]">
-                <div secondary>No Services</div>
+                <div class="padded" secondary>No Services</div>
               </template>
               <template is="dom-repeat" items="[[item.services]]" as="service">
                 <div secondary>
-                  <icon-label
+                  <icon-label class$="[[_isHighlighted(service, descriptorHighlightProperty)]]"
                     title="Open [[_getProperty(service, descriptorTextProperty)]]"
                     icon="[[_getProperty(service, descriptorIconProperty)]]"
                     icon-style-class="[[_getProperty(service, descriptorIconStyleClassProperty)]]"
@@ -279,11 +288,11 @@ limitations under the License.
           <div class="horizontal layout wrap single-record-text" secondary>
             <div class="vertical layout flex-1">
               <template is="dom-if" if="[[!item.phones.length]]">
-                <div secondary>No Telephone Numbers</div>
+                <div class="padded" secondary>No Telephone Numbers</div>
               </template>
               <template is="dom-repeat" items="[[item.phones]]" as="phone">
                 <div class="layout horizontal" secondary>
-                  <icon-label class="annotations"
+                  <icon-label class$="annotations [[_isHighlighted(phone, descriptorHighlightProperty)]]"
                     title="Open [[_getProperty(phone, descriptorTextProperty)]]"
                     icon="[[_getProperty(phone, descriptorIconProperty)]]"
                     icon-style-class="[[_getProperty(phone, descriptorIconStyleClassProperty)]]"
@@ -308,11 +317,11 @@ limitations under the License.
 
             <div class="vertical layout flex-1">
               <template is="dom-if" if="[[!item.emails.length]]">
-                <div secondary>No Email Addresses</div>
+                <div class="padded" secondary>No Email Addresses</div>
               </template>
               <template is="dom-repeat" items="[[item.emails]]" as="email">
                 <div class="layout horizontal" secondary>
-                  <icon-label class="annotations"
+                  <icon-label class$="annotations [[_isHighlighted(email, descriptorHighlightProperty)]]"
                     title="Open [[_getProperty(email, descriptorTextProperty)]]"
                     icon="[[_getProperty(email, descriptorIconProperty)]]"
                     icon-style-class="[[_getProperty(email, descriptorIconStyleClassProperty)]]"
@@ -490,6 +499,14 @@ limitations under the License.
           value: function() {
             return [];
           }
+        },
+
+        /**
+         * The property for the highlight status in the descriptors in the item.
+         */
+        descriptorHighlightProperty: {
+          type: String,
+          value: 'highlight'
         },
 
         /**
@@ -823,6 +840,13 @@ limitations under the License.
 
       _getConfidenceLevelText: function(item) {
         return (item.confidence === 'strict' ? 'High' : 'Low') + ' Confidence Extraction';
+      },
+
+      _isHighlighted: function(item, property) {
+        if(_.isArray(item)) {
+          return item.length && item[0][property] ? 'highlight' : '';
+        }
+        return item[property] ? 'highlight' : '';
       }
     });
   })();
