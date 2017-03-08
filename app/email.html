@@ -107,7 +107,7 @@ limitations under the License.
       index="[[config.elasticIndex]]"
       elastic-types='["ads"]'
       page="{{pageNum}}"
-      page-size="50"
+      page-size="20"
       query="[[emailOffersQuery]]"
       aggregations="[]"
       filters="[[filterList]]"
@@ -145,7 +145,7 @@ limitations under the License.
       phone-aggregation-name="phones"
       phone-aggregation-field="fields.phone.relaxed.key"
       publisher-aggregation-name="publishers"
-      publisher-aggregation-field="tld"
+      publisher-aggregation-field="tld.raw"
       query-field="fields.email.relaxed.key"
       query-value="[[params.id]]"
       client="[[esclient]]"
@@ -204,6 +204,7 @@ limitations under the License.
       gender-selected="[[filterCollection.gender]]"
       hair-selected="[[filterCollection.hairColor]]"
       height-selected="[[filterCollection.height]]"
+      image-selected="[[filterCollection.image]]"
       location-selected="[[filterCollection.location]]"
       name-selected="[[filterCollection.name]]"
       phone-selected="[[filterCollection.phone]]"
@@ -490,7 +491,7 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="publisher"
-                    aggregation-field="tld"
+                    aggregation-field="tld.raw"
                     selected="{{filterCollection.publisher}}"
                     query="[[emailOffersQuery]]"
                     client="[[esclient]]"
@@ -556,17 +557,21 @@ limitations under the License.
                   </template>
 
                   <image-query-and-display
-                    image-query-field="fields.image.relaxed.key"
-                    image-query-values="[[params.id]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["image"]'
-                    image-transform="[[clientConfig.transforms.image.images]]"
-                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                    image-display-title="{{imageDisplayTitle}}"
-                    error="{{imageError}}"
+                    aggregation-field="url.raw"
+                    aggregation-name="image"
                     blur="[[blurImages]]"
-                    image-query-source-include='["url", "uri"]'>
+                    client="[[esclient]]"
+                    count-type="Ads"
+                    entity-name="[[params.id]]"
+                    error="{{imageError}}"
+                    image-id-property="source"
+                    index-name="[[config.elasticIndex]]"
+                    index-type="images"
+                    query-field="isImagePartOf.mentionsEmail"
+                    query-value="[[params.id]]"
+                    selected="{{filterCollection.image}}"
+                    transform-function="[[clientConfig.transforms.image.images]]"
+                    title="{{imageDisplayTitle}}">
                   </image-query-and-display>
                 </section>
               </paper-material>
@@ -678,14 +683,20 @@ limitations under the License.
                   </template>
 
                   <records-list
-                    client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
+                    client="[[esclient]]"
+                    image-aggregation-field="url.raw"
+                    image-aggregation-name="image"
+                    image-index-name="[[config.elasticIndex]]"
+                    image-index-type="images"
+                    image-query-field="isImagePartOf.uri"
+                    image-transform-function="[[clientConfig.transforms.image.images]]"
                     item-name-property="title"
                     query-results="[[strippedOffers]]"
                     total-results="{{emailOffers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
-                    page-size="50"
+                    page-size="20"
                     loading="{{offersLoading}}"
                     type="Ad"
                     records-list-title="{{recordsListTitle}}"

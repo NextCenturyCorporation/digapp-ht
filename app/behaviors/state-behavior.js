@@ -44,6 +44,7 @@ DigBehaviors.StateBehavior = {
       gender: config.gender || [],
       hairColor: config.hairColor || [],
       height: config.height || [],
+      image: config.image || [],
       location: config.location || [],
       name: config.name || [],
       phone: config.phone || [],

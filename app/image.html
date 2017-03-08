@@ -96,18 +96,25 @@ limitations under the License.
     </elastic-client>
 
     <!-- Image query -->
+    <elastic-client-query-builder
+      type="term"
+      fields='"identifier"'
+      values="[[params.id]]"
+      ejs-query="{{imageQuery}}">
+    </elastic-client-query-builder>
 
     <elastic-client-query-builder
       type="term"
-      fields="[[params.field]]"
-      values="[[params.value]]"
+      fields='"url.raw"'
+      values="[[params.url]]"
       ejs-query="{{imageQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["image"]'
+      elastic-types='["images"]'
+      page-size="1"
       query="[[imageQuery]]"
       aggregations="[]"
       filters="[]"
@@ -121,31 +128,29 @@ limitations under the License.
       transform-function="[[clientConfig.transforms.image.image]]">
     </json-transform>
 
-    <!-- Offer query -->
-
     <elastic-client-query-builder
-      type="term"
-      fields='"mainEntityOfPage.hasImagePart.uri"'
-      values="[[image.uri]]"
+      type="terms"
+      fields='"doc_id"'
+      values="[[image.ads]]"
       ejs-query="{{imageOffersQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
+      elastic-types='["ads"]'
       page="{{pageNum}}"
-      page-size="50"
+      page-size="20"
       query="[[imageOffersQuery]]"
       aggregations="[]"
       filters="[[filterList]]"
-      sort-field="validFrom"
+      sort-field="fields.posting_date.strict.key"
       sort-order="desc"
       results="{{offersResults}}"
       loading="{{offersLoading}}"
       last-error="{{offersError}}"
       properties-ready="{{processRequest}}"
-      source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
+      source-include='["doc_id", "fields", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
@@ -158,19 +163,20 @@ limitations under the License.
 
     <location-timeline
       location-aggregation-name="locations"
-      location-aggregation-field="availableAtOrFrom.address.key"
+      location-aggregation-field="fields.city.relaxed.key"
       date-aggregation-name="dates"
-      date-aggregation-field="validFrom"
+      date-aggregation-field="fields.posting_date.strict.key"
       email-aggregation-name="emails"
-      email-aggregation-field="mainEntityOfPage.mentionsEmail"
+      email-aggregation-field="fields.email.relaxed.key"
       phone-aggregation-name="phones"
-      phone-aggregation-field="mainEntityOfPage.mentionsPhone"
+      phone-aggregation-field="fields.phone.relaxed.key"
       publisher-aggregation-name="publishers"
-      publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
-      query-field="mainEntityOfPage.hasImagePart.uri"
-      query-value="[[image.uri]]"
+      publisher-aggregation-field="tld.raw"
+      query-field="doc_id"
+      query-value="[[image.ads]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       filters="[[filterList]]"
       offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
       count="[[imageOffers.count]]"
@@ -180,12 +186,13 @@ limitations under the License.
       error="{{locationTimelineError}}">
     </location-timeline>
 
+    <!-- Logger for Page View -->
     <dig-logger log-page-view
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
       type="Image-Open"
-      data="[[params.value]]"
+      data="[[image.id]]"
       username="[[config.username]]">
     </dig-logger>
 
@@ -217,6 +224,7 @@ limitations under the License.
       gender-selected="[[filterCollection.gender]]"
       hair-selected="[[filterCollection.hairColor]]"
       height-selected="[[filterCollection.height]]"
+      image-selected="[[filterCollection.image]]"
       location-selected="[[filterCollection.location]]"
       name-selected="[[filterCollection.name]]"
       phone-selected="[[filterCollection.phone]]"
@@ -276,7 +284,7 @@ limitations under the License.
 
           <annotate-record client="[[esclient]]"
             annotation-manager="[[annotationManager]]"
-            item="{{image}}"
+            item-id="[[image.id]]"
             item-type="image"
             current-user="[[config.username]]">
           </annotate-record>
@@ -286,7 +294,7 @@ limitations under the License.
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
             user-id="[[userId]]"
-            entity-id="[[image.uri]]"
+            entity-id="[[image.id]]"
             entity-name="[[image.url]]"
             entity-type="image"
             run-user-query-callback="[[runUserQueryCallback]]"
@@ -373,7 +381,7 @@ limitations under the License.
                 <template is="dom-if" if="[[locationData.length]]">
                   <section class="where flex-auto">
                     <leaflet-wrapper
-                      text-property="longName"
+                      text-property="textAndCount"
                       data="{{locationData}}"
                       cluster-markers>
                     </leaflet-wrapper>
@@ -389,12 +397,12 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="location"
-                    aggregation-field="availableAtOrFrom.address.key"
+                    aggregation-field="fields.city.relaxed.key"
                     selected="{{filterCollection.location}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{locationError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
@@ -427,12 +435,12 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="phone"
-                    aggregation-field="mainEntityOfPage.mentionsPhone"
+                    aggregation-field="fields.phone.relaxed.key"
                     selected="{{filterCollection.phone}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{phoneError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
@@ -465,12 +473,12 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="email"
-                    aggregation-field="mainEntityOfPage.mentionsEmail"
+                    aggregation-field="fields.email.relaxed.key"
                     selected="{{filterCollection.email}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{emailError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
@@ -502,19 +510,18 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="publisher"
-                    aggregation-field="mainEntityOfPage.publisher.name"
+                    aggregation-field="tld.raw"
                     selected="{{filterCollection.publisher}}"
                     query="[[imageOffersQuery]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
+                    index-types='["ads"]'
                     error="{{publisherError}}"
                     filter-list="[[filterList]]"
                     feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
                     data-property="publisher"
                     header-property="title"
                     header="{{publisherHeader}}"
-                    data-text-property="id"
                     item-type="Website"
                     count-type="Ads"
                     show-checkboxes>
@@ -534,8 +541,8 @@ limitations under the License.
                   </div>
 
                   <people-features
-                    query-field="mainEntityOfPage.hasImagePart.uri"
-                    query-value="[[image.uri]]"
+                    query-field="doc_id"
+                    query-value="[[image.ads]]"
                     client="[[esclient]]"
                     index-name="[[config.elasticIndex]]"
                     filter-list="[[filterList]]"
@@ -570,18 +577,21 @@ limitations under the License.
                     </template>
 
                     <image-query-and-display
-                      image-query-field="similarImageId.similarImageId"
-                      image-query-values="[[image.similarImageId.similarImageId]]"
-                      client="[[esclient]]"
-                      index="[[config.elasticIndex]]"
-                      index-types='["image"]'
-                      image-transform="[[clientConfig.transforms.image.images]]"
-                      image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                      type="Similar Image"
-                      image-display-title="{{imageDisplayTitle}}"
-                      error="{{similarImageError}}"
+                      aggregation-field="url.raw"
+                      aggregation-name="image"
                       blur="[[blurImages]]"
-                      image-query-source-include='["url", "uri"]'>
+                      client="[[esclient]]"
+                      count-type="Ads"
+                      entity-name="This Image"
+                      error="{{similarImageError}}"
+                      image-id-property="source"
+                      index-name="[[config.elasticIndex]]"
+                      index-type="images"
+                      query-field="similarImageId.similarImageId"
+                      query-values="[[image.similarImageId.similarImageId]]"
+                      selected="{{filterCollection.image}}"
+                      transform-function="[[clientConfig.transforms.image.images]]"
+                      title="{{imageDisplayTitle}}">
                     </image-query-and-display>
                   </section>
                 </paper-material>
@@ -620,7 +630,7 @@ limitations under the License.
               <!-- Timeline -->
               <paper-material>
                 <section class="when">
-                  <iron-image id="mainImage" src="{{image.url}}" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
+                  <iron-image id="mainImage" src="[[image.url]]" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
                 </section>
               </paper-material>
 
@@ -639,9 +649,10 @@ limitations under the License.
 
                   <zoomable-bar-chart timeline
                     bar-property="date"
-                    label-property="name"
+                    label-property="text"
                     stack-property="locations"
                     data="[[timelineData.dates]]"
+                    default-bar-name="Unknown Location(s)"
                     default-label="Unknown Location(s)"
                     source="Ads"
                     interval="[[locationTimelineInterval]]"
@@ -665,13 +676,13 @@ limitations under the License.
                     client="[[esclient]]"
                     index="[[config.elasticIndex]]"
                     date-hist-name="dates"
-                    date-hist-field="validFrom"
+                    date-hist-field="fields.posting_date.strict.key"
                     location-agg-name="locations"
-                    location-agg-field="availableAtOrFrom.address.key"
-                    index-types='["offer"]'
+                    location-agg-field="fields.city.relaxed.key"
+                    index-types='["ads"]'
                     query="[[imageOffersQuery]]"
                     filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
+                    transform="[[clientConfig.transforms.offer.createEventDropsTimeline]]">
                   </drops-query-and-timeline>
                 </section>
               </paper-material>
@@ -699,13 +710,20 @@ limitations under the License.
                   </template>
 
                   <records-list
-                    client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
+                    client="[[esclient]]"
+                    image-aggregation-field="url.raw"
+                    image-aggregation-name="image"
+                    image-index-name="[[config.elasticIndex]]"
+                    image-index-type="images"
+                    image-query-field="isImagePartOf.uri"
+                    image-transform-function="[[clientConfig.transforms.image.images]]"
+                    item-name-property="title"
                     query-results="[[imageOffers.data]]"
                     total-results="{{imageOffers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
-                    page-size="50"
+                    page-size="20"
                     loading="{{offersLoading}}"
                     type="Ad"
                     records-list-title="{{recordsListTitle}}"
@@ -738,6 +756,11 @@ limitations under the License.
     app.filterCollection = DigBehaviors.StateBehavior.buildEntityState({});
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+    // Support legacy links.
+    if(!app.params.id && app.params.value) {
+      app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
+    }
 
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 

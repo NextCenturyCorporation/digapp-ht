@@ -37,6 +37,9 @@ DigBehaviors.TypeBehavior = {
     if(type === 'email') {
       linkId = encodeURIComponent(linkId);
     }
+    if(type === 'image') {
+      return '/' + type + '.html?url=' + linkId;
+    }
     return '/' + type + '.html?id=' + linkId;
   },
 

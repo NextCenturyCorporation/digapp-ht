@@ -113,7 +113,7 @@ limitations under the License.
       index="[[config.elasticIndex]]"
       elastic-types='["ads"]'
       page="{{pageNum}}"
-      page-size="50"
+      page-size="20"
       query="[[phoneOffersQuery]]"
       aggregations="[]"
       filters="[[filterList]]"
@@ -151,7 +151,7 @@ limitations under the License.
       phone-aggregation-name="phones"
       phone-aggregation-field="fields.phone.relaxed.key"
       publisher-aggregation-name="publishers"
-      publisher-aggregation-field="tld"
+      publisher-aggregation-field="tld.raw"
       query-field="fields.phone.relaxed.key"
       query-value="[[params.id]]"
       client="[[esclient]]"
@@ -211,6 +211,7 @@ limitations under the License.
       gender-selected="[[filterCollection.gender]]"
       hair-selected="[[filterCollection.hairColor]]"
       height-selected="[[filterCollection.height]]"
+      image-selected="[[filterCollection.image]]"
       location-selected="[[filterCollection.location]]"
       name-selected="[[filterCollection.name]]"
       phone-selected="[[filterCollection.phone]]"
@@ -496,7 +497,7 @@ limitations under the License.
 
                   <feature-query-and-display
                     aggregation-name="publisher"
-                    aggregation-field="tld"
+                    aggregation-field="tld.raw"
                     selected="{{filterCollection.publisher}}"
                     query="[[phoneOffersQuery]]"
                     client="[[esclient]]"
@@ -562,17 +563,21 @@ limitations under the License.
                   </template>
 
                   <image-query-and-display
-                    image-query-field="fields.image.relaxed.key"
-                    image-query-values="[[params.id]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["image"]'
-                    image-transform="[[clientConfig.transforms.image.images]]"
-                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                    image-display-title="{{imageDisplayTitle}}"
-                    error="{{imageError}}"
+                    aggregation-field="url.raw"
+                    aggregation-name="image"
                     blur="[[blurImages]]"
-                    image-query-source-include='["url", "uri"]'>
+                    client="[[esclient]]"
+                    count-type="Ads"
+                    entity-name="[[params.name]]"
+                    error="{{imageError}}"
+                    image-id-property="source"
+                    index-name="[[config.elasticIndex]]"
+                    index-type="images"
+                    query-field="isImagePartOf.mentionsPhone"
+                    query-value="[[params.imageQueryId]]"
+                    selected="{{filterCollection.image}}"
+                    transform-function="[[clientConfig.transforms.image.images]]"
+                    title="{{imageDisplayTitle}}">
                   </image-query-and-display>
                 </section>
               </paper-material>
@@ -685,14 +690,20 @@ limitations under the License.
                   </template>
 
                   <records-list
-                    client="[[esclient]]"
                     annotation-manager="[[annotationManager]]"
+                    client="[[esclient]]"
+                    image-aggregation-field="url.raw"
+                    image-aggregation-name="image"
+                    image-index-name="[[config.elasticIndex]]"
+                    image-index-type="images"
+                    image-query-field="isImagePartOf.uri"
+                    image-transform-function="[[clientConfig.transforms.image.images]]"
                     item-name-property="title"
                     query-results="[[strippedOffers]]"
                     total-results="{{phoneOffers.count}}"
                     shown-results="{{shownOffers}}"
                     page="{{pageNum}}"
-                    page-size="50"
+                    page-size="20"
                     loading="{{offersLoading}}"
                     type="Ad"
                     records-list-title="{{recordsListTitle}}"
@@ -731,6 +742,8 @@ limitations under the License.
     if(!app.params.id && app.params.value) {
       app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
     }
+
+    app.params.imageQueryId = ((app.params.id.indexOf('-') < 0 ? '1-' : '') + app.params.id);
 
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 

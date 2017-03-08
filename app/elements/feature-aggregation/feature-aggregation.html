@@ -57,6 +57,11 @@ limitations under the License.
         text-align: center;
       }
 
+      .large {
+        /* Max Height = Height of 20 Items with Images */
+        max-height: 1200px;
+      }
+
       .small {
         /* Max Height = Height of 10 Items + Height of Show More Button */
         max-height: 270px;
@@ -72,6 +77,11 @@ limitations under the License.
         color: var(--secondary-text-color);
         margin: 0 5px;
         text-transform: uppercase;
+      }
+
+      iron-image {
+        margin: 5px;
+        background-color: transparent;
       }
     </style>
 
@@ -106,42 +116,49 @@ limitations under the License.
     </template>
 
     <template is="dom-if" if="[[_shownItems.length]]">
-      <div class$="data [[_doesOverflow(_shownItems.length, small, 'overflow')]] [[_isSmall(small)]]">
+      <div class$="data [[_doesOverflow(_shownItems.length, small, 'overflow')]] [[_isSmallOrLarge(small, showImages)]]">
         <template id="barList" is="dom-repeat" items="[[_shownItems]]">
-          <template is="dom-if" if="[[!showOtherCounts]]">
-            <div class="flex add-margins">
-              <horizontal-bar
-                name="[[_getProperty(item, textProperty)]]"
-                count="[[_getProperty(item, countProperty)]]"
-                max="[[_getProperty(item, maxProperty)]]"
-                style-class="[[_getProperty(item, styleClassProperty)]]"
-                show-checkbox="{{showCheckboxes}}"
-                checkbox-tooltip="[[_getCheckboxTooltip(item, textProperty, checkboxName)]]"
-                toggle-listener="[[_createToggleListener(item)]]"
-                selected="{{item.selected}}"
-                link-value="[[_getProperty(item, linkProperty)]]">
-              </horizontal-bar>
-            </div>
-          </template>
+          <div class="layout horizontal center">
+            <template is="dom-if" if="[[showImages]]">
+              <iron-image class$="[[_getBlurStyleClass(blur)]]" style="width:50px; height:50px;" sizing="contain" src="[[_getProperty(item, sourceProperty)]]"></iron-image>
+            </template>
 
-          <template is="dom-if" if="[[showOtherCounts]]">
-            <double-aggregation-display
-              on-selected="_onSelectedChange"
-              item="[[item]]"
-              client="[[client]]"
-              index-name="[[indexName]]"
-              index-types="[[indexTypes]]"
-              query-field="[[queryField]]"
-              count-property="[[countProperty]]"
-              icon-property="[[iconProperty]]"
-              id-property="[[idProperty]]"
-              link-property="[[linkProperty]]"
-              max-property="[[maxProperty]]"
-              style-class-property="[[styleClassProperty]]"
-              text-property="[[textProperty]]"
-              max-other-count="{{_maxOtherCount}}">
-            </double-aggregation-display>
-          </template>
+            <template is="dom-if" if="[[!showOtherCounts]]">
+              <div class="flex add-margins">
+                <horizontal-bar
+                  name="[[_getProperty(item, textProperty)]]"
+                  count="[[_getProperty(item, countProperty)]]"
+                  max="[[_getProperty(item, maxProperty)]]"
+                  style-class="[[_getProperty(item, styleClassProperty)]]"
+                  show-checkbox="[[showCheckboxes]]"
+                  checkbox-tooltip="[[_getCheckboxTooltip(item, textProperty, checkboxName)]]"
+                  toggle-listener="[[_createToggleListener(item)]]"
+                  selected="{{item.selected}}"
+                  link-value="[[_getProperty(item, linkProperty)]]">
+                </horizontal-bar>
+              </div>
+            </template>
+
+            <template is="dom-if" if="[[showOtherCounts]]">
+              <double-aggregation-display class="flex"
+                on-selected="_onSelectedChange"
+                item="[[item]]"
+                client="[[client]]"
+                index-name="[[indexName]]"
+                index-types="[[indexTypes]]"
+                query-field="[[queryField]]"
+                count-property="[[countProperty]]"
+                icon-property="[[iconProperty]]"
+                id-property="[[idProperty]]"
+                link-property="[[linkProperty]]"
+                max-property="[[maxProperty]]"
+                style-class-property="[[styleClassProperty]]"
+                text-property="[[textProperty]]"
+                show-checkboxes="[[showCheckboxes]]"
+                max-other-count="{{_maxOtherCount}}">
+              </double-aggregation-display>
+            </template>
+          </div>
         </template>
       </div>
     </template>
@@ -232,6 +249,19 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * The source property in the each item.
+         *
+         * @type {String}
+         * @default 'source'
+         */
+        sourceProperty: {
+          type: String,
+          value: 'source'
+        },
+
+        /**
+         * (Optional)
+         *
          * The style class property in the each item.
          *
          * @type {String}
@@ -316,6 +346,33 @@ limitations under the License.
         entityName: {
           type: String,
           value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether or not to display images next to each horizontal-bar.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        showImages: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to blur the images.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        blur: {
+          notify: true,
+          type: Boolean,
+          value: true
         },
 
         /**
@@ -672,6 +729,10 @@ limitations under the License.
         return (index >= 0 ? this._selectedItems[index] : undefined);
       },
 
+      _getBlurStyleClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
       /**
        * Returns the count header using the given countType and entityName.  Only used if showOtherCounts is true.
        */
@@ -724,10 +785,10 @@ limitations under the License.
       },
 
       /**
-       * Returns whether this component is marked as small.
+       * Returns whether this component is marked as small or large.
        */
-      _isSmall: function(small) {
-        return small ? 'small' : '';
+      _isSmallOrLarge: function(small, showImages) {
+        return small ? 'small' : (showImages ? 'large' : '');
       },
 
       /**

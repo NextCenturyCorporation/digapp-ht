@@ -23,15 +23,33 @@
 
 var imageTransform = (function(_, commonTransforms) {
   return {
+    image: function(data) {
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        return {
+          id: data.hits.hits[0]._source.identifier,
+          ads: (data.hits.hits[0]._source.isImagePartOf || []).map(function(item) {
+            return item.uri;
+          }).slice(0, 10000),
+          url: data.hits.hits[0]._source.url
+        };
+      }
+      return {};
+    },
+
     images: function(data) {
       var images = [];
       if(data && data.aggregations && data.aggregations.image && data.aggregations.image.image && data.aggregations.image.image.buckets) {
         data.aggregations.image.image.buckets.forEach(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          var count = bucket.doc_count;
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           images.push({
-            icon: commonTransforms.getIronIcon('image'),
+            count: count,
+            //icon: commonTransforms.getIronIcon('image'),
             link: commonTransforms.getLink(bucket.key, 'image'),
             source: bucket.key,
-            styleClass: commonTransforms.getStyleClass('image')
+            styleClass: commonTransforms.getStyleClass('image'),
+            text: 'Image ' + bucket.key
           });
         });
       }
