@@ -137,9 +137,6 @@ var offerTransform = (function(_, commonTransforms) {
   function getProviderAttributesFromList(list, confidence) {
     return list.map(function(attribute) {
       var text = attribute.name ? ('' + attribute.name).toLowerCase() : ('' + attribute.key).toLowerCase();
-      if(text.endsWith('.0') && !_.isNaN(parseInt(text))) {
-        text = text.slice(0, -2);
-      }
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var count = attribute.doc_count;
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */

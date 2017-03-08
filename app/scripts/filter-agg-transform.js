@@ -45,9 +45,6 @@ var filterAggTransform = (function(_, commonTransforms) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
         return data.aggregations[property][property].buckets.map(function(bucket) {
           var id = ('' + bucket.key).toLowerCase();
-          if(id.endsWith('.0') && !_.isNaN(parseInt(id))) {
-            id = id.slice(0, -2);
-          }
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
             count: bucket.doc_count,
