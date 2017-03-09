@@ -181,7 +181,21 @@ limitations under the License.
       },
 
       _buildMatchQuery: function(field, value) {
-        return this.$$('#builder').buildQuery('match', field, value);
+        /* TODO: special handling for age field with multiple values since that
+        field is currently mapped as a long. Need to evaluate if this field should
+        just be mapped as a string instead */
+        if(field === this.ageField && value && value.indexOf(' ') >= 0) {
+          var self = this;
+          var ageValues = _.split(value, ' ');
+          var ageQueries = [];
+          _.each(ageValues, function(age) {
+            ageQueries.push(self.$$('#builder').buildQuery('match', field, age));
+          });
+
+          return this._buildBooleanQuery(ageQueries);
+        } else {
+          return this.$$('#builder').buildQuery('match', field, value);
+        }
       },
 
       _buildQuery: function() {
