@@ -173,6 +173,52 @@ var offerTransform = (function(_, commonTransforms) {
     });
   }
 
+  function getReviewIdsFromRecord(record, path) {
+    var getReviewIdsFromList = function(list, confidence) {
+      return list.map(function(reviewId) {
+        var text = reviewId.name ? ('' + reviewId.name).toLowerCase() : ('' + reviewId.key).toLowerCase();
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        var count = reviewId.doc_count;
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        return {
+          confidence: confidence,
+          count: count,
+          id: reviewId.key,
+          icon: commonTransforms.getIronIcon('review'),
+          styleClass: commonTransforms.getStyleClass('review'),
+          text: text,
+          type: 'review'
+        };
+      });
+    };
+
+    var reviewIds = getDataFromRecord(record, path);
+    return getReviewIdsFromList(reviewIds.strict, 'strict').concat(getReviewIdsFromList(reviewIds.relaxed, 'relaxed'));
+  }
+
+  function getSocialIdsFromList(list, confidence) {
+    return list.map(function(socialId) {
+      var text = socialId.name ? ('' + socialId.name).toLowerCase() : ('' + socialId.key).toLowerCase();
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var count = socialId.doc_count;
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      return {
+        confidence: confidence,
+        count: count,
+        id: socialId.key,
+        icon: commonTransforms.getIronIcon('social'),
+        styleClass: commonTransforms.getStyleClass('social'),
+        text: text,
+        type: 'social'
+      };
+    });
+  }
+
+  function getSocialIdsFromRecord(record, path) {
+    var socialIds = getDataFromRecord(record, path);
+    return getSocialIdsFromList(socialIds.strict, 'strict').concat(getSocialIdsFromList(socialIds.relaxed, 'relaxed'));
+  }
+
   function getUniqueLocation(location, confidence) {
     var data = commonTransforms.getLocationDataFromId(location.key);
 
@@ -273,6 +319,8 @@ var offerTransform = (function(_, commonTransforms) {
       locations: getUniqueLocationsFromRecord(record, '_source.fields.city'),
       phones: getPhonesFromRecord(record, '_source.fields.phone'),
       emails: getEmailsFromRecord(record, '_source.fields.email'),
+      socialIds: getSocialIdsFromRecord(record, '_source.fields.social_media_id'),
+      reviewIds: getReviewIdsFromRecord(record, '_source.fields.review_id'),
       services: getProviderAttributesFromRecord(record, '_source.fields.service'),
       prices: getPricesFromRecord(record, '_source.fields.price'),
       names: getProviderAttributesFromRecord(record, '_source.fields.name'),
@@ -320,6 +368,8 @@ var offerTransform = (function(_, commonTransforms) {
     ]);
     offer.phones = addHighlights(offer.phones, record, ['fields.phone.strict.name', 'fields.phone.relaxed.name']);
     offer.emails = addHighlights(offer.emails, record, ['fields.email.strict.name', 'fields.email.relaxed.name']);
+    offer.socialIds = addHighlights(offer.socialIds, record, ['fields.social_media_id.strict.name', 'fields.social_media_id.relaxed.name']);
+    offer.reviewIds = addHighlights(offer.reviewIds, record, ['fields.review_id.strict.name', 'fields.review_id.relaxed.name']);
     offer.services = addHighlights(offer.services, record, ['fields.service.strict.name', 'fields.service.relaxed.name']);
     offer.prices = addHighlights(offer.prices, record, ['fields.price.strict.name', 'fields.price.relaxed.name']);
     offer.names = addHighlights(offer.names, record, ['fields.name.strict.name', 'fields.name.relaxed.name']);
@@ -726,6 +776,17 @@ var offerTransform = (function(_, commonTransforms) {
       return {
         title: getTitle(publishers.length, 'Website'),
         publisher: publishers
+      };
+    },
+
+    offerSocialIds: function(data) {
+      var socialIds = [];
+      if(data && data.aggregations && data.aggregations.social && data.aggregations.social.social) {
+        socialIds = getSocialIdsFromList(data.aggregations.social.social.buckets || []);
+      }
+      return {
+        title: getTitle(socialIds.length, 'Social Media ID'),
+        social: socialIds
       };
     },
 

@@ -57,7 +57,9 @@ DigBehaviors.TypeBehavior = {
       case 'offer': return 'maps:local-offer';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
+      case 'review': return 'icons:thumbs-up-down';
       case 'seller': return 'icons:group-work';
+      case 'social': return 'social:public';
       case 'webpage': return 'av:web';
     }
     return '';
@@ -77,7 +79,9 @@ DigBehaviors.TypeBehavior = {
       case 'offer': return 'Ad';
       case 'phone': return 'Telephone Number';
       case 'provider': return 'Provider';
+      case 'review': return 'Review ID';
       case 'seller': return 'Seller';
+      case 'social': return 'Social Media ID';
       case 'webpage': return 'Website';
     }
     return '';

@@ -51,6 +51,7 @@ DigBehaviors.StateBehavior = {
       price: config.price || [],
       publisher: config.publisher || [],
       services: config.services || [],
+      social: config.social || [],
       weight: config.weight || []
     };
 
@@ -89,7 +90,9 @@ DigBehaviors.StateBehavior = {
       postingDate: config.postingDate || {},
       price: config.price || {},
       region: config.region || {},
+      review: config.review || {},
       services: config.services || {},
+      social: config.social || {},
       title: config.title || {},
       website: config.website || {},
       weight: config.weight || {},
