@@ -90,6 +90,13 @@ var offerTransform = (function(_, commonTransforms) {
     return getEmailsFromList(emails.strict, 'strict').concat(getEmailsFromList(emails.relaxed, 'relaxed'));
   }
 
+  function getHighRisk(record, path) {
+    var risks = getDataFromRecord(record, path);
+    return risks.strict.some(function(risk) {
+      return risk.name.toLowerCase() === 'yes';
+    });
+  }
+
   function getPhonesFromList(list, confidence) {
     return list.map(function(phone) {
       var name = phone.name || phone.key;
@@ -314,6 +321,7 @@ var offerTransform = (function(_, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
+      highRisk: getHighRisk(record, '_source.fields.risk'),
       title: getSingleItemFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleItemFromRecord(record, '_source.fields.description') || 'No Description',
       locations: getUniqueLocationsFromRecord(record, '_source.fields.city'),
