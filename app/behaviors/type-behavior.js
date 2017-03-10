@@ -59,6 +59,7 @@ DigBehaviors.TypeBehavior = {
       case 'provider': return 'icons:account-circle';
       case 'review': return 'icons:thumbs-up-down';
       case 'seller': return 'icons:group-work';
+      case 'service': return 'icons:work';
       case 'social': return 'social:public';
       case 'webpage': return 'av:web';
     }
@@ -81,6 +82,7 @@ DigBehaviors.TypeBehavior = {
       case 'provider': return 'Provider';
       case 'review': return 'Review ID';
       case 'seller': return 'Seller';
+      case 'service': return 'Service Provided';
       case 'social': return 'Social Media ID';
       case 'webpage': return 'Website';
     }

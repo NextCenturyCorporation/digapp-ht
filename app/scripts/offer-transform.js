@@ -130,10 +130,10 @@ var offerTransform = (function(_, commonTransforms) {
         return {
           confidence: confidence,
           id: price.key,
-          icon: commonTransforms.getIronIcon('provider'),
-          styleClass: commonTransforms.getStyleClass('provider'),
+          icon: commonTransforms.getIronIcon('money'),
+          styleClass: commonTransforms.getStyleClass('money'),
           text: price.name,
-          type: 'provider'
+          type: 'money'
         };
       }).filter(function(price) {
         return price.text !== '-per-min';
@@ -204,6 +204,25 @@ var offerTransform = (function(_, commonTransforms) {
 
     var reviewIds = getDataFromRecord(record, path);
     return getReviewIdsFromList(reviewIds.strict, 'strict').concat(getReviewIdsFromList(reviewIds.relaxed, 'relaxed'));
+  }
+
+  function getServicesFromRecord(record, path) {
+    var getServicesFromList = function(list, confidence) {
+      return list.map(function(service) {
+        var text = service.name ? ('' + service.name).toLowerCase() : ('' + service.key).toLowerCase();
+        return {
+          confidence: confidence,
+          id: service.key,
+          icon: commonTransforms.getIronIcon('service'),
+          styleClass: commonTransforms.getStyleClass('service'),
+          text: text,
+          type: 'service'
+        };
+      });
+    };
+
+    var services = getDataFromRecord(record, path);
+    return getServicesFromList(services.strict, 'strict').concat(getServicesFromList(services.relaxed, 'relaxed'));
   }
 
   function getSocialIdsFromList(list, confidence) {
@@ -332,7 +351,7 @@ var offerTransform = (function(_, commonTransforms) {
       emails: getEmailsFromRecord(record, '_source.fields.email'),
       socialIds: getSocialIdsFromRecord(record, '_source.fields.social_media_id'),
       reviewIds: getReviewIdsFromRecord(record, '_source.fields.review_id'),
-      services: getProviderAttributesFromRecord(record, '_source.fields.service'),
+      services: getServicesFromRecord(record, '_source.fields.service'),
       prices: getPricesFromRecord(record, '_source.fields.price'),
       names: getProviderAttributesFromRecord(record, '_source.fields.name'),
       genders: getProviderAttributesFromRecord(record, '_source.fields.gender'),
