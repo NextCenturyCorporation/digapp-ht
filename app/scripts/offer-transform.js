@@ -841,16 +841,18 @@ var offerTransform = (function(_, commonTransforms) {
         'dig url',
         'title',
         'date',
-        'publisher',
+        'high risk',
         'locations',
         'telephone numbers',
         'email addresses',
+        'social media ids',
+        'review ids',
         'images',
         'description'
       ]];
       results.forEach(function(result) {
         var locations = result.locations.map(function(location) {
-          return location.text;
+          return location.textAndCountry;
         }).join('; ');
         var phones = result.phones.map(function(phone) {
           return phone.text;
@@ -858,17 +860,26 @@ var offerTransform = (function(_, commonTransforms) {
         var emails = result.emails.map(function(email) {
           return email.text;
         }).join('; ');
-        // TODO
-        var images = '';
+        var socialIds = result.socialIds.map(function(socialId) {
+          return socialId.text;
+        }).join('; ');
+        var reviewIds = result.reviewIds.map(function(reviewId) {
+          return reviewId.text;
+        }).join('; ');
+        var images = (result.images || []).map(function(image) {
+          return image.source;
+        }).join('; ');
         data.push([
           result.url,
           linkPrefix + result.link,
           result.title,
           result.date.text,
-          result.publishers.length ? result.publishers[0].text : '',
+          result.highRisk ? 'yes' : 'no',
           locations,
           phones,
           emails,
+          socialIds,
+          reviewIds,
           images,
           result.description.replace(/\n/g, ' ')
         ]);
@@ -883,13 +894,19 @@ var offerTransform = (function(_, commonTransforms) {
 
       results.forEach(function(result) {
         var locations = result.locations.map(function(location) {
-          return location.text;
+          return location.textAndCountry;
         }).join(', ');
         var phones = result.phones.map(function(phone) {
           return phone.text;
         }).join(', ');
         var emails = result.emails.map(function(email) {
           return email.text;
+        }).join(', ');
+        var socialIds = result.socialIds.map(function(socialId) {
+          return socialId.text;
+        }).join(', ');
+        var reviewIds = result.reviewIds.map(function(reviewId) {
+          return reviewId.text;
         }).join(', ');
 
         var item = {
@@ -904,24 +921,36 @@ var offerTransform = (function(_, commonTransforms) {
 
         item.paragraphs.push({
           big: true,
-          label: result.name,
+          label: result.title,
           value: ''
         });
         item.paragraphs.push({
           label: 'Posting Date:  ',
-          value: result.date
+          value: result.date.text
         });
         item.paragraphs.push({
-          label: 'Location(s):  ',
+          label: 'High Risk:  ',
+          value: result.highRisk ? 'Yes' : 'No'
+        });
+        item.paragraphs.push({
+          label: 'Locations:  ',
           value: locations
         });
         item.paragraphs.push({
-          label: 'Telephone Number(s):  ',
+          label: 'Telephone Numbers:  ',
           value: phones
         });
         item.paragraphs.push({
-          label: 'Email Address(es):  ',
+          label: 'Email Addresses:  ',
           value: emails
+        });
+        item.paragraphs.push({
+          label: 'Social Media IDs:  ',
+          value: socialIds
+        });
+        item.paragraphs.push({
+          label: 'Review IDs:  ',
+          value: reviewIds
         });
         item.paragraphs.push({
           label: 'Description:  ',
