@@ -51,6 +51,9 @@ var offerTransform = (function(_, commonTransforms) {
       return strictKeys.indexOf(item.key) < 0;
     });
 
+    // TODO Ignore relaxed for now.
+    relaxed = [];
+
     return {
       relaxed: relaxed,
       strict: strict
