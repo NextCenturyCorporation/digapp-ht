@@ -297,8 +297,13 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function addHighlights(data, record, paths) {
+
     if(record.highlight) {
-      var cleanHighlight = function(text) {
+      var cleanHighlight = function(text, path) {
+        var skipPathsForPartialMatches = ['tld', 'fields.email.strict.name', 'fields.email.relaxed.name'];
+        if(skipPathsForPartialMatches.indexOf(path) >= 0 && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
+          return text.toLowerCase();
+        }
         return text.replace(/\<\/?em\>/g, '').toLowerCase();
       };
 
@@ -307,7 +312,7 @@ var offerTransform = (function(_, commonTransforms) {
       paths.forEach(function(path) {
         if(record.highlight[path] && record.highlight[path].length) {
           record.highlight[path].forEach(function(highlight) {
-            highlights[cleanHighlight(highlight)] = true;
+            highlights[cleanHighlight(highlight, path)] = true;
           });
         }
       });

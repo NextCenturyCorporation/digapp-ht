@@ -56,6 +56,22 @@ var filterAggTransform = (function(_, commonTransforms) {
       return [];
     },
 
+    socialMediaList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          var id = ('' + bucket.key).toLowerCase();
+
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: id.substring(id.indexOf(' ') + 1, id.length)
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
+    },
+
     phoneList: function(data, property) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
         return data.aggregations[property][property].buckets.map(function(bucket) {
