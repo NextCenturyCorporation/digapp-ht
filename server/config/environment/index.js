@@ -71,6 +71,7 @@ var all = {
     logType: process.env.LOG_TYPE || 'log',
     userIndex: process.env.USER_INDEX || 'dig-users',
     userType: process.env.USER_TYPE || 'user',
+    downloadImageUrl: process.env.DOWNLOAD_IMAGE_URL || 'downloadImage',
     queryUrl: process.env.QUERY_URL
 };
 

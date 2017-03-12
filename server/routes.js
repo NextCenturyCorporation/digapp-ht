@@ -53,12 +53,13 @@ module.exports = function(app) {
             userType: config.userType,
             imageServiceAuth: config.imageServiceAuth,
             imageServiceHost: config.imageServiceHost,
+            downloadImageUrl: config.downloadImageUrl,
             queryUrl: config.queryUrl
         });
     });
 
     app.get('/downloadImage/:link', function(req, res) {
-      var link = decodeURIComponent(req.params.link);
+      var link = 's3.amazonaws.com/' + decodeURIComponent(req.params.link);
       req.pipe(request(link)).pipe(res);
     });
 

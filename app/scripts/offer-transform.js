@@ -913,7 +913,8 @@ var offerTransform = (function(_, commonTransforms) {
           images: (result.images || []).map(function(image) {
             return {
               id: 'image' + nextId++,
-              source: encodeURIComponent(image.source)
+              source: encodeURIComponent(image.source.replace('https://s3.amazonaws.com/', '')),
+              text: image.source
             };
           }),
           paragraphs: []
