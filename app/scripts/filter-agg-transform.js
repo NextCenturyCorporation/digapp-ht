@@ -64,7 +64,8 @@ var filterAggTransform = (function(_, commonTransforms) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           return {
             count: bucket.doc_count,
-            id: id.substring(id.indexOf(' ') + 1, id.length)
+            id: id.substring(id.indexOf(' ') + 1, id.length),
+            text: id
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
