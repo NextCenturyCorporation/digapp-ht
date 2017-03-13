@@ -59,7 +59,7 @@ module.exports = function(app) {
     });
 
     app.get('/downloadImage/:link', function(req, res) {
-      var link = 's3.amazonaws.com/' + decodeURIComponent(req.params.link);
+      var link = 'https://s3.amazonaws.com/' + decodeURIComponent(req.params.link);
       req.pipe(request(link)).pipe(res);
     });
 
