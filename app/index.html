@@ -1260,15 +1260,20 @@ limitations under the License.
               </div>
 
               <div class="layout horizontal date-fields-container">
-                <template is="dom-repeat" items="[[dateFields]]" as="item">
-                  <date-picker-display
-                    facet-selection="{{item.value}}"
-                    key="{{item.key}}"
-                    prefix-label="{{item.prefixLabel}}"
-                    date-identifier="{{item.dateIdentifier}}"
-                    title="{{item.title}}">
-                  </date-picker-display>
-                </template>
+                <date-picker-display
+                  facet-selection="{{dateStartConfig.value}}"
+                  key="{{dateStartConfig.key}}"
+                  prefix-label="{{dateStartConfig.prefixLabel}}"
+                  date-identifier="{{dateStartConfig.dateIdentifier}}"
+                  title="{{dateStartConfig.title}}">
+                </date-picker-display>
+                <date-picker-display
+                  facet-selection="{{dateEndConfig.value}}"
+                  key="{{dateEndConfig.key}}"
+                  prefix-label="{{dateEndConfig.prefixLabel}}"
+                  date-identifier="{{dateEndConfig.dateIdentifier}}"
+                  title="{{dateEndConfig.title}}">
+                </date-picker-display>
               </div>
 
               <div class="layout horizontal wrap">
@@ -1702,7 +1707,6 @@ limitations under the License.
                     loading="[[socialLoading]]"
                     item-type="[[socialConfig.title]]"
                     count-type="Ads"
-                    text-property="id"
                     order-by="{{socialSortOrder}}"
                     selected-ids="{{socialSelectedList}}">
                   </aggregation-popup>
@@ -1724,7 +1728,6 @@ limitations under the License.
                 <feature-aggregation show-checkboxes
                   checkbox-name="Search"
                   hide-no-data-text hide-show-more small
-                  text-property="id"
                   items="[[socialResultList]]"
                   selected-ids="{{socialSelectedList}}">
                 </feature-aggregation>
@@ -3273,11 +3276,6 @@ limitations under the License.
         app.weightConfig
       ];
 
-      app.dateFields = [
-        app.dateStartConfig,
-        app.dateEndConfig
-      ];
-
       app.updateSearchParameterAndNotify = function(type, term, title, enabled) {
         this.searchParameters[type][term] = {
           category: title,
@@ -3351,9 +3349,8 @@ limitations under the License.
           app.updateSearchParameterFromField(searchConfig);
         });
 
-        this.dateFields.forEach(function(dateConfig) {
-          app.updateDateParameterFromField(dateConfig);
-        });
+        app.updateDateParameterFromField(app.dateStartConfig);
+        app.updateDateParameterFromField(app.dateEndConfig);
       };
 
       app.updateSearchFieldFromParameter = function(searchConfig, index) {
@@ -3373,12 +3370,12 @@ limitations under the License.
         document.querySelector('#input_' + searchConfig.key).value = searchConfig.value;
       };
 
-      app.updateDateFieldFromParameter = function(dateConfig, index) {
+      app.updateDateFieldFromParameter = function(dateConfig, property) {
         dateConfig.value = {};
         if(app.searchParameters.postingDate[dateConfig.key]) {
           dateConfig.value[dateConfig.key] = app.searchParameters.postingDate[dateConfig.key];
         }
-        app.set(['dateFields', index, 'value'], dateConfig.value);
+        app.set([property + '.value'], dateConfig.value);
       };
 
       app.toggleSearchFieldsDialog = function() {
@@ -3388,9 +3385,8 @@ limitations under the License.
             app.updateSearchFieldFromParameter(searchConfig, index);
           });
 
-          this.dateFields.forEach(function(dateConfig, index) {
-            app.updateDateFieldFromParameter(dateConfig, index);
-          });
+          app.updateDateFieldFromParameter(app.dateStartConfig, 'dateStartConfig');
+          app.updateDateFieldFromParameter(app.dateEndConfig, 'dateEndConfig');
         }
 
         this.searchFieldsDialogOpened = !this.searchFieldsDialogOpened;
@@ -3413,10 +3409,10 @@ limitations under the License.
           document.querySelector('#input_' + searchConfig.key).value = '';
         });
 
-        this.dateFields.forEach(function(dateConfig, index) {
-          dateConfig.value = {};
-          app.set(['dateFields', index, 'value'], {});
-        });
+        app.dateStartConfig.value = {};
+        app.set('dateStartConfig.value', {});
+        app.dateEndConfig.value = {};
+        app.set('dateEndConfig.value', {});
       };
 
       // clear tempSeachParameters and close dialog when user cancels
