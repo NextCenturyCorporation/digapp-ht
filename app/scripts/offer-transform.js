@@ -127,8 +127,12 @@ var offerTransform = (function(_, commonTransforms) {
   function getPricesFromRecord(record, path) {
     var getPricesFromList = function(list, confidence) {
       return list.map(function(price) {
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        var count = price.doc_count;
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         return {
           confidence: confidence,
+          count: count,
           id: price.key,
           icon: commonTransforms.getIronIcon('money'),
           styleClass: commonTransforms.getStyleClass('money'),
@@ -183,25 +187,25 @@ var offerTransform = (function(_, commonTransforms) {
     });
   }
 
-  function getReviewIdsFromRecord(record, path) {
-    var getReviewIdsFromList = function(list, confidence) {
-      return list.map(function(reviewId) {
-        var text = reviewId.name ? ('' + reviewId.name).toLowerCase() : ('' + reviewId.key).toLowerCase();
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        var count = reviewId.doc_count;
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        return {
-          confidence: confidence,
-          count: count,
-          id: reviewId.key,
-          icon: commonTransforms.getIronIcon('review'),
-          styleClass: commonTransforms.getStyleClass('review'),
-          text: text,
-          type: 'review'
-        };
-      });
-    };
+  function getReviewIdsFromList(list, confidence) {
+    return list.map(function(reviewId) {
+      var text = reviewId.name ? ('' + reviewId.name).toLowerCase() : ('' + reviewId.key).toLowerCase();
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var count = reviewId.doc_count;
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      return {
+        confidence: confidence,
+        count: count,
+        id: reviewId.key,
+        icon: commonTransforms.getIronIcon('review'),
+        styleClass: commonTransforms.getStyleClass('review'),
+        text: text,
+        type: 'review'
+      };
+    });
+  }
 
+  function getReviewIdsFromRecord(record, path) {
     var reviewIds = getDataFromRecord(record, path);
     return getReviewIdsFromList(reviewIds.strict, 'strict').concat(getReviewIdsFromList(reviewIds.relaxed, 'relaxed'));
   }
@@ -210,8 +214,12 @@ var offerTransform = (function(_, commonTransforms) {
     var getServicesFromList = function(list, confidence) {
       return list.map(function(service) {
         var text = service.name ? ('' + service.name).toLowerCase() : ('' + service.key).toLowerCase();
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        var count = service.doc_count;
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         return {
           confidence: confidence,
+          count: count,
           id: service.key,
           icon: commonTransforms.getIronIcon('service'),
           styleClass: commonTransforms.getStyleClass('service'),
@@ -227,6 +235,7 @@ var offerTransform = (function(_, commonTransforms) {
 
   function getSocialIdsFromList(list, confidence) {
     return list.map(function(socialId) {
+      var id = socialId.key.indexOf(' ') ? socialId.key.substring(socialId.key.indexOf(' ') + 1) : socialId.key;
       var text = socialId.name ? ('' + socialId.name).toLowerCase() : ('' + socialId.key).toLowerCase();
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var count = socialId.doc_count;
@@ -234,7 +243,7 @@ var offerTransform = (function(_, commonTransforms) {
       return {
         confidence: confidence,
         count: count,
-        id: socialId.key,
+        id: id,
         icon: commonTransforms.getIronIcon('social'),
         styleClass: commonTransforms.getStyleClass('social'),
         text: text,
@@ -297,14 +306,17 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function addHighlights(data, record, paths) {
-
     if(record.highlight) {
       var cleanHighlight = function(text, path) {
         var skipPathsForPartialMatches = ['tld', 'fields.email.strict.name', 'fields.email.relaxed.name'];
         if(skipPathsForPartialMatches.indexOf(path) >= 0 && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
           return text.toLowerCase();
         }
-        return text.replace(/\<\/?em\>/g, '').toLowerCase();
+        var output = text;
+        if(path === 'fields.social_media_id.strict.name' || path === 'fields.social_media_id.relaxed.name') {
+          output = output.indexOf(' ') ? output.substring(output.indexOf(' ') + 1) : output;
+        }
+        return output.indexOf('<em>') >= 0 ? output.replace(/\<\/?em\>/g, '').toLowerCase() : '';
       };
 
       var highlights = {};
@@ -312,7 +324,10 @@ var offerTransform = (function(_, commonTransforms) {
       paths.forEach(function(path) {
         if(record.highlight[path] && record.highlight[path].length) {
           record.highlight[path].forEach(function(highlight) {
-            highlights[cleanHighlight(highlight, path)] = true;
+            var cleanedHighlight = cleanHighlight(highlight, path);
+            if(cleanedHighlight) {
+              highlights[cleanedHighlight] = true;
+            }
           });
         }
       });
@@ -814,6 +829,17 @@ var offerTransform = (function(_, commonTransforms) {
       };
     },
 
+    offerReviewIds: function(data) {
+      var reviewIds = [];
+      if(data && data.aggregations && data.aggregations.review && data.aggregations.review.review) {
+        reviewIds = getReviewIdsFromList(data.aggregations.review.review.buckets || []);
+      }
+      return {
+        title: getTitle(reviewIds.length, 'Review ID'),
+        review: reviewIds
+      };
+    },
+
     offerSocialIds: function(data) {
       var socialIds = [];
       if(data && data.aggregations && data.aggregations.social && data.aggregations.social.social) {
@@ -845,8 +871,8 @@ var offerTransform = (function(_, commonTransforms) {
         'ad url',
         'dig url',
         'title',
-        'date',
         'high risk',
+        'date',
         'locations',
         'telephone numbers',
         'email addresses',
@@ -878,8 +904,8 @@ var offerTransform = (function(_, commonTransforms) {
           result.url,
           linkPrefix + result.link,
           result.title,
-          result.date.text,
           result.highRisk ? 'yes' : 'no',
+          result.date.text,
           locations,
           phones,
           emails,
@@ -931,12 +957,12 @@ var offerTransform = (function(_, commonTransforms) {
           value: ''
         });
         item.paragraphs.push({
-          label: 'Posting Date:  ',
-          value: result.date.text
-        });
-        item.paragraphs.push({
           label: 'High Risk:  ',
           value: result.highRisk ? 'Yes' : 'No'
+        });
+        item.paragraphs.push({
+          label: 'Posting Date:  ',
+          value: result.date.text
         });
         item.paragraphs.push({
           label: 'Locations:  ',

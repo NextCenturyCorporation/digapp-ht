@@ -53,10 +53,28 @@ var AD_DATA = {
             'strict': [{
               'key': 'Roanoke:Virginia:United States:-79.94143:37.27097',
               'name': 'Roanoke'
+            }, {
+              'key': 'Atlanta:Georgia:United States:-84.38798:33.749',
+              'name': 'Atlanta'
+            }, {
+              'key': 'Brooklyn:New York:United States:-73.94958:40.6501',
+              'name': 'Brooklyn'
+            }, {
+              'key': 'Houston:Texas:United States:-95.36327:29.76328',
+              'name': 'Houston'
             }],
             'relaxed': [{
               'key': 'Roanoke:Virginia:United States:-79.94143:37.27097',
               'name': 'Roanoke'
+            }, {
+              'key': 'Atlanta:Georgia:United States:-84.38798:33.749',
+              'name': 'Atlanta'
+            }, {
+              'key': 'Brooklyn:New York:United States:-73.94958:40.6501',
+              'name': 'Brooklyn'
+            }, {
+              'key': 'Houston:Texas:United States:-95.36327:29.76328',
+              'name': 'Houston'
             }, {
               'key': 'Columbus:Ohio:United States:-82.99879:39.96118',
               'name': 'Columbus'
@@ -66,10 +84,28 @@ var AD_DATA = {
             'strict': [{
               'key': 'Virginia',
               'name': 'Virginia'
+            }, {
+              'key': 'Georgia',
+              'name': 'Georgia'
+            }, {
+              'key': 'New York',
+              'name': 'New York'
+            }, {
+              'key': 'Texas',
+              'name': 'Texas'
             }],
             'relaxed': [{
               'key': 'Virginia',
               'name': 'Virginia'
+            }, {
+              'key': 'Georgia',
+              'name': 'Georgia'
+            }, {
+              'key': 'New York',
+              'name': 'New York'
+            }, {
+              'key': 'Texas',
+              'name': 'Texas'
             }, {
               'key': 'Ohio',
               'name': 'Ohio'
@@ -210,6 +246,26 @@ var AD_DATA = {
             }, {
               'key': 'deep tissue',
               'name': 'deep tissue'
+            }]
+          },
+          'social_media_id': {
+            'strict': [{
+              'key': 'twitter username',
+              'name': 'twitter username'
+            }],
+            'relaxed': [{
+              'key': 'twitter username',
+              'name': 'twitter username'
+            }]
+          },
+          'review_id': {
+            'strict': [{
+              'key': '123456',
+              'name': '123456'
+            }],
+            'relaxed': [{
+              'key': '123456',
+              'name': '123456'
             }]
           },
           'posting_date': {
