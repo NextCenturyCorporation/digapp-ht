@@ -258,7 +258,9 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function getUniqueLocation(location, confidence) {
-    var data = commonTransforms.getLocationDataFromId(location.key);
+    // TODO We should use the key (and ignore the name) once the extractions are improved.
+    var id = location.key || location.name;
+    var data = commonTransforms.getLocationDataFromId(id);
 
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
     var count = location.doc_count;
@@ -267,7 +269,7 @@ var offerTransform = (function(_, commonTransforms) {
     return {
       confidence: confidence,
       count: count,
-      id: location.key,
+      id: id,
       latitude: data.latitude,
       longitude: data.longitude,
       icon: commonTransforms.getIronIcon('location'),
@@ -280,11 +282,16 @@ var offerTransform = (function(_, commonTransforms) {
     };
   }
 
+  function isGoodLocation(location) {
+    return location.latitude && location.longitude && location.text;
+  }
+
   function getUniqueLocationsFromList(list, confidence) {
     return list.map(function(location) {
       return getUniqueLocation(location, confidence);
-    }).filter(function(location) {
-      return location.latitude && location.longitude && location.text;
+    // TODO Filter out the bad locations once the extractions are improved.
+    //}).filter(function(location) {
+      //return isGoodLocation(location);
     });
   }
 
@@ -567,7 +574,7 @@ var offerTransform = (function(_, commonTransforms) {
           locationObject.notes = createLocationTimelineNotes(locationBucket);
           return locationObject;
         }).filter(function(location) {
-          return location.latitude && location.longitude && location.text;
+          return isGoodLocation(location);
         });
 
         if(sum < bucket.doc_count) {
@@ -731,7 +738,7 @@ var offerTransform = (function(_, commonTransforms) {
         });
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-        if(location.latitude && location.longitude && location.text) {
+        if(isGoodLocation(location)) {
           location.name = location.text;
           location.dates = locationDates.map(function(dateObject) {
             return {
@@ -800,7 +807,9 @@ var offerTransform = (function(_, commonTransforms) {
     offerLocations: function(data) {
       var locations = [];
       if(data && data.aggregations && data.aggregations.location && data.aggregations.location.location) {
-        locations = getUniqueLocationsFromList(data.aggregations.location.location.buckets || []);
+        locations = getUniqueLocationsFromList(data.aggregations.location.location.buckets || []).filter(function(location) {
+          return isGoodLocation(location);
+        });
       }
       return {
         title: getTitle(locations.length, 'Location'),

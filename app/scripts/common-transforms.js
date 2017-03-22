@@ -66,16 +66,20 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   function getLocationDataFromId(id) {
     var idList = id ? id.split(':') : [];
 
-    if(idList.length < 5) {
-      return {};
+    // TODO We should return an empty object if the ID is formatted incorrectly once the extractions are improved.
+    if(!idList.length) {
+      return {
+        city: id,
+        text: id
+      };
     }
 
     var city = idList[0];
-    var state = idList[1];
-    var country = idList[2];
-    var longitude = idList[3];
-    var latitude = idList[4];
-    var text = state ? ((city ? (city + ', ') : '') + state) : 'Unknown Location';
+    var state = idList.length > 1 ? idList[1] : undefined;
+    var country = idList.length > 2 ? idList[2] : undefined;
+    var longitude = idList.length > 3 ? idList[3] : undefined;
+    var latitude = idList.length > 4 ? idList[4] : undefined;
+    var text = city ? (city + (state ? (', ' + state) : '')) : 'Unknown Location';
 
     return {
       city: city,
