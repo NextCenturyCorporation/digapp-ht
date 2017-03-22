@@ -168,7 +168,7 @@ limitations under the License.
       on-opened-changed="toggleProcessRequest">
 
       <div class="search-dialog">
-        <!-- searchFields -->
+        <!-- _searchFields -->
         <div class="layout horizontal">
           <div class="layout vertical right-space search-labels">
             <div class="name instructions">Instructions:</div>
@@ -367,7 +367,7 @@ limitations under the License.
 
     Polymer({
       is: 'search-fields-dialog',
-      behaviors: [DigBehaviors.FilterBehavior, DigBehaviors.PhoneBehavior],
+      behaviors: [DigBehaviors.ArrayBehavior, DigBehaviors.FilterBehavior, DigBehaviors.PhoneBehavior],
 
       properties: {
         searchParameters: {
@@ -458,10 +458,6 @@ limitations under the License.
           type: Object,
           notify: true
         },
-        searchFields: {
-          type: Array,
-          notify: true
-        },
         opened: {
           type: Boolean,
           notify: true,
@@ -474,12 +470,25 @@ limitations under the License.
         userCanceled: {
           type: Boolean,
           value: false
+        },
+        _searchFields: {
+          type: Array,
+          notify: true
         }
       },
 
       observers: [
-        'toggleProcessRequest(searchParameters.*)'
+        'toggleProcessRequest(searchParameters.*)',
+        'initializeSearchFields(ageConfig, cityConfig, descriptionConfig, emailConfig, ethnicityConfig,' +
+          'eyeColorConfig, hairColorConfig, heightConfig, nameConfig, phoneConfig, priceConfig, regionConfig,' +
+          'reviewConfig, riskConfig, servicesConfig, socialConfig, titleConfig, websiteConfig, weightConfig)'
       ],
+      initializeSearchFields: function() {
+        this.set('_searchFields', this.buildArray(this.ageConfig, this.cityConfig, this.descriptionConfig,
+          this.emailConfig, this.ethnicityConfig, this.eyeColorConfig, this.hairColorConfig, this.heightConfig,
+          this.nameConfig, this.phoneConfig, this.priceConfig, this.regionConfig, this.reviewConfig, this.riskConfig,
+          this.servicesConfig, this.socialConfig, this.titleConfig, this.websiteConfig, this.weightConfig));
+      },
       toggleProcessRequest: function() {
         this.processRequest = !this.opened && !this.userCanceled;
         // reset user canceled variable
@@ -490,7 +499,7 @@ limitations under the License.
         var self = this;
         // Set or clear the search fields whenever the dialog is opened.
         if(!this.opened) {
-          this.searchFields.forEach(function(searchConfig, index) {
+          this._searchFields.forEach(function(searchConfig, index) {
             self.updateSearchFieldFromParameter(searchConfig, index);
           });
 
@@ -573,7 +582,7 @@ limitations under the License.
 
       updateSearchParametersFromFields: function() {
         var self = this;
-        this.searchFields.forEach(function(searchConfig) {
+        this._searchFields.forEach(function(searchConfig) {
           self.updateSearchParameterFromField(searchConfig);
         });
 
@@ -590,13 +599,13 @@ limitations under the License.
         }).join(', ');
 
         // Must update both the property value and the input element value!
-        this.set(['searchFields', index, 'value'], searchConfig.value);
+        this.set(['_searchFields', index, 'value'], searchConfig.value);
 
         if(searchConfig.key === 'risk') {
           searchConfig.value = searchConfig.value === 'yes' ? 'Yes' : (searchConfig.value === 'no' ? 'No' : 'Any');
           this.$.riskList.selected = searchConfig.value === 'Yes' ? '1' : (searchConfig.value === 'No' ? '2' : '0');
         } else {
-          document.querySelector('#input_' + searchConfig.key).value = searchConfig.value;
+          this.$$('#input_' + searchConfig.key).value = searchConfig.value;
         }
       },
 
@@ -620,13 +629,13 @@ limitations under the License.
 
       resetSearchFields: function() {
         var self = this;
-        this.searchFields.forEach(function(searchConfig, index) {
+        this._searchFields.forEach(function(searchConfig, index) {
           // Must update both the property value and the input element value!
-          self.set(['searchFields', index, 'value'], '');
+          self.set(['_searchFields', index, 'value'], '');
           if(searchConfig.key === 'risk') {
             self.$.riskList.selected = 0;
           } else {
-            document.querySelector('#input_' + searchConfig.key).value = '';
+            self.$$('#input_' + searchConfig.key).value = '';
           }
         });
 

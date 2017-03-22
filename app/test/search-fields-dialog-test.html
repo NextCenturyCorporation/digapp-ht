@@ -167,27 +167,6 @@ limitations under the License.
         aggregationField: 'fields.weight.strict.key',
         value: ''
       };
-      var searchFields = [
-        ageConfig,
-        cityConfig,
-        descriptionConfig,
-        emailConfig,
-        ethnicityConfig,
-        eyeColorConfig,
-        hairColorConfig,
-        heightConfig,
-        nameConfig,
-        phoneConfig,
-        priceConfig,
-        regionConfig,
-        reviewConfig,
-        riskConfig,
-        servicesConfig,
-        socialConfig,
-        titleConfig,
-        websiteConfig,
-        weightConfig
-      ];
 
       setup(function(done) {
         element = fixture('search-fields-dialog-fixture');
@@ -239,7 +218,6 @@ limitations under the License.
         element.titleConfig = titleConfig;
         element.websiteConfig = websiteConfig;
         element.weightConfig = weightConfig;
-        element.searchFields = searchFields;
 
         flush(function() {
           done();
@@ -250,6 +228,27 @@ limitations under the License.
         assert.isFalse(element.opened);
         assert.isTrue(element.processRequest);
         assert.isFalse(element.userCanceled);
+        assert.deepEqual(element._searchFields, [
+          ageConfig,
+          cityConfig,
+          descriptionConfig,
+          emailConfig,
+          ethnicityConfig,
+          eyeColorConfig,
+          hairColorConfig,
+          heightConfig,
+          nameConfig,
+          phoneConfig,
+          priceConfig,
+          regionConfig,
+          reviewConfig,
+          riskConfig,
+          servicesConfig,
+          socialConfig,
+          titleConfig,
+          websiteConfig,
+          weightConfig
+        ]);
       });
 
       test('updateSearchFieldFromParameter has expected behavior for most common cases', function() {
@@ -277,7 +276,7 @@ limitations under the License.
         element.updateSearchFieldFromParameter(element.cityConfig, 1);
 
         assert.equal(element.cityConfig.value, 'nyc, chicago');
-        assert.deepEqual(element.searchFields[1], {
+        assert.deepEqual(element._searchFields[1], {
           key: 'city',
           title: 'City',
           aggregationField: 'fields.city.strict.key',
@@ -299,7 +298,7 @@ limitations under the License.
         element.updateSearchFieldFromParameter(element.riskConfig, 13);
 
         assert.deepEqual(element.riskConfig.value, 'Yes');
-        assert.deepEqual(element.searchFields[13], {
+        assert.deepEqual(element._searchFields[13], {
           key: 'risk',
           title: 'High Risk',
           aggregationField: 'fields.risk.strict.key',
@@ -353,7 +352,7 @@ limitations under the License.
 
         // dialog is opened and fields are updated based on searchParameters
         assert.isTrue(element.opened);
-        assert.equal(document.querySelector('#input_city').value, 'nyc');
+        assert.equal(element.$$('#input_city').value, 'nyc');
         assert.deepEqual(element.dateStartConfig.value.dateStart, {
           category: 'From',
           date: '2017-03-01T00:00:00',
@@ -378,7 +377,7 @@ limitations under the License.
         // dialog is closed and fields are not updated based on searchParameters (that should
         // only happen when dialog is being opened).
         assert.isFalse(element.opened);
-        assert.notEqual(document.querySelector('#input_city').value, 'la');
+        assert.notEqual(element.$$('#input_city').value, 'la');
       });
 
       test('toggleProcessRequest updates correct properties', function() {
@@ -443,7 +442,7 @@ limitations under the License.
       });
 
       test('updateSearchParameterFromField has expected behavior for most common cases', function() {
-        document.querySelector('#input_city').value = 'nyc, chicago';
+        element.$$('#input_city').value = 'nyc, chicago';
 
         element.updateSearchParameterFromField(element.cityConfig);
 
@@ -464,7 +463,7 @@ limitations under the License.
       });
 
       test('updateSearchParameterFromField will remove formatting from phone numbers', function() {
-        document.querySelector('#input_phone').value = '111-222-3333';
+        element.$$('#input_phone').value = '111-222-3333';
 
         element.updateSearchParameterFromField(element.phoneConfig);
 
@@ -535,7 +534,7 @@ limitations under the License.
       });
 
       test('updateSearchParametersFromFields has expected behavior', function() {
-        document.querySelector('#input_city').value = 'nyc, chicago';
+        element.$$('#input_city').value = 'nyc, chicago';
         element.dateStartConfig.value = {};
         element.dateEndConfig.value = {
           dateEnd: {
@@ -576,7 +575,7 @@ limitations under the License.
       });
 
       test('resetSearchFields has expected behavior', function() {
-        document.querySelector('#input_city').value = 'nyc, chicago';
+        element.$$('#input_city').value = 'nyc, chicago';
         element.dateStartConfig.value = {};
         element.dateEndConfig.value = {
           dateEnd: {
@@ -591,7 +590,7 @@ limitations under the License.
         element.resetSearchFields();
 
         assert.deepEqual(element.cityConfig.value, '');
-        assert.deepEqual(element.searchFields[1].value, '');
+        assert.deepEqual(element._searchFields[1].value, '');
         assert.deepEqual(element.dateStartConfig.value, {});
         assert.deepEqual(element.dateEndConfig.value, {});
       });
@@ -599,8 +598,8 @@ limitations under the License.
       test('handleSearch updates searchParameters and closes dialog', function() {
         element.opened = true;
 
-        document.querySelector('#input_city').value = 'nyc, chicago';
-        document.querySelector('#input_phone').value = '1112223333';
+        element.$$('#input_city').value = 'nyc, chicago';
+        element.$$('#input_phone').value = '1112223333';
 
         element.handleSearch();
 
@@ -663,12 +662,12 @@ limitations under the License.
       });
 
       test('cancelSearch closes dialog and does not update searchParameters', function() {
-        document.querySelector('#input_city').value = 'nyc, chicago';
+        element.$$('#input_city').value = 'nyc, chicago';
         element.opened = true;
         element.cancelSearch();
 
         assert.isFalse(element.opened);
-        assert.equal(document.querySelector('#input_city').value, 'nyc, chicago');
+        assert.equal(element.$$('#input_city').value, 'nyc, chicago');
         assert.deepEqual(element.searchParameters.city, {});
       });
 
