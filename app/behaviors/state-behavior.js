@@ -111,5 +111,26 @@ DigBehaviors.StateBehavior = {
     });
 
     return state;
+  },
+
+  // TODO: docs & unit tests
+  createSingleSearchField: function(key, title, aggField) {
+    return {
+      key: key,
+      title: title,
+      aggregationField: aggField,
+      value: ''
+    };
+  },
+
+  createDateField: function(key, title, aggField, prefixLabel, dateIdentifier) {
+    return {
+      key: key,
+      title: title,
+      aggregationField: aggField,
+      value: {},
+      prefixLabel: prefixLabel,
+      dateIdentifier: dateIdentifier
+    };
   }
 };
