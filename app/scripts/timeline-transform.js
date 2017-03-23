@@ -33,13 +33,13 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     return sorted;
   }
 
-  function createNotesFromLocationBucket(locationBucket) {
-    var notes = [];
+  function createDetailsFromLocationBucket(locationBucket) {
+    var details = [];
 
     if(locationBucket.publishers) {
       var publishers = offerTransform.getPublishersFromList(locationBucket.publishers.buckets);
       if(publishers.length) {
-        notes.push({
+        details.push({
           name: 'Websites',
           data: publishers
         });
@@ -49,7 +49,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     if(locationBucket.phones) {
       var phones = offerTransform.getPhonesFromList(locationBucket.phones.buckets);
       if(phones.length) {
-        notes.push({
+        details.push({
           name: 'Telephone Numbers',
           data: phones
         });
@@ -59,20 +59,20 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     if(locationBucket.emails) {
       var emails = offerTransform.getEmailsFromList(locationBucket.emails.buckets);
       if(emails.length) {
-        notes.push({
+        details.push({
           name: 'Email Addresses',
           data: emails
         });
       }
     }
 
-    return notes;
+    return details;
   }
 
   function createLocationsFromDateBucket(dateBucket) {
     return dateBucket.locations.buckets.map(function(locationBucket) {
       var locationObject = offerTransform.getUniqueLocation(locationBucket);
-      locationObject.notes = createNotesFromLocationBucket(locationBucket);
+      locationObject.details = createDetailsFromLocationBucket(locationBucket);
       return locationObject;
     }).filter(function(location) {
       return commonTransforms.isGoodLocation(location);
@@ -98,7 +98,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
       text: text,
       textAndCount: textAndCount,
       type: 'location',
-      notes: []
+      details: []
     };
   }
 
@@ -119,7 +119,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
 
   /**
    * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
-   * and notes for each location.
+   * and details for each location.
    */
   function createLocationTimeline(buckets, onlyId) {
     var timeline = buckets.reduce(function(timeline, dateBucket) {
@@ -251,22 +251,22 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
   }
 
   return {
-    removeNoteFromLocationTimeline: function(noteItemId, oldTimeline) {
+    removeDetailFromLocationTimeline: function(detailItemId, oldTimeline) {
       var newTimeline = oldTimeline.map(function(date) {
         date.locations = date.locations.map(function(location) {
-          location.notes = location.notes.map(function(note) {
-            var previousLength = note.data.length;
-            note.data = note.data.filter(function(item) {
-              return item.id !== noteItemId;
+          location.details = location.details.map(function(detail) {
+            var previousLength = detail.data.length;
+            detail.data = detail.data.filter(function(item) {
+              return item.id !== detailItemId;
             });
-            if(note.data.length < previousLength) {
-              note.name = 'Other ' + note.name;
+            if(detail.data.length < previousLength) {
+              detail.name = 'Other ' + detail.name;
             }
-            return note;
+            return detail;
           });
-          // Remove any notes that no longer have any data.
-          location.notes = location.notes.filter(function(note) {
-            return note.data.length;
+          // Remove any details that no longer have any data.
+          location.details = location.details.filter(function(detail) {
+            return detail.data.length;
           });
           return location;
         });
