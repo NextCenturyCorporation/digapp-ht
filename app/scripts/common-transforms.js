@@ -91,6 +91,10 @@ var commonTransforms = (function(_, moment, typeBehavior) {
     };
   }
 
+  function isGoodLocation(location) {
+    return location.latitude && location.longitude && location.text;
+  }
+
   /**
   * Changes the key/value names of buckets given from an aggregation
   * to names preferred by the user.
@@ -138,6 +142,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
      */
     getStyleClass: function(type) {
       return getStyleClass(type);
+    },
+
+    /**
+     * Returns whether the given location has the correct properties.
+     */
+    isGoodLocation: function(location) {
+      return isGoodLocation(location);
     }
   };
 });

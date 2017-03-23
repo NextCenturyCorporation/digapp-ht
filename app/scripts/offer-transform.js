@@ -14,10 +14,6 @@
  * limitations under the License.
  */
 
-/**
- * transform elastic search offer query to display format.  See data-model.json
- */
-
 /* exported offerTransform */
 /* jshint camelcase:false */
 
@@ -282,16 +278,12 @@ var offerTransform = (function(_, commonTransforms) {
     };
   }
 
-  function isGoodLocation(location) {
-    return location.latitude && location.longitude && location.text;
-  }
-
   function getUniqueLocationsFromList(list, confidence) {
     return list.map(function(location) {
       return getUniqueLocation(location, confidence);
-    // TODO Filter out the bad locations once the extractions are improved.
-    //}).filter(function(location) {
-      //return isGoodLocation(location);
+      // TODO Filter out the bad locations once the extractions are improved.
+      //}).filter(function(location) {
+      //return commonTransforms.isGoodLocation(location);
     });
   }
 
@@ -458,173 +450,6 @@ var offerTransform = (function(_, commonTransforms) {
     return offer;
   }
 
-  function offsetDatesInObjects(dateObjects) {
-    var sorted = _.sortBy(dateObjects, [function(o) { return o.date; }]);
-    for(var i = 1; i < sorted.length; i++) {
-      if(sorted[i] === sorted[i - 1]) {
-        sorted[i] = {
-          count: sorted[i].count,
-          date: new Date(sorted[i].date.getTime() + 300)
-        };
-      }
-    }
-
-    return sorted;
-  }
-
-  function createLocationTimelineNotes(bucket) {
-    var notes = [];
-
-    if(bucket.publishers) {
-      var publishers = getPublishersFromList(bucket.publishers.buckets);
-      if(publishers.length) {
-        notes.push({
-          name: 'Websites',
-          data: publishers
-        });
-      }
-    }
-
-    if(bucket.phones) {
-      var phones = getPhonesFromList(bucket.phones.buckets);
-      if(phones.length) {
-        notes.push({
-          name: 'Telephone Numbers',
-          data: phones
-        });
-      }
-    }
-
-    if(bucket.emails) {
-      var emails = getEmailsFromList(bucket.emails.buckets);
-      if(emails.length) {
-        notes.push({
-          name: 'Email Addresses',
-          data: emails
-        });
-      }
-    }
-
-    return notes;
-  }
-
-  /**
-   * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
-   * and notes for each location.
-   * [{
-   *     date: 1455657767,
-   *     subtitle: "Mountain View, CA",
-   *     locations: [{
-   *         name: "Mountain View, CA, USA",
-   *         type: "location",
-   *         count: 12,
-   *         notes: [{
-   *             name: "Email Address",
-   *             data: [{
-   *                 id: "http://email/abc@xyz.com",
-   *                 link: "/email.html?value=http://email/abc@xyz.com&field=_id",
-   *                 text: "abc@xyz.com",
-   *                 type: "email"
-   *             }]
-   *         }, {
-   *             name: "Telephone Number",
-   *             data: [{
-   *                 id: "http://phone/1234567890",
-   *                 link: "/phone.html?value=http://phone/1234567890&field=_id",
-   *                 text: "1234567890",
-   *                 type: "phone"
-   *             }, {
-   *                 id: "http://phone/0987654321",
-   *                 link: "/phone.html?value=http://phone/0987654321&field=_id",
-   *                 text: "0987654321",
-   *                 type: "phone"
-   *             }]
-   *         }, {
-   *             name: "Website",
-   *             data: [{
-   *                 text: "google.com",
-   *                 type: "webpage"
-   *             }]
-   *         }]
-   *     }]
-   * }]
-   */
-  function createLocationTimeline(buckets, onlyId) {
-    var timeline = _.reduce(buckets, function(timeline, bucket) {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      if(bucket.doc_count) {
-        var dateBucket = {
-          date: commonTransforms.getDate(bucket.key),
-          icon: commonTransforms.getIronIcon('date'),
-          styleClass: commonTransforms.getStyleClass('date')
-        };
-
-        var sum = 0;
-        var subtitle = [];
-
-        dateBucket.locations = bucket.locations.buckets.map(function(locationBucket) {
-          sum += locationBucket.doc_count;
-          var locationObject = getUniqueLocation(locationBucket);
-          if(locationObject.textAndCount) {
-            subtitle.push({
-              id: locationObject.id,
-              text: locationObject.textAndCount
-            });
-          }
-          locationObject.notes = createLocationTimelineNotes(locationBucket);
-          return locationObject;
-        }).filter(function(location) {
-          return isGoodLocation(location);
-        });
-
-        if(sum < bucket.doc_count) {
-          var count = bucket.doc_count - sum;
-          var text = 'Unknown Location(s)';
-          var textAndCount = text + ' (' + (count) + ')';
-          subtitle.push({
-            text: textAndCount
-          });
-          dateBucket.locations.push({
-            count: count,
-            icon: commonTransforms.getIronIcon('location'),
-            styleClass: commonTransforms.getStyleClass('location'),
-            text: text,
-            textAndCount: textAndCount,
-            type: 'location',
-            notes: []
-          });
-        }
-
-        if(onlyId) {
-          dateBucket.locations = dateBucket.locations.filter(function(locationObject) {
-            return locationObject.id === onlyId;
-          });
-
-          subtitle = subtitle.filter(function(item) {
-            return item.id === onlyId;
-          });
-
-          if(!dateBucket.locations.length) {
-            return;
-          }
-        }
-
-        dateBucket.subtitle = subtitle[0].text + (subtitle.length > 1 ? (' and ' + (subtitle.length - 1) + ' more') : '');
-        timeline.push(dateBucket);
-      }
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      return timeline;
-    }, []);
-
-    // Sort oldest first.
-    timeline.sort(function(a, b) {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
-
-    return timeline;
-  }
-
   function getTitle(length, name, sayOther, suffix) {
     return (length || 'No') + (sayOther ? ' Other ' : ' ') + name + (length === 1 ? '' : (suffix || 's'));
   }
@@ -661,111 +486,6 @@ var offerTransform = (function(_, commonTransforms) {
         offer.locations = offer.locations.filter(filterFunction);
         return offer;
       });
-    },
-
-    removeNoteFromLocationTimeline: function(noteItemId, oldTimeline) {
-      var newTimeline = oldTimeline.map(function(date) {
-        date.locations = date.locations.map(function(location) {
-          location.notes = location.notes.map(function(note) {
-            var previousLength = note.data.length;
-            note.data = note.data.filter(function(item) {
-              return item.id !== noteItemId;
-            });
-            if(note.data.length < previousLength) {
-              note.name = 'Other ' + note.name;
-            }
-            return note;
-          });
-          // Remove any notes that no longer have any data.
-          location.notes = location.notes.filter(function(note) {
-            return note.data.length;
-          });
-          return location;
-        });
-        return date;
-      });
-
-      // Sort newest first.
-      newTimeline.sort(function(a, b) {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      });
-
-      return newTimeline;
-    },
-
-    locationTimeline: function(data, onlyId) {
-      return {
-        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.dates.dates.buckets, onlyId) : undefined
-      };
-    },
-
-    createEventDropsTimeline: function(data, locationId) {
-      var locations = [];
-      var dates = [];
-      var locationIdToDates = {};
-
-      if(data && data.aggregations) {
-        data.aggregations.locations.locations.buckets.forEach(function(locationBucket) {
-          var city = locationBucket.key;
-
-          locationIdToDates[city] = locationIdToDates[city] || [];
-
-          locationBucket.dates.buckets.forEach(function(dateBucket) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            if(dateBucket.key && dateBucket.doc_count > 0) {
-              locationIdToDates[city].push({
-                date: new Date(dateBucket.key),
-                count: dateBucket.doc_count
-              });
-              if(!locationId || locationId === city) {
-                dates.push(dateBucket.key);
-              }
-            }
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          });
-        });
-      }
-
-      _.keys(locationIdToDates).forEach(function(city) {
-        var locationDates = offsetDatesInObjects(locationIdToDates[city]);
-
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        var location = getUniqueLocation({
-          doc_count: locationIdToDates[city].reduce(function(count, dateObject) {
-            return count + dateObject.count;
-          }, 0),
-          key: city
-        });
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-        if(isGoodLocation(location)) {
-          location.name = location.text;
-          location.dates = locationDates.map(function(dateObject) {
-            return {
-              count: dateObject.count,
-              date: dateObject.date,
-              name: location.name
-            };
-          });
-
-          locations.push(location);
-        }
-      });
-
-      var locationWithId = !locationId ? locations : locations.filter(function(location) {
-        return location.id === locationId;
-      });
-
-      var otherLocations = !locationId ? locations : locations.filter(function(location) {
-        return location.id !== locationId;
-      });
-
-      return {
-        dates: dates,
-        locations: locationWithId,
-        allLocations: locations,
-        otherLocations: otherLocations
-      };
     },
 
     offerPhones: function(data, ignoreId) {
@@ -808,7 +528,7 @@ var offerTransform = (function(_, commonTransforms) {
       var locations = [];
       if(data && data.aggregations && data.aggregations.location && data.aggregations.location.location) {
         locations = getUniqueLocationsFromList(data.aggregations.location.location.buckets || []).filter(function(location) {
-          return isGoodLocation(location);
+          return commonTransforms.isGoodLocation(location);
         });
       }
       return {
@@ -874,144 +594,6 @@ var offerTransform = (function(_, commonTransforms) {
       });
     },
 
-    createExportDataForCsv: function(results) {
-      var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [[
-        'ad url',
-        'dig url',
-        'title',
-        'high risk',
-        'date',
-        'locations',
-        'telephone numbers',
-        'email addresses',
-        'social media ids',
-        'review ids',
-        'images',
-        'description'
-      ]];
-      results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.textAndCountry;
-        }).join('; ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join('; ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join('; ');
-        var socialIds = result.socialIds.map(function(socialId) {
-          return socialId.text;
-        }).join('; ');
-        var reviewIds = result.reviewIds.map(function(reviewId) {
-          return reviewId.text;
-        }).join('; ');
-        var images = (result.images || []).map(function(image) {
-          return image.source;
-        }).join('; ');
-        data.push([
-          result.url,
-          linkPrefix + result.link,
-          result.title,
-          result.highRisk ? 'yes' : 'no',
-          result.date.text,
-          locations,
-          phones,
-          emails,
-          socialIds,
-          reviewIds,
-          images,
-          result.description.replace(/\n/g, ' ')
-        ]);
-      });
-      return data;
-    },
-
-    createExportDataForPdf: function(results) {
-      var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [];
-      var nextId = 1;
-
-      results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.textAndCountry;
-        }).join(', ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join(', ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join(', ');
-        var socialIds = result.socialIds.map(function(socialId) {
-          return socialId.text;
-        }).join(', ');
-        var reviewIds = result.reviewIds.map(function(reviewId) {
-          return reviewId.text;
-        }).join(', ');
-
-        var item = {
-          images: (result.images || []).map(function(image) {
-            return {
-              id: 'image' + nextId++,
-              source: encodeURIComponent(image.source.replace('https://s3.amazonaws.com/', '')),
-              text: image.source
-            };
-          }),
-          paragraphs: []
-        };
-
-        item.paragraphs.push({
-          big: true,
-          label: result.title,
-          value: ''
-        });
-        item.paragraphs.push({
-          label: 'High Risk:  ',
-          value: result.highRisk ? 'Yes' : 'No'
-        });
-        item.paragraphs.push({
-          label: 'Posting Date:  ',
-          value: result.date.text
-        });
-        item.paragraphs.push({
-          label: 'Locations:  ',
-          value: locations
-        });
-        item.paragraphs.push({
-          label: 'Telephone Numbers:  ',
-          value: phones
-        });
-        item.paragraphs.push({
-          label: 'Email Addresses:  ',
-          value: emails
-        });
-        item.paragraphs.push({
-          label: 'Social Media IDs:  ',
-          value: socialIds
-        });
-        item.paragraphs.push({
-          label: 'Review IDs:  ',
-          value: reviewIds
-        });
-        item.paragraphs.push({
-          label: 'Description:  ',
-          value: result.description.replace(/\n/g, ' ')
-        });
-        item.paragraphs.push({
-          label: 'URL:  ',
-          value: result.url
-        });
-        item.paragraphs.push({
-          label: 'DIG URL:  ',
-          value: linkPrefix + result.link
-        });
-
-        data.push(item);
-      });
-
-      return data;
-    },
-
     revisions: function(data) {
       if(data && data.aggregations) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -1029,6 +611,22 @@ var offerTransform = (function(_, commonTransforms) {
         return (total < 2 ? [] : revisions);
       }
       return [];
+    },
+
+    getEmailsFromList: function(list, confidence) {
+      return getEmailsFromList(list, confidence);
+    },
+
+    getPhonesFromList: function(list, confidence) {
+      return getPhonesFromList(list, confidence);
+    },
+
+    getPublishersFromList: function(list, confidence) {
+      return getPublishersFromList(list, confidence);
+    },
+
+    getUniqueLocation: function(location, confidence) {
+      return getUniqueLocation(location, confidence);
     },
 
     /**
