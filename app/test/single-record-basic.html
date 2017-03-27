@@ -43,12 +43,10 @@ limitations under the License.
 
     setup(function(done) {
       element = fixture('single-record-fixture');
-      element.item = {
-        id: '1',
-        link: 'somelink.html',
-        text: 'myTitle',
-        type: 'offer'
-      };
+      element.itemId = '1';
+      element.link = 'somelink.html';
+      element.text = 'myTitle';
+      element.type = 'offer';
       element.details = [{
         label: 'address',
         value: ['LA', 'SF']
@@ -75,38 +73,8 @@ limitations under the License.
       expect(element.$$('iron-collapse')).to.exist;
     });
 
-    test('showDetails is true', function() {
-      expect(element.showDetails).to.be.true;
-    });
-
-    test('modalIconLast is false', function() {
-      expect(element.modalIconLast).to.be.false;
-    });
-
-    test('_doesHaveDescriptors returns correct value', function() {
-      expect(!!element._doesHaveDescriptors({}, 'one', 'two')).to.be.false;
-      expect(!!element._doesHaveDescriptors({
-        zero: ['']
-      }, 'one', 'two')).to.be.false;
-      expect(!!element._doesHaveDescriptors({
-        one: []
-      }, 'one', 'two')).to.be.false;
-      expect(!!element._doesHaveDescriptors({
-        one: ['']
-      }, 'one', 'two')).to.be.true;
-      expect(!!element._doesHaveDescriptors({
-        two: ['']
-      }, 'one', 'two')).to.be.true;
-      expect(!!element._doesHaveDescriptors({
-        one: [''],
-        two: ['']
-      }, 'one', 'two')).to.be.true;
-      expect(!!element._doesHaveDescriptors({
-        zero: ['']
-      }, 'one')).to.be.false;
-      expect(!!element._doesHaveDescriptors({
-        one: ['']
-      }, 'one')).to.be.true;
+    test('_showDetails is true', function() {
+      expect(element._showDetails).to.be.true;
     });
 
     test('_getDetailText() returns correct value for undefined', function() {
@@ -139,15 +107,6 @@ limitations under the License.
       expect(element.blur).to.equal(true);
     });
 
-    test('_cleanCamelCase() returns correct strings', function() {
-      expect(element._cleanCamelCase({
-        property: 'test'
-      }, 'property')).to.be.equal('Test:');
-      expect(element._cleanCamelCase({
-        property: 'camelCase'
-      }, 'property')).to.be.equal('Camel Case:');
-    });
-
     test('_getTarget() returns "_self" when newTab is false', function() {
       expect(element._getTarget(false)).to.equal('_self');
     });
@@ -162,17 +121,45 @@ limitations under the License.
     });
 
     test('_getHeaderText() returns the correct strings', function() {
-      expect(element._getHeaderText({
-        name: 'LA'
-      }, 'highlightedText', 'name')).to.equal('LA');
-      expect(element._getHeaderText({
-        name: 'LA',
-        highlightedText: '<highlight>LA</highlight>'
-      }, 'highlightedText', 'name')).to.equal('<highlight>LA</highlight>');
+      expect(element._getHeaderText('LA')).to.equal('LA');
+      expect(element._getHeaderText('LA', '<highlight>LA</highlight>')).to.equal('<highlight>LA</highlight>');
+    });
+
+    test('_isHighlighted does return "highlight" if the given item is highlighted', function() {
+      expect(element._isHighlighted({
+        key: true
+      }, 'key')).to.equal('highlight');
+      expect(element._isHighlighted([{
+        key: true
+      }], 'key')).to.equal('highlight');
+    });
+
+    test('_isHighlighted does return "" if the given item is not highlighted', function() {
+      expect(element._isHighlighted({}, 'key')).to.equal('');
+      expect(element._isHighlighted({
+        key: false
+      }, 'key')).to.equal('');
+      expect(element._isHighlighted([{
+        key: false
+      }], 'key')).to.equal('');
+      expect(element._isHighlighted([{
+        key: false
+      }, {
+        key: true
+      }], 'key')).to.equal('');
+    });
+
+    test('_isDefined returns correct values', function() {
+      expect(element._isDefined('text')).to.be.true;
+      expect(element._isDefined(true)).to.be.true;
+      expect(element._isDefined({})).to.be.true;
+      expect(element._isDefined('')).to.be.false;
+      expect(element._isDefined(false)).to.be.false;
+      expect(element._isDefined(undefined)).to.be.false;
     });
 
     test('details start collapsed', function() {
-      expect(element.open).to.be.false;
+      expect(element._open).to.be.false;
       var head = element.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
@@ -208,11 +195,11 @@ limitations under the License.
       };
       element.listen(ironCollapse, 'transitionend', 'transitionEndListener');
       element.toggleRecord(mockEvent);
-      expect(element.open).to.be.true;
+      expect(element._open).to.be.true;
     });
 
     test('toggleRecord() closes the details', function(done) {
-      element.open = true;
+      element._open = true;
 
       var mockEvent = {
         target: {
@@ -229,7 +216,7 @@ limitations under the License.
       element.transitionEndListener = function(event) {
         if(event.target.opened) {
           element.toggleRecord(mockEvent);
-          expect(element.open).to.be.false;
+          expect(element._open).to.be.false;
         } else {
           var head = element.$$('.head');
           expect(head).to.exist;
@@ -253,7 +240,7 @@ limitations under the License.
       };
 
       element.toggleRecord(mockEvent);
-      expect(element.open).to.be.false;
+      expect(element._open).to.be.false;
       var head = element.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
@@ -280,7 +267,7 @@ limitations under the License.
       };
 
       element.toggleRecord(mockEvent);
-      expect(element.open).to.be.false;
+      expect(element._open).to.be.false;
       var head = element.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
@@ -299,7 +286,7 @@ limitations under the License.
       };
 
       element.toggleRecord(mockEvent);
-      expect(element.open).to.be.false;
+      expect(element._open).to.be.false;
       var head = element.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
@@ -326,7 +313,7 @@ limitations under the License.
       };
 
       element.toggleRecord(mockEvent);
-      expect(element.open).to.be.false;
+      expect(element._open).to.be.false;
       var head = element.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
@@ -348,56 +335,42 @@ limitations under the License.
       expect(element.$$('image-gallery')).to.not.exist;
     });
 
-    test('_getTypeText returns a string', function() {
-      expect(element._getTypeText({
-        type: 'date'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'email'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'image'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'location'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'money'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'phone'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'provider'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'offer'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'seller'
-      }, 'type')).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'webpage'
-      }, 'type')).to.be.a('String');
+    test('_getTypeText returns the correct strings', function() {
+      expect(element._getTypeText('date')).to.equal('Date');
+      expect(element._getTypeText('email')).to.equal('Email Address');
+      expect(element._getTypeText('image')).to.equal('Image');
+      expect(element._getTypeText('location')).to.equal('Location');
+      expect(element._getTypeText('money')).to.equal('Money');
+      expect(element._getTypeText('phone')).to.equal('Telephone Number');
+      expect(element._getTypeText('provider')).to.equal('Provider');
+      expect(element._getTypeText('offer')).to.equal('Ad');
     });
 
-    test('_getTypeText with longText as true returns a different string for email and phone types', function() {
-      expect(element._getTypeText({
+    test('_getTypeTextWithProperty returns the correct strings', function() {
+      expect(element._getTypeTextWithProperty({
+        type: 'date'
+      }, 'type')).to.equal('Date');
+      expect(element._getTypeTextWithProperty({
         type: 'email'
-      }, 'type', true)).to.be.a('String');
-      expect(element._getTypeText({
+      }, 'type')).to.equal('Email Address');
+      expect(element._getTypeTextWithProperty({
+        type: 'image'
+      }, 'type')).to.equal('Image');
+      expect(element._getTypeTextWithProperty({
+        type: 'location'
+      }, 'type')).to.equal('Location');
+      expect(element._getTypeTextWithProperty({
+        type: 'money'
+      }, 'type')).to.equal('Money');
+      expect(element._getTypeTextWithProperty({
         type: 'phone'
-      }, 'type', true)).to.be.a('String');
-      expect(element._getTypeText({
-        type: 'email'
-      }, 'type', true)).to.not.equal(element._getTypeText({
-        type: 'email'
-      }, 'type'));
-      expect(element._getTypeText({
-        type: 'phone'
-      }, 'type', true)).to.not.equal(element._getTypeText({
-        type: 'phone'
-      }, 'type'));
+      }, 'type')).to.equal('Telephone Number');
+      expect(element._getTypeTextWithProperty({
+        type: 'provider'
+      }, 'type')).to.equal('Provider');
+      expect(element._getTypeTextWithProperty({
+        type: 'offer'
+      }, 'type')).to.equal('Ad');
     });
 
     test('_getNewIconDivClass returns correct value', function() {
@@ -417,7 +390,7 @@ limitations under the License.
     });
 
     test('does not show the new icon if the item is not new', function(done) {
-      element.descriptors = [{
+      element.extractions = [{
         type: 'date',
         text: 'October 1, 2016'
       }];
@@ -431,7 +404,7 @@ limitations under the License.
     });
 
     test('does show the new icon if the item is new', function(done) {
-      element.descriptors = [{
+      element.extractions = [{
         type: 'date',
         text: 'October 3, 2016'
       }];
@@ -455,8 +428,8 @@ limitations under the License.
       });
     });
 
-    test('_updateImageSrcFromImages() sets imageSource', function() {
-      expect(element.imageSource).to.equal('');
+    test('_updateImageSrcFromImages() sets _imageSource', function() {
+      expect(element._imageSource).to.equal('');
       element._updateImageSrcFromImages([{
         id: 'id1',
         source: 'url1'
@@ -464,13 +437,13 @@ limitations under the License.
         id: 'id2',
         source: 'url2'
       }], 'source');
-      expect(element.imageSource).to.equal('url1');
+      expect(element._imageSource).to.equal('url1');
     });
 
-    test('_updateImageSrcFromImages() with an empty array sets imageSource to undefined', function() {
-      element.imageSource = 'imageSource';
+    test('_updateImageSrcFromImages() with an empty array sets _imageSource to undefined', function() {
+      element._imageSource = 'testSource';
       element._updateImageSrcFromImages([], 'source');
-      expect(element.imageSource).to.be.undefined;
+      expect(element._imageSource).to.be.undefined;
     });
 
     test('_getConfidenceLevelClass(item) returns correct value', function() {
@@ -499,8 +472,8 @@ limitations under the License.
       expect(element.$$('iron-collapse')).to.not.exist;
     });
 
-    test('showDetails is false for no details', function() {
-      expect(element.showDetails).to.be.false;
+    test('_showDetails is false for no details', function() {
+      expect(element._showDetails).to.be.false;
     });
 
     test('toggleRecord() does nothing for no details', function() {
@@ -516,7 +489,7 @@ limitations under the License.
       };
 
       element.toggleRecord(mockEvent);
-      expect(element.open).to.be.false;
+      expect(element._open).to.be.false;
       var head = element.$$('.head');
       expect(head).to.exist;
       expect(head.classList.contains('closed')).to.be.true;
@@ -525,8 +498,8 @@ limitations under the License.
       expect(ironCollapse).to.not.exist;
     });
 
-    test('_updateImageSrcFromImages() sets imageSource and showDetails', function() {
-      expect(element.imageSource).to.equal('');
+    test('_updateImageSrcFromImages() sets _imageSource and _showDetails', function() {
+      expect(element._imageSource).to.equal('');
       element._updateImageSrcFromImages([{
         id: 'id1',
         source: 'url1'
@@ -534,15 +507,15 @@ limitations under the License.
         id: 'id2',
         source: 'url2'
       }], 'source');
-      expect(element.imageSource).to.equal('url1');
-      expect(element.showDetails).to.be.true;
+      expect(element._imageSource).to.equal('url1');
+      expect(element._showDetails).to.be.true;
     });
 
-    test('_updateImageSrcFromImages() with an empty array sets imageSource to undefined and showDetails to false', function() {
-      expect(element.imageSource).to.equal('');
+    test('_updateImageSrcFromImages() with an empty array sets _imageSource to undefined and _showDetails to false', function() {
+      expect(element._imageSource).to.equal('');
       element._updateImageSrcFromImages([]);
-      expect(element.imageSource).to.be.undefined;
-      expect(element.showDetails).to.be.false;
+      expect(element._imageSource).to.be.undefined;
+      expect(element._showDetails).to.be.false;
     });
 
     test('_showImageSpace returns correct class name', function() {
@@ -556,7 +529,10 @@ limitations under the License.
 
     setup(function(done) {
       element = fixture('single-record-fixture');
-      element.item = {'id': '1', 'type': 'offer'};
+      element.itemId = '1';
+      element.link = 'somelink.html';
+      element.text = 'myTitle';
+      element.type = 'offer';
       element.images = [{
         id: 'id1',
         source: 'url1'
@@ -579,8 +555,8 @@ limitations under the License.
       }]);
     });
 
-    test('imageSource equals images[0].source', function() {
-      expect(element.imageSource).to.equal('url1');
+    test('_imageSource equals images[0].source', function() {
+      expect(element._imageSource).to.equal('url1');
     });
 
     test('does show an iron-image element with source', function() {
@@ -590,8 +566,8 @@ limitations under the License.
       expect(image.src).to.equal('url1');
     });
 
-    test('showDetails is true for images', function() {
-      expect(element.showDetails).to.be.true;
+    test('_showDetails is true for images', function() {
+      expect(element._showDetails).to.be.true;
     });
 
     test('does show an iron-collapse element for the images', function() {
@@ -608,7 +584,8 @@ limitations under the License.
 
     setup(function(done) {
       element = fixture('single-record-fixture');
-      element.item = {'id': '1', 'type': 'offer'};
+      element.itemId = '1';
+      element.type = 'offer';
       element.images = [];
       flush(function() {
         done();
@@ -619,8 +596,8 @@ limitations under the License.
       expect(element.images).to.be.deep.equal([]);
     });
 
-    test('imageSource is undefined', function() {
-      expect(element.imageSource).to.be.undefined;
+    test('_imageSource is undefined', function() {
+      expect(element._imageSource).to.be.undefined;
     });
 
     test('does show an iron-image element with no source', function() {
@@ -630,8 +607,8 @@ limitations under the License.
       expect(image.src).to.be.undefined;
     });
 
-    test('showDetails is false for an empty image array', function() {
-      expect(element.showDetails).to.be.false;
+    test('_showDetails is false for an empty image array', function() {
+      expect(element._showDetails).to.be.false;
     });
 
     test('does not show an iron-collapse element', function() {

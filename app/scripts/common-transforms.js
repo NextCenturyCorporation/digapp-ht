@@ -38,6 +38,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   }
 
   /**
+   * Returns the pretty name for the given type.
+   */
+  function getName(type, plural) {
+    return typeBehavior.getTypeName(type, plural);
+  }
+
+  /**
    * Returns the style class for the given type.
    */
   function getStyleClass(type) {
@@ -135,6 +142,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
      */
     getLocationDataFromId: function(id) {
       return getLocationDataFromId(id);
+    },
+
+    /**
+     * Returns the pretty name for the given type.
+     */
+    getName: function(type, plural) {
+      return getName(type, plural);
     },
 
     /**
