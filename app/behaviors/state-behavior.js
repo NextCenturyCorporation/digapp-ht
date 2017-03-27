@@ -113,7 +113,14 @@ DigBehaviors.StateBehavior = {
     return state;
   },
 
-  // TODO: docs & unit tests
+  /**
+   * Creates a configuration object for string inputs based on parameters given.
+   *
+   * @param {String} key
+   * @param {String} title
+   * @param {String} aggField
+   * @return {Object}
+   */
   createSingleSearchField: function(key, title, aggField) {
     return {
       key: key,
@@ -123,6 +130,16 @@ DigBehaviors.StateBehavior = {
     };
   },
 
+  /**
+   * Creates a date configuration object based on parameters given.
+   *
+   * @param {String} key
+   * @param {String} title
+   * @param {String} aggField
+   * @param {String} prefixLabel
+   * @param {String} dateIdentifier
+   * @return {Object}
+   */
   createDateField: function(key, title, aggField, prefixLabel, dateIdentifier) {
     return {
       key: key,
