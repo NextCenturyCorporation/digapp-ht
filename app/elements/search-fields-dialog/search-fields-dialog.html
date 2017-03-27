@@ -238,7 +238,7 @@ limitations under the License.
 
     Polymer({
       is: 'search-fields-dialog',
-      behaviors: [DigBehaviors.ArrayBehavior, DigBehaviors.FilterBehavior, DigBehaviors.PhoneBehavior, DigBehaviors.StateBehavior],
+      behaviors: [DigBehaviors.FilterBehavior, DigBehaviors.PhoneBehavior],
 
       properties: {
         searchParameters: {
@@ -335,17 +335,13 @@ limitations under the License.
         });
       },
 
-      _isRiskConfig: function(key) {
-        return key === 'risk';
-      },
-
       updateSearchParameterFromField: function(searchConfig) {
         var self = this;
         var terms = searchConfig.value.split(',').map(function(term) {
           if(searchConfig.key === 'phone') {
             return DigBehaviors.PhoneBehavior.getUnformattedPhones(term);
           }
-          if(searchConfig.key === 'risk') {
+          if(self._isRiskConfig(searchConfig.key)) {
             return term === 'Yes' || term === 'No' ? term.toLowerCase() : '';
           }
           return term.trim();
@@ -418,7 +414,7 @@ limitations under the License.
         }).join(', ');
 
         // TODO: fix risk/generalize id/logic for dropdown inputs??
-        if(searchConfig.key === 'risk') {
+        if(self._isRiskConfig(searchConfig.key)) {
           searchConfig.value = searchConfig.value === 'yes' ? 'Yes' : (searchConfig.value === 'no' ? 'No' : 'Any');
           this.$$('#riskList').selected = searchConfig.value === 'Yes' ? '1' : (searchConfig.value === 'No' ? '2' : '0');
         } else {
@@ -452,7 +448,7 @@ limitations under the License.
 
           if(data) {
             data.forEach(function(searchConfig) {
-              if(searchConfig.key === 'risk') {
+              if(self._isRiskConfig(searchConfig.key)) {
                 self.$$('#riskList').selected = 0;
               } else {
                 self.$$('#input_' + searchConfig.key).value = '';
@@ -466,14 +462,20 @@ limitations under the License.
         this.dateEndConfig.value = {};
         this.set('dateEndConfig.value', {});
       },
+
       cancelSearch: function() {
         this.userCanceled = true;
         this.toggleSearchFieldsDialog();
       },
+
       checkSearchFieldInputKey: function(event) {
         if(event.keyCode === 13) {
           this.handleSearch();
         }
+      },
+
+      _isRiskConfig: function(key) {
+        return key === 'risk';
       }
     });
   })();

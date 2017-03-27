@@ -197,27 +197,33 @@ limitations under the License.
           weight: {},
           sort: ''
         };
-        element.ageConfig = ageConfig;
-        element.cityConfig = cityConfig;
-        element.descriptionConfig = descriptionConfig;
         element.dateStartConfig = dateStartConfig;
         element.dateEndConfig = dateEndConfig;
-        element.emailConfig = emailConfig;
-        element.ethnicityConfig = ethnicityConfig;
-        element.eyeColorConfig = eyeColorConfig;
-        element.hairColorConfig = hairColorConfig;
-        element.heightConfig = heightConfig;
-        element.nameConfig = nameConfig;
-        element.phoneConfig = phoneConfig;
-        element.priceConfig = priceConfig;
-        element.regionConfig = regionConfig;
-        element.reviewConfig = reviewConfig;
-        element.riskConfig = riskConfig;
-        element.servicesConfig = servicesConfig;
-        element.socialConfig = socialConfig;
-        element.titleConfig = titleConfig;
-        element.websiteConfig = websiteConfig;
-        element.weightConfig = weightConfig;
+        element.orderedSearchFieldGroupKeys = ['identifiers', 'location', 'provider', 'ad', 'risk'];
+        element.searchFields = {
+          identifiers: {
+            title: 'Identifiers',
+            data: [phoneConfig, emailConfig, socialConfig, reviewConfig]
+          },
+          location: {
+            title: 'Location',
+            data: [cityConfig, regionConfig]
+          },
+          provider: {
+            title: 'Provider',
+            data: [nameConfig, ageConfig, ethnicityConfig, eyeColorConfig,
+              hairColorConfig, heightConfig, weightConfig, servicesConfig, priceConfig]
+          },
+          ad: {
+            title: 'Ad',
+            data: [websiteConfig, titleConfig, descriptionConfig]
+          },
+          risk: {
+            title: 'High Risk',
+            id: 'riskList',
+            data: [riskConfig]
+          }
+        };
 
         flush(function() {
           done();
@@ -225,30 +231,77 @@ limitations under the License.
       });
 
       test('properties not explicitly set previously are initialized correctly', function() {
+        assert.equal(element.dataProperty, 'data');
+        assert.equal(element.titleProperty, 'title');
         assert.isFalse(element.opened);
         assert.isTrue(element.processRequest);
         assert.isFalse(element.userCanceled);
-        assert.deepEqual(element._searchFields, [
-          ageConfig,
-          cityConfig,
-          descriptionConfig,
-          emailConfig,
-          ethnicityConfig,
-          eyeColorConfig,
-          hairColorConfig,
-          heightConfig,
-          nameConfig,
-          phoneConfig,
-          priceConfig,
-          regionConfig,
-          reviewConfig,
-          riskConfig,
-          servicesConfig,
-          socialConfig,
-          titleConfig,
-          websiteConfig,
-          weightConfig
-        ]);
+      });
+
+      test('template has correct elements at the top', function() {
+        var startSearchBtn = element.$$('paper-button[title="Click to Enter Search Terms"]');
+        assert.isNotNull(startSearchBtn);
+        assert.equal(startSearchBtn.active, element.opened);
+        assert.isNotNull(element.$$('iron-icon[icon="search"]'));
+        assert.isNotNull(element.$$('paper-dialog'));
+        assert.equal(element.$$('paper-dialog').opened, element.opened);
+      });
+
+      test('template has date pickers', function() {
+        var datePickers = Polymer.dom(element.root).querySelectorAll('date-picker-display');
+        assert.isNotNull(datePickers);
+        assert.equal(datePickers.length, 2);
+        assert.deepEqual(datePickers[0].facetSelection, element.dateStartConfig.value);
+        assert.deepEqual(datePickers[0].key, element.dateStartConfig.key);
+        assert.deepEqual(datePickers[0].prefixLabel, element.dateStartConfig.prefixLabel);
+        assert.deepEqual(datePickers[0].dateIdentifier, element.dateStartConfig.dateIdentifier);
+        assert.deepEqual(datePickers[0].title, element.dateStartConfig.title);
+        assert.deepEqual(datePickers[1].facetSelection, element.dateEndConfig.value);
+        assert.deepEqual(datePickers[1].key, element.dateEndConfig.key);
+        assert.deepEqual(datePickers[1].prefixLabel, element.dateEndConfig.prefixLabel);
+        assert.deepEqual(datePickers[1].dateIdentifier, element.dateEndConfig.dateIdentifier);
+        assert.deepEqual(datePickers[1].title, element.dateEndConfig.title);
+      });
+
+      test('template has paper inputs and a paper dropdown menu', function() {
+        var paperInputs = Polymer.dom(element.root).querySelectorAll('paper-input');
+        assert.isNotNull(paperInputs);
+        assert.equal(paperInputs.length, 18);
+        assert.equal(paperInputs[0].id, 'input_' + element.searchFields.identifiers.data[0].key);
+        assert.equal(paperInputs[0].label, element.searchFields.identifiers.data[0].title);
+        assert.equal(paperInputs[0].value, element.searchFields.identifiers.data[0].value);
+
+        var dropdownMenu = Polymer.dom(element.root).querySelector('paper-dropdown-menu');
+        assert.isNotNull(dropdownMenu);
+        assert.equal(dropdownMenu.id, 'input_' + element.searchFields.risk.data[0].key);
+        assert.equal(dropdownMenu.label, element.searchFields.risk.data[0].title);
+        assert.equal(dropdownMenu.value, element.searchFields.risk.data[0].value);
+
+        var riskList = element.$$('#riskList');
+        var riskListOptions = riskList.children;
+        assert.isNotNull(riskList);
+        assert.isNotNull(riskListOptions);
+        assert.equal(riskList.selected, 0);
+        assert.equal(riskListOptions.length, 3);
+        assert.isTrue(riskListOptions[0].textContent.includes('Any'));
+        assert.isTrue(riskListOptions[1].textContent.includes('Yes'));
+        assert.isTrue(riskListOptions[2].textContent.includes('No'));
+      });
+
+      test('template has expected buttons at the bottom', function() {
+        var buttons = Polymer.dom(element.root).querySelectorAll('button-action');
+        assert.isNotNull(buttons);
+        assert.equal(buttons.length, 3);
+        assert.equal(buttons[0].text, 'Search');
+        assert.equal(buttons[1].text, 'Reset');
+        assert.equal(buttons[2].text, 'Cancel');
+      });
+
+      test('getGroupProperty works as expected', function() {
+        assert.deepEqual(element.getGroupProperty('identifiers', element.dataProperty),
+          element.searchFields.identifiers.data);
+        assert.deepEqual(element.getGroupProperty('location', element.titleProperty),
+          element.searchFields.location.title);
       });
 
       test('updateSearchFieldFromParameter has expected behavior for most common cases', function() {
@@ -272,11 +325,10 @@ limitations under the License.
             text: 'la'
           }
         };
-        // city index is 1
-        element.updateSearchFieldFromParameter(element.cityConfig, 1);
+        // cityConfig is in index 0 of data array for location
+        element.updateSearchFieldFromParameter(element.searchFields.location.data[0]);
 
-        assert.equal(element.cityConfig.value, 'nyc, chicago');
-        assert.deepEqual(element._searchFields[1], {
+        assert.deepEqual(element.searchFields.location.data[0], {
           key: 'city',
           title: 'City',
           aggregationField: 'fields.city.strict.key',
@@ -294,17 +346,16 @@ limitations under the License.
             text: 'yes'
           }
         };
-        // risk index is 13
-        element.updateSearchFieldFromParameter(element.riskConfig, 13);
+        // riskConfig is in index 0 of data array for risk
+        element.updateSearchFieldFromParameter(element.searchFields.risk.data[0]);
 
-        assert.deepEqual(element.riskConfig.value, 'Yes');
-        assert.deepEqual(element._searchFields[13], {
+        assert.deepEqual(element.searchFields.risk.data[0], {
           key: 'risk',
           title: 'High Risk',
           aggregationField: 'fields.risk.strict.key',
           value: 'Yes'
         });
-        assert.equal(element.$.riskList.selected, '1');
+        assert.equal(element.$$('#riskList').selected, '1');
       });
 
       test('updateDateFieldFromParameter has expected behavior', function() {
@@ -444,7 +495,8 @@ limitations under the License.
       test('updateSearchParameterFromField has expected behavior for most common cases', function() {
         element.$$('#input_city').value = 'nyc, chicago';
 
-        element.updateSearchParameterFromField(element.cityConfig);
+        // cityConfig is first in data array for location
+        element.updateSearchParameterFromField(element.searchFields.location.data[0]);
 
         assert.deepEqual(element.searchParameters.city, {
           nyc: {
@@ -465,7 +517,8 @@ limitations under the License.
       test('updateSearchParameterFromField will remove formatting from phone numbers', function() {
         element.$$('#input_phone').value = '111-222-3333';
 
-        element.updateSearchParameterFromField(element.phoneConfig);
+        // phoneConfig is first in data array for identifiers
+        element.updateSearchParameterFromField(element.searchFields.identifiers.data[0]);
 
         assert.deepEqual(element.searchParameters.phone, {
           '1112223333': {
@@ -478,9 +531,10 @@ limitations under the License.
       });
 
       test('updateSearchParameterFromField will properly set risk searchParameter', function() {
-        element.$.riskList.selected = 2;
+        element.$$('#riskList').selected = 2;
 
-        element.updateSearchParameterFromField(element.riskConfig);
+        // riskConfig is in index 0 of data array for risk
+        element.updateSearchParameterFromField(element.searchFields.risk.data[0]);
 
         assert.deepEqual(element.searchParameters.risk, {
           no: {
@@ -589,8 +643,7 @@ limitations under the License.
 
         element.resetSearchFields();
 
-        assert.deepEqual(element.cityConfig.value, '');
-        assert.deepEqual(element._searchFields[1].value, '');
+        assert.deepEqual(element.searchFields.location.data[0].value, '');
         assert.deepEqual(element.dateStartConfig.value, {});
         assert.deepEqual(element.dateEndConfig.value, {});
       });
@@ -683,6 +736,11 @@ limitations under the License.
         element.checkSearchFieldInputKey({keyCode: 10});
 
         assert.isTrue(element.opened);
+      });
+
+      test('_isRiskConfig works as expected', function() {
+        assert.isTrue(element._isRiskConfig(element.searchFields.risk.data[0].key));
+        assert.isFalse(element._isRiskConfig(element.searchFields.location.data[0].key));
       });
     });
   </script>
