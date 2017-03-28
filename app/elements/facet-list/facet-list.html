@@ -1,0 +1,335 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/aggregation-sort/aggregation-sort.html">
+<link rel="import" href="../../bower_components/elastic-error/elastic-error.html">
+<link rel="import" href="../../bower_components/horizontal-bar/horizontal-bar.html">
+<link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/status-text/status-text.html">
+<link rel="import" href="../aggregation-popup/aggregation-popup.html">
+<link rel="import" href="../facet-aggregation-query/facet-aggregation-query.html">
+<link rel="import" href="../feature-aggregation/feature-aggregation.html">
+<link rel="import" href="../select-all/select-all.html">
+<link rel="import" href="../terms-transformer/terms-transformer.html">
+<link rel="import" href="../behaviors.html">
+<link rel="import" href="../../styles/icon-styles.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+
+<dom-module id="facet-list">
+  <template>
+    <style include="iron-flex iron-flex-alignment"></style>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .filter-header {
+        cursor: pointer;
+        /* Match the font-weight of the Sort label */
+        font-weight: 500;
+        line-height: 24px;
+      }
+
+      aggregation-popup ::content .bar,
+      feature-aggregation ::content .bar {
+        background-color: var(--facet-background-color);
+      }
+
+      aggregation-popup ::content .bar-count,
+      feature-aggregation ::content .bar-count {
+        color: var(--primary-text-color);
+        font-weight: normal;
+      }
+
+      .hide {
+        display: none;
+      }
+    </style>
+    <style include="icon-styles"></style>
+    <style include="user-dialog-styles"></style>
+
+    <!-- title section of facet list -->
+    <div id="header" class="layout horizontal facet filter-header" title="Toggle [[title]]" on-tap="toggleList">
+      <span class="flex">[[_getLabelAndCount(title, _resultList)]]</span>
+      <iron-icon id="icon-opened" class$="[[_getOpenedIconClass(opened)]]" icon$="[[openedIcon]]"></iron-icon>
+      <iron-icon id="icon-closed" class$="[[_getClosedIconClass(opened)]]" icon$="[[closedIcon]]"></iron-icon>
+    </div>
+
+    <!-- subheading with different options (sorting, select all, etc) along with query for facets list -->
+    <facet-aggregation-query
+      name="[[name]]"
+      search-parameters="[[searchParameters]]"
+      demand-search="[[demandSearch]]"
+      client="[[client]]"
+      index="[[index]]"
+      index-types="[[indexTypes]]"
+      last-error="{{_error}}"
+      loading="{{_loading}}"
+      process-request="{{processRequest}}"
+      field="[[aggField]]"
+      count="{{_aggCount}}"
+      sort-order="{{_sortOrder}}"
+      result-list="{{_resultList}}"
+      combine-function="[[combineFunction]]">
+    </facet-aggregation-query>
+
+    <!-- transform the selected facets to the selected ids in the facets list and vice versa -->
+    <terms-transformer
+      category="[[title]]"
+      list="{{_selectedList}}"
+      object="{{searchParamSubset}}">
+    </terms-transformer>
+
+    <div class="horizontal layout">
+      <div class="flex self-start">
+        <aggregation-popup
+          aggregation-count="{{_aggCount}}"
+          items="[[_resultList]]"
+          error="[[_error]]"
+          loading="[[_loading]]"
+          item-type="[[title]]"
+          count-type="[[countType]]"
+          text-property="[[textProperty]]"
+          order-by="{{_sortOrder}}"
+          selected-ids="{{_selectedList}}">
+        </aggregation-popup>
+      </div>
+      <div class="self-end">
+        <template is="dom-if" if="[[_resultList.length]]">
+          <aggregation-sort order-by="{{_sortOrder}}"></aggregation-sort>
+        </template>
+      </div>
+    </div>
+
+    <select-all
+      list="[[_resultList]]"
+      loading="[[_loading]]"
+      selected="{{_selectedList}}">
+    </select-all>
+
+    <!-- display of results from aggregation query that user can check/uncheck -->
+    <iron-collapse id="list" class="filter-list" opened="{{opened}}">
+      <feature-aggregation show-checkboxes
+        checkbox-name="Search"
+        hide-no-data-text hide-show-more small
+        items="[[_resultList]]"
+        text-property="[[textProperty]]"
+        selected-ids="{{_selectedList}}">
+      </feature-aggregation>
+      <elastic-error error="[[_error]]" message="{{_errorMessage}}"></elastic-error>
+      <status-text
+        count="[[_resultList.length]]"
+        error="[[_errorMessage]]"
+        loading="[[_loading]]"
+        empty="No [[title]]">
+      </status-text>
+    </iron-collapse>
+
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'facet-list',
+
+      properties: {
+        /**
+         * The elasticsearch client.
+         */
+        client: {
+          type: Object,
+        },
+        /**
+         * The elasticsearch index to query.
+         */
+        index: {
+          type: String,
+          notify: true
+        },
+        /**
+         * The elasticsearch index types to query.
+         */
+        indexTypes: {
+          type: Array,
+          notify: true
+        },
+        /**
+         * Name to use in facet-aggregation-query.
+         */
+        name: {
+          type: String,
+          notify: true
+        },
+        /**
+         * Title to display in header.
+         */
+        title: {
+          type: String,
+          notify: true
+        },
+        /**
+         * The parameters for the query in facet-aggregation-query.
+         */
+        searchParameters: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Subset of searchParameters to pass along to the terms-transformer.
+         */
+        searchParamSubset: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Function used to create final _resultList.
+         */
+        combineFunction: {
+          type: Object,
+          notify: true
+        },
+        /**
+         * Field to aggregate on.
+         */
+        aggField: {
+          type: String,
+          notify: true
+        },
+        /**
+         * Whether or not all properties are ready to create the elasticsearch query.
+         */
+        processRequest: {
+          type: Boolean,
+          notify: true
+        },
+        /**
+         * Whether to demand a match-all query to be built if the search parameters are empty.
+         */
+        demandSearch: {
+          type: Boolean
+        },
+        /**
+         * Text property to specify for feature-aggregation component (if any).
+         */
+        textProperty: {
+          type: String
+        },
+        /**
+         * Whether or not the list of facets is opened.
+         */
+        opened: {
+          type: Boolean,
+          value: true,
+          notify: true
+        },
+        /**
+         * Max number shown in list of facets.
+         */
+        maxListLength: {
+          type: Number,
+          value: 10
+        },
+        /**
+         * Icon to use for when list of facets is opened.
+         */
+        openedIcon: {
+          type: String,
+          value: 'icons:expand-less'
+        },
+        /**
+         * Icon to use for when list of facets is collapsed.
+         */
+        closedIcon: {
+          type: String,
+          value: 'icons:expand-more'
+        },
+        /**
+         * Icon to use for when list of facets is collapsed.
+         */
+        countType: {
+          type: String,
+          value: 'Ads'
+        },
+        /**
+         * Resulting list of items to show in list after combine function is applied to
+         * original results returned from elasticsearch.
+         */
+        _resultList: {
+          type: Array,
+          notify: true
+        },
+        /**
+         * List of checked items.
+         */
+        _selectedList: {
+          type: Array,
+          notify: true
+        },
+        /**
+         * Whether or not the query is loading.
+         */
+        _loading: {
+          type: Boolean
+        },
+        /**
+         * Number of results from aggregation query to obtain from elasticsearch.
+         */
+        _aggCount: {
+          type: Number
+        },
+        /**
+         * Error returned by elasticsearch (if any).
+         */
+        _error: {
+          type: Object
+        },
+        /**
+         * String representation of error message returned by elasticsearch (if any).
+         */
+        _errorMessage: {
+          type: String
+        },
+        /**
+         * Order in which to sort items shown in list (either default sorting of relevance or alphabetical).
+         */
+        _sortOrder: {
+          type: String,
+          value: '',
+          notify: true
+        }
+
+      },
+      toggleList: function() {
+        this.$$('#list').toggle();
+      },
+      _getLabelAndCount: function(title, list) {
+        return title + (list.length ? (list.length >= this.maxListLength ? ' (Top ' + this.maxListLength + ')' : ' (' + list.length + ')') : '');
+      },
+      _getOpenedIconClass: function(opened) {
+        return opened === true ? 'show' : 'hide';
+      },
+      _getClosedIconClass: function(opened) {
+        return opened === false ? 'show' : 'hide';
+      }
+    });
+  })();
+  </script>
+</dom-module>
