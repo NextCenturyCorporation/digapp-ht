@@ -1,0 +1,112 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>date-range-facet</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/date-range-facet/date-range-facet.html">
+</head>
+
+<body>
+<test-fixture id="date-range-facet-fixture">
+  <template>
+    <date-range-facet></date-range-facet>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, setup, fixture, assert, flush */
+  /* jshint -W030 */
+  suite('date-range-facet tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('date-range-facet-fixture');
+      element.searchParamSubset = {dateRange: {}};
+      element.dateStartKey = 'dateStart';
+      element.dateStartTitle = 'Start';
+      element.dateStartPrefixLabel = 'From';
+      element.dateStartIdentifier = 'start';
+      element.dateEndKey = 'dateEnd';
+      element.dateEndTitle = 'End';
+      element.dateEndPrefixLabel = 'To';
+      element.dateEndIdentifier = 'end';
+      flush(function() {
+        done();
+      });
+    });
+
+    test('properties are initialized correctly', function() {
+      assert.equal(element.headerTitle, 'Date');
+      assert.equal(element.openedIcon, 'icons:expand-less');
+      assert.equal(element.closedIcon, 'icons:expand-more');
+      assert.isTrue(element.opened);
+    });
+
+    test('template has expected header elements', function() {
+      assert.isNotNull(element.$$('#header'));
+      assert.equal(element.$$('#header').title, 'Toggle ' + element.headerTitle + 's');
+      assert.isTrue(element.$$('#header').textContent.includes(element.headerTitle));
+      assert.isNotNull(element.$$('iron-icon[id="list-status-icon"]'));
+      assert.equal(element.$$('iron-icon[id="list-status-icon"]').parentNode, element.$$('#header'));
+      assert.equal(element.$$('iron-icon[id="list-status-icon"]').icon, element.openedIcon);
+    });
+
+    test('template has expected elements in list section', function() {
+      assert.isNotNull(element.$$('iron-collapse[id="list"]'));
+      assert.equal(element.$$('iron-collapse[id="list"]').opened, element.opened);
+
+      var datePickers = Polymer.dom(element.root).querySelectorAll('date-picker-display');
+      assert.isNotNull(datePickers);
+      assert.equal(datePickers.length, 2);
+      assert.equal(datePickers[0].parentNode, element.$$('iron-collapse[id="list"]'));
+      assert.equal(datePickers[0].facetSelection, element.searchParamSubset);
+      assert.equal(datePickers[0].key, element.dateStartKey);
+      assert.equal(datePickers[0].title, element.dateStartTitle);
+      assert.equal(datePickers[0].prefixLabel, element.dateStartPrefixLabel);
+      assert.equal(datePickers[0].dateIdentifier, element.dateStartIdentifier);
+      assert.equal(datePickers[1].parentNode, element.$$('iron-collapse[id="list"]'));
+      assert.equal(datePickers[1].facetSelection, element.searchParamSubset);
+      assert.equal(datePickers[1].key, element.dateEndKey);
+      assert.equal(datePickers[1].title, element.dateEndTitle);
+      assert.equal(datePickers[1].prefixLabel, element.dateEndPrefixLabel);
+      assert.equal(datePickers[1].dateIdentifier, element.dateEndIdentifier);
+    });
+
+    test('toggleList() has the correct end result', function(done) {
+      element.toggleList();
+
+      flush(function() {
+        assert.isFalse(element.opened);
+        assert.equal(element.$$('iron-collapse[id="list"]').opened, element.opened);      
+        assert.equal(element.$$('iron-icon[id="list-status-icon"]').icon, element.closedIcon);
+        done();
+      });
+    });
+
+    test('_getToggleIcon() returns expected value', function() {
+      assert.equal(element._getToggleIcon(true), element.openedIcon);
+      assert.equal(element._getToggleIcon(false), element.closedIcon);
+    });
+  });
+</script>
+</body>
+</html>
