@@ -42,42 +42,99 @@ limitations under the License.
 
     setup(function() {
       component = fixture('similar-image-search-fixture');
-      component.linkFunction = function(id) {
-        return 'http://' + id;
-      };
     });
 
     test('properties are correct default values', function() {
+      expect(component.blur).to.be.false;
       expect(component.loading).to.be.false;
-      expect(component.imageThreshold).to.equal(0.6);
+      expect(component.imageThreshold).to.equal(0.5);
+      expect(component._error).to.equal('');
+      expect(component._hoveringImageIds).to.deep.equal([]);
       expect(component._images).to.deep.equal([]);
-      expect(component._imageResults).to.deep.equal([]);
+      expect(component._nearDuplicates).to.be.false;
+      expect(component._nextInputImageId).to.equal(1);
       expect(component._previousSearches).to.deep.equal([]);
-      expect(component._queryInput).to.deep.equal({});
-      expect(component._selectedObject).to.deep.equal({});
-      expect(component._uploadedImages).to.deep.equal([]);
-      expect(component._uploadText).to.equal('');
+      expect(component._queryIndex).to.deep.equal(-1);
+      expect(component._results).to.deep.equal([]);
+      expect(component._selectedImageIds).to.deep.equal([]);
+      expect(component._selectedResultsIndex).to.equal(0);
       expect(component._urlInput).to.equal('');
     });
 
     test('does have expected elements', function() {
-      expect(component.$$('paper-icon-button')).to.exist;
       expect(component.$$('#similarImageSearchDialog')).to.exist;
       expect(component.$$('#errorDialog')).to.exist;
       expect(component.$$('file-upload')).to.exist;
       expect(component.$$('file-upload').id).to.equal('fileUpload');
       expect(component.$$('iron-ajax')).to.exist;
       expect(component.$$('iron-ajax').id).to.equal('xhr');
-      expect(component.$$('paginated-image-gallery')).to.exist;
     });
 
-    test('_getBlurStyleClass returns the correct values', function() {
-      expect(component._getBlurStyleClass).to.be.a('Function');
-      expect(component._getBlurStyleClass(true)).to.equal('small-blur');
-      expect(component._getBlurStyleClass(false)).to.equal('');
+    test('_enableSearch does return the correct values', function() {
+      expect(component._enableSearch).to.be.a('Function');
+      expect(component._enableSearch(false, false)).to.be.false;
+      expect(component._enableSearch(true, false)).to.be.false;
+      expect(component._enableSearch(false, true)).to.be.true;
+      expect(component._enableSearch(true, true)).to.be.false;
     });
 
-    test('_getRequestAuth returns the correct values', function() {
+    test('_getInputImageLabel does return the correct values', function() {
+      expect(component._getInputImageLabel).to.be.a('Function');
+      expect(component._getInputImageLabel(0, 'Foo')).to.equal('#1:  Foo');
+      expect(component._getInputImageLabel(1, 'Bar')).to.equal('#2:  Bar');
+    });
+
+    test('_getInputImageTitle does return the correct values', function() {
+      expect(component._getInputImageTitle).to.be.a('Function');
+      expect(component._getInputImageTitle(0, 'Foo')).to.equal('Click to Toggle Image #1:  Foo');
+      expect(component._getInputImageTitle(1, 'Bar')).to.equal('Click to Toggle Image #2:  Bar');
+    });
+
+    test('_getImageResultsHeaderText does return the correct values', function() {
+      expect(component._getImageResultsHeaderText).to.be.a('Function');
+      expect(component._getImageResultsHeaderText(0, true)).to.equal('No Near-Duplicate Images');
+      expect(component._getImageResultsHeaderText(1, true)).to.equal('Top 1 Near-Duplicate Image');
+      expect(component._getImageResultsHeaderText(2, true)).to.equal('Top 2 Near-Duplicate Images');
+      expect(component._getImageResultsHeaderText(0, false)).to.equal('No Similar Images');
+      expect(component._getImageResultsHeaderText(1, false)).to.equal('Top 1 Similar Image');
+      expect(component._getImageResultsHeaderText(2, false)).to.equal('Top 2 Similar Images');
+    });
+
+    test('_getImageResultsDetailText does return the correct values', function() {
+      expect(component._getImageResultsDetailText).to.be.a('Function');
+      expect(component._getImageResultsDetailText(0, true)).to.equal('No Near-Duplicates');
+      expect(component._getImageResultsDetailText(1, true)).to.equal('1 Near-Duplicate');
+      expect(component._getImageResultsDetailText(2, true)).to.equal('2 Near-Duplicates');
+      expect(component._getImageResultsDetailText(0, false)).to.equal('No Images');
+      expect(component._getImageResultsDetailText(1, false)).to.equal('1 Image');
+      expect(component._getImageResultsDetailText(2, false)).to.equal('2 Images');
+    });
+
+    test('_getLoadingSpinnerText does return the correct values', function() {
+      var images = [{
+        id: 0,
+        data: 'testLink',
+        name: 'testLink',
+        selected: true,
+        type: 'Link'
+      }, {
+        id: 1,
+        data: 'data:image/uploadType;base64,uploadBase64string',
+        name: 'testFile',
+        selected: true,
+        type: 'File'
+      }];
+
+      expect(component._getLoadingSpinnerText).to.be.a('Function');
+      expect(component._getLoadingSpinnerText(images, 0, [0])).to.equal('1 More Search Result');
+      expect(component._getLoadingSpinnerText(images, 1, [1])).to.equal('1 More Search Result');
+      expect(component._getLoadingSpinnerText(images, 0, [0, 1])).to.equal('2 More Search Results');
+      expect(component._getLoadingSpinnerText(images, 1, [0, 1])).to.equal('1 More Search Result');
+      expect(component._getLoadingSpinnerText(images, 1, [1, 0])).to.equal('2 More Search Results');
+      expect(component._getLoadingSpinnerText(images, 0, [1, 0])).to.equal('1 More Search Result');
+    });
+
+    test('_getRequestAuth does return the correct values', function() {
       expect(component._getRequestAuth).to.be.a('Function');
       expect(component._getRequestAuth('')).to.equal('');
       expect(component._getRequestAuth('{"user":"testUser"}')).to.equal('');
@@ -85,7 +142,7 @@ limitations under the License.
       expect(component._getRequestAuth('{"user":"testUser","password":"testPassword"}')).to.equal('Basic ' + btoa('testUser:testPassword'));
     });
 
-    test('_getRequestHost returns the correct values', function() {
+    test('_getRequestHost does return the correct values', function() {
       expect(component._getRequestHost).to.be.a('Function');
       expect(component._getRequestHost('', '')).to.not.exist;
       expect(component._getRequestHost('{"type":"http://type"}', 'unknownType')).not.exist;
@@ -93,131 +150,245 @@ limitations under the License.
       expect(component._getRequestHost('{"base64":"http://base64"}', 'base64')).to.equal('http://base64');
     });
 
-    test('_createSearchListener.onClick does nothing if _selectedObject is empty', function() {
-      var listener = component._createSearchListener();
-      expect(listener).to.be.an('Object');
-      expect(listener.onClick).to.be.a('Function');
-      listener.onClick();
-      expect(component.$$('#xhr').body).to.be.empty;
+    test('_getSelectedImagesText does return the correct values', function() {
+      expect(component._getSelectedImagesText).to.be.a('Function');
+      expect(component._getSelectedImagesText(0)).to.equal('No Images Selected');
+      expect(component._getSelectedImagesText(1)).to.equal('1 Image Selected');
+      expect(component._getSelectedImagesText(2)).to.equal('2 Images Selected');
     });
 
-    test('_createSearchListener.onClick given nearDuplicates=true and type=File does set XHR properties', function(done) {
-      component._selectedObject = {
-        data: 'testImage',
-        type: 'File'
-      };
-
-      component.$.xhr = {
-        headers: {},
-        generateRequest: function() {
-          expect(component.$.xhr.body).to.be.an('Object');
-          expect(component.$.xhr.body.data).to.equal('testImage');
-          expect(component.$.xhr.body.options).to.not.exist;
-          expect(component.$.xhr.contentType).to.equal('application/x-www-form-urlencoded');
-          expect(component.$.xhr.method).to.equal('POST');
-          expect(component.$.xhr.url).to.equal('testUploadHost');
-          expect(component.$.xhr.headers.Authorization).to.be.a('String');
-          done();
+    test('_hoverStart does set _hoveringImageIds', function() {
+      expect(component._hoverStart).to.be.a('Function');
+      component._hoverStart({
+        model: {
+          image: {
+            id: 1
+          }
         }
-      };
+      });
 
-      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
-      component.imageServiceHost = '{"url": "testUrlHost", "base64": "testUploadHost"}';
-
-      var listener = component._createSearchListener(true);
-      expect(listener).to.be.an('Object');
-      expect(listener.onClick).to.be.a('Function');
-      listener.onClick();
+      expect(component._hoveringImageIds).to.deep.equal([1]);
     });
 
-    test('_createSearchListener.onClick given nearDuplicates=false and type=File does set XHR properties', function(done) {
-      component._selectedObject = {
-        data: 'testImage',
-        type: 'File'
-      };
-
-      component.$.xhr = {
-        headers: {},
-        generateRequest: function() {
-          expect(component.$.xhr.body).to.be.an('Object');
-          expect(component.$.xhr.body.data).to.equal('testImage');
-          expect(component.$.xhr.body.options).to.equal('{"near_dup":0}');
-          expect(component.$.xhr.contentType).to.equal('application/x-www-form-urlencoded');
-          expect(component.$.xhr.method).to.equal('POST');
-          expect(component.$.xhr.url).to.equal('testUploadHost');
-          expect(component.$.xhr.headers.Authorization).to.be.a('String');
-          done();
-        }
-      };
-
-      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
-      component.imageServiceHost = '{"url": "testUrlHost", "base64": "testUploadHost"}';
-
-      var listener = component._createSearchListener(false);
-      expect(listener).to.be.an('Object');
-      expect(listener.onClick).to.be.a('Function');
-      listener.onClick();
+    test('_hoverEnd does unset _hoveringImageIds', function() {
+      component._hoveringImageIds = [1];
+      expect(component._hoverEnd).to.be.a('Function');
+      component._hoverEnd();
+      expect(component._hoveringImageIds).to.deep.equal([]);
     });
 
-    test('_createSearchListener.onClick given nearDuplicates=true and type=Link does set XHR properties', function(done) {
-      component._selectedObject = {
-        data: 'testImage',
-        type: 'Link'
-      };
-
-      component.$.xhr = {
-        params: {},
-        headers: {},
-        generateRequest: function() {
-          expect(component.$.xhr.params).to.be.an('Object');
-          expect(component.$.xhr.params.data).to.equal('testImage');
-          expect(component.$.xhr.params.options).to.not.exist;
-          expect(component.$.xhr.method).to.equal('GET');
-          expect(component.$.xhr.url).to.equal('testUrlHost');
-          expect(component.$.xhr.headers.Authorization).to.be.a('String');
-          done();
-        }
-      };
-
-      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
-      component.imageServiceHost = '{"url": "testUrlHost", "base64": "testUploadHost"}';
-
-      var listener = component._createSearchListener(true);
-      expect(listener).to.be.an('Object');
-      expect(listener.onClick).to.be.a('Function');
-      listener.onClick();
+    test('_ifAreEqualThenReturn does return the correct values', function() {
+      expect(component._ifAreEqualThenReturn).to.be.a('Function');
+      expect(component._ifAreEqualThenReturn(1, 1, 'return1')).to.equal('return1');
+      expect(component._ifAreEqualThenReturn(1, 1, 'return2')).to.equal('return2');
+      expect(component._ifAreEqualThenReturn(1, 2, 'return2')).to.equal('');
+      expect(component._ifAreEqualThenReturn(2, 1, 'return2')).to.equal('');
+      expect(component._ifAreEqualThenReturn('a', 'a', 'return3')).to.equal('return3');
+      expect(component._ifAreEqualThenReturn('a', 'b', 'return3')).to.equal('');
+      expect(component._ifAreEqualThenReturn('b', 'a', 'return3')).to.equal('');
+      expect(component._ifAreEqualThenReturn(true, true, 'return4')).to.equal('return4');
+      expect(component._ifAreEqualThenReturn(true, false, 'return4')).to.equal('');
+      expect(component._ifAreEqualThenReturn(false, true, 'return4')).to.equal('');
     });
 
-    test('_createSearchListener.onClick given nearDuplicates=false and type=Link does set XHR properties', function(done) {
-      component._selectedObject = {
-        data: 'testImage',
-        type: 'Link'
-      };
-
-      component.$.xhr = {
-        params: {},
-        headers: {},
-        generateRequest: function() {
-          expect(component.$.xhr.params).to.be.an('Object');
-          expect(component.$.xhr.params.data).to.equal('testImage');
-          expect(component.$.xhr.params.options).to.equal('{"near_dup":0}');
-          expect(component.$.xhr.method).to.equal('GET');
-          expect(component.$.xhr.url).to.equal('testUrlHost');
-          expect(component.$.xhr.headers.Authorization).to.be.a('String');
-          done();
-        }
-      };
-
-      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
-      component.imageServiceHost = '{"url": "testUrlHost", "base64": "testUploadHost"}';
-
-      var listener = component._createSearchListener(false);
-      expect(listener).to.be.an('Object');
-      expect(listener.onClick).to.be.a('Function');
-      listener.onClick();
+    test('_ifIsInListThenReturn does return the correct values', function() {
+      expect(component._ifIsInListThenReturn).to.be.a('Function');
+      expect(component._ifIsInListThenReturn([], 2, 'return1')).to.equal('');
+      expect(component._ifIsInListThenReturn([1], 2, 'return1')).to.equal('');
+      expect(component._ifIsInListThenReturn([2], 2, 'return1')).to.equal('return1');
+      expect(component._ifIsInListThenReturn([1, 2], 2, 'return1')).to.equal('return1');
+      expect(component._ifIsInListThenReturn([2, 3], 2, 'return1')).to.equal('return1');
+      expect(component._ifIsInListThenReturn([1, 2, 3], 2, 'return1')).to.equal('return1');
+      expect(component._ifIsInListThenReturn(['a'], 'b', 'return2')).to.equal('');
+      expect(component._ifIsInListThenReturn(['b'], 'b', 'return2')).to.equal('return2');
+      expect(component._ifIsInListThenReturn(['a', 'b'], 'b', 'return2')).to.equal('return2');
+      expect(component._ifIsInListThenReturn(['b', 'a'], 'b', 'return2')).to.equal('return2');
     });
 
-    test('_createAddUrlListener.onClick does add the image link to _images and does set _queryInput and _selectedObject', function() {
+    test('_createInputImageObject does return the new image object', function() {
+      expect(component._createInputImageObject).to.be.a('Function');
+
+      expect(component._createInputImageObject('id', 'data', 'name', 'type', true)).to.deep.equal({
+        id: 'id',
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      });
+
+      expect(component._createInputImageObject('id2', 'data2', 'name2', 'type2', false)).to.deep.equal({
+        id: 'id2',
+        data: 'data2',
+        name: 'name2',
+        selected: false,
+        type: 'type2'
+      });
+    });
+
+    test('_saveInputImage does save the new image in _images', function() {
+      expect(component._saveInputImage).to.be.a('Function');
+      component._saveInputImage('data', 'name', 'type');
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }]);
+      expect(component._nextInputImageId).to.equal(2);
+    });
+
+    test('_saveInputImage does save the new image in the correct index of _images', function() {
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'a',
+        selected: true,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'c',
+        selected: true,
+        type: 'type'
+      }];
+      component._nextInputImageId = 3;
+
+      expect(component._saveInputImage).to.be.a('Function');
+      component._saveInputImage('data', 'b', 'type');
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data',
+        name: 'a',
+        selected: true,
+        type: 'type'
+      }, {
+        id: 3,
+        data: 'data',
+        name: 'b',
+        selected: true,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'c',
+        selected: true,
+        type: 'type'
+      }]);
+      expect(component._nextInputImageId).to.equal(4);
+    });
+
+    test('_selectOrDeselectImages does update _images and _selectedImageIds if select=true', function() {
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }];
+      component._selectedImageIds = [2];
+
+      expect(component._selectOrDeselectImages).to.be.a('Function');
+      component._selectOrDeselectImages(true);
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([1, 2]);
+    });
+
+    test('_selectOrDeselectImages does update _images and _selectedImageIds if select=false', function() {
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }];
+      component._selectedImageIds = [2];
+
+      expect(component._selectOrDeselectImages).to.be.a('Function');
+      component._selectOrDeselectImages(false);
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([]);
+    });
+
+    test('_updateSelectedImageIds does set _selectedImageIds', function() {
+      component._selectedImageIds = [1];
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }];
+
+      expect(component._updateSelectedImageIds).to.be.a('Function');
+      component._updateSelectedImageIds();
+      expect(component._selectedImageIds).to.deep.equal([2]);
+    });
+
+    test('_updateSelectedImageIds does not set _selectedImageIds if loading', function() {
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }];
+      component.loading = true;
+
+      expect(component._updateSelectedImageIds).to.be.a('Function');
+      component._updateSelectedImageIds();
+      expect(component._selectedImageIds).to.deep.equal([]);
+    });
+
+    test('_createAddUrlListener.onClick does add the image link to _images and does set _selectedImageIds', function() {
       component._urlInput = 'testLink';
 
       var listener = component._createAddUrlListener();
@@ -226,20 +397,14 @@ limitations under the License.
       listener.onClick();
 
       expect(component._images).to.deep.equal([{
-        id: 0,
+        id: 1,
         data: 'testLink',
         name: 'testLink',
+        selected: true,
         type: 'Link'
       }]);
-      expect(component._queryInput).to.deep.equal({
-        data: 'testLink'
-      });
-      expect(component._selectedObject).to.deep.equal({
-        id: 0,
-        data: 'testLink',
-        name: 'testLink',
-        type: 'Link'
-      });
+      expect(component._selectedImageIds).to.deep.equal([1]);
+      expect(component._urlInput).to.equal('');
     });
 
     test('_createAddUrlListener.onClick does not delete the previous items in _images', function() {
@@ -247,6 +412,7 @@ limitations under the License.
         id: 0,
         data: 'previousLink',
         name: 'previousLink',
+        selected: true,
         type: 'Link'
       }];
       component._urlInput = 'testLink';
@@ -260,53 +426,552 @@ limitations under the License.
         id: 0,
         data: 'previousLink',
         name: 'previousLink',
+        selected: true,
         type: 'Link'
       }, {
         id: 1,
         data: 'testLink',
         name: 'testLink',
+        selected: true,
         type: 'Link'
       }]);
-      expect(component._queryInput).to.deep.equal({
-        data: 'testLink'
-      });
-      expect(component._selectedObject).to.deep.equal({
+      expect(component._selectedImageIds).to.deep.equal([0, 1]);
+      expect(component._urlInput).to.equal('');
+    });
+
+    test('_createAddUrlListener.onClick does add multiple image links to _images', function() {
+      component._urlInput = 'testLink1 testLink2\ntestLink3';
+
+      var listener = component._createAddUrlListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'testLink1',
+        name: 'testLink1',
+        selected: true,
+        type: 'Link'
+      }, {
+        id: 2,
+        data: 'testLink2',
+        name: 'testLink2',
+        selected: true,
+        type: 'Link'
+      }, {
+        id: 3,
+        data: 'testLink3',
+        name: 'testLink3',
+        selected: true,
+        type: 'Link'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([1, 2, 3]);
+      expect(component._urlInput).to.equal('');
+    });
+
+    test('_sendXhrRequest does set XHR authorization headers and URL and call generateRequest if type=base64', function(done) {
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component.$$('#errorDialog').style.display).to.equal('none');
+          expect(component.$.xhr.url).to.equal('testPOSTHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
+        }
+      };
+
+      expect(component._sendXhrRequest).to.be.a('Function');
+      component._sendXhrRequest('base64');
+    });
+
+    test('_sendXhrRequest does set XHR authorization headers and URL and call generateRequest if type=url', function(done) {
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component.$$('#errorDialog').style.display).to.equal('none');
+          expect(component.$.xhr.url).to.equal('testGETHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
+        }
+      };
+
+      expect(component._sendXhrRequest).to.be.a('Function');
+      component._sendXhrRequest('url');
+    });
+
+    test('_createXhrRequest does set _queryIndex and XHR properties of image files with _nearDuplicates=true', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testData',
+        name: 'testName',
+        selected: true,
+        type: 'File'
+      }];
+      component._nearDuplicates = true;
+      component._selectedImageIds = [1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component._queryIndex).to.equal(0);
+          expect(component.$.xhr.body).to.be.an('Object');
+          expect(component.$.xhr.body.data).to.equal('testData');
+          expect(component.$.xhr.body.options).to.not.exist;
+          expect(component.$.xhr.contentType).to.equal('application/x-www-form-urlencoded');
+          expect(component.$.xhr.method).to.equal('POST');
+          expect(component.$.xhr.url).to.equal('testPOSTHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(0);
+    });
+
+    test('_createXhrRequest does set _queryIndex and XHR properties of image files with _nearDuplicates=false', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testData',
+        name: 'testName',
+        selected: true,
+        type: 'File'
+      }];
+      component._nearDuplicates = false;
+      component._selectedImageIds = [1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component._queryIndex).to.equal(0);
+          expect(component.$.xhr.body).to.be.an('Object');
+          expect(component.$.xhr.body.data).to.equal('testData');
+          expect(component.$.xhr.body.options).to.equal('{"near_dup":0}');
+          expect(component.$.xhr.contentType).to.equal('application/x-www-form-urlencoded');
+          expect(component.$.xhr.method).to.equal('POST');
+          expect(component.$.xhr.url).to.equal('testPOSTHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(0);
+    });
+
+    test('_createXhrRequest does set _queryIndex and XHR properties of image links with _nearDuplicates=true', function(done) {
+      component._images = [{
         id: 1,
         data: 'testLink',
         name: 'testLink',
+        selected: true,
         type: 'Link'
-      });
+      }];
+      component._nearDuplicates = true;
+      component._selectedImageIds = [1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component._queryIndex).to.equal(0);
+          expect(component.$.xhr.params).to.be.an('Object');
+          expect(component.$.xhr.params.data).to.equal('testLink');
+          expect(component.$.xhr.params.options).to.not.exist;
+          expect(component.$.xhr.method).to.equal('GET');
+          expect(component.$.xhr.url).to.equal('testGETHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(0);
     });
 
-    test('_createShowImageResultsListener.onClick does set _imageResults and _queryInput', function() {
-      var listener = component._createShowImageResultsListener({
-        image: 'testImage',
-        results: ['testResults'],
-        options: {
-          nearDuplicates: false
+    test('_createXhrRequest does set _queryIndex and XHR properties of image links with _nearDuplicates=false', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testLink',
+        name: 'testLink',
+        selected: true,
+        type: 'Link'
+      }];
+      component._nearDuplicates = false;
+      component._selectedImageIds = [1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component._queryIndex).to.equal(0);
+          expect(component.$.xhr.params).to.be.an('Object');
+          expect(component.$.xhr.params.data).to.equal('testLink');
+          expect(component.$.xhr.params.options).to.equal('{"near_dup":0}');
+          expect(component.$.xhr.method).to.equal('GET');
+          expect(component.$.xhr.url).to.equal('testGETHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
         }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(0);
+    });
+
+    test('_createXhrRequest does set _queryIndex and XHR properties using the input value as the index of _selectedImageIds', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testData',
+        name: 'testName',
+        selected: true,
+        type: 'File'
+      }, {
+        id: 2,
+        data: 'testLink',
+        name: 'testLink',
+        selected: true,
+        type: 'Link'
+      }];
+      component._nearDuplicates = true;
+      component._selectedImageIds = [1, 2];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component._queryIndex).to.equal(1);
+          expect(component.$.xhr.params).to.be.an('Object');
+          expect(component.$.xhr.params.data).to.equal('testLink');
+          expect(component.$.xhr.params.options).to.not.exist;
+          expect(component.$.xhr.method).to.equal('GET');
+          expect(component.$.xhr.url).to.equal('testGETHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(1);
+    });
+
+    test('_createXhrRequest does set _queryIndex and XHR properties using the input value as the index of _selectedImageIds even if the IDs are not in order', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testData',
+        name: 'testName',
+        selected: true,
+        type: 'File'
+      }, {
+        id: 2,
+        data: 'testLink',
+        name: 'testLink',
+        selected: true,
+        type: 'Link'
+      }];
+      component._nearDuplicates = true;
+      component._selectedImageIds = [2, 1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {
+          expect(component._queryIndex).to.equal(0);
+          expect(component.$.xhr.body).to.be.an('Object');
+          expect(component.$.xhr.body.data).to.equal('testData');
+          expect(component.$.xhr.body.options).to.not.exist;
+          expect(component.$.xhr.contentType).to.equal('application/x-www-form-urlencoded');
+          expect(component.$.xhr.method).to.equal('POST');
+          expect(component.$.xhr.url).to.equal('testPOSTHost');
+          expect(component.$.xhr.headers.Authorization).to.be.a('String');
+          expect(component.$.xhr.headers.Authorization.startsWith('Basic ')).to.be.true;
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(1);
+    });
+
+    test('_createXhrRequest with an image file does call logger.log if defined', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testData',
+        name: 'testName',
+        selected: true,
+        type: 'File'
+      }];
+      component._nearDuplicates = true;
+      component._selectedImageIds = [1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {}
+      };
+
+      component.logger = {
+        log: function(input1, input2, input3) {
+          expect(component._queryIndex).to.equal(0);
+          expect(input1).to.equal('SimilarImageSearch-File');
+          expect(input2).to.equal('NearDuplicates=TRUE');
+          expect(input3).to.equal('');
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(0);
+    });
+
+    test('_createXhrRequest with an image link does call logger.log if defined', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'testLink',
+        name: 'testLink',
+        selected: true,
+        type: 'Link'
+      }];
+      component._nearDuplicates = false;
+      component._selectedImageIds = [1];
+
+      component.imageServiceAuth = '{"user": "testUser", "password": "testPassword"}';
+      component.imageServiceHost = '{"url": "testGETHost", "base64": "testPOSTHost"}';
+
+      component.$.xhr = {
+        generateRequest: function() {}
+      };
+
+      component.logger = {
+        log: function(input1, input2, input3) {
+          expect(component._queryIndex).to.equal(0);
+          expect(input1).to.equal('SimilarImageSearch-Link');
+          expect(input2).to.equal('NearDuplicates=FALSE');
+          expect(input3).to.equal('testLink');
+          done();
+        }
+      };
+
+      expect(component._createXhrRequest).to.be.a('Function');
+      component._createXhrRequest(0);
+    });
+
+    test('_createSearchListener.onClick does nothing if _selectedImageIds is empty', function() {
+      component._selectedImageIds = [];
+      var listener = component._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(component.$$('#xhr').body).to.be.null;
+      expect(component.$$('#xhr').params).to.be.empty;
+    });
+
+    test('_createSearchListener.onClick does call _createXhrRequest and set _nearDuplicates to false', function(done) {
+      component._selectedImageIds = [1];
+      component._createXhrRequest = function(input) {
+        expect(component._nearDuplicates).to.be.false;
+        expect(input).to.equal(0);
+        done();
+      };
+
+      var listener = component._createSearchListener(false);
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+    });
+
+    test('_createSearchListener.onClick does call _createXhrRequest and set _nearDuplicates to true', function(done) {
+      component._selectedImageIds = [1];
+      component._createXhrRequest = function(input) {
+        expect(component._nearDuplicates).to.be.true;
+        expect(input).to.equal(0);
+        done();
+      };
+
+      var listener = component._createSearchListener(true);
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+    });
+
+    test('_createSelectListener.onClick does update _images and _selectedImageIds if select=true', function() {
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }];
+      component._selectedImageIds = [2];
+
+      var listener = component._createSelectListener(true);
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([1, 2]);
+    });
+
+    test('_createSelectListener.onClick does update _images and _selectedImageIds if select=false', function() {
+      component._images = [{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: true,
+        type: 'type'
+      }];
+      component._selectedImageIds = [2];
+
+      var listener = component._createSelectListener(false);
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }, {
+        id: 2,
+        data: 'data',
+        name: 'name',
+        selected: false,
+        type: 'type'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([]);
+    });
+
+    test('_createShowImageResultsListener.onClick does add to _results', function() {
+      component._results = [{
+        date: 'date1',
+        filename: 'name1',
+        imageList: ['image1'],
+        nearDuplicates: true,
+        resultsList: ['results1']
+      }];
+
+      var listener = component._createShowImageResultsListener({
+        date: 'date2',
+        filename: 'name2',
+        imageList: ['image2'],
+        nearDuplicates: false,
+        resultsList: ['results2']
       });
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
 
-      expect(component._imageResults).to.deep.equal(['testResults']);
-      expect(component._queryInput).to.deep.equal({
-        data: 'testImage',
-        nearDuplicates: {
-          bool: false
-        }
-      });
+      expect(component._results).to.deep.equal([{
+        date: 'date1',
+        filename: 'name1',
+        imageList: ['image1'],
+        nearDuplicates: true,
+        resultsList: ['results1']
+      }, {
+        date: 'date2',
+        filename: 'name2',
+        imageList: ['image2'],
+        nearDuplicates: false,
+        resultsList: ['results2']
+      }]);
     });
 
-    test('_handleImageServiceResponse with images does set _imageResults and _previousSearches', function() {
-      component._queryInput = {
-        data: 'testImage1',
-        nearDuplicates: {
-          bool: true
-        }
+    test('_handleImageServiceResponse with no response images and no other selected IDs does deselect images', function() {
+      component._images = [{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }];
+      component._queryIndex = 0;
+      component._selectedImageIds = [1];
+
+      component._createXhrRequest = function() {
+        expect.fail();
       };
-      expect(component._handleImageServiceResponse).to.be.a('Function');
+
+      component._handleImageServiceResponse({
+        detail: {
+          response: {
+            images: []
+          }
+        }
+      });
+
+      expect(component._previousSearches).to.deep.equal([]);
+      expect(component._results).to.deep.equal([]);
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: false,
+        type: 'File'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([]);
+    });
+
+    test('_handleImageServiceResponse with response images and no other selected IDs does set _previousSearches and _results and deselect images', function() {
+      component._images = [{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }];
+      component._queryIndex = 0;
+      component._selectedImageIds = [1];
+
+      component._createXhrRequest = function() {
+        expect.fail();
+      };
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       component._handleImageServiceResponse({
@@ -324,46 +989,82 @@ limitations under the License.
       });
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-      expect(component._imageResults).to.deep.equal([{
-        link: 'http://testId1',
+      expect(component._previousSearches.length).to.equal(1);
+      expect(component._previousSearches[0].date).to.be.a('String');
+      expect(component._previousSearches[0].filename).to.equal('name1');
+      expect(component._previousSearches[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._previousSearches[0].nearDuplicates).to.be.false;
+      expect(component._previousSearches[0].resultsList).to.deep.equal([{
+        link: '',
         source: 'testUrl1'
       }, {
-        link: 'http://testId2',
+        link: '',
         source: 'testUrl2'
       }]);
-      expect(component._previousSearches).to.deep.equal([{
-        image: 'testImage1',
-        results: [{
-          link: 'http://testId1',
-          source: 'testUrl1'
-        }, {
-          link: 'http://testId2',
-          source: 'testUrl2'
-        }],
-        options: {
-          nearDuplicates: true
-        }
+
+      expect(component._results.length).to.equal(1);
+      expect(component._results[0].date).to.be.a('String');
+      expect(component._results[0].filename).to.equal('name1');
+      expect(component._results[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
       }]);
+      expect(component._results[0].nearDuplicates).to.be.false;
+      expect(component._results[0].resultsList).to.deep.equal([{
+        link: '',
+        source: 'testUrl1'
+      }, {
+        link: '',
+        source: 'testUrl2'
+      }]);
+
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: false,
+        type: 'File'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([]);
     });
 
-    test('_handleImageServiceResponse does add to _previousSearches', function() {
+    test('_handleImageServiceResponse does add to _previousSearches and _results', function() {
+      component._images = [{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }];
       component._previousSearches = [{
-        image: 'testImage0',
-        results: [{
-          link: 'http://testId0',
-          source: 'testUrl0'
-        }],
-        options: {
-          nearDuplicates: false
-        }
+        date: 'previousDate',
+        filename: 'previousFilename',
+        imageList: [],
+        nearDuplicates: true,
+        resultsList: []
       }];
-      component._queryInput = {
-        data: 'testImage1',
-        nearDuplicates: {
-          bool: true
-        }
+      component._queryIndex = 0;
+      component._results = [{
+        date: 'previousDate',
+        filename: 'previousFilename',
+        imageList: [],
+        nearDuplicates: true,
+        resultsList: []
+      }];
+      component._selectedImageIds = [1];
+
+      component._createXhrRequest = function() {
+        expect.fail();
       };
-      expect(component._handleImageServiceResponse).to.be.a('Function');
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       component._handleImageServiceResponse({
@@ -381,46 +1082,283 @@ limitations under the License.
       });
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-      expect(component._imageResults).to.deep.equal([{
+      expect(component._previousSearches.length).to.equal(2);
+      expect(component._previousSearches[0].date).to.be.a('String');
+      expect(component._previousSearches[0].filename).to.equal('name1');
+      expect(component._previousSearches[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._previousSearches[0].nearDuplicates).to.be.false;
+      expect(component._previousSearches[0].resultsList).to.deep.equal([{
+        link: '',
+        source: 'testUrl1'
+      }, {
+        link: '',
+        source: 'testUrl2'
+      }]);
+      expect(component._previousSearches[1]).to.deep.equal({
+        date: 'previousDate',
+        filename: 'previousFilename',
+        imageList: [],
+        nearDuplicates: true,
+        resultsList: []
+      });
+
+      expect(component._results.length).to.equal(2);
+      expect(component._results[0]).to.deep.equal({
+        date: 'previousDate',
+        filename: 'previousFilename',
+        imageList: [],
+        nearDuplicates: true,
+        resultsList: []
+      });
+      expect(component._results[1].date).to.be.a('String');
+      expect(component._results[1].filename).to.equal('name1');
+      expect(component._results[1].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._results[1].nearDuplicates).to.be.false;
+      expect(component._results[1].resultsList).to.deep.equal([{
+        link: '',
+        source: 'testUrl1'
+      }, {
+        link: '',
+        source: 'testUrl2'
+      }]);
+    });
+
+    test('_handleImageServiceResponse does ignore image results above imageThreshold', function() {
+      component.imageThreshold = 0.2;
+      component._images = [{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }];
+      component._queryIndex = 0;
+      component._selectedImageIds = [1];
+
+      component._createXhrRequest = function() {
+        expect.fail();
+      };
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      component._handleImageServiceResponse({
+        detail: {
+          response: {
+            images: [{
+              similar_images: {
+                cached_image_urls: ['testUrl1', 'testUrl2'],
+                sha1: ['testId1', 'testId2'],
+                distance: ['0.1', '0.3']
+              }
+            }]
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(component._previousSearches.length).to.equal(1);
+      expect(component._previousSearches[0].date).to.be.a('String');
+      expect(component._previousSearches[0].filename).to.equal('name1');
+      expect(component._previousSearches[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._previousSearches[0].nearDuplicates).to.be.false;
+      expect(component._previousSearches[0].resultsList).to.deep.equal([{
+        link: '',
+        source: 'testUrl1'
+      }]);
+
+      expect(component._results.length).to.equal(1);
+      expect(component._results[0].date).to.be.a('String');
+      expect(component._results[0].filename).to.equal('name1');
+      expect(component._results[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._results[0].nearDuplicates).to.be.false;
+      expect(component._results[0].resultsList).to.deep.equal([{
+        link: '',
+        source: 'testUrl1'
+      }]);
+    });
+
+    test('_handleImageServiceResponse with linkFunction does set links in results', function() {
+      component.linkFunction = function(id) {
+        return 'http://' + id;
+      };
+      component._images = [{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }];
+      component._queryIndex = 0;
+      component._selectedImageIds = [1];
+
+      component._createXhrRequest = function() {
+        expect.fail();
+      };
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      component._handleImageServiceResponse({
+        detail: {
+          response: {
+            images: [{
+              similar_images: {
+                cached_image_urls: ['testUrl1', 'testUrl2'],
+                sha1: ['testId1', 'testId2'],
+                distance: ['0.1', '0.3']
+              }
+            }]
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      expect(component._previousSearches.length).to.equal(1);
+      expect(component._previousSearches[0].date).to.be.a('String');
+      expect(component._previousSearches[0].filename).to.equal('name1');
+      expect(component._previousSearches[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._previousSearches[0].nearDuplicates).to.be.false;
+      expect(component._previousSearches[0].resultsList).to.deep.equal([{
         link: 'http://testId1',
         source: 'testUrl1'
       }, {
         link: 'http://testId2',
         source: 'testUrl2'
       }]);
-      expect(component._previousSearches).to.deep.equal([{
-        image: 'testImage1',
-        results: [{
-          link: 'http://testId1',
-          source: 'testUrl1'
-        }, {
-          link: 'http://testId2',
-          source: 'testUrl2'
-        }],
-        options: {
-          nearDuplicates: true
-        }
+
+      expect(component._results.length).to.equal(1);
+      expect(component._results[0].date).to.be.a('String');
+      expect(component._results[0].filename).to.equal('name1');
+      expect(component._results[0].imageList).to.deep.equal([{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._results[0].nearDuplicates).to.be.false;
+      expect(component._results[0].resultsList).to.deep.equal([{
+        link: 'http://testId1',
+        source: 'testUrl1'
       }, {
-        image: 'testImage0',
-        results: [{
-          link: 'http://testId0',
-          source: 'testUrl0'
-        }],
-        options: {
-          nearDuplicates: false
-        }
+        link: 'http://testId2',
+        source: 'testUrl2'
       }]);
     });
 
-    test('_handleImageServiceResponse with images does set _imageResults to images under imageThreshold', function() {
-      component.imageThreshold = 0.2;
-      component._queryInput = {
-        data: 'testImage1',
-        nearDuplicates: {
-          bool: true
-        }
+    test('_handleImageServiceResponse with response images and other selected IDs does set _previousSearches and _results and call _createXhrRequest', function(done) {
+      component._images = [{
+        id: 1,
+        data: 'data1',
+        name: 'name1',
+        selected: true,
+        type: 'File'
+      }, {
+        id: 2,
+        data: 'data2',
+        name: 'name2',
+        selected: true,
+        type: 'File'
+      }, {
+        id: 3,
+        data: 'data3',
+        name: 'name3',
+        selected: true,
+        type: 'File'
+      }];
+      component._queryIndex = 1;
+      component._selectedImageIds = [1, 2, 3];
+
+      component._createXhrRequest = function(input) {
+        expect(component._previousSearches.length).to.equal(1);
+        expect(component._previousSearches[0].date).to.be.a('String');
+        expect(component._previousSearches[0].filename).to.equal('name2');
+        expect(component._previousSearches[0].imageList).to.deep.equal([{
+          id: 2,
+          data: 'data2',
+          name: 'name2',
+          selected: true,
+          type: 'File'
+        }]);
+        expect(component._previousSearches[0].nearDuplicates).to.be.false;
+        expect(component._previousSearches[0].resultsList).to.deep.equal([{
+          link: '',
+          source: 'testUrl1'
+        }, {
+          link: '',
+          source: 'testUrl2'
+        }]);
+
+        expect(component._results.length).to.equal(1);
+        expect(component._results[0].date).to.be.a('String');
+        expect(component._results[0].filename).to.equal('name2');
+        expect(component._results[0].imageList).to.deep.equal([{
+          id: 2,
+          data: 'data2',
+          name: 'name2',
+          selected: true,
+          type: 'File'
+        }]);
+        expect(component._results[0].nearDuplicates).to.be.false;
+        expect(component._results[0].resultsList).to.deep.equal([{
+          link: '',
+          source: 'testUrl1'
+        }, {
+          link: '',
+          source: 'testUrl2'
+        }]);
+
+        expect(component._images).to.deep.equal([{
+          id: 1,
+          data: 'data1',
+          name: 'name1',
+          selected: true,
+          type: 'File'
+        }, {
+          id: 2,
+          data: 'data2',
+          name: 'name2',
+          selected: true,
+          type: 'File'
+        }, {
+          id: 3,
+          data: 'data3',
+          name: 'name3',
+          selected: true,
+          type: 'File'
+        }]);
+        expect(component._selectedImageIds).to.deep.equal([1, 2, 3]);
+
+        expect(input).to.equal(2);
+        done();
       };
-      expect(component._handleImageServiceResponse).to.be.a('Function');
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       component._handleImageServiceResponse({
@@ -437,238 +1375,76 @@ limitations under the License.
         }
       });
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      expect(component._imageResults).to.deep.equal([{
-        link: 'http://testId1',
-        source: 'testUrl1'
-      }]);
     });
 
-    test('_handleImageServiceResponse with no images does reset _imageResults', function() {
-      component._imageResults = [{
-        link: 'link',
-        source: 'source'
-      }];
-      component._queryInput = {
-        data: 'testImage1',
-        nearDuplicates: {
-          bool: true
-        }
-      };
+    test('_saveUploadedInputImage does nothing if either filename or xhr is empty', function() {
+      expect(component._saveUploadedInputImage).to.be.a('Function');
 
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      component._handleImageServiceResponse({
-        detail: {
-          response: {
-            images: [{
-              similar_images: {
-                cached_image_urls: [],
-                sha1: [],
-                distance: []
-              }
-            }]
-          }
-        }
-      });
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      expect(component._imageResults).to.deep.equal([]);
-    });
-
-    test('_addUploadedImage does add the image data to _images and does set _queryInput and _selectedObject', function() {
-      component._uploadedImages = [{
-        name: 'testName'
-      }];
-
-      component._addUploadedImage({
+      component._saveUploadedInputImage({
         detail: {
           xhr: {
-            response: '{"base64": "base64string", "mimeType": "image/type"}'
+            response: '{\"base64\":\"uploadBase64string\",\"mimeType\":\"image/uploadType\"}'
           }
         }
       });
-
-      expect(component._images).to.deep.equal([{
-        id: 0,
-        data: 'data:image/type;base64,base64string',
-        name: 'testName',
-        type: 'File'
-      }]);
-      expect(component._queryInput).to.deep.equal({
-        data: 'data:image/type;base64,base64string'
-      });
-      expect(component._selectedObject).to.deep.equal({
-        id: 0,
-        data: 'data:image/type;base64,base64string',
-        name: 'testName',
-        type: 'File'
-      });
-      expect(component._uploadText).to.equal('Upload image successful!');
-    });
-
-    test('_addUploadedImage does not delete the previous items in _images', function() {
-      component._images = [{
-        id: 0,
-        data: 'data:image/previousType;base64,previousBase64string',
-        name: 'previousName',
-        type: 'File'
-      }];
-      component._uploadedImages = [{
-        name: 'testName'
-      }];
-
-      component._addUploadedImage({
-        detail: {
-          xhr: {
-            response: '{"base64": "base64string", "mimeType": "image/type"}'
-          }
-        }
-      });
-
-      expect(component._images).to.deep.equal([{
-        id: 0,
-        data: 'data:image/previousType;base64,previousBase64string',
-        name: 'previousName',
-        type: 'File'
-      }, {
-        id: 1,
-        data: 'data:image/type;base64,base64string',
-        name: 'testName',
-        type: 'File'
-      }]);
-      expect(component._queryInput).to.deep.equal({
-        data: 'data:image/type;base64,base64string'
-      });
-      expect(component._selectedObject).to.deep.equal({
-        id: 1,
-        data: 'data:image/type;base64,base64string',
-        name: 'testName',
-        type: 'File'
-      });
-      expect(component._uploadText).to.equal('Upload image successful!');
-    });
-
-    test('_addUploadedImage with non-image mime type does not add the image to _images and does not set _queryInput or _selectedObject', function() {
-      component._uploadedImages = [{
-        name: 'testName'
-      }];
-
-      component._addUploadedImage({
-        detail: {
-          xhr: {
-            response: '{"base64": "base64string", "mimeType": "nonimage/type"}'
-          }
-        }
-      });
-
       expect(component._images).to.deep.equal([]);
-      expect(component._queryInput).to.deep.equal({});
-      expect(component._selectedObject).to.deep.equal({});
-      expect(component._uploadText).to.equal('Upload image failed:  Not an image file!');
-    });
+      expect(component._selectedImageIds).to.deep.equal([]);
 
-    test('_setUploadErrorMessage works', function() {
-      component._setUploadErrorMessage();
-      expect(component._uploadText).to.equal('Upload image failed!');
-    });
-
-    test('_getImageResultsTitle returns the correct values', function() {
-      expect(component._getImageResultsTitle).to.be.a('Function');
-      expect(component._getImageResultsTitle()).to.equal('No Similar Image Results');
-      expect(component._getImageResultsTitle(0)).to.equal('No Similar Image Results');
-      expect(component._getImageResultsTitle(1)).to.equal('Top 1 Similar Image Result');
-      expect(component._getImageResultsTitle(2)).to.equal('Top 2 Similar Image Results');
-    });
-
-    test('_isSelected returns the correct values', function() {
-      expect(component._isSelected).to.be.a('Function');
-      expect(component._isSelected(1, 2)).to.equal('');
-      expect(component._isSelected(2, 1)).to.equal('');
-      expect(component._isSelected(1, 1)).to.equal('selected');
-      expect(component._isSelected(2, 2)).to.equal('selected');
-    });
-
-    test('_selectImageEvent does set _queryInput and _selectedObject', function() {
-      component._images = [{
-        id: 0,
-        data: 'testData',
-        name: 'testName',
-        type: 'testType'
-      }];
-
-      component._selectImageEvent({
-        target: {
-          id: 0
+      component._saveUploadedInputImage({
+        detail: {
+          filename: 'testFile'
         }
       });
-
-      expect(component._queryInput).to.deep.equal({
-        data: 'testData'
-      });
-      expect(component._selectedObject).to.deep.equal({
-        id: 0,
-        data: 'testData',
-        name: 'testName',
-        type: 'testType'
-      });
+      expect(component._images).to.deep.equal([]);
+      expect(component._selectedImageIds).to.deep.equal([]);
     });
 
-    test('_selectImageEvent does not set _queryInput and _selectedObject if loading', function() {
-      component._images = [{
-        id: 0,
-        data: 'testData',
-        name: 'testName',
-        type: 'testType'
-      }];
-      component.loading = true;
-
-      component._selectImageEvent({
-        target: {
-          id: 0
+    test('_saveUploadedInputImage does ', function() {
+      expect(component._saveUploadedInputImage).to.be.a('Function');
+      component._saveUploadedInputImage({
+        detail: {
+          filename: 'testFile',
+          xhr: {
+            response: '{\"base64\":\"uploadBase64string\",\"mimeType\":\"image/uploadType\"}'
+          }
         }
       });
-
-      expect(component._queryInput).to.deep.equal({});
-      expect(component._selectedObject).to.deep.equal({});
+      expect(component._images).to.deep.equal([{
+        id: 1,
+        data: 'data:image/uploadType;base64,uploadBase64string',
+        name: 'testFile',
+        selected: true,
+        type: 'File'
+      }]);
+      expect(component._selectedImageIds).to.deep.equal([1]);
     });
 
-    test('_selectImageIndex does set _queryInput and _selectedObject', function() {
-      component._images = [{
-        id: 0,
-        data: 'testData',
-        name: 'testName',
-        type: 'testType'
-      }];
-
-      component._selectImageIndex(0);
-
-      expect(component._queryInput).to.deep.equal({
-        data: 'testData'
+    test('_selectImageResults does set _selectedResultsIndex', function() {
+      expect(component._selectImageResults).to.be.a('Function');
+      component._selectImageResults({
+        model: {
+          index: 1
+        }
       });
-      expect(component._selectedObject).to.deep.equal({
-        id: 0,
-        data: 'testData',
-        name: 'testName',
-        type: 'testType'
+      expect(component._selectedResultsIndex).to.equal(1);
+      component._selectImageResults({
+        model: {
+          index: 2
+        }
       });
+      expect(component._selectedResultsIndex).to.equal(2);
     });
 
-    test('_selectImageIndex does not set _queryInput and _selectedObject if loading', function() {
-      component._images = [{
-        id: 0,
-        data: 'testData',
-        name: 'testName',
-        type: 'testType'
-      }];
-      component.loading = true;
-
-      component._selectImageIndex(0);
-
-      expect(component._queryInput).to.deep.equal({});
-      expect(component._selectedObject).to.deep.equal({});
+    test('_setUploadErrorMessage does work', function() {
+      component._setUploadErrorMessage({
+        detail: {
+          filename: 'testName'
+        }
+      });
+      expect(component._error).to.equal('Image Upload Failed (Unknown Error):  testName');
     });
 
-    test('open() opens the dialog', function(done) {
+    test('open does open the dialog', function(done) {
       var dialog = component.$$('#similarImageSearchDialog');
       expect(dialog.style.display).to.equal('none');
       component.open();
