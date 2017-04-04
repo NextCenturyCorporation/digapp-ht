@@ -21,29 +21,97 @@
 /* exported filterAggTransform */
 /* jshint camelcase:false */
 
-var filterAggTransform = (function(_) {
+var filterAggTransform = (function() {
+
+  function getCityText(id) {
+    var idList = id.split(':');
+    return idList[0] + ', ' + idList[1];
+  }
+
+  function getEmailText(id) {
+    return decodeURIComponent(id.substring(id.lastIndexOf('/') + 1));
+  }
+
+  function getPhoneText(id) {
+    var text = id.substring(id.lastIndexOf('/') + 1);
+    if(text.indexOf('-') >= 0) {
+      return text.substring(text.indexOf('-') + 1);
+    }
+    return text;
+  }
+
   return {
-    cityResults: function(data) {
-      var cityResultsObj = {};
-
-      if(data && data.aggregations && data.aggregations.cityAgg &&
-          data.aggregations.cityAgg.cityAgg.buckets) {
-
-        cityResultsObj.aggregations = {cityAgg: {cityAgg: {buckets: []}}};
-
-        _.each(data.aggregations.cityAgg.cityAgg.buckets, function(record) {
-          var newObj = {};
-          newObj.key = record.key;
-          var keys = record.key.split(':');
-          newObj.text = keys[0] + ', ' + keys[1];
+    cityList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          newObj.doc_count = record.doc_count;
+          return {
+            count: bucket.doc_count,
+            id: bucket.key,
+            text: getCityText(bucket.key)
+          };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-          cityResultsObj.aggregations.cityAgg.cityAgg.buckets.push(newObj);
+        }).filter(function(object) {
+          return object.id;
         });
       }
-      return cityResultsObj;
+      return [];
+    },
+
+    emailList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: bucket.key,
+            text: getEmailText(bucket.key)
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
+    },
+
+    phoneList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: bucket.key,
+            text: getPhoneText(bucket.key)
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
+    },
+
+    filterList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: bucket.key
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
+    },
+
+    cityText: function(id) {
+      return getCityText(id);
+    },
+
+    emailText: function(id) {
+      return getEmailText(id);
+    },
+
+    phoneText: function(id) {
+      return getPhoneText(id);
     }
   };
 });

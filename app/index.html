@@ -518,7 +518,11 @@ limitations under the License.
               <div class="h-divider"></div>
 
               <template is="dom-if" if="[[noFacets(searchParameters.*)]]">
-                <div class="no-selected-facets">No Selected Facets</div>
+                <div class="selected-facets-header">No Selected Facets</div>
+              </template>
+
+              <template is="dom-if" if="[[!noFacets(searchParameters.*)]]">
+                <div class="selected-facets-header">Selected Facets:</div>
               </template>
 
               <div class="layout horizontal wrap">
@@ -542,9 +546,9 @@ limitations under the License.
               <div class="h-divider"></div>
 
               <div id="annotation-options" class="filter-header">
-                <span class="filter-toggle" title="Toggle Annotation Options" on-tap="toggleList">Annotation Options</span>
-                <iron-icon id="annotation-options-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Annotation Options" on-tap="toggleList"></iron-icon>
-                <iron-icon id="annotation-options-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Annotation Options" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Annotation Options" on-tap="toggleList">Annotation Options</span>
+                <iron-icon id="annotation-options-icon-opened" icon="icons:expand-less" title="Toggle Annotation Options" on-tap="toggleList"></iron-icon>
+                <iron-icon id="annotation-options-icon-closed" icon="icons:expand-more" title="Toggle Annotation Options" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <iron-collapse id="annotation-options-list" class="filter-list" opened>
@@ -563,10 +567,10 @@ limitations under the License.
             <section data-type="webpage">
               <div class="facet filter-header layout horizontal">
                 <span class="flex">Facets</span>
-                <span class="filter-toggle" on-tap="toggleAllFacetLists">
+                <span on-tap="toggleAllFacetLists">
                   {{getToggleAllFacetsText(facetListsExpanded)}}
                 </span>
-                <iron-icon class="filter-toggle" icon="{{getToggleAllFacetsIcon(facetListsExpanded)}}"
+                <iron-icon icon="{{getToggleAllFacetsIcon(facetListsExpanded)}}"
                   title="Toggle All Facets" on-tap="toggleAllFacetLists">
                 </iron-icon>
               </div>
@@ -574,9 +578,9 @@ limitations under the License.
               <div class="h-divider"></div>
 
               <div id="date" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Date Facet List" on-tap="toggleList">Date</span>
-                <iron-icon id="date-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Date Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="date-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Date Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Date Facet List" on-tap="toggleList">Date</span>
+                <iron-icon id="date-icon-opened" icon="icons:expand-less" title="Toggle Date Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="date-icon-closed" icon="icons:expand-more" title="Toggle Date Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <iron-collapse id="date-list" class="filter-list" opened>
@@ -588,9 +592,9 @@ limitations under the License.
               <div class="h-divider"></div>
 
               <div id="country" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Country Facet List" on-tap="toggleList">Country</span>
-                <iron-icon id="country-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Country Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="country-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Country Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Country Facet List" on-tap="toggleList">Country</span>
+                <iron-icon id="country-icon-opened" icon="icons:expand-less" title="Toggle Country Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="country-icon-closed" icon="icons:expand-more" title="Toggle Country Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -602,48 +606,76 @@ limitations under the License.
                 order="{{countrySortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="[[countryResult]]"
+                data-in2="countryAgg"
+                data-out="{{countryResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Country"
+                list="{{countrySelectedList}}"
+                object="{{searchParameters.country}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Country"
-                    buckets="[[countryResult.aggregations.countryAgg.countryAgg.buckets]]"
-                    loading="[[countryLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Country"
+                    text-property="id"
                     error="[[countryError]]"
-                    facet-selection="{{searchParameters.country}}"
-                    agg-count="{{countryCount}}"
-                    order-by="{{countrySortOrder}}">
-                  </view-all-facets>
+                    items="[[countryResultList]]"
+                    loading="[[countryLoading]]"
+                    aggregation-count="{{countryCount}}"
+                    order-by="{{countrySortOrder}}"
+                    selected-ids="{{countrySelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[countryFacets.length]]">
-                    <aggregation-sort facets="[[countryFacets]]" order-by="{{countrySortOrder}}">
+
+                <template is="dom-if" if="[[countryResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[countryResultList]]" order-by="{{countrySortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[countryResultList]]"
+                loading="[[countryLoading]]"
+                selected="{{countrySelectedList}}">
+              </select-all>
+
               <iron-collapse id="country-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[countryResult.aggregations.countryAgg.countryAgg.buckets]]"
-                  facet-selection="{{searchParameters.country}}"
-                  facets="{{countryFacets}}"
-                  category="Country">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[countryResultList]]"
+                  selected-ids="{{countrySelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[countryError]]" message="{{countryErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[countryFacets.length]]"
+                  count="[[countryResultList.length]]"
                   error="[[countryErrorMessage]]"
                   loading="[[countryLoading]]"
-                  empty="No Facets">
+                  empty="No Countries">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="city" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle City Facet List" on-tap="toggleList">City</span>
-                <iron-icon id="city-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle City Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="city-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle City Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle City Facet List" on-tap="toggleList">City</span>
+                <iron-icon id="city-icon-opened" icon="icons:expand-less" title="Toggle City Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="city-icon-closed" icon="icons:expand-more" title="Toggle City Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -655,54 +687,75 @@ limitations under the License.
                 order="{{citySortOrder}}">
               </elastic-client-aggregation-builder>
 
-              <json-transform
-                data-in="{{cityResult}}"
-                data-out="{{cityAndStateResult}}"
-                transform-function="[[clientConfig.transforms.filterAggs.cityResults]]">
-              </json-transform>
+              <json-combine
+                data-in1="{{cityResult}}"
+                data-in2="cityAgg"
+                data-out="{{cityResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.cityList]]">
+              </json-combine>
+
+              <terms-transformer
+                text-function="[[clientConfig.transforms.filterAggs.cityText]]"
+                category="City"
+                list="{{citySelectedList}}"
+                object="{{searchParameters.city}}">
+              </terms-transformer>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="City"
-                    buckets="[[cityAndStateResult.aggregations.cityAgg.cityAgg.buckets]]"
-                    loading="[[cityLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="City"
                     error="[[cityError]]"
-                    facet-selection="{{searchParameters.city}}"
-                    agg-count="{{cityCount}}"
-                    order-by="{{citySortOrder}}">
-                  </view-all-facets>
+                    items="[[cityResultList]]"
+                    loading="[[cityLoading]]"
+                    aggregation-count="{{cityCount}}"
+                    order-by="{{citySortOrder}}"
+                    selected-ids="{{citySelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[cityFacets.length]]">
-                    <aggregation-sort facets="[[cityFacets]]" order-by="{{citySortOrder}}">
+
+                <template is="dom-if" if="[[cityResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[cityResultList]]" order-by="{{citySortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[cityResultList]]"
+                loading="[[cityLoading]]"
+                selected="{{citySelectedList}}">
+              </select-all>
+
               <iron-collapse id="city-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[cityAndStateResult.aggregations.cityAgg.cityAgg.buckets]]"
-                  facet-selection="{{searchParameters.city}}"
-                  facets="{{cityFacets}}"
-                  category="City">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  items="[[cityResultList]]"
+                  selected-ids="{{citySelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[cityError]]" message="{{cityErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[cityFacets.length]]"
+                  count="[[cityResultList.length]]"
                   error="[[cityErrorMessage]]"
                   loading="[[cityLoading]]"
-                  empty="No Facets">
+                  empty="No Cities">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="phone" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Telephone Facet List" on-tap="toggleList">Telephone</span>
-                <iron-icon id="phone-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Telephone Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="phone-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Telephone Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Telephone Facet List" on-tap="toggleList">Telephone</span>
+                <iron-icon id="phone-icon-opened" icon="icons:expand-less" title="Toggle Telephone Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="phone-icon-closed" icon="icons:expand-more" title="Toggle Telephone Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -714,54 +767,75 @@ limitations under the License.
                 order="{{phoneSortOrder}}">
               </elastic-client-aggregation-builder>
 
-              <json-transform
-                data-in="{{phoneResult.aggregations.phoneAgg.phoneAgg.buckets}}"
-                data-out="{{phoneResultBuckets}}"
-                transform-function="[[clientConfig.transforms.phone.cleanPhoneBuckets]]">
-              </json-transform>
+              <json-combine
+                data-in1="{{phoneResult}}"
+                data-in2="phoneAgg"
+                data-out="{{phoneResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.phoneList]]">
+              </json-combine>
+
+              <terms-transformer
+                text-function="[[clientConfig.transforms.filterAggs.phoneText]]"
+                category="Telephone Number"
+                list="{{phoneSelectedList}}"
+                object="{{searchParameters.phone}}">
+              </terms-transformer>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Telephone"
-                    buckets="[[phoneResultBuckets]]"
-                    loading="[[phoneLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Telephone Number"
                     error="[[phoneError]]"
-                    facet-selection="{{searchParameters.phone}}"
-                    agg-count="{{phoneCount}}"
-                    order-by="{{phoneSortOrder}}">
-                  </view-all-facets>
+                    items="[[phoneResultList]]"
+                    loading="[[phoneLoading]]"
+                    aggregation-count="{{phoneCount}}"
+                    order-by="{{phoneSortOrder}}"
+                    selected-ids="{{phoneSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[phoneFacets.length]]">
-                    <aggregation-sort facets="[[phoneFacets]]" order-by="{{phoneSortOrder}}">
+
+                <template is="dom-if" if="[[phoneResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[phoneResultList]]" order-by="{{phoneSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[phoneResultList]]"
+                loading="[[phoneLoading]]"
+                selected="{{phoneSelectedList}}">
+              </select-all>
+
               <iron-collapse id="phone-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[phoneResultBuckets]]"
-                  facet-selection="{{searchParameters.phone}}"
-                  facets="{{phoneFacets}}"
-                  category="Telephone">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  items="[[phoneResultList]]"
+                  selected-ids="{{phoneSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[phoneFacets.length]]"
+                  count="[[phoneResultList.length]]"
                   error="[[phoneErrorMessage]]"
                   loading="[[phoneLoading]]"
-                  empty="No Facets">
+                  empty="No Telephone Numbers">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="email" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Email Address Facet List" on-tap="toggleList">Email Address</span>
-                <iron-icon id="email-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Email Address Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="email-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Email Address Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Email Address Facet List" on-tap="toggleList">Email Address</span>
+                <iron-icon id="email-icon-opened" icon="icons:expand-less" title="Toggle Email Address Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="email-icon-closed" icon="icons:expand-more" title="Toggle Email Address Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -773,54 +847,75 @@ limitations under the License.
                 order="{{emailSortOrder}}">
               </elastic-client-aggregation-builder>
 
-              <json-transform
-                data-in="{{emailResult.aggregations.emailAgg.emailAgg.buckets}}"
-                data-out="{{emailResultBuckets}}"
-                transform-function="[[clientConfig.transforms.email.cleanEmailBuckets]]">
-              </json-transform>
+              <json-combine
+                data-in1="{{emailResult}}"
+                data-in2="emailAgg"
+                data-out="{{emailResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.emailList]]">
+              </json-combine>
+
+              <terms-transformer
+                text-function="[[clientConfig.transforms.filterAggs.emailText]]"
+                category="Email Address"
+                list="{{emailSelectedList}}"
+                object="{{searchParameters.email}}">
+              </terms-transformer>
 
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Email Address"
-                    buckets="[[emailResultBuckets]]"
-                    loading="[[emailLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Email Address"
                     error="[[emailError]]"
-                    facet-selection="{{searchParameters.email}}"
-                    agg-count="{{emailCount}}"
-                    order-by="{{emailSortOrder}}">
-                  </view-all-facets>
+                    items="[[emailResultList]]"
+                    loading="[[emailLoading]]"
+                    aggregation-count="{{emailCount}}"
+                    order-by="{{emailSortOrder}}"
+                    selected-ids="{{emailSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[emailFacets.length]]">
-                    <aggregation-sort facets="[[emailFacets]]" order-by="{{emailSortOrder}}">
+
+                <template is="dom-if" if="[[emailResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[emailResultList]]" order-by="{{emailSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[emailResultList]]"
+                loading="[[emailLoading]]"
+                selected="{{emailSelectedList}}">
+              </select-all>
+
               <iron-collapse id="email-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[emailResultBuckets]]"
-                  facet-selection="{{searchParameters.email}}"
-                  facets="{{emailFacets}}"
-                  category="Email Address">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  items="[[emailResultList]]"
+                  selected-ids="{{emailSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[emailFacets.length]]"
+                  count="[[emailResultList.length]]"
                   error="[[emailErrorMessage]]"
                   loading="[[emailLoading]]"
-                  empty="No Facets">
+                  empty="No Email Addresses">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="website" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Website Facet List" on-tap="toggleList">Website</span>
-                <iron-icon id="website-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Website Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="website-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Website Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Website Facet List" on-tap="toggleList">Website</span>
+                <iron-icon id="website-icon-opened" icon="icons:expand-less" title="Toggle Website Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="website-icon-closed" icon="icons:expand-more" title="Toggle Website Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -832,48 +927,76 @@ limitations under the License.
                 order="{{publisherSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{publisherResult}}"
+                data-in2="publisherAgg"
+                data-out="{{publisherResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Website"
+                list="{{publisherSelectedList}}"
+                object="{{searchParameters.website}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Website"
-                    buckets="[[publisherResult.aggregations.publisherAgg.publisherAgg.buckets]]"
-                    loading="[[publisherLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Website"
+                    text-property="id"
                     error="[[publisherError]]"
-                    facet-selection="{{searchParameters.website}}"
-                    agg-count="{{publisherCount}}"
-                    order-by="{{publisherSortOrder}}">
-                  </view-all-facets>
+                    items="[[publisherResultList]]"
+                    loading="[[publisherLoading]]"
+                    aggregation-count="{{publisherCount}}"
+                    order-by="{{publisherSortOrder}}"
+                    selected-ids="{{publisherSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[publisherFacets.length]]">
-                    <aggregation-sort facets="[[publisherFacets]]" order-by="{{publisherSortOrder}}">
+
+                <template is="dom-if" if="[[publisherResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[publisherResultList]]" order-by="{{publisherSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[publisherResultList]]"
+                loading="[[publisherLoading]]"
+                selected="{{publisherSelectedList}}">
+              </select-all>
+
               <iron-collapse id="website-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[publisherResult.aggregations.publisherAgg.publisherAgg.buckets]]"
-                  facet-selection="{{searchParameters.website}}"
-                  facets="{{publisherFacets}}"
-                  category="Website">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[publisherResultList]]"
+                  selected-ids="{{publisherSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[publisherError]]" message="{{publisherErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[publisherFacets.length]]"
+                  count="[[publisherResultList.length]]"
                   error="[[publisherErrorMessage]]"
                   loading="[[publisherLoading]]"
-                  empty="No Facets">
+                  empty="No Websites">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="name" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Name Facet List" on-tap="toggleList">Name</span>
-                <iron-icon id="name-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Name Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="name-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Name Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Name Facet List" on-tap="toggleList">Provider Name</span>
+                <iron-icon id="name-icon-opened" icon="icons:expand-less" title="Toggle Provider Name Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="name-icon-closed" icon="icons:expand-more" title="Toggle Provider Name Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -885,48 +1008,76 @@ limitations under the License.
                 order="{{nameSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{nameResult}}"
+                data-in2="nameAgg"
+                data-out="{{nameResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Name"
+                list="{{nameSelectedList}}"
+                object="{{searchParameters.name}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Name"
-                    buckets="[[nameResult.aggregations.nameAgg.nameAgg.buckets]]"
-                    loading="[[nameLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Name"
+                    text-property="id"
                     error="[[nameError]]"
-                    facet-selection="{{searchParameters.name}}"
-                    agg-count="{{nameCount}}"
-                    order-by="{{nameSortOrder}}">
-                  </view-all-facets>
+                    items="[[nameResultList]]"
+                    loading="[[nameLoading]]"
+                    aggregation-count="{{nameCount}}"
+                    order-by="{{nameSortOrder}}"
+                    selected-ids="{{nameSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[nameFacets.length]]">
-                    <aggregation-sort facets="[[nameFacets]]" order-by="{{nameSortOrder}}">
+
+                <template is="dom-if" if="[[nameResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[nameResultList]]" order-by="{{nameSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[nameResultList]]"
+                loading="[[nameLoading]]"
+                selected="{{nameSelectedList}}">
+              </select-all>
+
               <iron-collapse id="name-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[nameResult.aggregations.nameAgg.nameAgg.buckets]]"
-                  facet-selection="{{searchParameters.name}}"
-                  facets="{{nameFacets}}"
-                  category="Name">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[nameResultList]]"
+                  selected-ids="{{nameSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[nameError]]" message="{{nameErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[nameFacets.length]]"
+                  count="[[nameResultList.length]]"
                   error="[[nameErrorMessage]]"
                   loading="[[nameLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Names">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="age" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Age Facet List" on-tap="toggleList">Age</span>
-                <iron-icon id="age-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Age Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="age-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Age Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Age Facet List" on-tap="toggleList">Provider Age</span>
+                <iron-icon id="age-icon-opened" icon="icons:expand-less" title="Toggle Provider Age Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="age-icon-closed" icon="icons:expand-more" title="Toggle Provider Age Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -938,48 +1089,76 @@ limitations under the License.
                 order="{{ageSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{ageResult}}"
+                data-in2="ageAgg"
+                data-out="{{ageResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Age"
+                list="{{ageSelectedList}}"
+                object="{{searchParameters.age}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Age"
-                    buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
-                    loading="[[ageLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Age"
+                    text-property="id"
                     error="[[ageError]]"
-                    facet-selection="{{searchParameters.age}}"
-                    agg-count="{{ageCount}}"
-                    order-by="{{ageSortOrder}}">
-                  </view-all-facets>
+                    items="[[ageResultList]]"
+                    loading="[[ageLoading]]"
+                    aggregation-count="{{ageCount}}"
+                    order-by="{{ageSortOrder}}"
+                    selected-ids="{{ageSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[ageFacets.length]]">
-                    <aggregation-sort facets="[[ageFacets]]" order-by="{{ageSortOrder}}">
+
+                <template is="dom-if" if="[[ageResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[ageResultList]]" order-by="{{ageSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[ageResultList]]"
+                loading="[[ageLoading]]"
+                selected="{{ageSelectedList}}">
+              </select-all>
+
               <iron-collapse id="age-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[ageResult.aggregations.ageAgg.ageAgg.buckets]]"
-                  facet-selection="{{searchParameters.age}}"
-                  facets="{{ageFacets}}"
-                  category="Age">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[ageResultList]]"
+                  selected-ids="{{ageSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[ageError]]" message="{{ageErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[ageFacets.length]]"
+                  count="[[ageResultList.length]]"
                   error="[[ageErrorMessage]]"
                   loading="[[ageLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Ages">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="ethnicity" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Ethnicity Facet List" on-tap="toggleList">Ethnicity</span>
-                <iron-icon id="ethnicity-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Ethnicity Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="ethnicity-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Ethnicity Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Ethnicity Facet List" on-tap="toggleList">Provider Ethnicity</span>
+                <iron-icon id="ethnicity-icon-opened" icon="icons:expand-less" title="Toggle Provider Ethnicity Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="ethnicity-icon-closed" icon="icons:expand-more" title="Toggle Provider Ethnicity Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -991,48 +1170,76 @@ limitations under the License.
                 order="{{ethnicitySortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{ethnicityResult}}"
+                data-in2="ethnicityAgg"
+                data-out="{{ethnicityResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Ethnicity"
+                list="{{ethnicitySelectedList}}"
+                object="{{searchParameters.ethnicity}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Ethnicity"
-                    buckets="[[ethnicityResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
-                    loading="[[ethnicityLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Ethnicity"
+                    text-property="id"
                     error="[[ethnicityError]]"
-                    facet-selection="{{searchParameters.ethnicity}}"
-                    agg-count="{{ethnicityCount}}"
-                    order-by="{{ethnicitySortOrder}}">
-                  </view-all-facets>
+                    items="[[ethnicityResultList]]"
+                    loading="[[ethnicityLoading]]"
+                    aggregation-count="{{ethnicityCount}}"
+                    order-by="{{ethnicitySortOrder}}"
+                    selected-ids="{{ethnicitySelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[ethnicityFacets.length]]">
-                    <aggregation-sort facets="[[ethnicityFacets]]" order-by="{{ethnicitySortOrder}}">
+
+                <template is="dom-if" if="[[ethnicityResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[ethnicityResultList]]" order-by="{{ethnicitySortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[ethnicityResultList]]"
+                loading="[[ethnicityLoading]]"
+                selected="{{ethnicitySelectedList}}">
+              </select-all>
+
               <iron-collapse id="ethnicity-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[ethnicityResult.aggregations.ethnicityAgg.ethnicityAgg.buckets]]"
-                  facet-selection="{{searchParameters.ethnicity}}"
-                  facets="{{ethnicityFacets}}"
-                  category="Ethnicity">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[ethnicityResultList]]"
+                  selected-ids="{{ethnicitySelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[ethnicityError]]" message="{{ethnicityErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[ethnicityFacets.length]]"
+                  count="[[ethnicityResultList.length]]"
                   error="[[ethnicityErrorMessage]]"
                   loading="[[ethnicityLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Ethnicities">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="height" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Height Facet List" on-tap="toggleList">Height (cm)</span>
-                <iron-icon id="height-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Height Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="height-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Height Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Height Facet List" on-tap="toggleList">Provider Height (cm)</span>
+                <iron-icon id="height-icon-opened" icon="icons:expand-less" title="Toggle Provider Height Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="height-icon-closed" icon="icons:expand-more" title="Toggle Provider Height Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -1044,48 +1251,76 @@ limitations under the License.
                 order="{{heightSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{heightResult}}"
+                data-in2="heightAgg"
+                data-out="{{heightResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Height"
+                list="{{heightSelectedList}}"
+                object="{{searchParameters.height}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Height (cm)"
-                    buckets="[[heightResult.aggregations.heightAgg.heightAgg.buckets]]"
-                    loading="[[heightLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Height"
+                    text-property="id"
                     error="[[heightError]]"
-                    facet-selection="{{searchParameters.height}}"
-                    agg-count="{{heightCount}}"
-                    order-by="{{heightSortOrder}}">
-                  </view-all-facets>
+                    items="[[heightResultList]]"
+                    loading="[[heightLoading]]"
+                    aggregation-count="{{heightCount}}"
+                    order-by="{{heightSortOrder}}"
+                    selected-ids="{{heightSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[heightFacets.length]]">
-                    <aggregation-sort facets="[[heightFacets]]" order-by="{{heightSortOrder}}">
+
+                <template is="dom-if" if="[[heightResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[heightResultList]]" order-by="{{heightSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[heightResultList]]"
+                loading="[[heightLoading]]"
+                selected="{{heightSelectedList}}">
+              </select-all>
+
               <iron-collapse id="height-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[heightResult.aggregations.heightAgg.heightAgg.buckets]]"
-                  facets="{{heightFacets}}"
-                  facet-selection="{{searchParameters.height}}"
-                  category="Height (cm)">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[heightResultList]]"
+                  selected-ids="{{heightSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[heightError]]" message="{{heightErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[heightFacets.length]]"
+                  count="[[heightResultList.length]]"
                   error="[[heightErrorMessage]]"
                   loading="[[heightLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Heights">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="weight" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Weight Facet List" on-tap="toggleList">Weight (kg)</span>
-                <iron-icon id="weight-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Weight Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="weight-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Weight Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Weight Facet List" on-tap="toggleList">Provider Weight (kg)</span>
+                <iron-icon id="weight-icon-opened" icon="icons:expand-less" title="Toggle Provider Weight Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="weight-icon-closed" icon="icons:expand-more" title="Toggle Provider Weight Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -1097,48 +1332,76 @@ limitations under the License.
                 order="{{weightSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{weightResult}}"
+                data-in2="weightAgg"
+                data-out="{{weightResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Weight"
+                list="{{weightSelectedList}}"
+                object="{{searchParameters.weight}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Weight (kg)"
-                    buckets="[[weightResult.aggregations.weightAgg.weightAgg.buckets]]"
-                    loading="[[weightLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Weight"
+                    text-property="id"
                     error="[[weightError]]"
-                    facet-selection="{{searchParameters.weight}}"
-                    agg-count="{{weightCount}}"
-                    order-by="{{weightSortOrder}}">
-                  </view-all-facets>
+                    items="[[weightResultList]]"
+                    loading="[[weightLoading]]"
+                    aggregation-count="{{weightCount}}"
+                    order-by="{{weightSortOrder}}"
+                    selected-ids="{{weightSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[weightFacets.length]]">
-                    <aggregation-sort facets="[[weightFacets]]" order-by="{{weightSortOrder}}">
+
+                <template is="dom-if" if="[[weightResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[weightResultList]]" order-by="{{weightSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[weightResultList]]"
+                loading="[[weightLoading]]"
+                selected="{{weightSelectedList}}">
+              </select-all>
+
               <iron-collapse id="weight-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[weightResult.aggregations.weightAgg.weightAgg.buckets]]"
-                  facets="{{weightFacets}}"
-                  facet-selection="{{searchParameters.weight}}"
-                  category="Weight (kg)">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[weightResultList]]"
+                  selected-ids="{{weightSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[weightError]]" message="{{weightErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[weightFacets.length]]"
+                  count="[[weightResultList.length]]"
                   error="[[weightErrorMessage]]"
                   loading="[[weightLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Weights">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="hair-color" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Hair Color Facet List" on-tap="toggleList">Hair Color</span>
-                <iron-icon id="hair-color-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Hair Color Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="hair-color-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Hair Color Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Hair Color Facet List" on-tap="toggleList">Provider Hair Color</span>
+                <iron-icon id="hair-color-icon-opened" icon="icons:expand-less" title="Toggle Provider Hair Color Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="hair-color-icon-closed" icon="icons:expand-more" title="Toggle Provider Hair Color Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -1150,48 +1413,76 @@ limitations under the License.
                 order="{{hairColorSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{hairColorResult}}"
+                data-in2="hairColorAgg"
+                data-out="{{hairColorResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Hair Color"
+                list="{{hairColorSelectedList}}"
+                object="{{searchParameters.hairColor}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Hair Color"
-                    buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
-                    loading="[[hairColorLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Hair Color"
+                    text-property="id"
                     error="[[hairColorError]]"
-                    facet-selection="{{searchParameters.hairColor}}"
-                    agg-count="{{hairColorCount}}"
-                    order-by="{{hairColorSortOrder}}">
-                  </view-all-facets>
+                    items="[[hairColorResultList]]"
+                    loading="[[hairColorLoading]]"
+                    aggregation-count="{{hairColorCount}}"
+                    order-by="{{hairColorSortOrder}}"
+                    selected-ids="{{hairColorSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[hairColorFacets.length]]">
-                    <aggregation-sort facets="[[hairColorFacets]]" order-by="{{hairColorSortOrder}}">
+
+                <template is="dom-if" if="[[hairColorResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[hairColorResultList]]" order-by="{{hairColorSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[hairColorResultList]]"
+                loading="[[hairColorLoading]]"
+                selected="{{hairColorSelectedList}}">
+              </select-all>
+
               <iron-collapse id="hair-color-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[hairColorResult.aggregations.hairColorAgg.hairColorAgg.buckets]]"
-                  facets="{{hairColorFacets}}"
-                  facet-selection="{{searchParameters.hairColor}}"
-                  category="Hair Color">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[hairColorResultList]]"
+                  selected-ids="{{hairColorSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[hairColorError]]" message="{{hairColorErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[hairColorFacets.length]]"
+                  count="[[hairColorResultList.length]]"
                   error="[[hairColorErrorMessage]]"
                   loading="[[hairColorLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Hair Colors">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="eye-color" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Eye Color Facet List" on-tap="toggleList">Eye Color</span>
-                <iron-icon id="eye-color-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Eye Color Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="eye-color-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Eye Color Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Provider Eye Color Facet List" on-tap="toggleList">Provider Eye Color</span>
+                <iron-icon id="eye-color-icon-opened" icon="icons:expand-less" title="Toggle Provider Eye Color Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="eye-color-icon-closed" icon="icons:expand-more" title="Toggle Provider Eye Color Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -1203,49 +1494,76 @@ limitations under the License.
                 order="{{eyeColorSortOrder}}">
               </elastic-client-aggregation-builder>
 
+              <json-combine
+                data-in1="{{eyeColorResult}}"
+                data-in2="eyeColorAgg"
+                data-out="{{eyeColorResultList}}"
+                combine-function="[[clientConfig.transforms.filterAggs.filterList]]">
+              </json-combine>
+
+              <terms-transformer
+                category="Provider Eye Color"
+                list="{{eyeColorSelectedList}}"
+                object="{{searchParameters.eyeColor}}">
+              </terms-transformer>
+
               <div class="horizontal layout">
                 <div class="flex self-start">
-                  <view-all-facets
-                    title="Eye Color"
-                    buckets="[[eyeColorResult.aggregations.eyeColorAgg.eyeColorAgg.buckets]]"
-                    loading="[[eyeColorLoading]]"
+                  <aggregation-popup
+                    count-type="Ads"
+                    item-type="Provider Eye Color"
+                    text-property="id"
                     error="[[eyeColorError]]"
-                    facet-selection="{{searchParameters.eyeColor}}"
-                    filter="{{eyeColorFilter}}"
-                    agg-count="{{eyeColorCount}}"
-                    order-by="{{eyeColorSortOrder}}">
-                  </view-all-facets>
+                    items="[[eyeColorResultList]]"
+                    loading="[[eyeColorLoading]]"
+                    aggregation-count="{{eyeColorCount}}"
+                    order-by="{{eyeColorSortOrder}}"
+                    selected-ids="{{eyeColorSelectedList}}">
+                  </aggregation-popup>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[eyeColorFacets.length]]">
-                    <aggregation-sort facets="[[eyeColorFacets]]" order-by="{{eyeColorSortOrder}}">
+
+                <template is="dom-if" if="[[eyeColorResultList.length]]">
+                  <div class="self-end">
+                    <aggregation-sort facets="[[eyeColorResultList]]" order-by="{{eyeColorSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
+              <select-all
+                list="[[eyeColorResultList]]"
+                loading="[[eyeColorLoading]]"
+                selected="{{eyeColorSelectedList}}">
+              </select-all>
+
               <iron-collapse id="eye-color-list" class="filter-list" opened>
-                <checkbox-list-display
-                  buckets="[[eyeColorResult.aggregations.eyeColorAgg.eyeColorAgg.buckets]]"
-                  facets="{{eyeColorFacets}}"
-                  facet-selection="{{searchParameters.eyeColor}}"
-                  category="Eye Color">
-                </checkbox-list-display>
+                <feature-aggregation
+                  hide-no-data-text
+                  hide-show-more
+                  show-checkboxes
+                  small
+                  checkbox-name="Search"
+                  text-property="id"
+                  items="[[eyeColorResultList]]"
+                  selected-ids="{{eyeColorSelectedList}}">
+                </feature-aggregation>
+
                 <elastic-error error="[[eyeColorError]]" message="{{eyeColorErrorMessage}}"></elastic-error>
+
                 <status-text
-                  count="[[eyeColorFacets.length]]"
+                  count="[[eyeColorResultList.length]]"
                   error="[[eyeColorErrorMessage]]"
                   loading="[[eyeColorLoading]]"
-                  empty="No Facets">
+                  empty="No Provider Eye Colors">
                 </status-text>
               </iron-collapse>
 
               <div class="h-divider"></div>
 
               <div id="has-image" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Has Image Facet List" on-tap="toggleList">Has Image</span>
-                <iron-icon id="has-image-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Has Image Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="has-image-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Has Image Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Has Image Facet List" on-tap="toggleList">Has Image</span>
+                <iron-icon id="has-image-icon-opened" icon="icons:expand-less" title="Toggle Has Image Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="has-image-icon-closed" icon="icons:expand-more" title="Toggle Has Image Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <iron-collapse id="has-image-list" class="filter-list" opened>
@@ -1259,9 +1577,9 @@ limitations under the License.
               <div class="h-divider"></div>
 
               <div id="image" class="facet filter-header">
-                <span class="filter-toggle" title="Toggle Image Facet List" on-tap="toggleList">Image</span>
-                <iron-icon id="image-icon-opened" class="filter-toggle" icon="icons:expand-less" title="Toggle Image Facet List" on-tap="toggleList"></iron-icon>
-                <iron-icon id="image-icon-closed" class="filter-toggle" icon="icons:expand-more" title="Toggle Image Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
+                <span title="Toggle Image Facet List" on-tap="toggleList">Image</span>
+                <iron-icon id="image-icon-opened" icon="icons:expand-less" title="Toggle Image Facet List" on-tap="toggleList"></iron-icon>
+                <iron-icon id="image-icon-closed" icon="icons:expand-more" title="Toggle Image Facet List" on-tap="toggleList" style="display: none;"></iron-icon>
               </div>
 
               <elastic-client-aggregation-builder
@@ -1288,12 +1606,13 @@ limitations under the License.
                     order-by="{{imageSortOrder}}">
                   </view-all-facets>
                 </div>
-                <div class="flex self-end">
-                  <template is="dom-if" if="[[imageFacets.length]]">
+
+                <template is="dom-if" if="[[imageFacets.length]]">
+                  <div class="self-end">
                     <aggregation-sort facets="[[imageFacets]]" order-by="{{imageSortOrder}}">
                     </aggregation-sort>
-                  </template>
-                </div>
+                  </div>
+                </template>
               </div>
 
               <iron-collapse id="image-list" class="filter-list" opened>
@@ -1305,12 +1624,14 @@ limitations under the License.
                   facet-selection="{{searchParameters.image}}"
                   category="Image">
                 </checkbox-list-display>
+
                 <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
+
                 <status-text
                   count="[[imageFacets.length]]"
                   error="[[imageErrorMessage]]"
                   loading="[[imageLoading]]"
-                  empty="No Facets">
+                  empty="No Images">
                 </status-text>
               </iron-collapse>
             </section>

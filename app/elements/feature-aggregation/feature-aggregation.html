@@ -57,6 +57,11 @@ limitations under the License.
         text-align: center;
       }
 
+      .large {
+        /* Max Height = Height of 20 Items with Images */
+        max-height: 1200px;
+      }
+
       .small {
         /* Max Height = Height of 10 Items + Height of Show More Button */
         max-height: 270px;
@@ -73,74 +78,101 @@ limitations under the License.
         margin: 0 5px;
         text-transform: uppercase;
       }
+
+      iron-image {
+        margin: 5px;
+        background-color: transparent;
+      }
+
+      horizontal-bar ::content .bar-label {
+        word-break: break-word;
+      }
     </style>
 
-    <div class$="layout horizontal header [[_doesOverflow(_shownItems.length, limit, 'scroll-margin')]]">
-      <template is="dom-if" if="[[!showOtherCounts]]">
-        <div class="text flex">[[itemType]]</div>
-        <template is="dom-if" if="[[_showCountsHeaderText(_combinedItems.length, loading)]]">
-          <div class="text">[[countType]]</div>
-        </template>
-      </template>
-
-      <template is="dom-if" if="[[showOtherCounts]]">
-        <div class="layout horizontal flex-8 text">
-          <div class="flex">[[itemType]]</div>
-          <template is="dom-if" if="[[_showCountsHeaderText(_combinedItems.length, loading)]]">
-            <div class="end-justified">[[_getCountHeader(countType, entityName)]]</div>
-          </template>
-        </div>
-
-        <div class="layout horizontal end-justified flex-4 text">
-          <template is="dom-if" if="[[_showCountsHeaderText(_combinedItems.length, loading)]]">
-            <div>[[_getOtherCountHeader(countType)]]</div>
-          </template>
-        </div>
-      </template>
-    </div>
-
-    <template is="dom-if" if="[[_showNoDataText(_combinedItems.length, loading)]]">
-      <div class="add-margins text">None</div>
-    </template>
-
-    <div class$="data [[_doesOverflow(_shownItems.length, limit, 'overflow')]] [[_isSmall(small)]]">
-      <template id="barList" is="dom-repeat" items="[[_shownItems]]">
+    <template is="dom-if" if="[[_showHeader(itemType, countType, showOtherCounts)]]">
+      <div class$="layout horizontal header [[_doesOverflow(_shownItems.length, small, 'scroll-margin')]]">
         <template is="dom-if" if="[[!showOtherCounts]]">
-          <div class="flex add-margins">
-            <horizontal-bar
-              name="[[_getProperty(item, textProperty)]]"
-              count="[[_getProperty(item, countProperty)]]"
-              max="[[_getProperty(item, maxProperty)]]"
-              style-class="[[_getProperty(item, styleClassProperty)]]"
-              show-checkbox="{{showCheckboxes}}"
-              checkbox-tooltip="Toggle Filter on [[_getProperty(item, textProperty)]]"
-              toggle-listener="[[_createToggleListener(item)]]"
-              selected="{{item.selected}}"
-              link-value="[[_getProperty(item, linkProperty)]]">
-            </horizontal-bar>
-          </div>
+          <div class="text flex">[[itemType]]</div>
+          <template is="dom-if" if="[[_showCountsHeaderText(_combinedItems.length, loading)]]">
+            <div class="text">[[countType]]</div>
+          </template>
         </template>
 
         <template is="dom-if" if="[[showOtherCounts]]">
-          <double-aggregation-display
-            on-selected="_onSelectedChange"
-            item="[[item]]"
-            client="[[client]]"
-            index-name="[[indexName]]"
-            index-types="[[indexTypes]]"
-            query-field="[[queryField]]"
-            count-property="[[countProperty]]"
-            icon-property="[[iconProperty]]"
-            id-property="[[idProperty]]"
-            link-property="[[linkProperty]]"
-            max-property="[[maxProperty]]"
-            style-class-property="[[styleClassProperty]]"
-            text-property="[[textProperty]]"
-            max-other-count="{{_maxOtherCount}}">
-          </double-aggregation-display>
+          <div class="layout horizontal flex-8 text">
+            <div class="flex">[[itemType]]</div>
+            <template is="dom-if" if="[[_showCountsHeaderText(_combinedItems.length, loading)]]">
+              <div class="end-justified">[[_getCountHeader(countType, entityName)]]</div>
+            </template>
+          </div>
+
+          <div class="layout horizontal end-justified flex-4 text">
+            <template is="dom-if" if="[[_showCountsHeaderText(_combinedItems.length, loading)]]">
+              <div>[[_getOtherCountHeader(countType)]]</div>
+            </template>
+          </div>
         </template>
-      </template>
-    </div>
+      </div>
+    </template>
+
+    <template is="dom-if" if="[[_showNoDataText(hideNoDataText, _combinedItems.length, loading)]]">
+      <div class="add-margins text">None</div>
+    </template>
+
+    <template is="dom-if" if="[[_shownItems.length]]">
+      <div class$="data [[_doesOverflow(_shownItems.length, small, 'overflow')]] [[_isSmallOrLarge(small, showImages)]]">
+        <template id="barList" is="dom-repeat" items="[[_shownItems]]">
+          <div class="layout horizontal center">
+            <template is="dom-if" if="[[showImages]]">
+              <template is="dom-if" if="[[_getProperty(item, linkProperty)]]">
+                <a href$="[[_getProperty(item, linkProperty)]]" title="Open Image">
+                  <iron-image class$="[[_getBlurStyleClass(blur)]]" style="width:50px; height:50px;" sizing="contain" src$="[[_getProperty(item, sourceProperty)]]"></iron-image>
+                </a>
+              </template>
+              <template is="dom-if" if="[[!_getProperty(item, linkProperty)]]">
+                <iron-image class$="[[_getBlurStyleClass(blur)]]" style="width:50px; height:50px;" sizing="contain" src$="[[_getProperty(item, sourceProperty)]]"></iron-image>
+              </template>
+            </template>
+
+            <template is="dom-if" if="[[!showOtherCounts]]">
+              <div class="flex add-margins">
+                <horizontal-bar
+                  name="[[_getProperty(item, textProperty)]]"
+                  count="[[_getProperty(item, countProperty)]]"
+                  max="[[_getProperty(item, maxProperty)]]"
+                  style-class="[[_getProperty(item, styleClassProperty)]]"
+                  show-checkbox="[[showCheckboxes]]"
+                  checkbox-tooltip="[[_getCheckboxTooltip(item, textProperty, checkboxName)]]"
+                  toggle-listener="[[_createToggleListener(item)]]"
+                  selected="{{item.selected}}"
+                  link-value="[[_getProperty(item, linkProperty)]]">
+                </horizontal-bar>
+              </div>
+            </template>
+
+            <template is="dom-if" if="[[showOtherCounts]]">
+              <double-aggregation-display class="flex"
+                on-selected="_onSelectedChange"
+                item="[[item]]"
+                client="[[client]]"
+                index-name="[[indexName]]"
+                index-types="[[indexTypes]]"
+                query-field="[[queryField]]"
+                count-property="[[countProperty]]"
+                icon-property="[[iconProperty]]"
+                id-property="[[idProperty]]"
+                link-property="[[linkProperty]]"
+                max-property="[[maxProperty]]"
+                style-class-property="[[styleClassProperty]]"
+                text-property="[[textProperty]]"
+                show-checkboxes="[[showCheckboxes]]"
+                max-other-count="{{_maxOtherCount}}">
+              </double-aggregation-display>
+            </template>
+          </div>
+        </template>
+      </div>
+    </template>
 
     <loading-spinner show="[[loading]]"></loading-spinner>
 
@@ -228,6 +260,19 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * The source property in the each item.
+         *
+         * @type {String}
+         * @default 'source'
+         */
+        sourceProperty: {
+          type: String,
+          value: 'source'
+        },
+
+        /**
+         * (Optional)
+         *
          * The style class property in the each item.
          *
          * @type {String}
@@ -281,11 +326,11 @@ limitations under the License.
          * The type for the items to show in the header.
          *
          * @type {String}
-         * @default 'Items'
+         * @default ''
          */
         itemType: {
           type: String,
-          value: 'Items'
+          value: ''
         },
 
         /**
@@ -317,6 +362,33 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * Whether or not to display images next to each horizontal-bar.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        showImages: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to blur the images.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        blur: {
+          notify: true,
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * (Optional)
+         *
          * Whether or not to display a checkbox in each horizontal-bar.
          *
          * @type {Boolean}
@@ -325,6 +397,19 @@ limitations under the License.
         showCheckboxes: {
           type: Boolean,
           value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * The name of the checkboxes.
+         *
+         * @type {String}
+         * @default 'Filter'
+         */
+        checkboxName: {
+          type: String,
+          value: 'Filter'
         },
 
         /**
@@ -397,6 +482,32 @@ limitations under the License.
           type: Boolean,
           value: false,
           notify: true
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to hide the 'no data' text.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        hideNoDataText: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to hide the 'show more' button.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        hideShowMore: {
+          type: Boolean,
+          value: false
         },
 
         /**
@@ -507,9 +618,11 @@ limitations under the License.
           var item = self._findItem(selectedId);
 
           // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
-          var clonedItem = _.cloneDeep(item);
-          clonedItem.selected = true;
-          combinedItems.push(clonedItem);
+          if(item) {
+            var clonedItem = _.cloneDeep(item);
+            clonedItem.selected = true;
+            combinedItems.push(clonedItem);
+          }
         });
 
         // Ensure that the selected item with the highest count is on top.
@@ -517,11 +630,17 @@ limitations under the License.
           return b[self.countProperty] - a[self.countProperty];
         });
 
-        var maxCount = Math.max((combinedItems.length ? combinedItems[0][this.countProperty] : 0), (this.items.length ? this.items[0][this.countProperty] : 0));
+        var selectedItemMax = _.max(combinedItems.map(function(item) {
+          return item[self.countProperty];
+        })) || 0;
+        var itemMax = _.max(this.items.map(function(item) {
+          return item[self.countProperty];
+        })) || 0;
+        var combinedItemMax = Math.max(selectedItemMax, itemMax);
 
         // Ensure that the max count of each selected item is up-to-date once the selected items are sorted.
         combinedItems.forEach(function(item) {
-          item[self.maxProperty] = maxCount;
+          item[self.maxProperty] = combinedItemMax;
         });
 
         this.items.forEach(function(item) {
@@ -529,7 +648,7 @@ limitations under the License.
           if(index < 0) {
             // Ensure that this component does not affect the input items by creating a copy.
             var clonedItem = _.cloneDeep(item);
-            clonedItem[self.maxProperty] = maxCount;
+            clonedItem[self.maxProperty] = combinedItemMax;
             // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
             clonedItem.selected = false;
             combinedItems.push(clonedItem);
@@ -572,7 +691,9 @@ limitations under the License.
               self.push('_shownItems', self._combinedItems[i]);
             }
             self.set('_showMore', false);
-            self.$.barList.render();
+            if(self.$$('#barList')) {
+              self.$$('#barList').render();
+            }
           }
         };
       },
@@ -593,10 +714,10 @@ limitations under the License.
       /**
        * Returns whether this component has items that may overflow its list (requiring a scrollbar).
        */
-      _doesOverflow: function(length, limit, string) {
+      _doesOverflow: function(length, small, string) {
         // Overflow causes a scrollbar to be displayed when the bottom checkbox in the list is checked because of the
-        // ripple effect so only add overflow if needed because there are more than the limit of items.
-        return length > limit ? string : '';
+        // ripple effect so only add overflow if needed because there are more than a specific number of items.
+        return length > (small ? 11 : 20) ? string : '';
       },
 
       /**
@@ -619,11 +740,22 @@ limitations under the License.
         return (index >= 0 ? this._selectedItems[index] : undefined);
       },
 
+      _getBlurStyleClass: function(blur) {
+        return (blur ? 'small-blur' : '');
+      },
+
       /**
        * Returns the count header using the given countType and entityName.  Only used if showOtherCounts is true.
        */
       _getCountHeader: function(countType, entityName) {
         return (countType ? countType + ' ' : '') + 'Co-occurring' + (entityName ? ' With ' + entityName : '');
+      },
+
+      /**
+       * Returns the checkbox tooltip.
+       */
+      _getCheckboxTooltip: function(item, textProperty, checkboxName) {
+        return 'Toggle ' + checkboxName + ' on ' + this._getProperty(item, textProperty);
       },
 
       /**
@@ -664,10 +796,10 @@ limitations under the License.
       },
 
       /**
-       * Returns whether this component is marked as small.
+       * Returns whether this component is marked as small or large.
        */
-      _isSmall: function(small) {
-        return small ? 'small' : '';
+      _isSmallOrLarge: function(small, showImages) {
+        return small ? 'small' : (showImages ? 'large' : '');
       },
 
       /**
@@ -678,10 +810,17 @@ limitations under the License.
       },
 
       /**
+       * Returns whether this component should show its header text.
+       */
+      _showHeader: function(itemType, countType, showOtherCounts) {
+        return (itemType && countType) || showOtherCounts;
+      },
+
+      /**
        * Returns whether this component should show its 'no data' text.
        */
-      _showNoDataText: function(length, loading) {
-        return !length && !loading;
+      _showNoDataText: function(hideNoDataText, length, loading) {
+        return !hideNoDataText && !length && !loading;
       },
 
       /**
@@ -694,7 +833,7 @@ limitations under the License.
         for(var i = 0; i < limit; ++i) {
           this.push('_shownItems', this._combinedItems[i]);
         }
-        this.set('_showMore', (this._combinedItems.length > this.limit));
+        this.set('_showMore', (!this.hideShowMore && this.limit && this._combinedItems.length > this.limit));
       }
     });
   })();

@@ -1,0 +1,162 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+
+<dom-module id="select-all">
+  <template>
+    <style include="iron-flex iron-flex-alignment iron-flex-factors"></style>
+
+    <style>
+      :host {
+        display: block;
+      }
+
+      .link {
+        text-decoration: underline;
+      }
+
+      .link:not(.disabled):hover {
+        cursor: pointer;
+      }
+    </style>
+
+    <template is="dom-if" if="[[_showText(list.length, loading)]]">
+      <div class="layout horizontal">
+        <span class="link flex" on-tap="select">[[_getSelectText(list.length)]]</span>
+        <span class="link" on-tap="deselect">Deselect All</span>
+      </div>
+    </template>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'select-all',
+
+      properties: {
+        /**
+         * (Optional)
+         *
+         * The property of the ID in the items in the list.
+         *
+         * @type {String}
+         * @default 'id'
+         */
+        idProperty: {
+          type: String,
+          value: 'id'
+        },
+
+        /**
+         * (Required)
+         *
+         * The list of selectable items.
+         *
+         * @type {Array}
+         */
+        list: {
+          type: Array
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether the list is loading.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        loading: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * The maximum number of items to select from the list.
+         *
+         * @type {Number}
+         * @default 10
+         */
+        max: {
+          type: Number,
+          value: 10
+        },
+
+        /**
+         * (Output)
+         *
+         * The list of selected items.
+         *
+         * @type {Array}
+         */
+        selected: {
+          notify: true,
+          type: Array
+        }
+      },
+
+      /**
+       * Remove all of the items from selected.
+       */
+      deselect: function() {
+        this.set('selected', []);
+      },
+
+      /**
+       * Add all of the items in list to selected.
+       */
+      select: function() {
+        var self = this;
+
+        var selected = this.list.slice(0, this.max).map(function(item) {
+          return item[self.idProperty];
+        });
+
+        this.set('selected', selected);
+      },
+
+      /**
+       * Return the text for the Select link.
+       *
+       * @param {Number} length
+       * @return {String}
+       * @private
+       */
+      _getSelectText: function(length) {
+        return 'Select ' + (length > this.max ? 'Top ' + this.max : 'All ' + length);
+      },
+
+      /**
+       * Return whether to show the links.
+       *
+       * @param {Number} length
+       * @param {Boolean} loading
+       * @return {Boolean}
+       * @private
+       */
+      _showText: function(length, loading) {
+        return length && !loading;
+      }
+    });
+  })();
+  </script>
+</dom-module>

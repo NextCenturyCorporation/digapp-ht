@@ -35,18 +35,6 @@ var emailTransform = (function(_, commonTransforms) {
       }
 
       return email;
-    },
-
-    cleanEmailBuckets: function(buckets) {
-      return _.map(buckets, function(bucket) {
-        return {
-          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          doc_count: bucket.doc_count,
-          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          key: bucket.key,
-          text: decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1))
-        };
-      });
     }
   };
 });

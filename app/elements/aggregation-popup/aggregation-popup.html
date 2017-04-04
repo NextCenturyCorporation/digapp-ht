@@ -1,0 +1,344 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/aggregation-sort/aggregation-sort.html">
+<link rel="import" href="../../bower_components/status-text/status-text.html">
+<link rel="import" href="../feature-aggregation/feature-aggregation.html">
+
+<dom-module id="aggregation-popup">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .link {
+        text-decoration: underline;
+      }
+
+      .link:not(.disabled):hover {
+        cursor: pointer;
+      }
+
+      .disabled {
+        color: var(--secondary-text-color);
+      }
+
+      .disabled:hover {
+        cursor: default;
+      }
+
+      paper-dialog {
+        border-radius: 5px;
+        margin: 0px;
+        font-family: inherit;
+        font-size: inherit;
+        font-weight: inherit;
+      }
+
+      paper-dialog > div {
+        margin: 0px;
+        padding: 20px;
+        height: 560px;
+        width: 560px;
+      }
+
+      .header {
+        line-height: 40px;
+        margin: 0 5px;
+      }
+    </style>
+
+    <template is="dom-if" if="[[_showLink(items.length, loading)]]">
+      <span class$="flex link [[_isLinkDisabled(items.length)]]" on-tap="openDialog">View More</span>
+    </template>
+
+    <paper-dialog id="aggregationPopup" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="layout vertical">
+        <div class="layout horizontal header">
+          <aggregation-sort class="flex" order-by="{{orderBy}}"></aggregation-sort>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
+
+        <feature-aggregation
+          show-checkboxes
+          hide-no-data-text
+          limit="0"
+          item-type="[[itemType]]"
+          count-type="[[countType]]"
+          count-property="[[countProperty]]"
+          icon-property="[[iconProperty]]"
+          id-property="[[idProperty]]"
+          link-property="[[linkProperty]]"
+          max-property="[[maxProperty]]"
+          style-class-property="[[styleClassProperty]]"
+          text-property="[[textProperty]]"
+          items="[[items]]"
+          selected-ids="{{selectedIds}}">
+        </feature-aggregation>
+
+        <status-text
+          count="[[items.length]]"
+          error="[[error]]"
+          loading="[[loading]]"
+          empty="No [[itemType]]">
+        </status-text>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+    Polymer({
+      is: 'aggregation-popup',
+
+      properties: {
+        /**
+         * (Output)
+         *
+         * The count of the aggregation used to make the list of items.
+         *
+         * @type {Number}
+         * @default 10
+         */
+        aggregationCount: {
+          notify: true,
+          type: Number,
+          value: 10
+        },
+
+        /**
+         * (Required)
+         *
+         * The list of data objects to show.
+         *
+         * @type {Array}
+         */
+        items: {
+          type: Array
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the count.
+         *
+         * @type {String}
+         * @default 'count'
+         */
+        countProperty: {
+          type: String,
+          value: 'count'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the icon.
+         *
+         * @type {String}
+         * @default 'icon'
+         */
+        iconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the id.
+         *
+         * @type {String}
+         * @default 'id'
+         */
+        idProperty: {
+          type: String,
+          value: 'id'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the link.
+         *
+         * @type {String}
+         * @default 'link'
+         */
+        linkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the max.
+         *
+         * @type {String}
+         * @default 'max'
+         */
+        maxProperty: {
+          type: String,
+          value: 'max'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the style class.
+         *
+         * @type {String}
+         * @default 'styleClass'
+         */
+        styleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The property in the data objects for the text.
+         *
+         * @type {String}
+         * @default 'text'
+         */
+        textProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The elasticsearch error (if any).
+         *
+         * @type {Object}
+         */
+        error: {
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether the aggregation is loading.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        loading: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * The type of aggregated item shown.
+         *
+         * @type {String}
+         * @default ''
+         */
+        itemType: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The type of counted item shown.
+         *
+         * @type {String}
+         * @default ''
+         */
+        countType: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Output)
+         *
+         * The field on which to order the aggregation.
+         *
+         * @type {String}
+         * @default ''
+         */
+        orderBy: {
+          notify: true,
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Output)
+         *
+         * The selected string IDs on which to filter.
+         *
+         * @type {Array}
+         * @default []
+         */
+        selectedIds: {
+          type: Array,
+          notify: true,
+          value: function() {
+            return [];
+          }
+        }
+      },
+
+      /**
+       * Set the aggregation count to 0 and open the dialog.
+       */
+      openDialog: function() {
+        if(this._isLinkDisabled(this.items.length)) {
+          return;
+        }
+
+        this.set('aggregationCount', 0);
+        this.$$('#aggregationPopup').open();
+      },
+
+      /**
+       * Return whether the link is disabled.
+       *
+       * @param {Number} length
+       * @return {Boolean}
+       * @private
+       */
+      _isLinkDisabled: function(length) {
+        return this.aggregationCount && this.aggregationCount > length ? 'disabled' : '';
+      },
+
+      /**
+       * Return whether to show the link.
+       *
+       * @param {Number} length
+       * @param {Boolean} loading
+       * @return {Boolean}
+       * @private
+       */
+      _showLink: function(length, loading) {
+        return length && !loading;
+      }
+    });
+  </script>
+</dom-module>

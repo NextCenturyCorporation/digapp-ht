@@ -1,0 +1,175 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="terms-transformer">
+  <template>
+    <style>
+    </style>
+  </template>
+
+  <script>
+    /* globals _ */
+    Polymer({
+      is: 'terms-transformer',
+
+      properties: {
+        /**
+         * (Required)
+         *
+         * The category for the object.
+         *
+         * @type {String}
+         */
+        category: {
+          type: String
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The list of selected IDs as strings.
+         *
+         * @type {Array}
+         */
+        list: {
+          notify: true,
+          type: Array
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The object that maps each selected ID to an object with properties:
+         * {String} category, {Boolean} enabled, {String} key, {String} text
+         *
+         * @type {Object}
+         */
+        object: {
+          notify: true,
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
+         * A function to transform the ID into the text for the object.
+         *
+         * @type {Function}
+         */
+        textFunction: {
+          type: Object
+        }
+      },
+
+      observers: [
+        '_updateList(object.*)',
+        '_updateObject(list)'
+      ],
+
+      /**
+       * Creates and returns an object that maps each ID in the given list to an object with properties:
+       * {String} category, {Boolean} enabled, {String} key, {String} text
+       *
+       * @param {Array} list
+       * @return {Object}
+       */
+      createObjectFromList: function(list) {
+        var self = this;
+        var object = {};
+        list.forEach(function(id) {
+          object[id] = self._createObjectProperty(true, id, self.textFunction ? self.textFunction(id) : id);
+        });
+        return object;
+      },
+
+      /**
+       * Creates and returns an object with properties:
+       * {String} category, {Boolean} enabled, {String} key, {String} text
+       *
+       * @param {Boolean} enabled
+       * @param {String} id
+       * @param {String} text
+       * @return {Object}
+       */
+      _createObjectProperty: function(enabled, id, text) {
+        return {
+          category: this.category,
+          enabled: enabled,
+          key: id,
+          text: text
+        };
+      },
+
+      /**
+       * Updates the global object property using the data in the global list property.
+       */
+      _updateObject: function() {
+        var self = this;
+        var notifyIds = {};
+
+        _.keys(this.object).forEach(function(id) {
+          var oldEnabled = self.object[id].enabled;
+          var newEnabled = (self.list.indexOf(id) >= 0);
+          if(oldEnabled !== newEnabled) {
+            // Must recreate the object here rather than just setting the enabled property in order for notifyPath to work correctly.
+            self.object[id] = self._createObjectProperty(newEnabled, self.object[id].key, self.object[id].text);
+            notifyIds[id] = true;
+          }
+        });
+
+        (this.list || []).forEach(function(id) {
+          if(!self.object[id]) {
+            self.object[id] = self._createObjectProperty(true, id, self.textFunction ? self.textFunction(id) : id);
+            notifyIds[id] = true;
+          }
+        });
+
+        // Must notify AFTER all updates.
+        _.keys(notifyIds).forEach(function(id) {
+          // Must notifyPath on * because it will not handle an id with a period correctly.
+          self.notifyPath('object.*', self.object[id]);
+        });
+      },
+
+      /**
+       * Updates the global list property using the data in the global object property.
+       */
+      _updateList: function() {
+        var self = this;
+        var list = [];
+
+        _.keys(this.object).forEach(function(id) {
+          var index = self.list.indexOf(id);
+          if(self.object[id].enabled && index < 0) {
+            list.push(id);
+          }
+        });
+
+        (this.list || []).forEach(function(id) {
+          if(self.object[id] && self.object[id].enabled) {
+            list.push(id);
+          }
+        });
+
+        // Must set the list rather than adding to it or removing from it in order for observers to work correctly.
+        this.set('list', list);
+      }
+    });
+  </script>
+</dom-module>
