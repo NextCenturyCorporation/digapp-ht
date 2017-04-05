@@ -98,8 +98,8 @@ limitations under the License.
       }
 
       paginated-image-gallery {
-        /* Size of 10 rows. */
-        --paginated-image-gallery-max-height: 320px;
+        /* Size of 4 rows. */
+        --paginated-image-gallery-max-height: 640px;
       }
 
       .vertical-divider {
@@ -124,7 +124,7 @@ limitations under the License.
 
         <div class="divider"></div>
 
-        <div class="text note tall">Enter or paste image links in the text box.  Multiple links may be separated by spaces or new lines.</div>
+        <div class="text note">Enter or paste image links in the text box.  Multiple links may be separated by spaces or new lines.</div>
 
         <div class="layout horizontal">
           <paper-textarea class="flex right-space" label="Enter or Paste Image Links" value="{{_urlInput}}" no-label-float></paper-textarea>
@@ -132,7 +132,7 @@ limitations under the License.
           <button-action disabled="[[!_urlInput]]" text="Add Links" click-listener="[[_createAddUrlListener()]]"></button-action>
         </div>
 
-        <div class="text note tall">Upload image files by clicking the Upload Images button and selecting one or more files or by dropping one or more files into the drop box.</div>
+        <div class="text note">Upload image files by clicking the Upload Images button and selecting one or more files or by dropping one or more files into the drop box.</div>
 
         <div class="layout horizontal center">
           <file-upload
@@ -237,47 +237,47 @@ limitations under the License.
 
             <template is="dom-if" if="[[_results.length]]">
               <div class="text note">Click on a result in the list to view its similar images.  You can view one result while the others are loading.</div>
+
+              <div class="file-list">
+                <template is="dom-repeat" items="[[_results]]" as="result">
+                  <div class$="layout horizontal text selectable-text [[_ifAreEqualThenReturn(_selectedResultsIndex, index, 'selected')]]" on-tap="_selectImageResults">
+                    <span class="flex-8">[[result.filename]]</span>
+                    <span class="flex-2">[[_getImageResultsDetailText(result.resultsList.length, result.nearDuplicates)]]</span>
+                    <span class="flex-2">[[result.date]]</span>
+                  </div>
+                </template>
+              </div>
+
+              <iron-pages selected="[[_selectedResultsIndex]]">
+                <template is="dom-repeat" items="[[_results]]" as="result">
+                  <div>
+                    <div class="bold tall">Your Image</div>
+
+                    <div class="layout horizontal center">
+                      <image-gallery
+                        images="[[result.imageList]]"
+                        image-source-property="data"
+                        blur="[[blur]]">
+                      </image-gallery>
+                    </div>
+
+                    <div class="bold tall">[[_getImageResultsHeaderText(result.resultsList.length, result.nearDuplicates)]]</div>
+
+                    <paginated-image-gallery
+                      blur="[[blur]]"
+                      new-tab
+                      load-type="Similar Images"
+                      image-items="[[result.resultsList]]"
+                      total-items="[[result.resultsList.length]]">
+                    </paginated-image-gallery>
+                  </div>
+                </template>
+              </iron-pages>
             </template>
 
             <template is="dom-if" if="[[!_results.length]]">
               <div class="text">None</div>
             </template>
-
-            <div class="file-list">
-              <template is="dom-repeat" items="[[_results]]" as="result">
-                <div class$="layout horizontal text selectable-text [[_ifAreEqualThenReturn(_selectedResultsIndex, index, 'selected')]]" on-tap="_selectImageResults">
-                  <span class="flex-8">[[result.filename]]</span>
-                  <span class="flex-2">[[_getImageResultsDetailText(result.resultsList.length, result.nearDuplicates)]]</span>
-                  <span class="flex-2">[[result.date]]</span>
-                </div>
-              </template>
-            </div>
-
-            <iron-pages selected="[[_selectedResultsIndex]]">
-              <template is="dom-repeat" items="[[_results]]" as="result">
-                <div>
-                  <div class="bold tall">Your Image</div>
-
-                  <div class="layout horizontal center">
-                    <image-gallery
-                      images="[[result.imageList]]"
-                      image-source-property="data"
-                      blur="[[blur]]">
-                    </image-gallery>
-                  </div>
-
-                  <div class="bold tall">[[_getImageResultsHeaderText(result.resultsList.length, result.nearDuplicates)]]</div>
-
-                  <paginated-image-gallery
-                    blur="[[blur]]"
-                    new-tab
-                    load-type="Similar Images"
-                    image-items="[[result.resultsList]]"
-                    total-items="[[result.resultsList.length]]">
-                  </paginated-image-gallery>
-                </div>
-              </template>
-            </iron-pages>
           </div>
 
           <!-- Hide until we add permanent similar image search history.
@@ -318,6 +318,10 @@ limitations under the License.
           </div>
           -->
         </div>
+
+        <div class="text note">
+          <span class="bold right-space">How does it work?</span>
+          Near-duplicate and similar images are found by looking at features in the input image like hairstyle, physical characteristics, dress, environment, and pose.  Images that are more similar are ranked higher in the results.  To learn more, please visit <a href="http://www.ee.columbia.edu/ln/dvmm/memex/" target="_blank">this page</a>.</div>
       </div>
     </paper-dialog>
 
@@ -618,7 +622,7 @@ limitations under the License.
             data: inputImage.data
           };
           if(!this._nearDuplicates) {
-            this.$.xhr.body.options = '{"near_dup":0}';
+            this.$.xhr.body.options = '{"near_dup":1,"near_dup_th":' + this.imageThreshold + '}';
           }
           this.$.xhr.params = {};
           this.$.xhr.contentType = 'application/x-www-form-urlencoded';
@@ -632,7 +636,7 @@ limitations under the License.
             data: inputImage.data
           };
           if(!this._nearDuplicates) {
-            this.$.xhr.params.options = '{"near_dup":0}';
+            this.$.xhr.params.options = '{"near_dup":1,"near_dup_th":' + this.imageThreshold + '}';
           }
           this.$.xhr.method = 'GET';
           this._sendXhrRequest('url');
