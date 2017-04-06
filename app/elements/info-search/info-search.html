@@ -1,0 +1,139 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
+<link rel="import" href="../../styles/info-styles.html">
+<link rel="import" href="../lodash.html">
+
+<dom-module id="info-search">
+  <template>
+    <style include="iron-flex"></style>
+    <style include="info-styles"></style>
+
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+
+    <div class="link" on-tap="open">
+      <iron-icon icon="icons:help"></iron-icon>
+      <span>[[_header]]</span>
+    </div>
+
+    <styled-dialog id="dialog" header="[[_header]]">
+      <template is="dom-if" if="[[advancedSearch]]">
+        <div class="text">Each search result contains one or more of the entered keywords.</div>
+      </template>
+
+      <template is="dom-if" if="[[!advancedSearch]]">
+        <div class="text">Each search result must contain one or more of the entered keywords in its title or content:</div>
+        <div class="bold">[[_keywords]]</div>
+      </template>
+
+      <div class="text">All search results must contain extractions matching all of the selected facets:</div>
+      <div class="bold">[[_facets]]</div>
+
+      <div class="text">Results that contain multiple keywords or the same keyword multiple times are ranked higher.</div>
+
+      <template is="dom-if" if="[[advancedSearch]]">
+        <div class="text">Searches that are run in Advanced Search Mode have additional rules.</div>
+        <div class="text">Please see the Search Help under the More Options dropdown menu (in the top-right corner of this page).</div>
+      </template>
+    </styled-dialog>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    /* globals _ */
+    Polymer({
+      is: 'info-search',
+
+      properties: {
+        advancedSearch: {
+          type: Boolean
+        },
+
+        searchParameters: {
+          type: Object
+        },
+
+        _facets: {
+          computed: '_computeFacets(searchParameters.*)',
+          type: String
+        },
+
+        _header: {
+          type: String,
+          value: 'How are search results found?'
+        },
+
+        _keywords: {
+          computed: '_computeKeywords(searchParameters.*)',
+          type: String
+        }
+      },
+
+      /**
+       * Returns the facet text.
+       */
+      _computeFacets: function() {
+        var self = this;
+        var facets = [];
+
+        _.keys(this.searchParameters).forEach(function(facet) {
+          if(facet !== 'annotationsFilter' && facet !== 'sort' && facet !== 'text' && !_.isEmpty(self.searchParameters[facet])) {
+            _.keys(self.searchParameters[facet]).every(function(key) {
+              if(self.searchParameters[facet][key].enabled) {
+                facets.push(facet + '=' + self.searchParameters[facet][key].text);
+              }
+            });
+          }
+        });
+
+        return facets.length ? facets.join(' AND ') : 'No Selected Facets';
+      },
+
+      /**
+       * Returns the keyword text.
+       */
+      _computeKeywords: function() {
+        return this.searchParameters && this.searchParameters.text ? this.searchParameters.text.split(' ').join(' OR ') : 'No Search Keywords';
+      },
+
+      /**
+       * Closes the dialog.
+       */
+      close: function() {
+        this.$$('#dialog').close();
+      },
+
+      /**
+       * Opens the dialog.
+       */
+      open: function() {
+        this.$$('#dialog').open();
+      }
+    });
+  })();
+  </script>
+</dom-module>

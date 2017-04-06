@@ -40,6 +40,22 @@ var webpageTransform = (function(_, commonTransforms, offerTransform) {
       return newObj;
     },
 
+    webpagesData: function(data) {
+      var newObj = {data: [], count: 0};
+      if(data && data.hits.hits.length > 0) {
+        _.each(data.hits.hits, function(record) {
+          var webpageObject = offerTransform.offerFromRecordAndPaths(record, '_source', '_source.mainEntity.uri', '_source.dateCreated', '_source.mainEntity');
+          webpageObject.highlightedText = _.get(record, 'highlight.name[0]') || null;
+          if(webpageObject.details) {
+            webpageObject.details[1].highlightedText = _.get(record, 'highlight.description[0]') || null;
+          }
+          newObj.data.push(webpageObject);
+        });
+        newObj.count = data.hits.total;
+      }
+      return newObj.data;
+    },
+
     webpageRevisions: function(data) {
       if(data && data.aggregations) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
