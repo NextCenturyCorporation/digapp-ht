@@ -406,6 +406,18 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       return offers;
     },
 
+    offersData: function(data) {
+      var offers = {data: [], count: 0};
+      if(data && data.hits.hits.length > 0) {
+        _.each(data.hits.hits, function(record) {
+          var offer = getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
+          offers.data.push(offer);
+        });
+        offers.count = data.hits.total;
+      }
+      return offers.data;
+    },
+
     offerFromRecordAndPaths: function(record, mainPath, idPath, datePath, entityPath) {
       return getOfferObject(record, mainPath, idPath, datePath, entityPath);
     },
@@ -703,7 +715,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         var images = result.images.map(function(image) {
           return image.source;
         }).join('; ');
-        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, result.description.replace(/\n/g, ' ')]);
+        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, result.description.replace(/\s/g, ' ')]);
       });
       return data;
     },
@@ -728,7 +740,8 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           images: result.images.map(function(image) {
             return {
               id: 'image' + nextId++,
-              source: encodeURIComponent(image.source)
+              source: encodeURIComponent(image.source.replace('https://s3.amazonaws.com/', '')),
+              text: image.source
             };
           }),
           paragraphs: []
