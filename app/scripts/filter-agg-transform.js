@@ -34,10 +34,15 @@ var filterAggTransform = (function() {
 
   function getPhoneText(id) {
     var text = id.substring(id.lastIndexOf('/') + 1);
-    if(text.indexOf('-') >= 0) {
-      return text.substring(text.indexOf('-') + 1);
+    if(text.startsWith('1-')) {
+      text = text.substring(2);
     }
-    return text;
+    return text.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
+      if(p2 && p3 && p4) {
+        return (p1 ? p1 + '-' : '') + p2 + '-' + p3 + '-' + p4;
+      }
+      return p1 + p2 + p3 + p4;
+    });
   }
 
   return {
