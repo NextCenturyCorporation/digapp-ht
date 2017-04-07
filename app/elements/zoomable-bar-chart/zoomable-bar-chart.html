@@ -22,6 +22,27 @@ limitations under the License.
 <link rel="import" href="../d3.html">
 <link rel="import" href="../lodash.html">
 
+<!--
+A Polymer element that creates a bar chart using d3 with the ability to
+zoom in on specific areas of the data.
+
+### Example
+```html
+    <zoomable-bar-chart timeline
+      bar-property="date"
+      stack-property="list"
+      data="[[revisionTimeline]]"
+      default-label="Revisions"
+      height="300"
+      source="Revisions"
+      chart-title="{{revisionChartTitle}}"
+      loading="[[revisionTimelineLoading]]">
+    </zoomable-bar-chart>
+```
+// TODO: move to DigElements/create demo
+@demo demo/index.html
+-->
+
 <dom-module id="zoomable-bar-chart">
   <template>
     <style include="iron-flex"></style>
@@ -80,7 +101,12 @@ limitations under the License.
 
         properties: {
           /**
+           * (Optional)
+           *
            * The property of the objects in the data containing the unique bar string or date-string used in the x-axis.
+           *
+           * @type {String}
+           * @default 'bar'
            */
           barProperty: {
             type: String,
@@ -88,7 +114,12 @@ limitations under the License.
           },
 
           /**
+           * (Optional)
+           *
            * The property of the objects in the data containing the list of stacks on each bar.
+           *
+           * @type {String}
+           * @default 'stack'
            */
           stackProperty: {
             type: String,
@@ -96,7 +127,12 @@ limitations under the License.
           },
 
           /**
+           * (Optional)
+           *
            * The property of the objects in the list of stacks containing the count of that stack.
+           *
+           * @type {String}
+           * @default 'count'
            */
           countProperty: {
             type: String,
@@ -104,7 +140,12 @@ limitations under the License.
           },
 
           /**
+           * (Optional)
+           *
            * The property of the objects in the list of stacks containing the label of that stack.
+           *
+           * @type {String}
+           * @default 'label'
            */
           labelProperty: {
             type: String,
@@ -112,7 +153,12 @@ limitations under the License.
           },
 
           /**
+           * (Optional)
+           *
            * The name to give to bars that do not have a name.
+           *
+           * @type {String}
+           * @default 'Other'
            */
           defaultLabel: {
             type: String,
@@ -120,7 +166,12 @@ limitations under the License.
           },
 
           /**
-           * The height for this bar chart.
+           * (Optional)
+           *
+           * The height for this bar chart (in pixels).
+           *
+           * @type {Number}
+           * @default 400
            */
           height: {
             type: Number,
@@ -128,7 +179,12 @@ limitations under the License.
           },
 
           /**
+           * (Optional)
+           *
            * The source of the data to use in the title for this bar chart.
+           *
+           * @type {String}
+           * @default 'Data'
            */
           source: {
             type: String,
@@ -136,7 +192,12 @@ limitations under the License.
           },
 
           /**
+           * (Optional)
+           *
            * Whether the bar chart is a timeline (its bars and x-axis are dates).
+           *
+           * @type {Boolean}
+           * @default false
            */
           timeline: {
             type: Boolean,
@@ -144,14 +205,26 @@ limitations under the License.
           },
 
           /**
-           * The time interval for the x-axis.
+           * (Required)
+           *
+           * The time interval for the x-axis. Should be one of the following options:
+           * - 'week'
+           * - 'month'
+           * - 'year'
+           *
+           * @type {String}
            */
           interval: {
             type: String
           },
 
           /**
+           * (Required)
+           *
            * The data to display in the bar chart.
+           *
+           * @type {Array}
+           * @default []
            */
           data: {
             type: Array,
@@ -162,7 +235,12 @@ limitations under the License.
           },
 
           /**
+           * (Output)
+           *
            * The title for the bar chart.
+           *
+           * @type {String}
+           * @default 'No Data'
            */
           chartTitle: {
             type: String,
@@ -172,7 +250,12 @@ limitations under the License.
           },
 
           /**
+           * (Output)
+           *
            * Whether the data is loading.
+           *
+           * @type {Boolean}
+           * @default false
            */
           loading: {
             type: Boolean,
@@ -182,6 +265,9 @@ limitations under the License.
 
           /**
            * The data that is displayed in the bar chart.  Computed from the data.
+           *
+           * @default []
+           * @private
            */
           _bars: {
             type: Array,
@@ -192,6 +278,9 @@ limitations under the License.
 
           /**
            * The set of parts that are displayed in the bar chart.  Computed from the data.
+           *
+           * @default []
+           * @private
            */
           _legend: {
             type: Array,
@@ -205,6 +294,12 @@ limitations under the License.
           '_checkData(data)'
         ],
 
+        /**
+         * If data exists, create bar chart.
+         *
+         * @param {Array} data
+         * @private
+         */
         _checkData: function(data) {
           if(data && data.length) {
             this._createBars(data);
@@ -214,6 +309,11 @@ limitations under the License.
 
         /**
          * Returns the title for this bar chart based on the source and the bars.
+         *
+         * @param {String} source
+         * @param {Number} count
+         * @return {String} title
+         * @private
          */
         _computeTitle: function(source, count) {
           if(count > 1) {
@@ -222,6 +322,14 @@ limitations under the License.
           return count ? (source + ' at ' + this._bars[0].barLabel) : ('No ' + source);
         },
 
+        /**
+         * If using chart as a timeline, add empty bars for dates on timeline
+         * that don't have data.
+         *
+         * @param {Array} oldBars
+         * @return {Array} newBars
+         * @private
+         */
         _addMissingTimelineBars: function(oldBars) {
           var self = this;
           var newBars = [];
@@ -255,6 +363,12 @@ limitations under the License.
           return newBars;
         },
 
+        /**
+         * Creates bars for the chart and if applicable, a legend.
+         *
+         * @param {Array} data
+         * @private
+         */
         _createBars: function(data) {
           var self = this;
           var bars = [];
@@ -313,6 +427,11 @@ limitations under the License.
           this._legend = Object.keys(legend).sort();
         },
 
+        /**
+         * Create base elements for the bar chart.
+         *
+         * @private
+         */
         _createElements: function() {
           var data = this._bars;
           var self = this;
@@ -559,6 +678,13 @@ limitations under the License.
           });
         },
 
+        /**
+         * Get the appropriate d3 time format based on the interval specified.
+         *
+         * @param {String} interval
+         * @return {Object} d3 time formatter
+         * @private
+         */
         _getD3Interval: function(interval) {
           if(interval === 'week') {
             // Use d3.time.monday for weeks because elasticsearch date histogram aggregations return weeks that start on Mondays.
@@ -573,6 +699,14 @@ limitations under the License.
           return d3.time.day;
         },
 
+        /**
+         * Get text to use for date labels.
+         *
+         * @param {Date} date object
+         * @param {String} interval
+         * @return {Object} d3 time formatter
+         * @private
+         */
         _getDateText: function(date, interval) {
           if(interval === 'week') {
             return 'Week of ' + moment.utc(date).format('MMM D, YYYY');
@@ -586,6 +720,16 @@ limitations under the License.
           return moment.utc(date).format('MMM D, YYYY');
         },
 
+        /**
+         * Returns domain values for this bar chart based on parameters.
+         *
+         * @param {Array} bars
+         * @param {Boolean} timeline
+         * @param {String} interval
+         * @param {Number} chartWidth
+         * @return {Array} domain values
+         * @private
+         */
         _getDomain: function(bars, timeline, interval, chartWidth) {
           if(timeline) {
             return d3.time.scale().range([0, chartWidth]).domain(d3.extent(bars, function(bar) {
@@ -597,6 +741,14 @@ limitations under the License.
           });
         },
 
+        /**
+         * Returns correct format for displaying current date domain values.
+         *
+         * @param {Array} domain
+         * @param {String} interval
+         * @return {String} format
+         * @private
+         */
         _getDomainTimeFormat: function(domain, interval) {
           var diffInDays = (((((domain[domain.length - 1] - domain[0]) / 1000) / 60) / 60) / 24);
           if(interval === 'year') {
@@ -614,6 +766,14 @@ limitations under the License.
           return '%b %e';
         },
 
+        /**
+         * Returns tick values for the y-axis.
+         *
+         * @param {Number} axisMin
+         * @param {Number} axisMax
+         * @return {Array} tick values
+         * @private
+         */
         _getNumberedAxisTickValues: function(axisMin, axisMax) {
           if(axisMax - axisMin < 10) {
             return _.range(axisMin, axisMax + 1);
@@ -632,6 +792,13 @@ limitations under the License.
           return _.range(axisMin, axisMax + 1, step);
         },
 
+        /**
+         * If number of domain values is over a certain threshold (in this case 10), truncate.
+         *
+         * @param {Array} domain
+         * @return {Array} truncatedDomain
+         * @private
+         */
         _getTruncatedDomain: function(domain) {
           // Only show a maximum of 10 (an arbitrary number that looks good) labels on the x-axis.
           var step = Math.ceil(domain.length / 10.0);
@@ -642,6 +809,19 @@ limitations under the License.
           return truncatedDomain;
         },
 
+        /**
+         * Create x axis.
+         *
+         * @param {Boolean} timeline
+         * @param {String} interval
+         * @param {Array} data
+         * @param {Number} chartWidth
+         * @param {Object} x
+         * @param {Object} xAxis
+         * @param {Object} xOverview
+         * @param {Object} xAxisOverview
+         * @private
+         */
         _setXAxes: function(timeline, interval, data, chartWidth, x, xAxis, xOverview, xAxisOverview) {
           var xDomain = this._getDomain(data, timeline, interval, chartWidth);
           x.domain(xDomain).rangeBands([0, chartWidth]);
@@ -664,6 +844,9 @@ limitations under the License.
           }
         },
 
+        /**
+         * Recreate elements when window is resized.
+         */
         resize: function() {
           d3.select('#chartContainer').style('width', 0);
           this._createElements();
