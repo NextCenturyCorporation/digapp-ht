@@ -59,7 +59,7 @@ var exportTransform = (function() {
           linkPrefix + result.link,
           result.title,
           result.highRisk ? 'yes' : 'no',
-          result.date.text,
+          result.date,
           locations,
           phones,
           emails,
@@ -116,7 +116,7 @@ var exportTransform = (function() {
         });
         item.paragraphs.push({
           label: 'Posting Date:  ',
-          value: result.date.text
+          value: result.date
         });
         item.paragraphs.push({
           label: 'Locations:  ',

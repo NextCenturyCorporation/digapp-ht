@@ -61,6 +61,19 @@ limitations under the License.
       expect(element.loading).to.be.false;
     });
 
+    test('_createConfig returns correctly', function() {
+      expect(element._createConfig()).to.deep.equal({
+        ignoreId: undefined,
+        property: undefined,
+        type: undefined
+      });
+      expect(element._createConfig('property', 'type', 'id')).to.deep.equal({
+        ignoreId: 'id',
+        property: 'property',
+        type: 'type'
+      });
+    });
+
     test('_getData returns correctly', function() {
       var data = {
         property: [1, 2, 3, 4, 5]
@@ -95,8 +108,63 @@ limitations under the License.
       expect(element.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', 'value').toJSON());
     });
 
+    test('transforms query results does nothing without aggregationName', function() {
+      element.dataType = 'ad';
+      element.transformFunction = function() {
+        return [];
+      };
+      element._queryResults = [1, 2, 3, 4, 5];
+      expect(element._transformResults).to.not.exist;
+    });
+
+    test('transforms query results does nothing without dataType', function() {
+      element.aggregationName = 'name';
+      element.transformFunction = function() {
+        return [];
+      };
+      element._queryResults = [1, 2, 3, 4, 5];
+      expect(element._transformResults).to.not.exist;
+    });
+
     test('transforms query results', function() {
-      element.transformFunction = function(results) {
+      element.aggregationName = 'name';
+      element.dataType = 'ad';
+      element.transformFunction = function(results, config) {
+        expect(config).to.deep.equal({
+          ignoreId: '',
+          property: 'name',
+          type: 'ad'
+        });
+        return (results || []).map(function(result) {
+          return {
+            count: result * 10
+          };
+        });
+      };
+      element._queryResults = [1, 2, 3, 4, 5];
+      expect(element._transformResults).to.deep.equal([{
+        count: 10
+      }, {
+        count: 20
+      }, {
+        count: 30
+      }, {
+        count: 40
+      }, {
+        count: 50
+      }]);
+    });
+
+    test('transforms query results with ignoreId', function() {
+      element.aggregationName = 'name';
+      element.dataType = 'ad';
+      element.ignoreId = 'id';
+      element.transformFunction = function(results, config) {
+        expect(config).to.deep.equal({
+          ignoreId: 'id',
+          property: 'name',
+          type: 'ad'
+        });
         return (results || []).map(function(result) {
           return {
             count: result * 10

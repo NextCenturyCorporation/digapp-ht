@@ -26,7 +26,7 @@ DigBehaviors.TypeBehavior = {
    * Returns the link for the given type and id.
    */
   getPageLink: function(id, type) {
-    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller' || type === 'location')) {
+    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'location' || type === 'offer' || type === 'phone')) {
       return undefined;
     }
 
@@ -40,6 +40,7 @@ DigBehaviors.TypeBehavior = {
     if(type === 'image') {
       return '/' + type + '.html?url=' + linkId;
     }
+
     return '/' + type + '.html?id=' + linkId;
   },
 
@@ -58,7 +59,6 @@ DigBehaviors.TypeBehavior = {
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
       case 'review': return 'icons:thumbs-up-down';
-      case 'seller': return 'icons:group-work';
       case 'service': return 'icons:work';
       case 'social': return 'social:public';
       case 'webpage': return 'av:web';
@@ -69,22 +69,21 @@ DigBehaviors.TypeBehavior = {
   /**
    * Returns the name for the given type.
    */
-  getTypeName: function(type) {
+  getTypeName: function(type, plural) {
     switch(type) {
-      case 'cache': return 'Cached Webpage';
-      case 'date': return 'Date';
-      case 'email': return 'Email Address';
-      case 'image': return 'Image';
-      case 'location': return 'Location';
-      case 'money': return 'Price';
-      case 'offer': return 'Ad';
-      case 'phone': return 'Telephone Number';
-      case 'provider': return 'Provider';
-      case 'review': return 'Review ID';
-      case 'seller': return 'Seller';
-      case 'service': return 'Service Provided';
-      case 'social': return 'Social Media ID';
-      case 'webpage': return 'Website';
+      case 'cache': return 'Cached Webpage' + (plural ? 's' : '');
+      case 'date': return 'Date' + (plural ? 's' : '');
+      case 'email': return 'Email Address' + (plural ? 'es' : '');
+      case 'image': return 'Image' + (plural ? 's' : '');
+      case 'location': return 'Location' + (plural ? 's' : '');
+      case 'money': return 'Price' + (plural ? 's' : '');
+      case 'offer': return 'Ad' + (plural ? 's' : '');
+      case 'phone': return 'Telephone Number' + (plural ? 's' : '');
+      case 'provider': return 'Provider' + (plural ? 's' : '');
+      case 'review': return 'Review ID' + (plural ? 's' : '');
+      case 'service': return 'Service' + (plural ? 's' : '') + ' Provided';
+      case 'social': return 'Social Media ID' + (plural ? 's' : '');
+      case 'webpage': return 'Website' + (plural ? 's' : '');
     }
     return '';
   },

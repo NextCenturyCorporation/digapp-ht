@@ -37,7 +37,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     var details = [];
 
     if(locationBucket.publishers) {
-      var publishers = offerTransform.getPublishersFromList(locationBucket.publishers.buckets);
+      var publishers = offerTransform.getExtractionsFromListOfType(locationBucket.publishers.buckets, 'webpage');
       if(publishers.length) {
         details.push({
           name: 'Websites',
@@ -47,7 +47,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     }
 
     if(locationBucket.phones) {
-      var phones = offerTransform.getPhonesFromList(locationBucket.phones.buckets);
+      var phones = offerTransform.getExtractionsFromListOfType(locationBucket.phones.buckets, 'phone');
       if(phones.length) {
         details.push({
           name: 'Telephone Numbers',
@@ -57,7 +57,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     }
 
     if(locationBucket.emails) {
-      var emails = offerTransform.getEmailsFromList(locationBucket.emails.buckets);
+      var emails = offerTransform.getExtractionsFromListOfType(locationBucket.emails.buckets, 'email');
       if(emails.length) {
         details.push({
           name: 'Email Addresses',
@@ -71,7 +71,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
 
   function createLocationsFromDateBucket(dateBucket) {
     return dateBucket.locations.buckets.map(function(locationBucket) {
-      var locationObject = offerTransform.getUniqueLocation(locationBucket);
+      var locationObject = offerTransform.getExtractionOfType(locationBucket, 'location');
       locationObject.details = createDetailsFromLocationBucket(locationBucket);
       return locationObject;
     }).filter(function(location) {
@@ -205,12 +205,12 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
       var locationDates = sortAndOffsetDates(locationIdToDateList[id]);
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var location = offerTransform.getUniqueLocation({
+      var location = offerTransform.getExtractionOfType({
         doc_count: locationIdToDateList[id].reduce(function(sum, dateObject) {
           return sum + dateObject.count;
         }, 0),
         key: id
-      });
+      }, 'location');
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       if(commonTransforms.isGoodLocation(location)) {

@@ -78,17 +78,30 @@ limitations under the License.
         padding: 0 5px;
       }
 
+      .extractions {
+        font-size: 14px;
+        line-height: 25px;
+        min-height: 25px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: normal;
+        word-break: break-word;
+        -webkit-line-clamp: 5;
+        -webkit-box-orient: vertical;
+      }
+
+      .extractions > div {
+        width: 50%;
+      }
+
       .confidence-icon {
+        /* Hide the confidence icons for now until both strict and relaxed extractions are shown. */
         display: none;
         --iron-icon-width: 18px;
         --iron-icon-height: 18px;
-        margin-bottom: 2px;
-      }
-
-      .conf-phones-emails {
-        margin-top: 4px;
-        margin-right: 5px;
-        margin-bottom: 0;
+        /* Align with text. */
+        margin-top: 2px;
+        margin-right: 10px;
       }
 
       .high-confidence {
@@ -97,11 +110,6 @@ limitations under the License.
 
       .low-confidence {
         color: var(--paper-orange-600);
-      }
-
-      .descriptor {
-        vertical-align: middle;
-        margin-right: 20px;
       }
 
       annotate-record,
@@ -145,17 +153,7 @@ limitations under the License.
 
         --icon-label-text: {
           color: var(--secondary-text-color);
-        };
-
-        --icon-label-link-hover: {
-          color: var(--primary-text-color);
-        };
-      }
-
-      icon-label.annotations {
-        --icon-label-text: {
-          color: var(--secondary-text-color);
-          @apply(--annotations-list);
+          @apply(--extraction-text);
         };
 
         --icon-label-link-hover: {
@@ -201,503 +199,169 @@ limitations under the License.
       index-name="[[imageIndexName]]"
       index-type="[[imageIndexType]]"
       query-field="[[imageQueryField]]"
-      query-value="[[item.id]]"
+      query-value="[[itemId]]"
       transform-function="[[imageTransformFunction]]">
     </image-query>
 
-    <paper-material class$="layout horizontal flex head [[_getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
-
-      <template is="dom-if" if="[[!modalIconLast]]">
-        <modal-icon
-          icon="[[_getProperty(item, itemIconProperty)]]"
-          icon-style-class="[[_getProperty(item, itemIconStyleClassProperty)]]"
-          show-icon="[[!hovering]]"
-          openable="[[showDetails]]"
-          open="[[open]]">
-        </modal-icon>
-      </template>
+    <paper-material class$="layout horizontal flex head [[_getHeaderStyleClass(_open)]]" clickable$="[[_showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
 
       <div class="layout vertical center image-container">
-        <template is="dom-if" if="[[_getProperty(item, itemRankProperty)]]">
-          <div class="rank text" title$="Search Result Score:  [[_getProperty(item, itemRankProperty)]]">
-            <strong>[[_getProperty(item, itemRankProperty)]]</strong>
+        <template is="dom-if" if="[[rank]]">
+          <div class="rank text" title$="Search Result Score:  [[rank]]">
+            <strong>[[rank]]</strong>
           </div>
         </template>
-        <iron-image class$="[[_getBlurStyleClass(blur)]] hide [[_showImageSpace(images)]]" src="[[imageSource]]"></iron-image>
+        <iron-image class$="[[_getBlurStyleClass(blur)]] hide [[_showImageSpace(images)]]" src="[[_imageSource]]"></iron-image>
       </div>
 
       <div class="layout vertical flex center-justified vertical-text">
         <div class="layout horizontal">
-          <template is="dom-if" if="[[_getProperty(item, itemHighRiskProperty)]]">
+          <template is="dom-if" if="[[highRisk]]">
             <div class="risk text" title="High Risk Search Result">
               <strong>High Risk</strong>
             </div>
           </template>
-          <div class="text padded" title$="[[_getProperty(item, itemNameProperty)]]">
+          <div class="text" title$="[[text]]">
             <strong>
-              <highlighted-text tags="em" text="[[_getHeaderText(item, itemHighlightedTextProperty, itemNameProperty)]]"></highlighted-text>
+              <highlighted-text tags="[[highlightTags]]" text="[[_getHeaderText(text, highlightedText)]]"></highlighted-text>
             </strong>
           </div>
         </div>
 
-        <div class="horizontal layout wrap single-record-text" secondary>
-          <div class="flex-1">
-            <icon-label class$="[[_isHighlighted(item.date, descriptorHighlightProperty)]]"
-              title="Open [[_getProperty(item.date, descriptorTextProperty)]]"
-              icon="[[_getProperty(item.date, descriptorIconProperty)]]"
-              icon-style-class="[[_getProperty(item.date, descriptorIconStyleClassProperty)]]"
-              link="[[_getProperty(item.date, descriptorLinkProperty)]]"
-              target="[[_getTarget(newTab)]]"
-              text="[[_getProperty(item.date, descriptorTextProperty)]]">
-            </icon-label>
-          </div>
-          <div class="flex-1">
-            <icon-label class$="[[_isHighlighted(item.publishers, descriptorHighlightProperty)]]"
-              title="Open [[_getSingleProperty(item.publishers, descriptorTextProperty)]]"
-              icon="[[_getSingleProperty(item.publishers, descriptorIconProperty)]]"
-              icon-style-class="[[_getSingleProperty(item.publishers, descriptorIconStyleClassProperty)]]"
-              link="[[_getSingleProperty(item.publishers, descriptorLinkProperty)]]"
-              target="[[_getTarget(newTab)]]"
-              text="[[_getSingleProperty(item.publishers, descriptorTextProperty)]]">
-            </icon-label>
-          </div>
+        <div class="layout horizontal extractions wrap">
+          <template is="dom-repeat" items="[[headExtractions]]">
+            <div class="vertical layout">
+              <template is="dom-if" if="[[_getProperty(item, extractionNameProperty)]]">
+                <div>
+                  <strong>[[_getPropertyWithColon(item, extractionNameProperty)]]</strong>
+                </div>
+              </template>
+              <template is="dom-if" if="[[!_getLength(item, extractionDataProperty)]]">
+                <div class="padded" secondary>None</div>
+              </template>
+              <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
+                <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
+                  <div class="layout horizontal" secondary>
+                    <icon-label class$="[[_isHighlighted(extraction, extractionHighlightProperty)]]"
+                      title="Open [[_getProperty(extraction, extractionTextProperty)]]"
+                      icon="[[_getProperty(extraction, extractionIconProperty)]]"
+                      icon-style-class="[[_getProperty(extraction, extractionStyleClassProperty)]]"
+                      link="[[_getProperty(extraction, extractionLinkProperty)]]"
+                      target="[[_getTarget(newTab)]]"
+                      text="[[_getProperty(extraction, extractionTextProperty)]]">
+                    </icon-label>
+                    <iron-icon icon="fa:circle"
+                      class$="confidence-icon [[_getConfidenceLevelClass(extraction)]]"
+                      title$="[[_getConfidenceLevelText(extraction)]]">
+                    </iron-icon>
+                    <template is="dom-if" if="[[_getProperty(extraction, extractionAnnotateProperty)]]">
+                      <annotate-record class="tiny-icon"
+                        annotation-manager="[[annotationManager]]"
+                        client="[[client]]"
+                        item-id="[[_getProperty(extraction, extractionIdProperty)]]"
+                        item-type="[[_getTypeTextWithProperty(extraction, extractionTypeProperty)]]"
+                        noink>
+                      </annotate-record>
+                    </template>
+                  </div>
+                </template>
+              </template>
+            </div>
+          </template>
         </div>
-
-        <template is="dom-if" if="[[_doesHaveDescriptors(item, 'locations', 'socialIds']]">
-          <div class="horizontal layout wrap single-record-text" secondary>
-            <div class="vertical layout flex-1">
-              <template is="dom-if" if="[[!item.locations.length]]">
-                <div class="padded" secondary>No Locations</div>
-              </template>
-              <template is="dom-repeat" items="[[item.locations]]" as="location">
-                <div secondary>
-                  <icon-label class$="[[_isHighlighted(location, descriptorHighlightProperty)]]"
-                    title="Open [[_getProperty(location, descriptorTextProperty)]]"
-                    icon="[[_getProperty(location, descriptorIconProperty)]]"
-                    icon-style-class="[[_getProperty(location, descriptorIconStyleClassProperty)]]"
-                    link="[[_getProperty(location, descriptorLinkProperty)]]"
-                    target="[[_getTarget(newTab)]]"
-                    text="[[_getProperty(location, descriptorTextProperty)]]">
-                  </icon-label>
-                  <iron-icon icon="fa:circle"
-                    class$="confidence-icon [[_getConfidenceLevelClass(location)]]"
-                    title$="[[_getConfidenceLevelText(location)]]">
-                  </iron-icon>
-                </div>
-              </template>
-            </div>
-
-            <div class="vertical layout flex-1">
-              <template is="dom-if" if="[[!item.socialIds.length]]">
-                <div class="padded" secondary>No Social Media Ids</div>
-              </template>
-              <template is="dom-repeat" items="[[item.socialIds]]" as="socialId">
-                <div secondary>
-                  <icon-label class$="[[_isHighlighted(socialId, descriptorHighlightProperty)]]"
-                    title="Open [[_getProperty(socialId, descriptorTextProperty)]]"
-                    icon="[[_getProperty(socialId, descriptorIconProperty)]]"
-                    icon-style-class="[[_getProperty(socialId, descriptorIconStyleClassProperty)]]"
-                    link="[[_getProperty(socialId, descriptorLinkProperty)]]"
-                    target="[[_getTarget(newTab)]]"
-                    text="[[_getProperty(socialId, descriptorTextProperty)]]">
-                  </icon-label>
-                  <iron-icon icon="fa:circle"
-                    class$="confidence-icon [[_getConfidenceLevelClass(socialId)]]"
-                    title$="[[_getConfidenceLevelText(socialId)]]">
-                  </iron-icon>
-                </div>
-              </template>
-            </div>
-          </div>
-        </template>
-
-        <template is="dom-if" if="[[_doesHaveDescriptors(item, 'emails', 'phones')]]">
-          <div class="horizontal layout wrap single-record-text" secondary>
-            <div class="vertical layout flex-1">
-              <template is="dom-if" if="[[!item.phones.length]]">
-                <div class="padded" secondary>No Telephone Numbers</div>
-              </template>
-              <template is="dom-repeat" items="[[item.phones]]" as="phone">
-                <div class="layout horizontal" secondary>
-                  <icon-label class$="annotations [[_isHighlighted(phone, descriptorHighlightProperty)]]"
-                    title="Open [[_getProperty(phone, descriptorTextProperty)]]"
-                    icon="[[_getProperty(phone, descriptorIconProperty)]]"
-                    icon-style-class="[[_getProperty(phone, descriptorIconStyleClassProperty)]]"
-                    link="[[_getProperty(phone, descriptorLinkProperty)]]"
-                    target="[[_getTarget(newTab)]]"
-                    text="[[_getProperty(phone, descriptorTextProperty)]]">
-                  </icon-label>
-                  <iron-icon icon="fa:circle"
-                    class$="confidence-icon conf-phones-emails [[_getConfidenceLevelClass(phone)]]"
-                    title$="[[_getConfidenceLevelText(phone)]]">
-                  </iron-icon>
-                  <annotate-record class="layout vertical center-justified tiny-icon"
-                    client="[[client]]"
-                    annotation-manager="[[annotationManager]]"
-                    item-id="{{phone.id}}"
-                    item-type="[[_getTypeText(phone, 'true')]]"
-                    noink>
-                  </annotate-record>
-                </div>
-              </template>
-            </div>
-
-            <div class="vertical layout flex-1">
-              <template is="dom-if" if="[[!item.emails.length]]">
-                <div class="padded" secondary>No Email Addresses</div>
-              </template>
-              <template is="dom-repeat" items="[[item.emails]]" as="email">
-                <div class="layout horizontal" secondary>
-                  <icon-label class$="annotations [[_isHighlighted(email, descriptorHighlightProperty)]]"
-                    title="Open [[_getProperty(email, descriptorTextProperty)]]"
-                    icon="[[_getProperty(email, descriptorIconProperty)]]"
-                    icon-style-class="[[_getProperty(email, descriptorIconStyleClassProperty)]]"
-                    link="[[_getProperty(email, descriptorLinkProperty)]]"
-                    target="[[_getTarget(newTab)]]"
-                    text="[[_getProperty(email, descriptorTextProperty)]]">
-                  </icon-label>
-                  <iron-icon icon="fa:circle"
-                    class$="confidence-icon conf-phones-emails [[_getConfidenceLevelClass(email)]]"
-                    title$="[[_getConfidenceLevelText(email)]]">
-                  </iron-icon>
-                  <annotate-record class="layout vertical center-justified tiny-icon"
-                    client="[[client]]"
-                    annotation-manager="[[annotationManager]]"
-                    item-id="{{email.id}}"
-                    item-type="[[_getTypeText(email, 'true')]]"
-                    noink>
-                  </annotate-record>
-                </div>
-              </template>
-            </div>
-          </div>
-        </template>
       </div>
 
-      <template is="dom-if" if="[[_hasNotificationDate(notificationQueryDate)]]" restamp="true">
+      <template is="dom-if" if="[[_isDefined(notificationQueryDate)]]" restamp="true">
         <div class="layout vertical center-justified">
-          <iron-icon class$="[[_getNewIconDivClass(descriptors, descriptorTextProperty, descriptorTypeProperty, notificationQueryDate)]] yellowgreen" icon="av:fiber-new"></iron-icon>
+          <iron-icon class$="[[_getNewIconDivClass(extractions, extractionTextProperty, extractionTypeProperty, notificationQueryDate)]] yellowgreen" icon="av:fiber-new"></iron-icon>
         </div>
       </template>
 
-      <template is="dom-if" if="[[_showAnnotation(item, itemTypeProperty)]]">
-        <annotate-record class="layout vertical center-justified icon-margin"
-          client="[[client]]"
-          annotation-manager="[[annotationManager]]"
-          item-id="{{item.id}}"
-          item-type="[[_getTypeText(item, itemTypeProperty, 'true')]]">
-        </annotate-record>
-      </template>
+      <annotate-record class="layout vertical center-justified icon-margin"
+        client="[[client]]"
+        annotation-manager="[[annotationManager]]"
+        item-id="{{itemId}}"
+        item-type="[[_getTypeText(type)]]">
+      </annotate-record>
 
       <div class="layout vertical center-justified">
-        <a class="entity-page-link" href$="[[_getProperty(item, itemLinkProperty)]]" target="[[_getTarget(newTab)]]" title="Open [[_getTypeText(item, itemTypeProperty)]]">
+        <a class="entity-page-link" href$="[[link]]" target="[[_getTarget(newTab)]]" title="Open [[_getTypeText(type)]]">
           <paper-icon-button icon="open-in-new" noink></paper-icon-button>
         </a>
       </div>
 
-      <template is="dom-if" if="[[modalIconLast]]">
-        <modal-icon
-          icon="[[_getProperty(item, itemIconProperty)]]"
-          icon-style-class="[[_getProperty(item, itemIconStyleClassProperty)]]"
-          show-icon="[[!hovering]]"
-          openable="[[showDetails]]"
-          open="[[open]]">
-        </modal-icon>
-      </template>
+      <modal-icon
+        icon="[[icon]]"
+        icon-style-class="[[styleClass]]"
+        show-icon="[[!_hovering]]"
+        openable="[[_showDetails]]"
+        open="[[_open]]">
+      </modal-icon>
 
     </paper-material>
 
-    <template is="dom-if" if="[[showDetails]]">
+    <template is="dom-if" if="[[_showDetails]]">
       <iron-collapse id="recordDetail">
         <div>
           <paper-material class="body">
             <template is="dom-repeat" items="[[details]]" as="detail">
               <div class="text">
-                <strong>[[_cleanCamelCase(detail, detailNameProperty)]]</strong>
+                <strong>[[_getPropertyWithColon(detail, detailNameProperty)]]</strong>
                 <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
                   <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
                 </template>
                 <template is="dom-if" if="[[!_getProperty(detail, detailLinkProperty)]]">
-                  <highlighted-text tags="em" text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
+                  <highlighted-text tags="[[highlightTags]]" text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
                 </template>
               </div>
             </template>
 
-            <!-- TODO Generalize -->
-            <template is="dom-if" if="[[_doesHaveDescriptors(item, 'reviewIds', 'services']]">
-              <div class="horizontal layout wrap single-record-text">
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Review IDs:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.reviewIds.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.reviewIds]]" as="reviewId">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(reviewId, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(reviewId, descriptorTextProperty)]]"
-                        icon="[[_getProperty(reviewId, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(reviewId, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(reviewId, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(reviewId, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(reviewId)]]"
-                        title$="[[_getConfidenceLevelText(reviewId)]]">
-                      </iron-icon>
+            <div class="layout horizontal extractions wrap">
+              <template is="dom-repeat" items="[[bodyExtractions]]">
+                <div class="vertical layout">
+                  <template is="dom-if" if="[[_getProperty(item, extractionNameProperty)]]">
+                    <div>
+                      <strong>[[_getPropertyWithColon(item, extractionNameProperty)]]</strong>
                     </div>
                   </template>
-                </div>
-
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Services Provided:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.services.length]]">
+                  <template is="dom-if" if="[[!_getLength(item, extractionDataProperty)]]">
                     <div class="padded" secondary>None</div>
                   </template>
-                  <template is="dom-repeat" items="[[item.services]]" as="service">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(service, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(service, descriptorTextProperty)]]"
-                        icon="[[_getProperty(service, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(service, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(service, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(service, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(service)]]"
-                        title$="[[_getConfidenceLevelText(service)]]">
-                      </iron-icon>
-                    </div>
+                  <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
+                    <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
+                      <div secondary>
+                        <icon-label class$="[[_isHighlighted(extraction, extractionHighlightProperty)]]"
+                          title="Open [[_getProperty(extraction, extractionTextProperty)]]"
+                          icon="[[_getProperty(extraction, extractionIconProperty)]]"
+                          icon-style-class="[[_getProperty(extraction, extractionStyleClassProperty)]]"
+                          link="[[_getProperty(extraction, extractionLinkProperty)]]"
+                          target="[[_getTarget(newTab)]]"
+                          text="[[_getProperty(extraction, extractionTextProperty)]]">
+                        </icon-label>
+                        <iron-icon icon="fa:circle"
+                          class$="confidence-icon [[_getConfidenceLevelClass(extraction)]]"
+                          title$="[[_getConfidenceLevelText(extraction)]]">
+                        </iron-icon>
+                        <template is="dom-if" if="[[_getProperty(extraction, extractionAnnotateProperty)]]">
+                          <annotate-record class="tiny-icon"
+                            annotation-manager="[[annotationManager]]"
+                            client="[[client]]"
+                            item-id="[[_getProperty(extraction, extractionIdProperty)]]"
+                            item-type="[[_getTypeTextWithProperty(extraction, extractionTypeProperty)]]"
+                            noink>
+                          </annotate-record>
+                        </template>
+                      </div>
+                    </template>
                   </template>
                 </div>
-              </div>
-            </template>
-
-            <template is="dom-if" if="[[_doesHaveDescriptors(item, 'prices', 'names']]">
-              <div class="horizontal layout wrap single-record-text">
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Prices:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.prices.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.prices]]" as="price">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(price, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(price, descriptorTextProperty)]]"
-                        icon="[[_getProperty(price, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(price, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(price, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(price, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(price)]]"
-                        title$="[[_getConfidenceLevelText(price)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Names:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.names.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.names]]" as="name">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(name, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(name, descriptorTextProperty)]]"
-                        icon="[[_getProperty(name, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(name, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(name, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(name, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(name)]]"
-                        title$="[[_getConfidenceLevelText(name)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </template>
-
-            <template is="dom-if" if="[[_doesHaveDescriptors(item, 'ages', 'ethnicities']]">
-              <div class="horizontal layout wrap single-record-text">
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Ages:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.ages.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.ages]]" as="age">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(age, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(age, descriptorTextProperty)]]"
-                        icon="[[_getProperty(age, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(age, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(age, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(age, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(age)]]"
-                        title$="[[_getConfidenceLevelText(age)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Ethnicities:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.ethnicities.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.ethnicities]]" as="ethnicity">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(ethnicity, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(ethnicity, descriptorTextProperty)]]"
-                        icon="[[_getProperty(ethnicity, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(ethnicity, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(ethnicity, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(ethnicity, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(ethnicity)]]"
-                        title$="[[_getConfidenceLevelText(ethnicity)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </template>
-
-            <template is="dom-if" if="[[_doesHaveDescriptors(item, 'eyeColors', 'hairColors']]">
-              <div class="horizontal layout wrap single-record-text">
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Eye Colors:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.eyeColors.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.eyeColors]]" as="eyeColor">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(eyeColor, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(eyeColor, descriptorTextProperty)]]"
-                        icon="[[_getProperty(eyeColor, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(eyeColor, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(eyeColor, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(eyeColor, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(eyeColor)]]"
-                        title$="[[_getConfidenceLevelText(eyeColor)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Hair Colors:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.hairColors.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.hairColors]]" as="hairColor">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(hairColor, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(hairColor, descriptorTextProperty)]]"
-                        icon="[[_getProperty(hairColor, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(hairColor, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(hairColor, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(hairColor, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(hairColor)]]"
-                        title$="[[_getConfidenceLevelText(hairColor)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </template>
-
-            <template is="dom-if" if="[[_doesHaveDescriptors(item, 'heights', 'weights']]">
-              <div class="horizontal layout wrap single-record-text">
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Heights:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.heights.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.heights]]" as="height">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(height, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(height, descriptorTextProperty)]]"
-                        icon="[[_getProperty(height, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(height, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(height, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(height, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(height)]]"
-                        title$="[[_getConfidenceLevelText(height)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-
-                <div class="vertical layout flex-1">
-                  <div class="text">
-                    <strong>Provider Weights:</strong>
-                  </div>
-                  <template is="dom-if" if="[[!item.weights.length]]">
-                    <div class="padded" secondary>None</div>
-                  </template>
-                  <template is="dom-repeat" items="[[item.weights]]" as="weight">
-                    <div secondary>
-                      <icon-label class$="[[_isHighlighted(weight, descriptorHighlightProperty)]]"
-                        title="Open [[_getProperty(weight, descriptorTextProperty)]]"
-                        icon="[[_getProperty(weight, descriptorIconProperty)]]"
-                        icon-style-class="[[_getProperty(weight, descriptorIconStyleClassProperty)]]"
-                        link="[[_getProperty(weight, descriptorLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(weight, descriptorTextProperty)]]">
-                      </icon-label>
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceLevelClass(weight)]]"
-                        title$="[[_getConfidenceLevelText(weight)]]">
-                      </iron-icon>
-                    </div>
-                  </template>
-                </div>
-              </div>
-            </template>
+              </template>
+            </div>
 
             <button-link
               link="[[_getProperty(item, itemLinkProperty)]]"
               target="[[_getTarget(newTab)]]"
-              text="open [[_getTypeText(item, itemTypeProperty)]]"
+              text="open [[_getTypeText(type)]]"
               show>
             </button-link>
 
@@ -726,81 +390,73 @@ limitations under the License.
 
       properties: {
         /**
-         * The item represented by this single record.
+         * The highlighted text (if any).
          */
-        item: {
-          type: Object,
-          notify: true
-        },
-
-        /**
-         * The property for the highlighted text in the item.
-         */
-        itemHighlightedTextProperty: {
+        highlightedText: {
           type: String,
-          value: 'highlightedText'
+          value: ''
         },
 
         /**
-         * The property for the high risk in the item.
+         * Whether the record is high risk.
          */
-        itemHighRiskProperty: {
+        highRisk: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The icon.
+         */
+        icon: {
           type: String,
-          value: 'highRisk'
+          value: ''
         },
 
         /**
-         * The property for the icon in the item.
+         * The link.
          */
-        itemIconProperty: {
+        link: {
           type: String,
-          value: 'icon'
+          value: ''
         },
 
         /**
-         * The property for the icon in the item.
+         * The rank.
          */
-        itemIconStyleClassProperty: {
+        rank: {
+          type: Number,
+          value: 0
+        },
+
+        /**
+         * The style class.
+         */
+        styleClass: {
           type: String,
-          value: 'styleClass'
+          value: ''
         },
 
         /**
-         * The property for the link in the item.
+         * The text.
          */
-        itemLinkProperty: {
+        text: {
           type: String,
-          value: 'link'
+          value: ''
         },
 
         /**
-         * The property for the name in the item.
+         * The type.
          */
-        itemNameProperty: {
+        type: {
           type: String,
-          value: 'name'
+          value: ''
         },
 
         /**
-         * The property for the rank in the item.
+         * The extractions to show in the header.
          */
-        itemRankProperty: {
-          type: String,
-          value: 'rank'
-        },
-
-        /**
-         * The property for the type in the item.
-         */
-        itemTypeProperty: {
-          type: String,
-          value: 'type'
-        },
-
-        /**
-         * The descriptors for the item.
-         */
-        descriptors: {
+        headExtractions: {
           type: Array,
           value: function() {
             return [];
@@ -808,55 +464,97 @@ limitations under the License.
         },
 
         /**
-         * The property for the highlight status in the descriptors in the item.
+         * The extractions to show in the body.
          */
-        descriptorHighlightProperty: {
+        bodyExtractions: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The property for whether to annotate an item in the extraction data.
+         */
+        extractionAnnotateProperty: {
+          type: String,
+          value: 'annotate'
+        },
+
+        /**
+         * The property for the data in the extractions.
+         */
+        extractionDataProperty: {
+          type: String,
+          value: 'data'
+        },
+
+        /**
+         * The property for the highlight status of each item in the extraction data.
+         */
+        extractionHighlightProperty: {
           type: String,
           value: 'highlight'
         },
 
         /**
-         * The property for the icon in the descriptors in the item.
+         * The property for the icon of each item in the extraction data.
          */
-        descriptorIconProperty: {
+        extractionIconProperty: {
           type: String,
           value: 'icon'
         },
 
         /**
-         * The property for the icon style class in the descriptors in the item.
+         * The property for the ID of each item in the extraction data.
          */
-        descriptorIconStyleClassProperty: {
+        extractionIdProperty: {
           type: String,
-          value: 'styleClass'
+          value: 'id'
         },
 
         /**
-         * The property for the link in the descriptors in the item.
+         * The property for the link of each item in the extraction data.
          */
-        descriptorLinkProperty: {
+        extractionLinkProperty: {
           type: String,
           value: 'link'
         },
 
         /**
-         * The property for the text in the descriptors in the item.
+         * The property for the name in the extractions.
          */
-        descriptorTextProperty: {
+        extractionNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
+         * The property for the style class of each item in the extraction data.
+         */
+        extractionStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the text of each item in the extraction data.
+         */
+        extractionTextProperty: {
           type: String,
           value: 'text'
         },
 
         /**
-         * The property for the type in the descriptors in the item.
+         * The property for the type of each item in the extraction data.
          */
-        descriptorTypeProperty: {
+        extractionTypeProperty: {
           type: String,
           value: 'type'
         },
 
         /**
-         * The details for the item.
+         * The details.
          */
         details: {
           type: Array,
@@ -866,7 +564,7 @@ limitations under the License.
         },
 
         /**
-         * The property for the highlighted text in the details in the item.
+         * The property for the highlighted text in the details.
          */
         detailHighlightedTextProperty: {
           type: String,
@@ -874,7 +572,7 @@ limitations under the License.
         },
 
         /**
-         * The property for the link in the details in the item.
+         * The property for the link in the details.
          */
         detailLinkProperty: {
           type: String,
@@ -882,7 +580,7 @@ limitations under the License.
         },
 
         /**
-         * The property for the name in the details in the item.
+         * The property for the name in the details.
          */
         detailNameProperty: {
           type: String,
@@ -890,7 +588,7 @@ limitations under the License.
         },
 
         /**
-         * The property for the text in the details in the item.
+         * The property for the text in the details.
          */
         detailTextProperty: {
           type: String,
@@ -898,7 +596,7 @@ limitations under the License.
         },
 
         /**
-         * The images for the item.
+         * The images.
          */
         images: {
           notify: true,
@@ -906,7 +604,7 @@ limitations under the License.
         },
 
         /**
-         * The property for the link in the images in the item.
+         * The property for the link in the images.
          */
         imageLinkProperty: {
           type: String,
@@ -914,7 +612,7 @@ limitations under the License.
         },
 
         /**
-         * The property for the source in the images in the item.
+         * The property for the source in the images.
          */
         imageSourceProperty: {
           type: String,
@@ -946,14 +644,6 @@ limitations under the License.
         },
 
         /**
-         * an instance of elasticsearch.Client which is connected to
-         * an elasticsearch server
-         */
-        client: {
-          type: Object
-        },
-
-        /**
          * The annotation manager.
          */
         annotationManager: {
@@ -961,12 +651,11 @@ limitations under the License.
         },
 
         /**
-         * The source for the iron-image in the record header.
+         * an instance of elasticsearch.Client which is connected to
+         * an elasticsearch server
          */
-        imageSource: {
-          type: String,
-          value: '',
-          notify: true
+        client: {
+          type: Object
         },
 
         /**
@@ -979,39 +668,19 @@ limitations under the License.
         },
 
         /**
+         * The highlight tags.
+         */
+        highlightTags: {
+          type: String,
+          value: 'em'
+        },
+
+        /**
          * Whether to open a link in a new tab.
          */
         newTab: {
           type: Boolean,
           value: false
-        },
-
-        /**
-         * Whether the details are opened.
-         */
-        open: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether details should be shown.
-         */
-        showDetails: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether the user is hovering over the record.
-         */
-        hovering: {
-          type: Boolean,
-          value: false
-        },
-
-        error: {
-          type: Object
         },
 
         /**
@@ -1023,9 +692,33 @@ limitations under the License.
         },
 
         /**
-         * Where to put modal icon for record (will default to being first on the left)
+         * Whether the user is hovering over the record.
          */
-        modalIconLast: {
+        _hovering: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The source for the iron-image in the record header.
+         */
+        _imageSource: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * Whether the details are opened.
+         */
+        _open: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether details should be shown.
+         */
+        _showDetails: {
           type: Boolean,
           value: false
         }
@@ -1036,14 +729,10 @@ limitations under the License.
           '_updateShowDetails(details)'
       ],
 
-      _doesHaveDescriptors: function(item, type1, type2) {
-        return item && ((item[type1] && item[type1].length) || (item[type2] && item[type2].length));
-      },
-
-      _getNewIconDivClass: function(descriptors, textProperty, typeProperty, notificationQueryDate) {
+      _getNewIconDivClass: function(extractions, textProperty, typeProperty, notificationQueryDate) {
         if(notificationQueryDate) {
-          return _.some(descriptors, function(descriptor) {
-            return descriptor[typeProperty] === 'date' && (new Date(descriptor[textProperty]).getTime() > notificationQueryDate.getTime());
+          return _.some(extractions, function(extraction) {
+            return extraction[typeProperty] === 'date' && (new Date(extraction[textProperty]).getTime() > notificationQueryDate.getTime());
           }) ? '' : 'hidden';
         }
         return 'hidden';
@@ -1051,118 +740,6 @@ limitations under the License.
 
       _getBlurStyleClass: function(blur) {
         return (blur ? 'small-blur' : '');
-      },
-
-      _getDetailText: function(detail, highlightedTextProperty, textProperty) {
-        return (detail ? (detail[highlightedTextProperty] || detail[textProperty]) : '') || 'None';
-      },
-
-      _getHeaderStyleClass: function(open) {
-        return (open ? 'opened' : 'closed');
-      },
-
-      _getHeaderText: function(item, highlightedTextProperty, nameProperty) {
-        return item[highlightedTextProperty] || item[nameProperty];
-      },
-
-      _getTarget: function(newTab) {
-        return (newTab ? '_blank' : '_self');
-      },
-
-      /**
-       * Returns the text for the given item (and returns long text if specified).
-       */
-      _getTypeText: function(item, typeProperty, longText) {
-        if(!item || !item[typeProperty]) {
-          return '';
-        }
-        if(item[typeProperty] === 'offer') {
-          return 'Ad';
-        }
-        if(item[typeProperty] === 'seller') {
-          return 'Email/Phone Cluster';
-        }
-        if(longText && item[typeProperty] === 'email') {
-          return 'Email Address';
-        }
-        if(longText && item[typeProperty] === 'phone') {
-          return 'Telephone Number';
-        }
-        return item[typeProperty].charAt(0).toUpperCase() + item[typeProperty].slice(1);
-      },
-
-      _hasNotificationDate: function(date) {
-        return !!date;
-      },
-
-      _cleanCamelCase: function(item, property) {
-        return (item[property] || '').replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
-          return word.charAt(0).toUpperCase() + word.substr(1);
-        }) + ':';
-      },
-
-      _showAnnotation: function(item, typeProperty) {
-        return item && item[typeProperty] !== 'seller';
-      },
-
-      startHover: function() {
-        this.hovering = true;
-      },
-
-      endHover: function() {
-        this.hovering = false;
-      },
-
-      /**
-       * Expands or collapses this record if its item has any details and the event was not triggered by clicking on a button.
-       */
-      toggleRecord: function(event) {
-        // Do not open a record with no details.
-        if(this.showDetails) {
-          var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
-          var isButton = (event.target.localName === 'paper-button');
-          var isOpenInNewButton = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button' && event.target.parentElement.getAttribute('icon') === 'open-in-new');
-          var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
-          // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
-          if(!isAnnotation && !isButton && !isOpenInNewButton && !isLink) {
-            this.set('open', !this.open);
-            this.$$('#recordDetail').toggle();
-          }
-        }
-      },
-
-      /**
-       * Sets the source for the iron-image in the record header with the first image in the given list if available.
-       */
-      _updateImageSrcFromImages: function(images, property) {
-        if(images && images.length && property) {
-          this.set('imageSource', images[0][property]);
-          this.set('showDetails', true);
-        } else if(images) {
-          this.set('imageSource', undefined);
-        }
-      },
-
-      /**
-       * Sets whether to show details based on the existence of the given details object.
-       */
-      _updateShowDetails: function(details) {
-        this.set('showDetails', (!!details && !!details.length));
-      },
-
-      /**
-       * Whether or not to show the initial iron-image element.
-       */
-      _showImageSpace: function(images) {
-        return images ? 'show' : '';
-      },
-
-      _getProperty: function(item, property) {
-        return item ? item[property] : undefined;
-      },
-
-      _getSingleProperty: function(item, property) {
-        return item && item.length ? item[0][property] : undefined;
       },
 
       _getConfidenceLevelClass: function(item) {
@@ -1173,11 +750,122 @@ limitations under the License.
         return (item.confidence === 'strict' ? 'High' : 'Low') + ' Confidence Extraction';
       },
 
+      _getDetailText: function(detail, highlightedTextProperty, textProperty) {
+        return (detail ? (detail[highlightedTextProperty] || detail[textProperty]) : '') || 'None';
+      },
+
+      _getHeaderStyleClass: function(open) {
+        return (open ? 'opened' : 'closed');
+      },
+
+      _getHeaderText: function(text, highlightedText) {
+        return highlightedText || text;
+      },
+
+      _getLength: function(item, property) {
+        return item && item[property] ? item[property].length : undefined;
+      },
+
+      _getList: function(item, property) {
+        return item ? item[property] : [];
+      },
+
+      _getProperty: function(item, property) {
+        return item ? item[property] : undefined;
+      },
+
+      _getPropertyWithColon: function(item, property) {
+        return this._getProperty(item, property) + ':';
+      },
+
+      _getTarget: function(newTab) {
+        return (newTab ? '_blank' : '_self');
+      },
+
+      /**
+       * Returns the text for the given type.
+       */
+      _getTypeText: function(type) {
+        if(type === 'offer') {
+          return 'Ad';
+        }
+        if(type === 'email') {
+          return 'Email Address';
+        }
+        if(type === 'phone') {
+          return 'Telephone Number';
+        }
+        return type.charAt(0).toUpperCase() + type.slice(1);
+      },
+
+      /**
+       * Returns the text for the type in the given item with the given property.
+       */
+      _getTypeTextWithProperty: function(item, typeProperty) {
+        return item && item[typeProperty] ? this._getTypeText(item[typeProperty]) : '';
+      },
+
       _isHighlighted: function(item, property) {
         if(_.isArray(item)) {
           return item.length && item[0][property] ? 'highlight' : '';
         }
         return item[property] ? 'highlight' : '';
+      },
+
+      _isDefined: function(input) {
+        return !!input;
+      },
+
+      /**
+       * Whether or not to show the initial iron-image element.
+       */
+      _showImageSpace: function(images) {
+        return images ? 'show' : '';
+      },
+
+      /**
+       * Sets the source for the iron-image in the record header with the first image in the given list if available.
+       */
+      _updateImageSrcFromImages: function(images, property) {
+        if(images && images.length && property) {
+          this.set('_imageSource', images[0][property]);
+          this.set('_showDetails', true);
+        } else if(images) {
+          this.set('_imageSource', undefined);
+        }
+      },
+
+      /**
+       * Sets whether to show details based on the existence of the given details object.
+       */
+      _updateShowDetails: function(details) {
+        this.set('_showDetails', (!!details && !!details.length));
+      },
+
+      endHover: function() {
+        this._hovering = false;
+      },
+
+      startHover: function() {
+        this._hovering = true;
+      },
+
+      /**
+       * Expands or collapses this record if its item has any details and the event was not triggered by clicking on a button.
+       */
+      toggleRecord: function(event) {
+        // Do not open a record with no details.
+        if(this._showDetails) {
+          var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
+          var isButton = (event.target.localName === 'paper-button');
+          var isOpenInNewButton = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button' && event.target.parentElement.getAttribute('icon') === 'open-in-new');
+          var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
+          // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
+          if(!isAnnotation && !isButton && !isOpenInNewButton && !isLink) {
+            this.set('_open', !this._open);
+            this.$$('#recordDetail').toggle();
+          }
+        }
       }
     });
   })();
