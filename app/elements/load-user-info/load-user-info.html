@@ -15,9 +15,10 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../user-preferences/user-preferences.html">
-<link rel="import" href="../user-query/user-query.html">
+<link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="load-user-info">
@@ -28,13 +29,15 @@ limitations under the License.
       }
     </style>
 
-    <user-query id="userQuery"
+    <build-and-run-query id="userQuery"
       client="[[client]]"
-      user-index="[[userIndex]]"
-      user-type="[[userType]]"
-      username="[[username]]"
-      user-result="{{_userSearchResult}}">
-    </user-query>
+      fields='"username"'
+      values="[[username]]"
+      index-name="[[userIndex]]"
+      index-types="[[buildArray(userType)]]"
+      sort-field="dateCreated"
+      results="{{_userSearchResult}}">
+    </build-and-run-query>
 
     <!-- User preferences dialog -->
     <user-preferences show-search="{{showSearch}}"
@@ -72,11 +75,15 @@ limitations under the License.
 
   <script>
   (function() {
-    /* globals _ */
+    /* globals _, DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'load-user-info',
+
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
 
       properties: {
         /**
@@ -278,7 +285,7 @@ limitations under the License.
           value: function() {
             var self = this;
             return function() {
-              self.$$('#userQuery').runUserQuery();
+              self.$$('#userQuery').runQuery();
             };
           }
         }
