@@ -79,7 +79,7 @@ var commonTransforms = (function(_, moment, typeBehavior) {
     var country = idList.length > 2 ? idList[2] : undefined;
     var longitude = idList.length > 3 ? idList[3] : undefined;
     var latitude = idList.length > 4 ? idList[4] : undefined;
-    var text = city ? (city + (state ? (', ' + state) : '')) : 'Unknown Location';
+    var text = city ? (city + (state ? (', ' + state) : '')) : 'Unknown Location(s)';
 
     return {
       city: city,
