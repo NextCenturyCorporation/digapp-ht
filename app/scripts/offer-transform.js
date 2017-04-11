@@ -727,7 +727,11 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
         var images = result.images.map(function(image) {
           return image.source;
         }).join('; ');
-        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, result.description.replace(/\s/g, ' ')]);
+        var description = result.description.replace(/\s/g, ' ');
+        if(description.length > 2000) {
+          description = description.slice(0, 2000) + '...';
+        }
+        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, description]);
       });
       return data;
     },

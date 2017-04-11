@@ -26,6 +26,7 @@ limitations under the License.
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../entity-query/entity-query.html">
+<link rel="import" href="../lodash.html">
 
 <dom-module id="entity-list-dialog">
   <template>
@@ -166,7 +167,7 @@ limitations under the License.
   (function() {
     'use strict';
 
-    /* globals DigBehaviors */
+    /* globals DigBehaviors, _ */
     Polymer({
       is: 'entity-list-dialog',
 
@@ -278,7 +279,7 @@ limitations under the License.
          * The list of string IDs for the saved entities for this user.
          */
         _entityIds: {
-          computed: '_computeEntityIds(entities)',
+          computed: '_computeEntityIds(entities.length)',
           type: Array
         },
 
@@ -337,8 +338,8 @@ limitations under the License.
       /**
        * Returns the IDs for the entities in the given list.
        */
-      _computeEntityIds: function(entities) {
-        return entities.map(function(entity) {
+      _computeEntityIds: function() {
+        return this.entities.map(function(entity) {
           return entity.id;
         });
       },
@@ -347,9 +348,11 @@ limitations under the License.
        * Deletes the given saved entity.
        */
       _deleteEntity: function(event) {
+        var index = this._entityIds.indexOf(event.model.entity.id);
+        this.splice('entities', index, 1);
+
         var self = this;
-        self.splice('entities', event.model.index, 1);
-        self.set('userUpdateBody', {
+        this.set('userUpdateBody', {
           doc: {
             savedEntities: self.entities
           }
