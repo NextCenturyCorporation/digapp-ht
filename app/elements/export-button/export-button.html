@@ -131,11 +131,11 @@ limitations under the License.
       </template>
 
       <template is="dom-if" if="[[!_getTruncateStyleClass(_selectedMode)]]">
-        <div class$="note [[_getTruncateStyleClass(_selectedMode)]]">Please note that ad descriptions will be truncated to 2000 characters.</div>
+        <div class$="note [[_getTruncateStyleClass(_selectedMode)]]">Please note that ad descriptions will be truncated to 1000 characters.</div>
       </template>
 
       <template is="dom-if" if="[[!_getLoadedDataStyleClass(_selectedMode, _bulkData.length)]]">
-        <div class$="note [[_getLoadedDataStyleClass(_selectedMode, _bulkData.length)]]">Loaded <span>[[_bulkData.length]]</span> of <span>[[_resultsTotal]]</span>.</div>
+        <div class$="note [[_getLoadedDataStyleClass(_selectedMode, _bulkData.length)]]">Loaded Top <span>[[_bulkData.length]]</span> of <span>[[_resultsTotal]]</span>.</div>
       </template>
 
       <template is="dom-if" if="[[_loadingQuery]]">
@@ -417,7 +417,12 @@ limitations under the License.
         }
 
         if(dataType === 'bulk' && this._bulkData) {
-          this._bulkDataForCsv = this.csvTransformFunction(this._bulkData);
+          this._bulkDataForCsv = this.csvTransformFunction(this._bulkData).map(function(row, index) {
+            if(index && row[9].length > 1000) {
+              row[9] = row[9].slice(0, 1000) + '...';
+            }
+            return row;
+          });
         }
       },
 
@@ -543,7 +548,7 @@ limitations under the License.
        * Returns the text of the load link.
        */
       _getLoadLinkText: function(mode, load) {
-        return mode === 'subset' || load ? 'Load Data' : 'Data Loaded';
+        return mode === 'bulk' && load ? 'Load Data' : 'Data Loaded';
       },
 
       /**
