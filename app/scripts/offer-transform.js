@@ -716,9 +716,6 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
           return image.source;
         }).join('; ');
         var description = result.description.replace(/\s/g, ' ');
-        if(description.length > 2000) {
-          description = description.slice(0, 2000) + '...';
-        }
         data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, description]);
       });
       return data;
