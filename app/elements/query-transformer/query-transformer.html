@@ -15,7 +15,33 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../behaviors.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../lodash.html">
+
+<!--
+A Polymer element that makes a POST request via <iron-ajax> element and
+transforms the data returned with a function specified by the user.
+
+### Example
+```html
+    <query-transformer
+      demand="[[demandSearch]]"
+      error="{{searchError}}"
+      loading="{{searchLoading}}"
+      page="{{pageNum}}"
+      page-size="20"
+      process-request="[[processRequest]]"
+      result-function="[[clientConfig.transforms.search.result]]"
+      results="{{searchResults}}"
+      search-parameters="[[searchParameters]]"
+      search-function="[[clientConfig.transforms.search.search]]"
+      url="[[config.queryUrl]]">
+    </query-transformer>
+```
+// TODO: move to DigElements/create demo
+@demo demo/index.html
+-->
 
 <dom-module id="query-transformer">
   <template>
@@ -39,69 +65,180 @@ limitations under the License.
 
   <script>
   (function() {
-    /* globals DigBehaviors */
+    /* globals _ */
     'use strict';
 
     Polymer({
       is: 'query-transformer',
 
-      behaviors: [DigBehaviors.FilterBehavior],
-
       properties: {
+        /**
+         * (Required)
+         *
+         * Whether or not to create new <iron-ajax> request when searchParameters is empty.
+         *
+         * @type {Boolean}
+         */
+        // TODO: resolve "View All" issue, does this property seem somewhat redundant with
+        // processRequest?
         demand: {
           type: Boolean
         },
 
+        /**
+         * (Output)
+         *
+         * Error returned from <iron-ajax> request (if any).
+         *
+         * @type {Object}
+         */
         error: {
           notify: true,
           type: Object
         },
 
+        /**
+         * (Output)
+         *
+         * Whether or not a response is currently being loaded from iron-ajax.
+         *
+         * @type {Boolean}
+         */
         loading: {
           notify: true,
           type: Boolean
         },
 
+        /**
+         * (Optional)
+         *
+         * The number of the current page of search results. Expected parameter
+         * in searchFunction.
+         *
+         * @type {Number}
+         * @default 1
+         */
         page: {
           type: Number,
           value: 1,
           notify: true
         },
 
+        /**
+         * (Optional)
+         *
+         * The current page size for search results. Expected parameter
+         * in searchFunction.
+         *
+         * @type {Number}
+         * @default 25
+         */
         pageSize: {
           type: Number,
           value: 25
         },
 
+        /**
+         * (Required)
+         *
+         * Whether or not to create new <iron-ajax> request.
+         *
+         * @type {Boolean}
+         */
         processRequest: {
           type: Boolean
         },
 
+        /**
+         * (Required)
+         *
+         * Function to apply to response returned by <iron-ajax> request.
+         *
+         * @type {Object}
+         */
         resultFunction: {
           type: Object
         },
 
+        /**
+         * (Output)
+         *
+         * Error returned from <iron-ajax> request (if any).
+         *
+         * @type {Object}
+         */
         results: {
           notify: true,
           type: Object
         },
 
+        /**
+         * (Required)
+         *
+         * Function used to create request sent to <iron-ajax>. Takes the following three properties
+         * as arguments in this order:
+         * - page
+         * - pageSize
+         * - searchParameters
+         *
+         * @type {Object}
+         */
         searchFunction: {
           type: Object
         },
 
+        /**
+         * (Required)
+         *
+         * Function used to create request sent to <iron-ajax>. Expected parameter in searchFunction.
+         * Example structure:
+         *
+         * {
+         *    city: {
+         *      'NYC': {
+         *        category: 'City',
+         *        enabled: true,
+         *        key: 'NYC',
+         *        text: 'NYC'
+         *      }
+         *    },
+         *    state: {},
+         *    zip: {}
+         * }
+         *
+         * @type {Object}
+         */
         searchParameters: {
           type: Object
         },
 
+        /**
+         * (Required)
+         *
+         * The URL target of the request.
+         *
+         * @type {String}
+         */
         url: {
           type: String
         },
 
+        /**
+         * Request to pass along to <iron-ajax> element.
+         *
+         * @type {Object}
+         * @private
+         */
         _body: {
           type: Object
         },
 
+        /**
+         * Response returned from <iron-ajax>.
+         *
+         * @type {Object}
+         * @private
+         */
         _response: {
           type: Object
         }
@@ -112,14 +249,43 @@ limitations under the License.
         '_transform(demand, page, pageSize, processRequest, searchFunction, searchParameters.*)'
       ],
 
+      /**
+       * Returns whether all the items in the searchParameters collection are disabled.
+       *
+       * @param {Object} searchParameters
+       * @return {Boolean} disabled
+       * @private
+       */
+      _areAllDisabled: function(searchParameters) {
+        return _.keys(searchParameters).every(function(type) {
+          if(_.isEmpty(searchParameters[type])) {
+            return true;
+          }
+          return _.keys(searchParameters[type]).every(function(term) {
+            return !searchParameters[type][term].enabled;
+          });
+        });
+      },
+
+      /**
+       * Returns a boolean to indicate whether or not an object is defined.
+       *
+       * @param {Object} object
+       * @return {Boolean} exists
+       * @private
+       */
       _exists: function(object) {
         return !!object;
       },
 
+      /**
+       * Creates request for <iron-ajax> element based on different properties.
+       *
+       * @private
+       */
       _transform: function() {
         if(this.processRequest && this.searchFunction) {
-          // From DigBehaviors.FilterBehavior
-          var noSearchParameters = this.areAllDisabled(this.searchParameters);
+          var noSearchParameters = this._areAllDisabled(this.searchParameters);
 
           this.set('error', null);
           this.set('results', null);
@@ -131,6 +297,12 @@ limitations under the License.
           this.set('_body', this.searchFunction(this.page, this.pageSize, this.searchParameters));
         }
       },
+
+      /**
+       * Resets page value to 1.
+       *
+       * @private
+       */
       _resetPage: function() {
         this.page = 1;
       }

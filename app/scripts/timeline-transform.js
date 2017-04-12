@@ -89,7 +89,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
   }
 
   function createUnknownLocation(count) {
-    var text = 'Unknown Locations';
+    var text = 'Unknown Location(s)';
     var textAndCount = text + ' (' + (count) + ')';
     return {
       count: count,

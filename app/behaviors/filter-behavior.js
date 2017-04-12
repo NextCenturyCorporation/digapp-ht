@@ -23,7 +23,7 @@ var DigBehaviors = DigBehaviors || {};
  */
 DigBehaviors.FilterBehavior = {
   /**
-   * Returns whether the all the items in the given filter collection are disabled.
+   * Returns whether all the items in the given filter collection are disabled.
    */
   areAllDisabled: function(collection, ignore) {
     return _.keys(collection).every(function(type) {
