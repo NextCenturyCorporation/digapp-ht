@@ -44,7 +44,7 @@ limitations under the License.
       element = fixture('feature-query-and-display-fixture');
     });
 
-    test('properties are set to defaults correctly', function() {
+    test('default properties are set correctly', function() {
       expect(element.aggregationCount).to.equal(0);
       expect(element.ignoreId).to.equal('');
       expect(element.dataProperty).to.equal('data');
@@ -61,7 +61,7 @@ limitations under the License.
       expect(element.loading).to.be.false;
     });
 
-    test('_createConfig returns correctly', function() {
+    test('_createConfig does return correctly', function() {
       expect(element._createConfig()).to.deep.equal({
         ignoreId: undefined,
         property: undefined,
@@ -74,7 +74,25 @@ limitations under the License.
       });
     });
 
-    test('_getData returns correctly', function() {
+    test('does not show a build-and-run-aggregation-query element if aggregationName or dataType are undefined', function() {
+      expect(element.$$('build-and-run-aggregation')).to.not.exist;
+    });
+
+    test('does show a build-and-run-aggregation-query element if aggregationName and dataType are defined', function(done) {
+      element.aggregationName = 'myName';
+      element.dataType = 'myType';
+      flush(function() {
+        expect(element.$$('build-and-run-aggregation')).to.exist;
+        expect(element.$$('build-and-run-aggregation').transformConfig).to.deep.equal({
+          ignoreId: '',
+          property: 'myName',
+          type: 'myType'
+        });
+        done();
+      });
+    });
+
+    test('_getData does return correctly', function() {
       var data = {
         property: [1, 2, 3, 4, 5]
       };
@@ -82,7 +100,7 @@ limitations under the License.
       expect(element._getData(data, 'property')).to.deep.equal([1, 2, 3, 4, 5]);
     });
 
-    test('_getHeader returns correctly', function() {
+    test('_getHeader does return correctly', function() {
       var data = {
         property: 'header'
       };
@@ -90,102 +108,7 @@ limitations under the License.
       expect(element._getHeader(data, 'property')).to.equal('header');
     });
 
-    test('build aggregation', function() {
-      expect(element._aggregation).to.not.exist;
-      element.aggregationName = 'name';
-      expect(element._aggregation).to.not.exist;
-      element.aggregationField = 'field';
-      expect(element._aggregation).to.exist;
-      expect(element._aggregation.toJSON()).to.deep.equal(ejs.TermsAggregation('name').field('field').size(0).toJSON());
-    });
-
-    test('build query', function() {
-      expect(element.query).to.not.exist;
-      element.queryField = 'field';
-      expect(element.query).to.not.exist;
-      element.queryValue = 'value';
-      expect(element.query).to.exist;
-      expect(element.query.toJSON()).to.deep.equal(ejs.TermsQuery('field', 'value').toJSON());
-    });
-
-    test('transforms query results does nothing without aggregationName', function() {
-      element.dataType = 'ad';
-      element.transformFunction = function() {
-        return [];
-      };
-      element._queryResults = [1, 2, 3, 4, 5];
-      expect(element._transformResults).to.not.exist;
-    });
-
-    test('transforms query results does nothing without dataType', function() {
-      element.aggregationName = 'name';
-      element.transformFunction = function() {
-        return [];
-      };
-      element._queryResults = [1, 2, 3, 4, 5];
-      expect(element._transformResults).to.not.exist;
-    });
-
-    test('transforms query results', function() {
-      element.aggregationName = 'name';
-      element.dataType = 'ad';
-      element.transformFunction = function(results, config) {
-        expect(config).to.deep.equal({
-          ignoreId: '',
-          property: 'name',
-          type: 'ad'
-        });
-        return (results || []).map(function(result) {
-          return {
-            count: result * 10
-          };
-        });
-      };
-      element._queryResults = [1, 2, 3, 4, 5];
-      expect(element._transformResults).to.deep.equal([{
-        count: 10
-      }, {
-        count: 20
-      }, {
-        count: 30
-      }, {
-        count: 40
-      }, {
-        count: 50
-      }]);
-    });
-
-    test('transforms query results with ignoreId', function() {
-      element.aggregationName = 'name';
-      element.dataType = 'ad';
-      element.ignoreId = 'id';
-      element.transformFunction = function(results, config) {
-        expect(config).to.deep.equal({
-          ignoreId: 'id',
-          property: 'name',
-          type: 'ad'
-        });
-        return (results || []).map(function(result) {
-          return {
-            count: result * 10
-          };
-        });
-      };
-      element._queryResults = [1, 2, 3, 4, 5];
-      expect(element._transformResults).to.deep.equal([{
-        count: 10
-      }, {
-        count: 20
-      }, {
-        count: 30
-      }, {
-        count: 40
-      }, {
-        count: 50
-      }]);
-    });
-
-    test('sets data and header', function() {
+    test('setting _transformResults does update data and header', function() {
       expect(element.data).to.not.exist;
       expect(element.header).to.not.exist;
 
@@ -218,7 +141,7 @@ limitations under the License.
       expect(element.header).to.equal('header');
     });
 
-    test('shows feature-aggregation', function() {
+    test('does show a feature-aggregation element', function() {
       expect(element.$$('feature-aggregation')).to.exist;
     });
   });

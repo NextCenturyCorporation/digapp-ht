@@ -16,6 +16,7 @@ limitations under the License.
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
+<link rel="import" href="../../bower_components/build-and-run-aggregation/build-and-run-aggregation.html">
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
@@ -33,40 +34,25 @@ limitations under the License.
       }
     </style>
 
-    <elastic-client-aggregation-builder
-      name="[[aggregationName]]"
-      type="terms"
-      count="[[aggregationCount]]"
-      field="[[aggregationField]]"
-      ejs-aggregation="{{_aggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-query-builder
-      type="terms"
-      fields="[[queryField]]"
-      values="[[queryValue]]"
-      ejs-query="{{query}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[client]]"
-      index="[[indexName]]"
-      elastic-types="[[indexTypes]]"
-      query="[[query]]"
-      aggregations="[[buildArray(_aggregation)]]"
-      page-size="0"
-      filters="[[filterList]]"
-      results="{{_queryResults}}"
-      loading="{{loading}}"
-      last-error="{{error}}">
-    </elastic-client-search>
-
-    <json-combine
-      data-in1="[[_queryResults]]"
-      data-in2="[[_createConfig(aggregationName, dataType, ignoreId)]]"
-      data-out="{{_transformResults}}"
-      combine-function="[[transformFunction]]">
-    </json-combine>
+    <!-- Use a template to ensure that the aggregation query is built and run only once the transform config is created. -->
+    <template is="dom-if" if="[[_exists(aggregationName, dataType)]]">
+      <build-and-run-aggregation
+        aggregation-count="[[aggregationCount]]"
+        aggregation-field="[[aggregationField]]"
+        aggregation-name="[[aggregationName]]"
+        query-fields="[[queryField]]"
+        query-values="[[queryValue]]"
+        client="[[client]]"
+        index-name="[[indexName]]"
+        index-types="[[indexTypes]]"
+        filters="[[filterList]]"
+        transform-config="[[_createConfig(aggregationName, dataType, ignoreId)]]"
+        transform-function="[[transformFunction]]"
+        error="{{error}}"
+        loading="{{loading}}"
+        results="{{_transformResults}}">
+      </build-and-run-aggregation>
+    </template>
 
     <feature-aggregation class="flex"
       count-property="[[dataCountProperty]]"
@@ -101,7 +87,6 @@ limitations under the License.
       is: 'feature-query-and-display',
 
       behaviors: [
-        DigBehaviors.ArrayBehavior,
         DigBehaviors.TypeBehavior
       ],
 
@@ -388,6 +373,10 @@ limitations under the License.
           property: aggregationName,
           type: dataType
         };
+      },
+
+      _exists: function(aggregationName, dataType) {
+        return !!aggregationName && !!dataType;
       },
 
       _getData: function(data, property) {
