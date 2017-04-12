@@ -97,71 +97,41 @@ limitations under the License.
 
     <!-- Offer query -->
 
-    <elastic-client-query-builder
-      type="term"
+    <build-and-run-query
       fields='"doc_id"'
       values="[[params.id]]"
-      ejs-query="{{offerQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["ads"]'
-      query="[[offerQuery]]"
-      page-size="1"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       aggregations="[]"
       filters="[]"
-      results="{{offerResults}}"
-      last-error="{{error}}"
-      source-include='["doc_id", "fields", "tld", "url"]'>
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[offerResults]]"
-      data-out="{{offer}}"
-      transform-function="[[clientConfig.transforms.offer.offer]]">
-    </json-transform>
+      page-size="1"
+      properties-ready="{{processRequest}}"
+      source-include='["doc_id", "fields", "tld", "url"]'
+      transform-function="[[clientConfig.transforms.offer.offer]]"
+      error="{{error}}"
+      loading="{{loading}}"
+      results="{{offer}}">
+    </build-and-run-query>
 
     <!-- Revisions timeline query -->
 
-    <elastic-client-aggregation-builder
-      name="revisions"
-      type="date_histogram"
-      count="0"
-      field="fields.posting_date.strict.key"
-      interval="day"
-      order="_key"
-      direction="desc"
-      ejs-aggregation="{{revisionTimelineAggregation}}">
-    </elastic-client-aggregation-builder>
-
-    <elastic-client-query-builder
-      type="term"
-      fields='"url.raw"'
-      values="[[offer.url]]"
-      ejs-query="{{revisionTimelineQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
+    <build-and-run-aggregation
+      aggregation-field="fields.posting_date.strict.key"
+      aggregation-name="revisions"
+      aggregation-order="_key"
+      aggregation-type="date_histogram"
+      query-fields='"url.raw"'
+      query-values="[[offer.url]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["ads"]'
-      query="[[revisionTimelineQuery]]"
-      page-size="0"
-      aggregations="[[revisionTimelineAggregation]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       filters="[]"
-      results="{{revisionTimelineResults}}"
+      transform-function="[[clientConfig.transforms.offer.revisions]]"
+      error="{{revisionTimelineError}}"
       loading="{{revisionTimelineLoading}}"
-      last-error="{{revisionTimelineError}}"
-      source-include='["mentionsPhone", "mentionsEmail"]'>
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[revisionTimelineResults]]"
-      data-out="{{revisionTimeline}}"
-      transform-function="[[clientConfig.transforms.offer.revisions]]">
-    </json-transform>
+      results="{{revisionTimeline}}">
+    </build-and-run-aggregation>
 
     <!-- Revisions ad data query -->
 
@@ -313,7 +283,6 @@ limitations under the License.
 
           <load-user-info
             client="[[esclient]]"
-            loading="[[loading]]"
             username="[[config.username]]"
             advanced-search="{{advancedSearch}}"
             blur-images="{{blurImages}}"

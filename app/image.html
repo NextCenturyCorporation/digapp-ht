@@ -95,7 +95,7 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <!-- Image query -->
+    <!-- Image query is built using either the ID or the URL (whatever is available in the parameters) -->
     <elastic-client-query-builder
       type="term"
       fields='"identifier"'
@@ -128,6 +128,7 @@ limitations under the License.
       transform-function="[[clientConfig.transforms.image.image]]">
     </json-transform>
 
+    <!-- TODO Remove when able -->
     <elastic-client-query-builder
       type="terms"
       fields='"doc_id"'
@@ -135,29 +136,24 @@ limitations under the License.
       ejs-query="{{imageOffersQuery}}">
     </elastic-client-query-builder>
 
-    <elastic-client-search
+    <build-and-run-query
+      fields='"doc_id"'
+      values="[[image.ads]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["ads"]'
-      page="{{pageNum}}"
-      page-size="20"
-      query="[[imageOffersQuery]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       aggregations="[]"
       filters="[[filterList]]"
-      sort-field="fields.posting_date.strict.key"
-      sort-order="desc"
-      results="{{offersResults}}"
-      loading="{{offersLoading}}"
-      last-error="{{offersError}}"
+      page="{{pageNum}}"
+      page-size="25"
       properties-ready="{{processRequest}}"
-      source-include='["doc_id", "fields", "tld", "url"]'>
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[offersResults]]"
-      data-out="{{imageOffers}}"
-      transform-function="[[clientConfig.transforms.offer.offers]]">
-    </json-transform>
+      sort-field="fields.posting_date.strict.key"
+      source-include='["doc_id", "fields", "tld", "url"]'
+      transform-function="[[clientConfig.transforms.offer.offers]]"
+      error="{{offersError}}"
+      loading="{{offersLoading}}"
+      results="{{imageOffers}}">
+    </build-and-run-query>
 
     <!-- Location timeline for bar chart and itinerary -->
 
