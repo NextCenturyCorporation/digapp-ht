@@ -16,8 +16,8 @@ limitations under the License.
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/button-action/button-action.html">
-<link rel="import" href="../../bower_components/double-bar/double-bar.html">
-<link rel="import" href="../../bower_components/horizontal-bar/horizontal-bar.html">
+<link rel="import" href="../../bower_components/double-bar-chart/double-bar-chart.html">
+<link rel="import" href="../../bower_components/horizontal-bar-chart/horizontal-bar-chart.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
 <link rel="import" href="../../styles/icon-styles.html">
@@ -83,10 +83,6 @@ limitations under the License.
         margin: 5px;
         background-color: transparent;
       }
-
-      horizontal-bar ::content .bar-label {
-        word-break: break-word;
-      }
     </style>
 
     <template is="dom-if" if="[[_showHeader(itemType, countType, showOtherCounts)]]">
@@ -120,56 +116,55 @@ limitations under the License.
     </template>
 
     <template is="dom-if" if="[[_shownItems.length]]">
-      <div class$="data [[_doesOverflow(_shownItems.length, small, 'overflow')]] [[_isSmallOrLarge(small, showImages)]]">
-        <template id="barList" is="dom-repeat" items="[[_shownItems]]">
-          <div class="layout horizontal center">
-            <template is="dom-if" if="[[showImages]]">
-              <template is="dom-if" if="[[_getProperty(item, linkProperty)]]">
-                <a href$="[[_getProperty(item, linkProperty)]]" title="Open Image">
-                  <iron-image class$="[[_getBlurStyleClass(blur)]]" style="width:50px; height:50px;" sizing="contain" src$="[[_getProperty(item, sourceProperty)]]"></iron-image>
-                </a>
-              </template>
-              <template is="dom-if" if="[[!_getProperty(item, linkProperty)]]">
+      <div class$="data [[_doesOverflow(_shownItems.length, small, 'overflow')]] [[_isSmallOrLarge(small)]]">
+        <template is="dom-if" if="[[!showOtherCounts]]">
+          <horizontal-bar-chart
+            show-checkboxes="[[showCheckboxes]]"
+            checkbox-name="[[checkboxName]]"
+            count-property="[[countProperty]]"
+            icon-property="[[iconProperty]]"
+            id-property="[[idProperty]]"
+            link-property="[[linkProperty]]"
+            max-property="[[maxProperty]]"
+            style-class-property="[[styleClassProperty]]"
+            text-property="[[textProperty]]"
+            data="[[_shownItems]]"
+            selected-ids="{{selectedIds}}">
+          </horizontal-bar-chart>
+        </template>
+
+        <template is="dom-if" if="[[showOtherCounts]]">
+          <double-bar-chart
+            client="[[client]]"
+            index-name="[[indexName]]"
+            index-types="[[indexTypes]]"
+            query-field="[[queryField]]"
+            show-checkboxes="[[showCheckboxes]]"
+            checkbox-name="[[checkboxName]]"
+            count-property="[[countProperty]]"
+            icon-property="[[iconProperty]]"
+            id-property="[[idProperty]]"
+            link-property="[[linkProperty]]"
+            max-property="[[maxProperty]]"
+            style-class-property="[[styleClassProperty]]"
+            text-property="[[textProperty]]"
+            data="[[_shownItems]]"
+            max-other-count="{{_maxOtherCount}}"
+            selected-ids="{{selectedIds}}">
+          </double-bar-chart>
+
+          <!--
+          <template is="dom-if" if="[[showImages]]">
+            <template is="dom-if" if="[[_getProperty(item, linkProperty)]]">
+              <a href$="[[_getProperty(item, linkProperty)]]" title="Open Image">
                 <iron-image class$="[[_getBlurStyleClass(blur)]]" style="width:50px; height:50px;" sizing="contain" src$="[[_getProperty(item, sourceProperty)]]"></iron-image>
-              </template>
+              </a>
             </template>
-
-            <template is="dom-if" if="[[!showOtherCounts]]">
-              <div class="flex add-margins">
-                <horizontal-bar
-                  count="[[_getProperty(item, countProperty)]]"
-                  max="[[_getProperty(item, maxProperty)]]"
-                  name="[[_getProperty(item, textProperty)]]"
-                  style-class="[[_getProperty(item, styleClassProperty)]]"
-                  show-checkbox="[[showCheckboxes]]"
-                  checkbox-tooltip="[[_getCheckboxTooltip(item, textProperty, checkboxName)]]"
-                  toggle-listener="[[_createToggleListener(item)]]"
-                  selected="{{item.selected}}"
-                  link-value="[[_getProperty(item, linkProperty)]]">
-                </horizontal-bar>
-              </div>
+            <template is="dom-if" if="[[!_getProperty(item, linkProperty)]]">
+              <iron-image class$="[[_getBlurStyleClass(blur)]]" style="width:50px; height:50px;" sizing="contain" src$="[[_getProperty(item, sourceProperty)]]"></iron-image>
             </template>
-
-            <template is="dom-if" if="[[showOtherCounts]]">
-              <double-bar class="flex"
-                on-selected="_onSelectedChange"
-                client="[[client]]"
-                index-name="[[indexName]]"
-                index-types="[[indexTypes]]"
-                item-id="[[_getProperty(item, idProperty)]]"
-                query-field="[[queryField]]"
-                count="[[_getProperty(item, countProperty)]]"
-                icon="[[_getProperty(item, iconProperty)]]"
-                link="[[_getProperty(item, linkProperty)]]"
-                max="[[_getProperty(item, maxProperty)]]"
-                style-class="[[_getProperty(item, styleClassProperty)]]"
-                text="[[_getProperty(item, textProperty)]]"
-                selected="{{item.selected}}"
-                show-checkbox="[[showCheckboxes]]"
-                max-other-count="{{_maxOtherCount}}">
-              </double-bar>
-            </template>
-          </div>
+          </template>
+          -->
         </template>
       </div>
     </template>
@@ -532,23 +527,11 @@ limitations under the License.
          * @default []
          */
         selectedIds: {
-          type: Array,
           notify: true,
+          type: Array,
           value: function() {
             return [];
           }
-        },
-
-        /**
-         * The list of items that are now selected or have previously been selected.  Computed from the 'items' and 'selectedIds'.  Required
-         * in case the list of items does not contain an item for a selected ID due to a new filter created by another component.
-         *
-         * @type {Array}
-         * @private
-         */
-        _selectedItems: {
-          type: Array,
-          computed: '_computeSelectedItems(selectedIds)'
         },
 
         /**
@@ -560,7 +543,7 @@ limitations under the License.
         _combinedItems: {
           type: Array,
           notify: true,
-          computed: '_computeCombinedItems(items, selectedIds)',
+          computed: '_computeCombinedItems(items.length)',
           observer: '_updateShownItems'
         },
 
@@ -571,8 +554,7 @@ limitations under the License.
          * @private
          */
         _shownItems: {
-          type: Array,
-          notify: true
+          type: Array
         },
 
         /**
@@ -605,79 +587,22 @@ limitations under the License.
        * Returns the combined list of selected items and input items for this component.  Sets the 'selected' and 'max' properties for the items.
        */
       _computeCombinedItems: function() {
-        if(!this.items.length && !this._selectedItems.length) {
-          return [];
-        }
-
         var self = this;
         var combinedItems = [];
 
-        // Ensure that the count for each selected item is up-to-date based on the new input items.
-        this.selectedIds.forEach(function(selectedId) {
-          // This item should never be undefined!
-          var item = self._findItem(selectedId);
-
-          // Ensure that the count is updated in the HTML by recreating a copy of the selected item.
-          if(item) {
-            var clonedItem = _.cloneDeep(item);
-            clonedItem.selected = true;
-            combinedItems.push(clonedItem);
-          }
-        });
-
-        // Ensure that the selected item with the highest count is on top.
-        combinedItems.sort(function(a, b) {
-          return b[self.countProperty] - a[self.countProperty];
-        });
-
-        var selectedItemMax = _.max(combinedItems.map(function(item) {
-          return item[self.countProperty];
-        })) || 0;
         var itemMax = _.max(this.items.map(function(item) {
           return item[self.countProperty];
         })) || 0;
-        var combinedItemMax = Math.max(selectedItemMax, itemMax);
-
-        // Ensure that the max count of each selected item is up-to-date once the selected items are sorted.
-        combinedItems.forEach(function(item) {
-          item[self.maxProperty] = combinedItemMax;
-        });
 
         this.items.forEach(function(item) {
-          var index = self.selectedIds.indexOf(self._getProperty(item, self.idProperty));
-          if(index < 0) {
-            // Ensure that this component does not affect the input items by creating a copy.
-            var clonedItem = _.cloneDeep(item);
-            clonedItem[self.maxProperty] = combinedItemMax;
-            // Ensure that the selected property is set to false because the paper-checkbox may be shaded if the it is undefined instead.
-            clonedItem.selected = false;
-            combinedItems.push(clonedItem);
-          }
+          // Ensure that this component does not affect the input items by creating a copy.
+          var clonedItem = _.cloneDeep(item);
+          clonedItem[self.maxProperty] = itemMax;
+          clonedItem.select = (self.selectedIds.indexOf(item[self.idProperty]) >= 0);
+          combinedItems.push(clonedItem);
         });
 
         return combinedItems;
-      },
-
-      /**
-       * Returns the list of all items that are now selected or have previously been selected using the lists of items and selected IDs.
-       */
-      _computeSelectedItems: function() {
-        var selectedItems = this._selectedItems || [];
-        var self = this;
-        this.selectedIds.forEach(function(selectedId) {
-          var index = _.findIndex(selectedItems, function(selectedItem) {
-            return selectedId === self._getProperty(selectedItem, self.idProperty);
-          });
-          if(index < 0) {
-            index = _.findIndex(self.items, function(item) {
-              return selectedId === self._getProperty(item, self.idProperty);
-            });
-            if(index >= 0) {
-              selectedItems.push(self.items[index]);
-            }
-          }
-        });
-        return selectedItems;
       },
 
       /**
@@ -687,26 +612,13 @@ limitations under the License.
         var self = this;
         return {
           onClick: function() {
+            var shownItems = self._shownItems;
+            self.set('_shownItems', []);
             for(var i = self.limit; i < self._combinedItems.length; ++i) {
-              self.push('_shownItems', self._combinedItems[i]);
+              shownItems.push(self._combinedItems[i]);
             }
+            self.set('_shownItems', shownItems);
             self.set('_showMore', false);
-            if(self.$$('#barList')) {
-              self.$$('#barList').render();
-            }
-          }
-        };
-      },
-
-      /**
-       * Returns a listener that recreates the list of selected items on toggling a horizontal-bar checkbox.
-       */
-      _createToggleListener: function() {
-        var self = this;
-
-        return {
-          onToggle: function() {
-            self._onSelectedChange();
           }
         };
       },
@@ -718,26 +630,6 @@ limitations under the License.
         // Overflow causes a scrollbar to be displayed when the bottom checkbox in the list is checked because of the
         // ripple effect so only add overflow if needed because there are more than a specific number of items.
         return length > (small ? 11 : 20) ? string : '';
-      },
-
-      /**
-       * Returns the item with the given ID from the list of items or previously selected items.
-       */
-      _findItem: function(id) {
-        var self = this;
-        var index = _.findIndex(this.items, function(item) {
-          return id === self._getProperty(item, self.idProperty);
-        });
-
-        if(index >= 0) {
-          return this.items[index];
-        }
-
-        index = _.findIndex(this._selectedItems, function(selectedItem) {
-          return id === self._getProperty(selectedItem, self.idProperty);
-        });
-
-        return (index >= 0 ? this._selectedItems[index] : undefined);
       },
 
       _getBlurStyleClass: function(blur) {
@@ -770,29 +662,6 @@ limitations under the License.
        */
       _getProperty: function(item, property, defaultValue) {
         return item[property] || defaultValue;
-      },
-
-      /**
-       * Iterates through the shown items and adds or removes IDs of selected or unselected items to or from the list of selected IDs.
-       *
-       * @private
-       */
-      _onSelectedChange: function() {
-        var self = this;
-        var change = false;
-        var selectedIds = [];
-        this._shownItems.forEach(function(item) {
-          var index = self.selectedIds.indexOf(self._getProperty(item, self.idProperty));
-          if(item.selected) {
-            change = change || (index < 0);
-            selectedIds.push(self._getProperty(item, self.idProperty));
-          } else if(index >= 0) {
-            change = true;
-          }
-        });
-        if(change) {
-          this.set('selectedIds', selectedIds);
-        }
       },
 
       /**
@@ -830,9 +699,11 @@ limitations under the License.
         this.set('_shownItems', []);
         this.set('_maxOtherCount', 0);
         var limit = (this.limit > 0 ? Math.min(this._combinedItems.length, this.limit) : this._combinedItems.length);
+        var shownItems = [];
         for(var i = 0; i < limit; ++i) {
-          this.push('_shownItems', this._combinedItems[i]);
+          shownItems.push(this._combinedItems[i]);
         }
+        this.set('_shownItems', shownItems);
         this.set('_showMore', (!this.hideShowMore && this.limit && this._combinedItems.length > this.limit));
       }
     });

@@ -52,9 +52,7 @@ limitations under the License.
         count: 3
       }];
       element.showCheckboxes = true;
-      flush(function() {
-        done();
-      });
+      flush(done);
     });
 
     test('properties are set to defaults correctly', function() {
@@ -84,31 +82,51 @@ limitations under the License.
       expect(element.loading).to.be.false;
       expect(element.small).to.be.false;
       expect(element.selectedIds).to.deep.equal([]);
-      expect(element._selectedItems).to.deep.equal([]);
       expect(element._maxOtherCount).to.deep.equal(0);
       expect(element._showMore).to.be.false;
     });
 
-    test('does show a horizontal-bar element', function() {
-      var bar = element.$$('horizontal-bar');
-      expect(bar).to.exist;
-      expect(bar.name).to.equal('a');
-      expect(bar.count).to.equal(4);
-      expect(bar.showCheckbox).to.equal(true);
-      expect(bar.max).to.equal(4);
-      expect(bar.linkValue).to.not.exist;
+    test('does show a horizontal-bar-chart element', function() {
+      expect(element.$$('horizontal-bar-chart')).to.exist;
+      expect(element.$$('horizontal-bar-chart').data).to.deep.equal([{
+        id: 1,
+        max: 4,
+        select: false,
+        text: 'a',
+        count: 4
+      }, {
+        id: 2,
+        max: 4,
+        select: false,
+        text: 'b',
+        count: 3
+      }]);
+      expect(element.$$('horizontal-bar-chart').countProperty).to.equal('count');
+      expect(element.$$('horizontal-bar-chart').iconProperty).to.equal('icon');
+      expect(element.$$('horizontal-bar-chart').idProperty).to.equal('id');
+      expect(element.$$('horizontal-bar-chart').linkProperty).to.equal('link');
+      expect(element.$$('horizontal-bar-chart').maxProperty).to.equal('max');
+      expect(element.$$('horizontal-bar-chart').styleClassProperty).to.equal('styleClass');
+      expect(element.$$('horizontal-bar-chart').textProperty).to.equal('text');
+      expect(element.$$('horizontal-bar-chart').checkboxName).to.equal('Filter');
+      expect(element.$$('horizontal-bar-chart').selectedIds).to.deep.equal([]);
+      expect(element.$$('horizontal-bar-chart').showCheckboxes).to.be.true;
+    });
+
+    test('does not show a double-bar-chart element', function() {
+      expect(element.$$('double-bar-chart')).to.not.exist;
     });
 
     test('_combinedItems is set correctly', function() {
       expect(element._combinedItems).to.be.an('array');
       expect(element._combinedItems).to.deep.equal([{
-        selected: false,
+        select: false,
         id: 1,
         max: 4,
         text: 'a',
         count: 4
       }, {
-        selected: false,
+        select: false,
         id: 2,
         max: 4,
         text: 'b',
@@ -119,13 +137,13 @@ limitations under the License.
     test('_shownItems is set correctly', function() {
       expect(element._shownItems).to.be.an('array');
       expect(element._shownItems).to.deep.equal([{
-        selected: false,
+        select: false,
         id: 1,
         max: 4,
         text: 'a',
         count: 4
       }, {
-        selected: false,
+        select: false,
         id: 2,
         max: 4,
         text: 'b',
@@ -147,7 +165,7 @@ limitations under the License.
       }];
       expect(element._combinedItems).to.be.an('array');
       expect(element._combinedItems).to.deep.equal([{
-        selected: false,
+        select: false,
         id: 3,
         max: 2,
         text: 'c',
@@ -164,7 +182,7 @@ limitations under the License.
       }];
       expect(element._shownItems).to.be.an('array');
       expect(element._shownItems).to.deep.equal([{
-        selected: false,
+        select: false,
         id: 3,
         max: 2,
         text: 'c',
@@ -188,20 +206,6 @@ limitations under the License.
       expect(element._doesOverflow(11, true, 'myString')).to.equal('');
       expect(element._doesOverflow(12, true, 'myString')).to.equal('myString');
       expect(element._doesOverflow(50, true, 'myString')).to.equal('myString');
-    });
-
-    test('_findItem returns the correct values', function() {
-      expect(element._findItem(1)).to.deep.equal({
-        id: 1,
-        text: 'a',
-        count: 4
-      });
-      expect(element._findItem(2)).to.deep.equal({
-        id: 2,
-        text: 'b',
-        count: 3
-      });
-      expect(element._findItem(3)).to.not.exist;
     });
 
     test('_isSmallOrLarge does return small if small is true', function() {
@@ -257,119 +261,7 @@ limitations under the License.
       expect(element._showNoDataText(2, false)).to.be.false;
     });
 
-    test('adding selectedIds adds to _selectedItems', function() {
-      element.selectedIds = [1];
-      expect(element._selectedItems).to.deep.equal([{
-        id: 1,
-        text: 'a',
-        count: 4
-      }]);
-      element.selectedIds = [1, 2];
-      expect(element._selectedItems).to.deep.equal([{
-        id: 1,
-        text: 'a',
-        count: 4
-      }, {
-        id: 2,
-        text: 'b',
-        count: 3
-      }]);
-    });
-
-    test('selecting an item moves it to the start of _combinedItems and _shownItems', function() {
-      var unselectedItem = element._shownItems[0];
-      var selectedItem = element._shownItems[1];
-      selectedItem.selected = true;
-      element.selectedIds = [selectedItem.id];
-
-      expect(element._combinedItems[0]).to.deep.equal(selectedItem);
-      expect(element._combinedItems[1]).to.deep.equal(unselectedItem);
-      expect(element._shownItems[0]).to.deep.equal(selectedItem);
-      expect(element._shownItems[1]).to.deep.equal(unselectedItem);
-    });
-
-    test('objects persist in _combinedItems and _selectedItems after items is changed', function() {
-      element.selectedIds = [1];
-      element.items = [{
-        id: 3,
-        text: 'c',
-        count: 2
-      }];
-      expect(element.selectedIds).to.deep.equal([1]);
-      expect(element._combinedItems).to.deep.equal([{
-        selected: true,
-        id: 1,
-        max: 4,
-        text: 'a',
-        count: 4
-      }, {
-        selected: false,
-        id: 3,
-        max: 4,
-        text: 'c',
-        count: 2
-      }]);
-      expect(element._selectedItems).to.deep.equal([{
-        id: 1,
-        text: 'a',
-        count: 4
-      }]);
-    });
-
-    test('_createToggleListener() does return an object', function() {
-      var listener = element._createToggleListener();
-      expect(listener).to.be.an('Object');
-      expect(listener.onToggle).to.be.a('Function');
-    });
-
-    test('_createToggleListener().onToggle() does nothing if no item was selected', function() {
-      element._createToggleListener().onToggle();
-      expect(element.selectedIds.length).to.equal(0);
-      expect(element._selectedItems.length).to.equal(0);
-      expect(element._combinedItems[0].selected).to.be.false;
-      expect(element._shownItems[0].selected).to.be.false;
-    });
-
-    test('_createToggleListener().onToggle() adds to selectedIds and _selectedItems', function() {
-      var itemToSelect = element._shownItems[1];
-      itemToSelect.selected = true;
-      element._createToggleListener().onToggle();
-
-      expect(element.selectedIds).to.deep.equal([2]);
-      expect(element._combinedItems[0].id).to.equal(2);
-      expect(element._shownItems[0].id).to.equal(2);
-      expect(element._combinedItems[0].selected).to.be.true;
-      expect(element._shownItems[0].selected).to.be.true;
-      expect(element._selectedItems).to.deep.equal([{
-        id: 2,
-        text: 'b',
-        count: 3
-      }]);
-    });
-
-    test('_createToggleListener().onToggle() removes from selectedIds but not _selectedItems', function() {
-      var itemToDeselect = element._shownItems[1];
-      itemToDeselect.selected = true;
-      element.selectedIds = [2];
-      // Get the cloned item.
-      itemToDeselect = element._shownItems[0];
-      itemToDeselect.selected = false;
-      element._createToggleListener().onToggle();
-
-      expect(element.selectedIds).to.deep.equal([]);
-      expect(element._combinedItems[1].id).to.equal(itemToDeselect.id);
-      expect(element._shownItems[1].id).to.equal(itemToDeselect.id);
-      expect(element._combinedItems[0].selected).to.be.false;
-      expect(element._combinedItems[1].selected).to.be.false;
-      expect(element._shownItems[0].selected).to.be.false;
-      expect(element._shownItems[1].selected).to.be.false;
-      expect(element._selectedItems).to.deep.equal([{
-        id: 2,
-        text: 'b',
-        count: 3
-      }]);
-    });
-
+    /*
     test('setting showImages to true does show anchor and iron-image elements', function(done) {
       expect(element.$$('a')).to.not.exist;
       expect(element.$$('iron-image')).to.not.exist;
@@ -389,6 +281,7 @@ limitations under the License.
         done();
       });
     });
+    */
   });
 
   suite('feature-aggregation with properties tests', function() {
@@ -405,6 +298,8 @@ limitations under the License.
       element.itemType = 'Item Type';
       element.countType = 'Count Type';
       element.entityName = 'Entity Name';
+      element.showCheckboxes = true;
+      element.checkboxName = 'Checkbox';
       element.items = [{
         uuid: 1,
         name: 'a',
@@ -426,9 +321,7 @@ limitations under the License.
         name: 'e',
         number: 1
       }];
-      flush(function() {
-        done();
-      });
+      flush(done);
     });
 
     test('properties are set correctly', function() {
@@ -442,10 +335,9 @@ limitations under the License.
       expect(element.entityName).to.equal('Entity Name');
       expect(element.small).to.be.true;
       expect(element.loading).to.be.false;
-      expect(element.showCheckboxes).to.be.false;
+      expect(element.showCheckboxes).to.be.true;
       expect(element.showOtherCounts).to.be.false;
       expect(element.selectedIds).to.deep.equal([]);
-      expect(element._selectedItems).to.deep.equal([]);
       expect(element._maxOtherCount).to.deep.equal(0);
       expect(element._showMore).to.be.true;
       expect(element.items).to.deep.equal([{
@@ -471,45 +363,34 @@ limitations under the License.
       }]);
     });
 
-    test('does show a horizontal-bar element', function() {
-      var bar = element.$$('horizontal-bar');
-      expect(bar).to.exist;
-      expect(bar.name).to.equal('a');
-      expect(bar.count).to.equal(4);
-      expect(bar.showCheckbox).to.equal(false);
-      expect(bar._width).to.equal(100);
-      expect(bar.max).to.equal(4);
-      expect(bar.linkValue).to.not.exist;
-    });
-
     test('_combinedItems is set correctly', function() {
       expect(element._combinedItems).to.be.an('array');
       expect(element._combinedItems).to.deep.equal([{
-        selected: false,
+        select: false,
         uuid: 1,
         maximum: 4,
         name: 'a',
         number: 4
       }, {
-        selected: false,
+        select: false,
         uuid: 2,
         maximum: 4,
         name: 'b',
         number: 3
       }, {
-        selected: false,
+        select: false,
         uuid: 3,
         maximum: 4,
         name: 'c',
         number: 2
       }, {
-        selected: false,
+        select: false,
         uuid: 4,
         maximum: 4,
         name: 'd',
         number: 2
       }, {
-        selected: false,
+        select: false,
         uuid: 5,
         maximum: 4,
         name: 'e',
@@ -520,18 +401,45 @@ limitations under the License.
     test('_shownItems is set correctly', function() {
       expect(element._shownItems).to.be.an('array');
       expect(element._shownItems).to.deep.equal([{
-        selected: false,
+        select: false,
         uuid: 1,
         maximum: 4,
         name: 'a',
         number: 4
       }, {
-        selected: false,
+        select: false,
         uuid: 2,
         maximum: 4,
         name: 'b',
         number: 3
       }]);
+    });
+
+    test('does show a horizontal-bar-chart element', function() {
+      expect(element.$$('horizontal-bar-chart')).to.exist;
+      expect(element.$$('horizontal-bar-chart').data).to.deep.equal([{
+        select: false,
+        uuid: 1,
+        maximum: 4,
+        name: 'a',
+        number: 4
+      }, {
+        select: false,
+        uuid: 2,
+        maximum: 4,
+        name: 'b',
+        number: 3
+      }]);
+      expect(element.$$('horizontal-bar-chart').countProperty).to.equal('number');
+      expect(element.$$('horizontal-bar-chart').iconProperty).to.equal('icon');
+      expect(element.$$('horizontal-bar-chart').idProperty).to.equal('uuid');
+      expect(element.$$('horizontal-bar-chart').linkProperty).to.equal('link');
+      expect(element.$$('horizontal-bar-chart').maxProperty).to.equal('maximum');
+      expect(element.$$('horizontal-bar-chart').styleClassProperty).to.equal('styleClass');
+      expect(element.$$('horizontal-bar-chart').textProperty).to.equal('name');
+      expect(element.$$('horizontal-bar-chart').checkboxName).to.equal('Checkbox');
+      expect(element.$$('horizontal-bar-chart').selectedIds).to.deep.equal([]);
+      expect(element.$$('horizontal-bar-chart').showCheckboxes).to.be.true;
     });
 
     test('_createShowMoreListener() does return an object', function() {
@@ -556,29 +464,47 @@ limitations under the License.
       element = fixture('feature-aggregation-fixture');
       element.items = [{
         id: 1,
-        key: 'key',
-        link: 'somelink.html',
-        text: 'a',
+        icon: 'myIcon',
+        link: 'myLink',
+        styleClass: 'myStyleClass',
+        text: 'myText1',
         count: 4
       }, {
         id: 2,
-        text: 'b',
+        text: 'myText2',
         count: 3
       }];
-      flush(function() {
-        done();
-      });
+      flush(done);
     });
 
-    test('does show a horizontal-bar element', function() {
-      var bar = element.$$('horizontal-bar');
-      expect(bar).to.exist;
-      expect(bar.name).to.equal('a');
-      expect(bar.max).to.equal(4);
-      expect(bar.count).to.equal(4);
-      expect(bar.showCheckbox).to.equal(false);
-      expect(bar.linkValue).to.equal('somelink.html');
-      expect(bar._width).to.equal(100);
+    test('does show a horizontal-bar-chart element', function() {
+      expect(element.$$('horizontal-bar-chart')).to.exist;
+      expect(element.$$('horizontal-bar-chart').data).to.deep.equal([{
+        id: 1,
+        icon: 'myIcon',
+        link: 'myLink',
+        max: 4,
+        select: false,
+        styleClass: 'myStyleClass',
+        text: 'myText1',
+        count: 4
+      }, {
+        id: 2,
+        max: 4,
+        select: false,
+        text: 'myText2',
+        count: 3
+      }]);
+      expect(element.$$('horizontal-bar-chart').countProperty).to.equal('count');
+      expect(element.$$('horizontal-bar-chart').iconProperty).to.equal('icon');
+      expect(element.$$('horizontal-bar-chart').idProperty).to.equal('id');
+      expect(element.$$('horizontal-bar-chart').linkProperty).to.equal('link');
+      expect(element.$$('horizontal-bar-chart').maxProperty).to.equal('max');
+      expect(element.$$('horizontal-bar-chart').styleClassProperty).to.equal('styleClass');
+      expect(element.$$('horizontal-bar-chart').textProperty).to.equal('text');
+      expect(element.$$('horizontal-bar-chart').checkboxName).to.equal('Filter');
+      expect(element.$$('horizontal-bar-chart').selectedIds).to.deep.equal([]);
+      expect(element.$$('horizontal-bar-chart').showCheckboxes).to.be.false;
     });
   });
 
@@ -600,22 +526,38 @@ limitations under the License.
         text: 'myText2',
         count: 3
       }];
-      flush(function() {
-        done();
-      });
+      flush(done);
     });
 
-    test('does show a double-bar element', function() {
-      expect(element.$$('double-bar')).to.exist;
-      expect(element.$$('double-bar').itemId).to.equal(1);
-      expect(element.$$('double-bar').count).to.equal(4);
-      expect(element.$$('double-bar').icon).to.equal('myIcon');
-      expect(element.$$('double-bar').link).to.equal('myLink');
-      expect(element.$$('double-bar').max).to.equal(4);
-      expect(element.$$('double-bar').styleClass).to.equal('myStyleClass');
-      expect(element.$$('double-bar').text).to.equal('myText1');
-      expect(element.$$('double-bar').selected).to.be.false;
-      expect(element.$$('double-bar').showCheckbox).to.be.false;
+    test('does show a double-bar-chart element', function() {
+      expect(element.$$('double-bar-chart')).to.exist;
+      expect(element.$$('double-bar-chart').data).to.deep.equal([{
+        id: 1,
+        icon: 'myIcon',
+        link: 'myLink',
+        max: 4,
+        select: false,
+        styleClass: 'myStyleClass',
+        text: 'myText1',
+        count: 4
+      }, {
+        id: 2,
+        max: 4,
+        select: false,
+        text: 'myText2',
+        count: 3
+      }]);
+      expect(element.$$('double-bar-chart').countProperty).to.equal('count');
+      expect(element.$$('double-bar-chart').iconProperty).to.equal('icon');
+      expect(element.$$('double-bar-chart').idProperty).to.equal('id');
+      expect(element.$$('double-bar-chart').linkProperty).to.equal('link');
+      expect(element.$$('double-bar-chart').maxProperty).to.equal('max');
+      expect(element.$$('double-bar-chart').styleClassProperty).to.equal('styleClass');
+      expect(element.$$('double-bar-chart').textProperty).to.equal('text');
+      expect(element.$$('double-bar-chart').checkboxName).to.equal('Filter');
+      expect(element.$$('double-bar-chart').maxOtherCount).to.equal(0);
+      expect(element.$$('double-bar-chart').selectedIds).to.deep.equal([]);
+      expect(element.$$('double-bar-chart').showCheckboxes).to.be.false;
     });
   });
 </script>
