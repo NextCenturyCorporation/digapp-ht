@@ -1187,8 +1187,7 @@ limitations under the License.
         property: 'phone',
         type: 'phone'
       });
-      expect(output.header).to.deep.equal('No Telephone Numbers');
-      expect(output.data).to.deep.equal([]);
+      expect(output).to.deep.equal([]);
     });
 
     test('offer extractions function given input array and config returns correct output', function() {
@@ -1196,8 +1195,7 @@ limitations under the License.
         property: 'phone',
         type: 'phone'
       });
-      expect(output.header).to.equal('2 Telephone Numbers');
-      expect(output.data).to.deep.equal([{
+      expect(output).to.deep.equal([{
         annotate: true,
         confidence: undefined,
         count: 10,
@@ -1226,8 +1224,7 @@ limitations under the License.
         property: 'phone',
         type: 'phone'
       });
-      expect(output.header).to.equal('1 Other Telephone Number');
-      expect(output.data).to.deep.equal([{
+      expect(output).to.deep.equal([{
         annotate: true,
         confidence: undefined,
         count: 1,
@@ -1238,6 +1235,75 @@ limitations under the License.
         text: '123-456-7890',
         type: 'phone'
       }]);
+    });
+  });
+
+  suite('<client-config> offer tests for offer extractions title', function() {
+    var clientConfig;
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var data = {
+      aggregations: {
+        phone: {
+          phone: {
+            buckets: [{
+              doc_count: 10,
+              key: '+1-9876543210',
+            }, {
+              doc_count: 1,
+              key: '1234567890',
+            }]
+          }
+        }
+      }
+    };
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with offer extractions title transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer).to.be.an('Object');
+      expect(clientConfig.config.transforms.offer.offerExtractionsTitle).to.be.a('Function');
+    });
+
+    test('offer extractions title function given size=0 returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.offerExtractionsTitle(0, {
+        type: 'phone'
+      });
+      expect(output).to.equal('No Telephone Numbers');
+    });
+
+    test('offer extractions title function given size=1 returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.offerExtractionsTitle(1, {
+        type: 'phone'
+      });
+      expect(output).to.equal('1 Telephone Number');
+    });
+
+    test('offer extractions title function given size=2 returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.offerExtractionsTitle(2, {
+        type: 'phone'
+      });
+      expect(output).to.equal('2 Telephone Numbers');
+    });
+
+    test('offer extractions title function given type=email returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.offerExtractionsTitle(2, {
+        type: 'email'
+      });
+      expect(output).to.equal('2 Email Addresses');
+    });
+
+    test('offer extractions title function given sayOther=true returns correct output', function() {
+      var output = clientConfig.config.transforms.offer.offerExtractionsTitle(2, {
+        sayOther: true,
+        type: 'phone'
+      });
+      expect(output).to.equal('2 Other Telephone Numbers');
     });
   });
 

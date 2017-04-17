@@ -16,16 +16,10 @@ limitations under the License.
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/aggregation-display/aggregation-display.html">
-<link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
 <link rel="import" href="../../bower_components/build-and-run-aggregation/build-and-run-aggregation.html">
-<link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
-<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
-<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/elastic-error/elastic-error.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
-<link rel="import" href="../../bower_components/json-combine/json-combine.html">
 <link rel="import" href="../../styles/icon-styles.html">
-<link rel="import" href="../behaviors.html">
 
 <dom-module id="feature-query-and-display">
   <template>
@@ -38,82 +32,65 @@ limitations under the License.
       }
     </style>
 
-    <!-- Use a template to ensure that the aggregation query is built and run only once the transform config is created. -->
-    <template is="dom-if" if="[[_exists(aggregationName, dataType)]]">
-      <build-and-run-aggregation
-        aggregation-count="[[aggregationCount]]"
-        aggregation-field="[[aggregationField]]"
-        aggregation-name="[[aggregationName]]"
-        query-fields="[[queryField]]"
-        query-values="[[queryValue]]"
-        client="[[client]]"
-        index-name="[[indexName]]"
-        index-types="[[indexTypes]]"
-        filters="[[filterList]]"
-        transform-config="[[_createConfig(aggregationName, dataType, ignoreId)]]"
-        transform-function="[[transformFunction]]"
-        error="{{error}}"
-        loading="{{loading}}"
-        results="{{_transformResults}}">
-      </build-and-run-aggregation>
-    </template>
+    <build-and-run-aggregation
+      aggregation-count="[[aggregationCount]]"
+      aggregation-field="[[aggregationField]]"
+      aggregation-name="[[aggregationName]]"
+      query-fields="[[queryField]]"
+      query-values="[[queryValue]]"
+      client="[[client]]"
+      index-name="[[indexName]]"
+      index-types="[[indexTypes]]"
+      filters="[[filterList]]"
+      transform-config="[[transformConfig]]"
+      transform-function="[[transformFunction]]"
+      error="{{error}}"
+      loading="{{loading}}"
+      results="{{data}}">
+    </build-and-run-aggregation>
 
     <elastic-error error="[[error]]" message="{{errorMessage}}"></elastic-error>
 
+    <!-- Yes, use the aggregationField for the queryField of the double-bar-chart in the aggregation-display! -->
     <aggregation-display class="flex"
       count-property="[[dataCountProperty]]"
       icon-property="[[dataIconProperty]]"
       id-property="[[dataIdProperty]]"
       link-property="[[dataLinkProperty]]"
-      max-property="[[dataMaxProperty]]"
       style-class-property="[[dataStyleClassProperty]]"
       text-property="[[dataTextProperty]]"
       data="[[data]]"
-      header-data-name="[[headerDataName]]"
       header-counts-name="[[headerCountsName]]"
+      header-data-name="[[headerDataName]]"
       header-entity-name="[[headerEntityName]]"
       error-message="[[errorMessage]]"
       loading="[[loading]]"
-      small="[[small]]"
       show-checkboxes="[[showCheckboxes]]"
       show-double-bar-chart="[[showDoubleBarChart]]"
       client="[[client]]"
       index-name="[[indexName]]"
       index-types="[[indexTypes]]"
       query-field="[[aggregationField]]"
+      small="[[small]]"
       selected-ids="{{selected}}">
     </aggregation-display>
   </template>
 
   <script>
   (function() {
-    /* globals DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'feature-query-and-display',
 
-      behaviors: [
-        DigBehaviors.TypeBehavior
-      ],
-
       properties: {
         /**
-         * The name for the elasticsearch aggregation.
-         */
-        aggregationName: {
-          type: String
-        },
-
-        /**
-         * The field for the elasticsearch aggregation.
-         */
-        aggregationField: {
-          type: String
-        },
-
-        /**
-         * The count of results for the elasticsearch aggregation.  Default is 0 (all results).
+         * (Optional)
+         *
+         * The count of the elasticsearch aggregation.
+         *
+         * @type {Number}
+         * @default 0
          */
         aggregationCount: {
           type: Number,
@@ -121,66 +98,303 @@ limitations under the License.
         },
 
         /**
-         * The list of strings selected for the elasticsearch filter.
+         * (Optional)
+         *
+         * The name of the elasticsearch aggregation.
+         *
+         * @type {String}
+         * @default 'aggregation'
          */
-        selected: {
-          type: Array,
-          notify: true
+        aggregationName: {
+          type: String,
+          value: 'aggregation'
         },
 
         /**
-         * The field for the elasticsearch query.
+         * (Required)
+         *
+         * The field of the elasticsearch aggregation.
+         *
+         * @type {String}
+         */
+        aggregationField: {
+          type: String
+        },
+
+        /**
+         * (Required)
+         *
+         * The elasticsearch query field.
+         *
+         * @type {String}
          */
         queryField: {
           type: String
         },
 
         /**
-         * The value for the elasticsearch query.
+         * (Required)
+         *
+         * The elasticsearch query value.
+         *
+         * @type {String}
          */
         queryValue: {
           type: String
         },
 
         /**
-         * The elasticjs query created by this component.
-         */
-        query: {
-          type: Object,
-          notify: true
-        },
-
-        /**
+         * (Required)
+         *
          * The elasticsearch client.
+         *
+         * @type {Object}
          */
         client: {
           type: Object
         },
 
         /**
+         * (Required)
+         *
          * The elasticsearch index to query.
+         *
+         * @type {String}
          */
         indexName: {
           type: String
         },
 
         /**
+         * (Required)
+         *
          * The elasticsearch index types to query.
+         *
+         * @type {Array}
          */
         indexTypes: {
           type: Array
         },
 
         /**
-         * The list of elasticjs filters used in the aggregations run by this component.
+         * (Required)
+         *
+         * The list of elasticsearch query filters.
+         *
+         * @type {Array}
          */
         filterList: {
-          type: Array,
-          notify: true
+          type: Array
         },
 
         /**
-         * The error message.
+         * (Required)
+         *
+         * The elasticsearch query results transform function config.
+         *
+         * @type {Object}
+         */
+        transformConfig: {
+          type: Object
+        },
+
+        /**
+         * (Required)
+         *
+         * The elasticsearch query results transform function.
+         *
+         * @type {Function}
+         */
+        transformFunction: {
+          type: Function
+        },
+
+        /**
+         * (Optional)
+         *
+         * The count property in the data objects.
+         *
+         * @type {String}
+         * @default 'count'
+         */
+        dataCountProperty: {
+          type: String,
+          value: 'count'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The icon property in the data objects.
+         *
+         * @type {String}
+         * @default 'icon'
+         */
+        dataIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The ID property in the data objects.
+         *
+         * @type {String}
+         * @default 'id'
+         */
+        dataIdProperty: {
+          type: String,
+          value: 'id'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The link property in the data objects.
+         *
+         * @type {String}
+         * @default 'link'
+         */
+        dataLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The style class property in the data objects.
+         *
+         * @type {String}
+         * @default 'styleClass'
+         */
+        dataStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The text property in the data objects.
+         *
+         * @type {String}
+         * @default 'text'
+         */
+        dataTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The header counts name.
+         *
+         * @type {String}
+         * @default ''
+         */
+        headerCountsName: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The header data name.
+         *
+         * @type {String}
+         * @default ''
+         */
+        headerDataName: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The header entity name.
+         *
+         * @type {String}
+         * @default ''
+         */
+        headerEntityName: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to show checkboxes in the bar chart.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        showCheckboxes: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to show the double-bar-chart element.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        showDoubleBarChart: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether the element is small.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        small: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Output)
+         *
+         * The transformed query results.
+         *
+         * @type {Array}
+         */
+        data: {
+          notify: true,
+          type: Array
+        },
+
+        /**
+         * (Output)
+         *
+         * The elasticsearch query error.
+         *
+         * @type {Object}
+         */
+        error: {
+          type: Object
+        },
+
+        /**
+         * (Output)
+         *
+         * The elasticsearch query error message.
+         *
+         * @type {String}
+         * @default ''
          */
         errorMessage: {
           notify: true,
@@ -189,7 +403,12 @@ limitations under the License.
         },
 
         /**
+         * (Output)
+         *
          * Whether the query run by this component is loading.
+         *
+         * @type {Boolean}
+         * @default false
          */
         loading: {
           notify: true,
@@ -198,209 +417,16 @@ limitations under the License.
         },
 
         /**
-         * The elasticsearch query error.
+         * (Output)
+         *
+         * The list of selected IDs from the data.
+         *
+         * @type {Array}
          */
-        error: {
-          type: Object
-        },
-
-        /**
-         * The ID to ignore in the feature transform (if any).
-         */
-        ignoreId: {
-          type: String,
-          value: ''
-        },
-
-        /**
-         * The transform function for the query results.
-         */
-        transformFunction: {
-          type: Object
-        },
-
-        /**
-         * The property with the data in the transform results object.  By default, uses the transform results object itself.
-         */
-        dataProperty: {
-          type: String,
-          value: 'data'
-        },
-
-        /**
-         * The data from the transform results object.
-         */
-        data: {
+        selected: {
           notify: true,
-          type: Array,
-          computed: '_getData(_transformResults, dataProperty)'
-        },
-
-        /**
-         * Property in the data objects containing the count to display.
-         */
-        dataCountProperty: {
-          type: String,
-          value: 'count'
-        },
-
-        /**
-         * Property in the data objects containing the icon to display.
-         */
-        dataIconProperty: {
-          type: String,
-          value: 'icon'
-        },
-
-        /**
-         * Property in the data objects containing a unique ID (used to set the filter values).
-         */
-        dataIdProperty: {
-          type: String,
-          value: 'id'
-        },
-
-        /**
-         * Property in the data objects containing the link to display.
-         */
-        dataLinkProperty: {
-          type: String,
-          value: 'link'
-        },
-
-        /**
-         * Property in the data objects containing the max to display.
-         */
-        dataMaxProperty: {
-          type: String,
-          value: 'max'
-        },
-
-        /**
-         * Property in the data objects containing the style class to display.
-         */
-        dataStyleClassProperty: {
-          type: String,
-          value: 'styleClass'
-        },
-
-        /**
-         * Property in the data objects containing the text to display.
-         */
-        dataTextProperty: {
-          type: String,
-          value: 'text'
-        },
-
-        /**
-         * The property with the header in the transform results object.
-         */
-        headerProperty: {
-          type: String,
-          value: 'header'
-        },
-
-        /**
-         * The header from the transform results object.
-         */
-        header: {
-          notify: true,
-          type: String,
-          computed: '_getHeader(_transformResults, headerProperty)'
-        },
-
-        /**
-         * The type of the data.
-         */
-        dataType: {
-          type: String
-        },
-
-        /**
-         * The header data name.
-         */
-        headerDataName: {
-          type: String
-        },
-
-        /**
-         * The header counts name.
-         */
-        headerCountsName: {
-          type: String
-        },
-
-        /**
-         * The header entity name.
-         */
-        headerEntityName: {
-          type: String
-        },
-
-        /**
-         * Whether the element is small.
-         */
-        small: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether or not to display checkboxes in the bar chart.
-         */
-        showCheckboxes: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether to show the double-bar-chart element.
-         */
-        showDoubleBarChart: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * The elasticjs aggregation created by this component.
-         */
-        _aggregation: {
-          type: Object
-        },
-
-        /**
-         * The results of the query run by this component.
-         */
-        _queryResults: {
-          type: Object
-        },
-
-        /**
-         * The results of the transform run by this component.
-         */
-        _transformResults: {
-          type: Object
+          type: Array
         }
-      },
-
-      _createConfig: function(aggregationName, dataType, ignoreId) {
-        return {
-          ignoreId: ignoreId,
-          property: aggregationName,
-          type: dataType
-        };
-      },
-
-      _exists: function(aggregationName, dataType) {
-        return !!aggregationName && !!dataType;
-      },
-
-      _getData: function(data, property) {
-        return property ? data[property] : data;
-      },
-
-      _getHeader: function(data, property) {
-        return property ? (data[property] || '') : '';
       }
     });
   })();

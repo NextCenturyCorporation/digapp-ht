@@ -356,8 +356,8 @@ var offerTransform = (function(_, commonTransforms) {
     return offer;
   }
 
-  function getHeader(length, type, sayOther) {
-    return (length || 'No') + (sayOther ? ' Other ' : ' ') + commonTransforms.getName(type, length !== 1);
+  function getTitle(size, type, sayOther) {
+    return (size || 'No') + (sayOther ? ' Other ' : ' ') + commonTransforms.getName(type, size !== 1);
   }
 
   return {
@@ -413,14 +413,15 @@ var offerTransform = (function(_, commonTransforms) {
         });
       }
 
-      return {
-        data: extractions,
-        header: getHeader(extractions.length, type, sayOther)
-      };
+      return extractions;
+    },
+
+    offerExtractionsTitle: function(size, config) {
+      return getTitle(size, config.type, config.sayOther);
     },
 
     offerLocationsHeader: function(data) {
-      return getHeader(data.length, 'location');
+      return getTitle(data.length, 'location');
     },
 
     locationPageMap: function(locationId, data) {

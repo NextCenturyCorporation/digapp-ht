@@ -370,6 +370,13 @@ limitations under the License.
 
                 <!-- City summary -->
                 <section class="where-details location-section flex-none">
+                  <json-combine
+                    data-in1="[[locationData.length]]"
+                    data-in2='{"type":"location","sayOther":false}'
+                    data-out="{{locationHeader}}"
+                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
+                  </json-combine>
+
                   <feature-query-and-display
                     aggregation-name="location"
                     aggregation-field="fields.city.strict.key"
@@ -380,10 +387,9 @@ limitations under the License.
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
                     filter-list="[[filterList]]"
+                    transform-config="[[createAggregationTransformConfig('location')]]"
                     transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
                     data="{{locationData}}"
-                    header="{{locationHeader}}"
-                    data-type="location"
                     header-data-name="Location"
                     header-counts-name="Ads"
                     show-checkboxes>
@@ -406,6 +412,13 @@ limitations under the License.
                     </div>
                   </div>
 
+                  <json-combine
+                    data-in1="[[phoneData.length]]"
+                    data-in2='{"type":"phone","sayOther":false}'
+                    data-out="{{phoneHeader}}"
+                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
+                  </json-combine>
+
                   <feature-query-and-display
                     aggregation-name="phone"
                     aggregation-field="fields.phone.strict.key"
@@ -416,10 +429,9 @@ limitations under the License.
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
                     filter-list="[[filterList]]"
+                    transform-config="[[createAggregationTransformConfig('phone')]]"
                     transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
                     data="{{phoneData}}"
-                    header="{{phoneHeader}}"
-                    data-type="phone"
                     header-data-name="Phone"
                     header-counts-name="Ads"
                     header-entity-name="[[params.id]]"
@@ -436,12 +448,19 @@ limitations under the License.
                 <section class="who phone-section">
                   <div class="paper-font-title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-email-font" icon="communication:email"></iron-icon>
-                    <div class="flex">[[otherEmailHeader]]</div>
+                    <div class="flex">[[emailHeader]]</div>
                     <div class="copy-data" id="emailDataClipboard" title="Copy Other Email Addresses to Clipboard" data-clipboard-text$="[[getClipboardText(emailData)]]">
                       Copy
                       <iron-icon icon="content-copy"></iron-icon>
                     </div>
                   </div>
+
+                  <json-combine
+                    data-in1="[[emailData.length]]"
+                    data-in2='{"type":"email","sayOther":true}'
+                    data-out="{{emailHeader}}"
+                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
+                  </json-combine>
 
                   <feature-query-and-display
                     aggregation-name="email"
@@ -453,11 +472,9 @@ limitations under the License.
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
                     filter-list="[[filterList]]"
-                    ignore-id="[[params.id]]"
+                    transform-config="[[createAggregationTransformConfig('email', params.id)]]"
                     transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
                     data="{{emailData}}"
-                    header="{{otherEmailHeader}}"
-                    data-type="email"
                     header-data-name="Email"
                     header-counts-name="Ads"
                     header-entity-name="[[params.id]]"
@@ -480,8 +497,15 @@ limitations under the License.
                     </div>
                   </div>
 
+                  <json-combine
+                    data-in1="[[publisherData.length]]"
+                    data-in2='{"type":"webpage","sayOther":false}'
+                    data-out="{{publisherHeader}}"
+                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
+                  </json-combine>
+
                   <feature-query-and-display
-                    aggregation-name="publisher"
+                    aggregation-name="webpage"
                     aggregation-field="tld.raw"
                     selected="{{filterCollection.publisher}}"
                     query-field="fields.email.strict.key"
@@ -490,10 +514,9 @@ limitations under the License.
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
                     filter-list="[[filterList]]"
+                    transform-config="[[createAggregationTransformConfig('webpage')]]"
                     transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
                     data="{{publisherData}}"
-                    header="{{publisherHeader}}"
-                    data-type="webpage"
                     header-data-name="Website"
                     header-counts-name="Ads"
                     show-checkboxes>
@@ -514,6 +537,13 @@ limitations under the License.
                     </div>
                   </div>
 
+                  <json-combine
+                    data-in1="[[socialData.length]]"
+                    data-in2='{"type":"social","sayOther":false}'
+                    data-out="{{socialHeader}}"
+                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
+                  </json-combine>
+
                   <feature-query-and-display
                     aggregation-name="social"
                     aggregation-field="fields.social_media_id.strict.key"
@@ -524,10 +554,9 @@ limitations under the License.
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
                     filter-list="[[filterList]]"
+                    transform-config="[[createAggregationTransformConfig('social')]]"
                     transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
                     data="{{socialData}}"
-                    header="{{socialHeader}}"
-                    data-type="social"
                     header-data-name="Social Media ID"
                     header-counts-name="Ads"
                     show-checkboxes>
@@ -801,6 +830,14 @@ limitations under the License.
         }
         return item.id;
       }).join(',');
+    };
+
+    app.createAggregationTransformConfig = function(type, ignoreId) {
+      return {
+        property: type,
+        type: type,
+        ignoreId: ignoreId
+      };
     };
   })(document);
   </script>

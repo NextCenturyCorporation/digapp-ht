@@ -35,114 +35,99 @@ limitations under the License.
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, test, expect, flush */
+  /* globals suite, setup, fixture, test, expect */
   /* jshint -W030 */
   suite('feature-query-and-display tests', function() {
     var element;
 
     setup(function() {
       element = fixture('feature-query-and-display-fixture');
+      element.aggregationField = 'myAggregationField';
+      element.headerCountsName = 'My Counts';
+      element.headerDataName = 'My Data';
+      element.headerEntityName = 'My Entity';
+      element.indexName = 'myIndexName';
+      element.indexTypes = ['myIndexType'];
+      element.queryField = 'myQueryField';
+      element.queryValue = 'myQueryValue';
+      element.transformConfig = {
+        key: 'value'
+      };
+      element.transformFunction = function() {};
+    });
+
+    test('input properties are set correctly', function() {
+      expect(element.aggregationField).to.equal('myAggregationField');
+      expect(element.headerCountsName).to.equal('My Counts');
+      expect(element.headerDataName).to.equal('My Data');
+      expect(element.headerEntityName).to.equal('My Entity');
+      expect(element.indexName).to.equal('myIndexName');
+      expect(element.indexTypes).to.deep.equal(['myIndexType']);
+      expect(element.queryField).to.equal('myQueryField');
+      expect(element.queryValue).to.equal('myQueryValue');
+      expect(element.transformConfig).to.deep.equal({
+        key: 'value'
+      });
+      expect(element.transformFunction).to.be.a('Function');
     });
 
     test('default properties are set correctly', function() {
       expect(element.aggregationCount).to.equal(0);
-      expect(element.ignoreId).to.equal('');
-      expect(element.dataProperty).to.equal('data');
+      expect(element.aggregationName).to.equal('aggregation');
       expect(element.dataCountProperty).to.equal('count');
       expect(element.dataIconProperty).to.equal('icon');
       expect(element.dataIdProperty).to.equal('id');
       expect(element.dataLinkProperty).to.equal('link');
-      expect(element.dataMaxProperty).to.equal('max');
       expect(element.dataStyleClassProperty).to.equal('styleClass');
       expect(element.dataTextProperty).to.equal('text');
-      expect(element.headerProperty).to.equal('header');
       expect(element.showCheckboxes).to.be.false;
       expect(element.showDoubleBarChart).to.be.false;
+      expect(element.small).to.be.false;
+      expect(element.error).to.not.exist;
+      expect(element.errorMessage).to.equal('');
       expect(element.loading).to.be.false;
     });
 
-    test('_createConfig does return correctly', function() {
-      expect(element._createConfig()).to.deep.equal({
-        ignoreId: undefined,
-        property: undefined,
-        type: undefined
+    test('does show a build-and-run-aggregation-query element', function() {
+      expect(element.$$('build-and-run-aggregation')).to.exist;
+      expect(element.$$('build-and-run-aggregation').aggregationCount).to.equal(0);
+      expect(element.$$('build-and-run-aggregation').aggregationField).to.equal('myAggregationField');
+      expect(element.$$('build-and-run-aggregation').aggregationName).to.equal('aggregation');
+      expect(element.$$('build-and-run-aggregation').queryFields).to.equal('myQueryField');
+      expect(element.$$('build-and-run-aggregation').queryValues).to.equal('myQueryValue');
+      expect(element.$$('build-and-run-aggregation').indexName).to.equal('myIndexName');
+      expect(element.$$('build-and-run-aggregation').indexTypes).to.deep.equal(['myIndexType']);
+      expect(element.$$('build-and-run-aggregation').transformConfig).to.deep.equal({
+        key: 'value'
       });
-      expect(element._createConfig('property', 'type', 'id')).to.deep.equal({
-        ignoreId: 'id',
-        property: 'property',
-        type: 'type'
-      });
+      expect(element.$$('build-and-run-aggregation').transformFunction).to.deep.equal(element.transformFunction);
+      expect(element.$$('build-and-run-aggregation').loading).to.be.false;
+      expect(element.$$('build-and-run-aggregation').client).to.not.exist;
+      expect(element.$$('build-and-run-aggregation').error).to.not.exist;
+      expect(element.$$('build-and-run-aggregation').results).to.not.exist;
     });
 
-    test('does not show a build-and-run-aggregation-query element if aggregationName or dataType are undefined', function() {
-      expect(element.$$('build-and-run-aggregation')).to.not.exist;
-    });
-
-    test('does show a build-and-run-aggregation-query element if aggregationName and dataType are defined', function(done) {
-      element.aggregationName = 'myName';
-      element.dataType = 'myType';
-      flush(function() {
-        expect(element.$$('build-and-run-aggregation')).to.exist;
-        expect(element.$$('build-and-run-aggregation').transformConfig).to.deep.equal({
-          ignoreId: '',
-          property: 'myName',
-          type: 'myType'
-        });
-        done();
-      });
-    });
-
-    test('_getData does return correctly', function() {
-      var data = {
-        property: [1, 2, 3, 4, 5]
-      };
-      expect(element._getData(data, '')).to.deep.equal(data);
-      expect(element._getData(data, 'property')).to.deep.equal([1, 2, 3, 4, 5]);
-    });
-
-    test('_getHeader does return correctly', function() {
-      var data = {
-        property: 'header'
-      };
-      expect(element._getHeader(data, '')).to.equal('');
-      expect(element._getHeader(data, 'property')).to.equal('header');
-    });
-
-    test('setting _transformResults does update data and header', function() {
-      expect(element.data).to.not.exist;
-      expect(element.header).to.not.exist;
-
-      element._transformResults = {
-        data: [{
-          count: 1,
-        }, {
-          count: 2,
-        }, {
-          count: 3,
-        }, {
-          count: 4,
-        }, {
-          count: 5
-        }],
-        header: 'header'
-      };
-
-      expect(element.data).to.deep.equal([{
-        count: 1,
-      }, {
-        count: 2,
-      }, {
-        count: 3,
-      }, {
-        count: 4,
-      }, {
-        count: 5
-      }]);
-      expect(element.header).to.equal('header');
-    });
-
-    test('does show a aggregation-display element', function() {
+    test('does show an aggregation-display element', function() {
       expect(element.$$('aggregation-display')).to.exist;
+      expect(element.$$('aggregation-display').countProperty).to.equal('count');
+      expect(element.$$('aggregation-display').iconProperty).to.equal('icon');
+      expect(element.$$('aggregation-display').idProperty).to.equal('id');
+      expect(element.$$('aggregation-display').linkProperty).to.equal('link');
+      expect(element.$$('aggregation-display').styleClassProperty).to.equal('styleClass');
+      expect(element.$$('aggregation-display').textProperty).to.equal('text');
+      expect(element.$$('aggregation-display').headerCountsName).to.equal('My Counts');
+      expect(element.$$('aggregation-display').headerDataName).to.equal('My Data');
+      expect(element.$$('aggregation-display').headerEntityName).to.equal('My Entity');
+      expect(element.$$('aggregation-display').showCheckboxes).to.be.false;
+      expect(element.$$('aggregation-display').showDoubleBarChart).to.be.false;
+      expect(element.$$('aggregation-display').indexName).to.equal('myIndexName');
+      expect(element.$$('aggregation-display').indexTypes).to.deep.equal(['myIndexType']);
+      expect(element.$$('aggregation-display').queryField).to.equal('myAggregationField');
+      expect(element.$$('aggregation-display').small).to.be.false;
+      expect(element.$$('aggregation-display').errorMessage).to.equal('');
+      expect(element.$$('aggregation-display').loading).to.be.false;
+      expect(element.$$('aggregation-display').selectedIds).to.deep.equal([]);
+      expect(element.$$('aggregation-display').client).to.not.exist;
     });
   });
 </script>
