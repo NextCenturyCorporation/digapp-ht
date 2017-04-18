@@ -14,20 +14,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/aggregation-dialog/aggregation-dialog.html">
 <link rel="import" href="../../bower_components/aggregation-display/aggregation-display.html">
 <link rel="import" href="../../bower_components/aggregation-sort/aggregation-sort.html">
 <link rel="import" href="../../bower_components/elastic-error/elastic-error.html">
-<link rel="import" href="../../bower_components/horizontal-bar/horizontal-bar.html">
 <link rel="import" href="../../bower_components/iron-collapse/iron-collapse.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../../bower_components/status-text/status-text.html">
-<link rel="import" href="../aggregation-popup/aggregation-popup.html">
 <link rel="import" href="../facet-aggregation-query/facet-aggregation-query.html">
 <link rel="import" href="../select-all/select-all.html">
 <link rel="import" href="../terms-transformer/terms-transformer.html">
-<link rel="import" href="../behaviors.html">
 <link rel="import" href="../../styles/facet-styles.html">
 
 <dom-module id="facet-list">
@@ -39,12 +36,12 @@ limitations under the License.
         display: block;
       }
 
-      aggregation-popup ::content .bar,
+      aggregation-dialog ::content .bar,
       aggregation-display ::content .bar {
         background-color: var(--facet-background-color);
       }
 
-      aggregation-popup ::content .bar-count,
+      aggregation-dialog ::content .bar-count,
       aggregation-display ::content .bar-count {
         color: var(--primary-text-color);
         font-weight: normal;
@@ -52,7 +49,7 @@ limitations under the License.
     </style>
     <!-- title section of facet list -->
     <div id="header" class="layout horizontal facet filter-header" title="Toggle [[title]]" on-tap="toggleList">
-      <span class="flex">[[_getLabelAndCount(title, _resultList)]]</span>
+      <span class="flex">[[_getTitleAndCount(title, limit, _resultList.length)]]</span>
       <iron-icon id="list-status-icon" icon$="[[_getToggleIcon(opened)]]"></iron-icon>
     </div>
 
@@ -83,42 +80,46 @@ limitations under the License.
       object="{{searchParamSubset}}">
     </terms-transformer>
 
-    <div class="horizontal layout">
-      <div class="flex self-start">
-        <aggregation-popup
-          aggregation-count="{{_aggCount}}"
-          data="[[_resultList]]"
-          image-style-class="[[imageStyleClass]]"
-          error-message="[[_errorMessage]]"
-          loading="[[_loading]]"
-          header-data-name="[[title]]"
-          header-counts-name="[[headerCountsName]]"
-          text-property="[[textProperty]]"
-          order-by="{{_sortOrder}}"
-          selected-ids="{{_selectedList}}">
-        </aggregation-popup>
-      </div>
-      <div class="self-end">
-        <template is="dom-if" if="[[_resultList.length]]">
-          <aggregation-sort order-by="{{_sortOrder}}"></aggregation-sort>
-        </template>
-      </div>
-    </div>
-
-    <select-all
-      list="[[_resultList]]"
-      loading="[[_loading]]"
-      selected="{{_selectedList}}">
-    </select-all>
-
     <!-- display of results from aggregation query that user can check/uncheck -->
     <iron-collapse id="list" class="filter-list" opened="{{opened}}">
+      <div class="horizontal layout">
+        <div class="flex self-start">
+          <aggregation-dialog
+            text-property="[[textProperty]]"
+            data="[[_resultList]]"
+            dialog-header="[[_getTitleAndCount(title, _aggCount, _resultList.length)]]"
+            error-message="[[_errorMessage]]"
+            loading="[[_loading]]"
+            header-data-name="[[title]]"
+            header-counts-name="[[headerCountsName]]"
+            show-checkboxes
+            checkbox-name="Search"
+            limit="{{_aggCount}}"
+            order-by="{{_sortOrder}}"
+            selected-ids="{{_selectedList}}">
+          </aggregation-dialog>
+        </div>
+        <div class="self-end">
+          <template is="dom-if" if="[[_resultList.length]]">
+            <aggregation-sort order-by="{{_sortOrder}}"></aggregation-sort>
+          </template>
+        </div>
+      </div>
+
+      <select-all
+        list="[[_resultList]]"
+        loading="[[_loading]]"
+        selected="{{_selectedList}}">
+      </select-all>
+
       <aggregation-display
-        hide-show-more small
+        small
+        hide-show-more
         show-checkboxes
         checkbox-name="Search"
         text-property="[[textProperty]]"
         data="[[_resultList]]"
+        limit="[[limit]]"
         error-message="[[_errorMessage]]"
         loading="[[_loading]]"
         selected-ids="{{_selectedList}}">
@@ -217,7 +218,7 @@ limitations under the License.
           type: String
         },
         /**
-         * Image style class for aggregation-popup (if any).
+         * Image style class for aggregation-dialog (if any).
          */
         imageStyleClass: {
           type: String
@@ -225,7 +226,7 @@ limitations under the License.
         /**
          * Max number shown in list of facets.
          */
-        maxListLength: {
+        limit: {
           type: Number,
           value: 10
         },
@@ -252,7 +253,7 @@ limitations under the License.
           notify: true
         },
         /**
-         * Count type to pass along to aggregation-popup for text display.
+         * Count type to pass along to aggregation-dialog for text display.
          */
         headerCountsName: {
           type: String,
@@ -307,12 +308,15 @@ limitations under the License.
         }
 
       },
+
       toggleList: function() {
         this.$$('#list').toggle();
       },
-      _getLabelAndCount: function(title, list) {
-        return title + (list.length ? (list.length >= this.maxListLength ? ' (Top ' + this.maxListLength + ')' : ' (' + list.length + ')') : '');
+
+      _getTitleAndCount: function(title, limit, count) {
+        return title + (count ? (count >= limit ? ' (Top ' + limit + ')' : ' (' + count + ')') : '');
       },
+
       _getToggleIcon: function(opened) {
         return opened === false ? this.closedIcon : this.openedIcon;
       }
