@@ -38,8 +38,10 @@ var imageTransform = (function(_, commonTransforms) {
 
     images: function(data) {
       var images = [];
+      var max = 0;
+
       if(data && data.aggregations && data.aggregations.image && data.aggregations.image.image && data.aggregations.image.image.buckets) {
-        data.aggregations.image.image.buckets.forEach(function(bucket) {
+        data.aggregations.image.image.buckets.forEach(function(bucket, index) {
           /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
           var count = bucket.doc_count;
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -49,11 +51,27 @@ var imageTransform = (function(_, commonTransforms) {
             link: commonTransforms.getLink(bucket.key, 'image'),
             source: bucket.key,
             styleClass: commonTransforms.getStyleClass('image'),
-            text: ''
+            text: 'Image #' + (index + 1)
           });
+          max = Math.max(max, count);
         });
       }
+
+      images.forEach(function(image) {
+        image.max = max;
+      });
+
       return images;
+    },
+
+    imageTitle: function(totalCount, totalShown) {
+      if(totalCount) {
+        // Use regex replace to add commas to count.
+        var totalCountString = totalCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var totalShownString = totalShown.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return (totalCount === totalShown ? '' : totalShownString + ' of ') + totalCountString + ' Image' + (totalCount === 1 ? '' : 's');
+      }
+      return 'No Images';
     },
 
     externalImageLink: function(id) {
