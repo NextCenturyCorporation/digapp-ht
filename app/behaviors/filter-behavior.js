@@ -24,6 +24,10 @@ var DigBehaviors = DigBehaviors || {};
 DigBehaviors.FilterBehavior = {
   /**
    * Returns whether all the items in the given filter collection are disabled.
+   *
+   * @param {Object} collection
+   * @param {Array} ignore
+   * @return {Boolean}
    */
   areAllDisabled: function(collection, ignore) {
     return _.keys(collection).every(function(type) {
@@ -33,6 +37,32 @@ DigBehaviors.FilterBehavior = {
       return _.keys(collection[type]).every(function(term) {
         return !collection[type][term].enabled;
       });
+    });
+  },
+
+  /**
+   * Returns the two-element array of start and end dates from the given date filter object.  If a start or end date is not set or enabled the array will have null at that index.
+   *
+   * @param {Object} object
+   * @return {Array}
+   */
+  getFilterDates: function(object) {
+    var start = object.dateStart && object.dateStart.enabled ? object.dateStart.date : null;
+    var end = object.dateEnd && object.dateEnd.enabled ? object.dateEnd.date : null;
+    return [start, end];
+  },
+
+  /**
+   * Returns the array of enabled query terms from the given filter object.
+   *
+   * @param {Object} object
+   * @return {Array}
+   */
+  getFilterTerms: function(object) {
+    return _.keys(object).filter(function(key) {
+      return object[key].enabled;
+    }).map(function(key) {
+      return key;
     });
   }
 };

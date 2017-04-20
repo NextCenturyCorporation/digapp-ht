@@ -119,13 +119,15 @@ DigBehaviors.StateBehavior = {
    * @param {String} key
    * @param {String} title
    * @param {String} aggField
+   * @param {String} queryField
    * @return {Object}
    */
-  createSingleSearchField: function(key, title, aggField) {
+  createSingleSearchField: function(key, title, aggField, queryField) {
     return {
       key: key,
       title: title,
       aggregationField: aggField,
+      queryField: queryField,
       value: ''
     };
   },
@@ -135,16 +137,17 @@ DigBehaviors.StateBehavior = {
    *
    * @param {String} key
    * @param {String} title
-   * @param {String} aggField
+   * @param {String} field
    * @param {String} prefixLabel
    * @param {String} dateIdentifier
    * @return {Object}
    */
-  createDateField: function(key, title, aggField, prefixLabel, dateIdentifier) {
+  createDateField: function(key, title, field, prefixLabel, dateIdentifier) {
     return {
       key: key,
       title: title,
-      aggregationField: aggField,
+      aggregationField: field,
+      queryField: field,
       value: {},
       prefixLabel: prefixLabel,
       dateIdentifier: dateIdentifier

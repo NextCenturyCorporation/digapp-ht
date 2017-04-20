@@ -19,7 +19,8 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
 <link rel="import" href="../../bower_components/json-combine/json-combine.html">
-<link rel="import" href="../query-builder/query-builder.html">
+<link rel="import" href="../../bower_components/query-builder/query-builder.html">
+<link rel="import" href="../behaviors.html">
 
 <dom-module id="facet-aggregation-query">
   <template>
@@ -28,11 +29,12 @@ limitations under the License.
         display: block;
       }
     </style>
+
     <query-builder
-      ignore-type="[[name]]"
-      search-parameters="[[searchParameters]]"
-      query="{{_query}}"
-      demand="[[demandSearch]]">
+      callback="[[_queryBuilderCallback]]"
+      config="[[queryBuilderConfig]]"
+      data="[[searchParameters]]"
+      query="{{_query}}">
     </query-builder>
 
     <elastic-client-search
@@ -73,10 +75,13 @@ limitations under the License.
 
     Polymer({
       is: 'facet-aggregation-query',
-      behaviors: [DigBehaviors.ArrayBehavior],
+
+      behaviors: [
+        DigBehaviors.ArrayBehavior,
+        DigBehaviors.FilterBehavior
+      ],
 
       properties: {
-
         /**
          * Name to use for elasticsearch aggregation. Also used for the ignoreType in <query-builder>.
          */
@@ -85,17 +90,17 @@ limitations under the License.
         },
 
         /**
-         * The parameters for the query.
+         * The query builder config.
          */
-        searchParameters: {
+        queryBuilderConfig: {
           type: Object
         },
 
         /**
-         * Whether to demand a match-all query to be built if the search parameters are empty.
+         * The parameters for the query.
          */
-        demandSearch: {
-          type: Boolean
+        searchParameters: {
+          type: Object
         },
 
         /**
@@ -200,6 +205,16 @@ limitations under the License.
          */
         _aggregation: {
           type: Object
+        },
+
+        _queryBuilderCallback: {
+          type: Object,
+          value: function() {
+            return {
+              dates: this.getFilterDates,
+              terms: this.getFilterTerms
+            };
+          }
         }
       }
     });

@@ -59,18 +59,18 @@ limitations under the License.
     });
 
     test('properties are initialized correctly', function() {
-      assert.equal(element.maxListLength, 10);
+      assert.equal(element.limit, 10);
       assert.equal(element.openedIcon, 'icons:expand-less');
       assert.equal(element.closedIcon, 'icons:expand-more');
       assert.isTrue(element.opened);
-      assert.equal(element.countType, 'Ads');
+      assert.equal(element.headerCountsName, 'Ads');
       assert.equal(element._sortOrder, '');
     });
 
     test('template has expected header elements', function() {
       assert.isNotNull(element.$$('#header'));
       assert.equal(element.$$('#header').title, 'Toggle ' + element.title);
-      assert.isTrue(element.$$('#header').textContent.includes(element._getLabelAndCount(element.title, element._resultList)));
+      assert.isTrue(element.$$('#header').textContent.includes(element._getTitleAndCount(element.title, element._resultList)));
       assert.isNotNull(element.$$('iron-icon[id="list-status-icon"]'));
       assert.equal(element.$$('iron-icon[id="list-status-icon"]').parentNode, element.$$('#header'));
       assert.equal(element.$$('iron-icon[id="list-status-icon"]').icon, element.openedIcon);
@@ -79,7 +79,7 @@ limitations under the License.
     test('template has expected elements beneath header', function() {
       assert.isNotNull(element.$$('facet-aggregation-query'));
       assert.isNotNull(element.$$('terms-transformer'));
-      assert.isNotNull(element.$$('aggregation-popup'));
+      assert.isNotNull(element.$$('aggregation-dialog'));
       assert.isNull(element.$$('aggregation-sort')); // sort will only exist if element._resultList.length > 0
       assert.isNotNull(element.$$('select-all'));
     });
@@ -89,10 +89,12 @@ limitations under the License.
 
       flush(function() {
         assert.isNotNull(element.$$('facet-aggregation-query'));
+        assert.isNotNull(element.$$('elastic-error'));
         assert.isNotNull(element.$$('terms-transformer'));
-        assert.isNotNull(element.$$('aggregation-popup'));
+        assert.isNotNull(element.$$('aggregation-dialog'));
         assert.isNotNull(element.$$('aggregation-sort'));
         assert.isNotNull(element.$$('select-all'));
+        assert.isNotNull(element.$$('aggregation-display'));
         done();
       });
     });
@@ -101,12 +103,10 @@ limitations under the License.
       assert.isNotNull(element.$$('iron-collapse[id="list"]'));
       assert.equal(element.$$('iron-collapse[id="list"]').opened, element.opened);
 
+      assert.isNotNull(element.$$('select-all'));
+      assert.equal(element.$$('select-all').parentNode, element.$$('iron-collapse[id="list"]'));
       assert.isNotNull(element.$$('aggregation-display'));
-      assert.isNotNull(element.$$('elastic-error'));
-      assert.isNotNull(element.$$('status-text'));
       assert.equal(element.$$('aggregation-display').parentNode, element.$$('iron-collapse[id="list"]'));
-      assert.equal(element.$$('elastic-error').parentNode, element.$$('iron-collapse[id="list"]'));
-      assert.equal(element.$$('status-text').parentNode, element.$$('iron-collapse[id="list"]'));
     });
 
     test('toggleList() has the correct end result', function(done) {
@@ -120,9 +120,11 @@ limitations under the License.
       });
     });
 
-    test('_getLabelAndCount() returns correct string', function() {
-      assert.equal(element._getLabelAndCount('Title', [1, 2, 3, 4]), 'Title (4)');
-      assert.equal(element._getLabelAndCount('Title', [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]), 'Title (Top 10)');
+    test('_getTitleAndCount() returns correct string', function() {
+      assert.equal(element._getTitleAndCount('Title', 10, 0), 'Title');
+      assert.equal(element._getTitleAndCount('Title', 10, 5), 'Title (5)');
+      assert.equal(element._getTitleAndCount('Title', 10, 10), 'Title (Top 10)');
+      assert.equal(element._getTitleAndCount('Title', 10, 15), 'Title (Top 10)');
     });
 
     test('_getToggleIcon() returns expected value', function() {
