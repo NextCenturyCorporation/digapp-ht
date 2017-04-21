@@ -19,50 +19,60 @@
 var DigBehaviors = DigBehaviors || {};
 
 /**
- * Polymer behavior for collections of filters such as the search parameters.
+ * Polymer behavior for collections of filters such as the search facets.
  */
 DigBehaviors.FilterBehavior = {
   /**
-   * Returns whether all the items in the given filter collection are disabled.
+   * Returns whether all the items in the given search facets collection are disabled.
    *
-   * @param {Object} collection
+   * @param {Object} facets
    * @param {Array} ignore
    * @return {Boolean}
    */
-  areAllDisabled: function(collection, ignore) {
-    return _.keys(collection).every(function(type) {
-      if((ignore && ignore.indexOf(type) >= 0) || _.isEmpty(collection[type])) {
+  areAllFacetsDisabled: function(facets, ignore) {
+    return _.keys(facets).every(function(type) {
+      if((ignore && ignore.indexOf(type) >= 0) || _.isEmpty(facets[type])) {
         return true;
       }
-      return _.keys(collection[type]).every(function(term) {
-        return !collection[type][term].enabled;
+      return _.keys(facets[type]).every(function(term) {
+        return !facets[type][term].enabled;
       });
     });
   },
 
   /**
-   * Returns the two-element array of start and end dates from the given date filter object.  If a start or end date is not set or enabled the array will have null at that index.
+   * Returns the two-element array of start and end dates from the given date search facet.  If a start or end date is not set or enabled the array will have null at that index.
    *
-   * @param {Object} object
+   * @param {Object} facet
    * @return {Array}
    */
-  getFilterDates: function(object) {
-    var start = object.dateStart && object.dateStart.enabled ? object.dateStart.date : null;
-    var end = object.dateEnd && object.dateEnd.enabled ? object.dateEnd.date : null;
+  getFacetDates: function(facet) {
+    var start = facet.dateStart && facet.dateStart.enabled ? facet.dateStart.date : null;
+    var end = facet.dateEnd && facet.dateEnd.enabled ? facet.dateEnd.date : null;
     return [start, end];
   },
 
   /**
-   * Returns the array of enabled query terms from the given filter object.
+   * Returns the array of enabled query terms from the given search facet.
    *
-   * @param {Object} object
+   * @param {Object} facet
    * @return {Array}
    */
-  getFilterTerms: function(object) {
-    return _.keys(object).filter(function(key) {
-      return object[key].enabled;
+  getFacetTerms: function(facet) {
+    return _.keys(facet).filter(function(key) {
+      return facet[key].enabled;
     }).map(function(key) {
       return key;
     });
+  },
+
+  /**
+   * Returns the array of query terms from the given entity page filter.
+   *
+   * @param {Array} terms
+   * @return {Array}
+   */
+  getEntityPageFilterTerms: function(terms) {
+    return terms;
   }
 };
