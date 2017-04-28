@@ -58,7 +58,7 @@ var exportTransform = (function() {
           result.url,
           linkPrefix + result.link,
           result.title,
-          result.highRisk ? 'yes' : 'no',
+          result.flag ? 'yes' : 'no',
           result.date,
           locations,
           phones,
@@ -112,7 +112,7 @@ var exportTransform = (function() {
         });
         item.paragraphs.push({
           label: 'High Risk:  ',
-          value: result.highRisk ? 'Yes' : 'No'
+          value: result.flag ? 'Yes' : 'No'
         });
         item.paragraphs.push({
           label: 'Posting Date:  ',

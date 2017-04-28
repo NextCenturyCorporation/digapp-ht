@@ -38,140 +38,220 @@ limitations under the License.
 <script>
   /* globals suite, test, expect, setup, fixture, flush */
   /* jshint -W030 */
-  suite('<single-record>', function() {
+  suite('single-record tests', function() {
     var element;
 
     setup(function(done) {
       element = fixture('single-record-fixture');
-      element.itemId = '1';
-      element.link = 'somelink.html';
-      element.text = 'myTitle';
-      element.type = 'offer';
-      element.details = [{
-        label: 'address',
-        value: ['LA', 'SF']
+      element.images = [];
+      flush(done);
+    });
+
+    test('default properties are set correctly', function() {
+      expect(element.flag).to.equal('');
+      expect(element.highlightedText).to.equal('');
+      expect(element.icon).to.equal('');
+      expect(element.link).to.equal('');
+      expect(element.rank).to.equal(0);
+      expect(element.styleClass).to.equal('');
+      expect(element.text).to.equal('');
+      expect(element.type).to.equal('');
+      expect(element.headerExtractions).to.deep.equal([]);
+      expect(element.detailExtractions).to.deep.equal([]);
+      expect(element.extractionDataProperty).to.equal('data');
+      expect(element.extractionDataConfidenceProperty).to.equal('confidence');
+      expect(element.extractionDataHighlightProperty).to.equal('highlight');
+      expect(element.extractionDataIconProperty).to.equal('icon');
+      expect(element.extractionDataLinkProperty).to.equal('link');
+      expect(element.extractionDataStyleClassProperty).to.equal('styleClass');
+      expect(element.extractionDataTextProperty).to.equal('text');
+      expect(element.extractionNameProperty).to.equal('name');
+      expect(element.details).to.deep.equal([]);
+      expect(element.detailHighlightedTextProperty).to.equal('highlightedText');
+      expect(element.detailLinkProperty).to.equal('link');
+      expect(element.detailNameProperty).to.equal('name');
+      expect(element.detailTextProperty).to.equal('text');
+      expect(element.images).to.deep.equal([]);
+      expect(element.imageLinkProperty).to.equal('link');
+      expect(element.imageSourceProperty).to.equal('source');
+      expect(element.smallImageStyleClass).to.equal('');
+      expect(element.largeImageStyleClass).to.equal('');
+      expect(element.highlightedTextTags).to.equal('em');
+      expect(element.newTab).to.be.false;
+      expect(element._hovering).to.be.false;
+      expect(element._open).to.be.false;
+    });
+
+    test('_imageSrc is set to undefined', function() {
+      expect(element._imageSrc).to.not.exist;
+    });
+
+    test('does have paper-material element', function() {
+      expect(element.$$('paper-material')).to.exist;
+      expect(element.$$('paper-material').classList.contains('closed')).to.be.true;
+      expect(element.$$('paper-material').classList.contains('opened')).to.be.false;
+      expect(element.$$('paper-material').classList.contains('pointer')).to.be.false;
+    });
+
+    test('does have empty iron-image element', function() {
+      expect(element.$$('iron-image')).to.exist;
+      expect(element.$$('iron-image').classList.contains('show')).to.be.true;
+      expect(element.$$('iron-image').src).to.not.exist;
+    });
+
+    test('does have modal-icon element', function() {
+      expect(element.$$('modal-icon')).to.exist;
+      expect(element.$$('modal-icon').icon).to.equal('');
+      expect(element.$$('modal-icon').iconStyleClass).to.equal('');
+      expect(element.$$('modal-icon').showIcon).to.be.true;
+      expect(element.$$('modal-icon').open).to.be.false;
+      expect(element.$$('modal-icon').openable).to.be.false;
+    });
+
+    test('does have highlighted-text element', function() {
+      expect(element.$$('highlighted-text')).to.exist;
+      expect(element.$$('highlighted-text').tags).to.equal('em');
+      expect(element.$$('highlighted-text').text).to.equal('');
+    });
+
+    test('does not have rank element', function() {
+      expect(element.$$('.record-rank')).to.not.exist;
+    });
+
+    test('does not have flag element', function() {
+      expect(element.$$('.record-flag')).to.not.exist;
+    });
+
+    test('does not have anchor element', function() {
+      expect(element.$$('a')).to.not.exist;
+    });
+
+    test('does not have extraction-grid element', function() {
+      expect(element.$$('extraction-grid')).to.not.exist;
+    });
+
+    test('does not have icon-collapse element', function() {
+      expect(element.$$('iron-collapse')).to.not.exist;
+    });
+
+    test('does not have detail-view element', function() {
+      expect(element.$$('detail-view')).to.not.exist;
+    });
+
+    test('_computeImageSrc does return source correctly', function() {
+      expect(element._computeImageSrc).to.be.a('Function');
+      expect(element._computeImageSrc([{
+        source: 'source1'
+      }], 'source')).to.equal('source1');
+      expect(element._computeImageSrc([{
+        source: 'source1'
       }, {
-        label: 'date',
-        value: '2016-01-01'
-      }, {
-        label: 'description',
-        value: 'myDesc'
-      }, {
-        label: 'publisher',
-        value: 'myPublisher'
-      }];
-      flush(function() {
-        done();
+        source: 'source2'
+      }], 'source')).to.equal('source1');
+    });
+
+    test('_computeImageSrc given empty image array does return undefined', function() {
+      expect(element._computeImageSrc([])).to.not.exist;
+    });
+
+    test('_doesHaveDetails does return correctly', function() {
+      expect(element._doesHaveDetails).to.be.a('Function');
+      expect(element._doesHaveDetails()).to.be.false;
+      expect(element._doesHaveDetails([], [], [])).to.be.false;
+      expect(element._doesHaveDetails([1], [], [])).to.be.true;
+      expect(element._doesHaveDetails([], [2], [])).to.be.true;
+      expect(element._doesHaveDetails([], [], [3])).to.be.true;
+      expect(element._doesHaveDetails([1], [2], [3])).to.be.true;
+    });
+
+    test('_getProperty does return correctly', function() {
+      expect(element._getProperty).to.be.a('Function');
+      expect(element._getProperty({}, 'property')).to.not.exist;
+      expect(element._getProperty({
+        property: 'text'
+      }, 'notproperty')).to.not.exist;
+      expect(element._getProperty({
+        notproperty: 'text'
+      }, 'property')).to.not.exist;
+      expect(element._getProperty({
+        property: 'text'
+      }, 'property')).to.equal('text');
+      expect(element._getProperty({
+        property: 10
+      }, 'property')).to.equal(10);
+      expect(element._getProperty({
+        property: true
+      }, 'property')).to.be.true;
+      expect(element._getProperty({
+        property: [1, 2, 3, 4, 5]
+      }, 'property')).to.deep.equal([1, 2, 3, 4, 5]);
+      expect(element._getProperty({
+        property: {
+          key: 'value'
+        }
+      }, 'property')).to.deep.equal({
+        key: 'value'
       });
     });
 
-    test('does show a paper-material element', function() {
-      expect(element.$$('paper-material')).to.exist;
+    test('_getResultHeaderStyleClass does return string correctly', function() {
+      expect(element._getResultHeaderStyleClass).to.be.a('Function');
+      expect(element._getResultHeaderStyleClass([], [], [], true)).to.equal('opened');
+      expect(element._getResultHeaderStyleClass([], [], [], false)).to.equal('closed');
+      expect(element._getResultHeaderStyleClass([1], [], [], true)).to.equal('opened pointer');
+      expect(element._getResultHeaderStyleClass([1], [], [], false)).to.equal('closed pointer');
+      expect(element._getResultHeaderStyleClass([], [2], [], true)).to.equal('opened pointer');
+      expect(element._getResultHeaderStyleClass([], [2], [], false)).to.equal('closed pointer');
+      expect(element._getResultHeaderStyleClass([], [], [3], true)).to.equal('opened pointer');
+      expect(element._getResultHeaderStyleClass([], [], [3], false)).to.equal('closed pointer');
+      expect(element._getResultHeaderStyleClass([1], [2], [3], true)).to.equal('opened pointer');
+      expect(element._getResultHeaderStyleClass([1], [2], [3], false)).to.equal('closed pointer');
     });
 
-    test('does show an iron-collapse element', function() {
-      expect(element.$$('iron-collapse')).to.exist;
+    test('_getResultHeaderText does return string correctly', function() {
+      expect(element._getResultHeaderText).to.be.a('Function');
+      expect(element._getResultHeaderText('text')).to.equal('text');
+      expect(element._getResultHeaderText('text', '')).to.equal('text');
+      expect(element._getResultHeaderText('text', 'highlightedText')).to.equal('highlightedText');
+      expect(element._getResultHeaderText('', 'highlightedText')).to.equal('highlightedText');
     });
 
-    test('_showDetails is true', function() {
-      expect(element._showDetails).to.be.true;
-    });
-
-    test('_getDetailText() returns correct value for undefined', function() {
-      expect(element._getDetailText()).to.equal('None');
-    });
-
-    test('_getDetailText() returns correct value for no value', function() {
-      expect(element._getDetailText({}, 'highlightedText', 'text')).to.equal('None');
-    });
-
-    test('_getDetailText() returns correct value for one value', function() {
-      expect(element._getDetailText({
-        text: 'LA'
-      }, 'highlightedText', 'text')).to.equal('LA');
-    });
-
-    test('_getDetailText() returns correct value for highlight value', function() {
-      expect(element._getDetailText({
-        text: 'LA',
-        highlightedText: '<highlight>LA</highlight>'
-      }, 'highlightedText', 'text')).to.equal('<highlight>LA</highlight>');
-    });
-
-    test('_getBlurStyleClass() returns correct values', function() {
-      expect(element._getBlurStyleClass(true)).to.equal('small-blur');
-      expect(element._getBlurStyleClass(false)).to.equal('');
-    });
-
-    test('blur is set to true on default', function() {
-      expect(element.blur).to.equal(true);
-    });
-
-    test('_getTarget() returns "_self" when newTab is false', function() {
+    test('_getTarget does return correctly', function() {
+      expect(element._getTarget).to.be.a('Function');
+      expect(element._getTarget(true)).to.equal('_blank');
       expect(element._getTarget(false)).to.equal('_self');
     });
 
-    test('_getTarget() returns "_blank" when newTab is true', function() {
-      expect(element._getTarget(true)).to.equal('_blank');
+    test('_hoverEnd does set _hovering to false', function() {
+      expect(element._hoverEnd).to.be.a('Function');
+      element._hovering = true;
+      element._hoverEnd();
+      expect(element._hovering).to.be.false;
     });
 
-    test('_getHeaderStyleClass() returns the correct values', function() {
-      expect(element._getHeaderStyleClass(true)).to.equal('opened');
-      expect(element._getHeaderStyleClass(false)).to.equal('closed');
+    test('_hoverStart does set _hovering to true', function() {
+      expect(element._hoverStart).to.be.a('Function');
+      element._hovering = false;
+      element._hoverStart();
+      expect(element._hovering).to.be.true;
     });
 
-    test('_getHeaderText() returns the correct strings', function() {
-      expect(element._getHeaderText('LA')).to.equal('LA');
-      expect(element._getHeaderText('LA', '<highlight>LA</highlight>')).to.equal('<highlight>LA</highlight>');
-    });
-
-    test('_isHighlighted does return "highlight" if the given item is highlighted', function() {
-      expect(element._isHighlighted({
-        key: true
-      }, 'key')).to.equal('highlight');
-      expect(element._isHighlighted([{
-        key: true
-      }], 'key')).to.equal('highlight');
-    });
-
-    test('_isHighlighted does return "" if the given item is not highlighted', function() {
-      expect(element._isHighlighted({}, 'key')).to.equal('');
-      expect(element._isHighlighted({
-        key: false
-      }, 'key')).to.equal('');
-      expect(element._isHighlighted([{
-        key: false
-      }], 'key')).to.equal('');
-      expect(element._isHighlighted([{
-        key: false
+    test('_showImageElement does return string correctly', function() {
+      expect(element._showImageElement).to.be.a('Function');
+      expect(element._showImageElement()).to.equal('');
+      expect(element._showImageElement([])).to.equal('show');
+      expect(element._showImageElement([{
+        source: 'source1'
+      }])).to.equal('show');
+      expect(element._showImageElement([{
+        source: 'source1'
       }, {
-        key: true
-      }], 'key')).to.equal('');
+        source: 'source2'
+      }])).to.equal('show');
     });
 
-    test('_isDefined returns correct values', function() {
-      expect(element._isDefined('text')).to.be.true;
-      expect(element._isDefined(true)).to.be.true;
-      expect(element._isDefined({})).to.be.true;
-      expect(element._isDefined('')).to.be.false;
-      expect(element._isDefined(false)).to.be.false;
-      expect(element._isDefined(undefined)).to.be.false;
-    });
-
-    test('details start collapsed', function() {
-      expect(element._open).to.be.false;
-      var head = element.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-      var ironCollapse = element.$$('#recordDetail');
-      expect(ironCollapse).to.exist;
-      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
-    });
-
-    test('toggleRecord() opens the details', function(done) {
-      var mockEvent = {
+    test('toggleDetails does nothing if details, detailExtractions, and images are empty', function() {
+      element.toggleDetails({
         target: {
           classList: {
             contains: function() {
@@ -180,162 +260,33 @@ limitations under the License.
           },
           localName: 'my-element'
         }
-      };
+      });
 
-      var ironCollapse = element.$$('#recordDetail');
-      element.transitionEndListener = function() {
-        var head = element.$$('.head');
-        expect(head).to.exist;
-        expect(head.classList.contains('opened')).to.be.true;
-        expect(head.classList.contains('closed')).to.be.false;
-        expect(ironCollapse).to.exist;
-        expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.true;
-        expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.false;
-        done();
-      };
-      element.listen(ironCollapse, 'transitionend', 'transitionEndListener');
-      element.toggleRecord(mockEvent);
-      expect(element._open).to.be.true;
-    });
-
-    test('toggleRecord() closes the details', function(done) {
-      element._open = true;
-
-      var mockEvent = {
-        target: {
-          classList: {
-            contains: function() {
-              return false;
-            }
-          },
-          localName: 'my-element'
-        }
-      };
-
-      var ironCollapse = element.$$('#recordDetail');
-      element.transitionEndListener = function(event) {
-        if(event.target.opened) {
-          element.toggleRecord(mockEvent);
-          expect(element._open).to.be.false;
-        } else {
-          var head = element.$$('.head');
-          expect(head).to.exist;
-          expect(head.classList.contains('closed')).to.be.true;
-          expect(head.classList.contains('opened')).to.be.false;
-          expect(ironCollapse).to.exist;
-          expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-          expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
-          done();
-        }
-      };
-      element.listen(ironCollapse, 'transitionend', 'transitionEndListener');
-      ironCollapse.show();
-    });
-
-    test('toggleRecord() does nothing if a paper-button is clicked', function() {
-      var mockEvent = {
-        target: {
-          localName: 'paper-button'
-        }
-      };
-
-      element.toggleRecord(mockEvent);
       expect(element._open).to.be.false;
-      var head = element.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-      var ironCollapse = element.$$('#recordDetail');
-      expect(ironCollapse).to.exist;
-      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
+      expect(element.$$('paper-material').classList.contains('closed')).to.be.true;
+      expect(element.$$('paper-material').classList.contains('opened')).to.be.false;
+      expect(element.$$('iron-collapse')).to.not.exist;
     });
 
-    test('toggleRecord() does nothing if a annotate-record is clicked', function() {
-      var mockEvent = {
-        target: {
-          localName: 'my-element',
-          parentElement: {
-            localName: 'parent-element',
-            classList: {
-              contains: function(item) {
-                return item === 'annotate-record';
-              }
-            }
-          }
-        }
-      };
-
-      element.toggleRecord(mockEvent);
-      expect(element._open).to.be.false;
-      var head = element.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-      var ironCollapse = element.$$('#recordDetail');
-      expect(ironCollapse).to.exist;
-      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
+    test('_getNewIconStyleClass does return correctly', function() {
+      var date = new Date('April 1, 2017');
+      expect(element._getNewIconStyleClass).to.be.a('Function');
+      expect(element._getNewIconStyleClass([{
+        data: [{
+          type: 'date',
+          text: 'April 2, 2017'
+        }]
+      }], 'data', 'text', 'type', date)).to.be.equal('');
+      expect(element._getNewIconStyleClass([{
+        data: [{
+          type: 'date',
+          text: 'March 31, 2017'
+        }]
+      }], 'data', 'text', 'type', date)).to.be.equal('hide');
     });
 
-    test('toggleRecord() does nothing if a link is clicked', function() {
-      var mockEvent = {
-        target: {
-          localName: 'a'
-        }
-      };
-
-      element.toggleRecord(mockEvent);
-      expect(element._open).to.be.false;
-      var head = element.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-      var ironCollapse = element.$$('#recordDetail');
-      expect(ironCollapse).to.exist;
-      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
-    });
-
-    test('toggleRecord() does nothing if a link child is clicked', function() {
-      var mockEvent = {
-        target: {
-          localName: 'my-element',
-          parentElement: {
-            localName: 'a',
-            classList: {
-              contains: function() {
-                return false;
-              }
-            }
-          }
-        }
-      };
-
-      element.toggleRecord(mockEvent);
-      expect(element._open).to.be.false;
-      var head = element.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-      var ironCollapse = element.$$('#recordDetail');
-      expect(ironCollapse).to.exist;
-      expect(ironCollapse.classList.contains('iron-collapse-closed')).to.be.true;
-      expect(ironCollapse.classList.contains('iron-collapse-opened')).to.be.false;
-    });
-
-    test('does not show an iron-image element', function() {
-      var image = element.$$('iron-image');
-      expect(image).to.exist;
-      expect(image.classList.contains('hide')).to.be.true;
-      expect(image.classList.contains('show')).to.be.false;
-    });
-
-    test('does not show an image-gallery element', function() {
-      expect(element.$$('image-gallery')).to.not.exist;
-    });
-
-    test('_getTypeText returns the correct strings', function() {
+    test('_getTypeText does return string correctly', function() {
+      expect(element._getTypeText).to.be.a('Function');
       expect(element._getTypeText('date')).to.equal('Date');
       expect(element._getTypeText('email')).to.equal('Email Address');
       expect(element._getTypeText('image')).to.equal('Image');
@@ -346,7 +297,8 @@ limitations under the License.
       expect(element._getTypeText('offer')).to.equal('Ad');
     });
 
-    test('_getTypeTextWithProperty returns the correct strings', function() {
+    test('_getTypeTextWithProperty does return string correctly', function() {
+      expect(element._getTypeTextWithProperty).to.be.a('Function');
       expect(element._getTypeTextWithProperty({
         type: 'date'
       }, 'type')).to.equal('Date');
@@ -373,110 +325,257 @@ limitations under the License.
       }, 'type')).to.equal('Ad');
     });
 
-    test('_getNewIconDivClass returns correct value', function() {
-      var date = new Date('October 2, 2016');
-      expect(element._getNewIconDivClass([{
-        type: 'date',
-        text: 'October 3, 2016'
-      }], 'text', 'type', date)).to.be.equal('');
-      expect(element._getNewIconDivClass([{
-        type: 'date',
-        text: 'October 1, 2016'
-      }], 'text', 'type', date)).to.be.equal('hidden');
-    });
-
-    test('does not show the new icon by default', function() {
-      expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.not.exist;
+    test('_isDefined does return correctly', function() {
+      expect(element._isDefined).to.be.a('Function');
+      expect(element._isDefined('text')).to.be.true;
+      expect(element._isDefined(true)).to.be.true;
+      expect(element._isDefined({})).to.be.true;
+      expect(element._isDefined('')).to.be.false;
+      expect(element._isDefined(false)).to.be.false;
+      expect(element._isDefined(undefined)).to.be.false;
     });
 
     test('does not show the new icon if the item is not new', function(done) {
-      element.extractions = [{
-        type: 'date',
-        text: 'October 1, 2016'
+      element.headerExtractions = [{
+        data: [{
+          type: 'date',
+          text: 'March 31, 2017'
+        }]
       }];
-      element.notificationQueryDate = new Date('October 2, 2016');
+      element.notificationQueryDate = new Date('April 1, 2017');
 
       flush(function() {
         expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.exist;
-        expect(element.$$('iron-icon[icon="av:fiber-new"]').className.split(' ').indexOf('hidden') < 0).to.be.false;
+        expect(element.$$('iron-icon[icon="av:fiber-new"]').classList.contains('hide')).to.be.true;
         done();
       });
     });
 
     test('does show the new icon if the item is new', function(done) {
-      element.extractions = [{
-        type: 'date',
-        text: 'October 3, 2016'
+      element.headerExtractions = [{
+        data: [{
+          type: 'date',
+          text: 'April 2, 2017'
+        }]
       }];
-      element.notificationQueryDate = new Date('October 2, 2016');
+      element.notificationQueryDate = new Date('April 1, 2017');
 
       flush(function() {
         expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.exist;
-        expect(element.$$('iron-icon[icon="av:fiber-new"]').className.split(' ').indexOf('hidden') < 0).to.be.true;
+        expect(element.$$('iron-icon[icon="av:fiber-new"]').classList.contains('hide')).to.be.false;
         done();
       });
-    });
-
-    test('link to entity page exists', function(done) {
-      flush(function() {
-        expect(element.$$('a[title="Open Ad"]')).to.exist;
-        expect(element.$$('a[title="Open Ad"]').className.includes('entity-page-link')).to.be.true;
-        expect(element.$$('a[title="Open Ad"]').getAttribute('href')).to.equal('somelink.html');
-        expect(element.$$('a[title="Open Ad"]').target).to.equal(element._getTarget(element.newTab));
-        expect(element.$$('paper-icon-button[icon="open-in-new"]')).to.exist;
-        done();
-      });
-    });
-
-    test('_updateImageSrcFromImages() sets _imageSource', function() {
-      expect(element._imageSource).to.equal('');
-      element._updateImageSrcFromImages([{
-        id: 'id1',
-        source: 'url1'
-      }, {
-        id: 'id2',
-        source: 'url2'
-      }], 'source');
-      expect(element._imageSource).to.equal('url1');
-    });
-
-    test('_updateImageSrcFromImages() with an empty array sets _imageSource to undefined', function() {
-      element._imageSource = 'testSource';
-      element._updateImageSrcFromImages([], 'source');
-      expect(element._imageSource).to.be.undefined;
-    });
-
-    test('_getConfidenceLevelClass(item) returns correct value', function() {
-      expect(element._getConfidenceLevelClass({confidence: 'strict'}, 'high-confidence'));
-      expect(element._getConfidenceLevelClass({confidence: 'relaxed'}, 'low-confidence'));
-    });
-
-    test('_getConfidenceLevelText(item) returns correct value', function() {
-      expect(element._getConfidenceLevelText({confidence: 'strict'}, 'High Confidence Score'));
-      expect(element._getConfidenceLevelText({confidence: 'relaxed'}, 'Low Confidence Score'));
     });
   });
 
-  suite('<single-record> with no details', function() {
+  suite('single-record tests with data', function() {
     var element;
 
     setup(function(done) {
       element = fixture('single-record-fixture');
-      element.item = {'id': '1', 'type': 'offer', 'text': 'myTitle'};
-      flush(function() {
-        done();
-      });
+      element.flag = 'myFlag';
+      element.icon = 'myIcon';
+      element.link = 'myLink';
+      element.rank = 1.234;
+      element.styleClass = 'myStyleClass';
+      element.text = 'myText';
+      element.type = 'myType';
+
+      element.headerExtractions = [{
+        name: 'myHeaderExtraction1',
+        data: [{
+          text: 'myHeaderExtractionText1'
+        }, {
+          text: 'myHeaderExtractionText2'
+        }]
+      }, {
+        name: 'myHeaderExtraction2',
+        data: [{
+          text: 'myHeaderExtractionText3'
+        }, {
+          text: 'myHeaderExtractionText4'
+        }]
+      }];
+
+      element.details = [{
+        name: 'myDetail1',
+        text: 'myDetailText1',
+      }, {
+        name: 'myDetail2',
+        highlightedText: '<highlight>myDetailText2</highlight>'
+      }];
+
+      element.detailExtractions = [{
+        name: 'myDetailExtraction1',
+        data: [{
+          text: 'myDetailExtractionText1'
+        }, {
+          text: 'myDetailExtractionText2'
+        }]
+      }, {
+        name: 'myDetailExtraction2',
+        data: [{
+          text: 'myDetailExtractionText3'
+        }, {
+          text: 'myDetailExtractionText4'
+        }]
+      }];
+
+      element.images = [{
+        source: 'source1'
+      }, {
+        source: 'source2'
+      }];
+
+      element.smallImageStyleClass = 'small';
+      element.largeImageStyleClass = 'large';
+      element.highlightedTextTags = 'highlight';
+      element.newTab = true;
+
+      flush(done);
     });
 
-    test('does not show an iron-collapse element for no details', function() {
-      expect(element.$$('iron-collapse')).to.not.exist;
+    test('input properties are set correctly', function() {
+      expect(element.flag).to.equal('myFlag');
+      expect(element.icon).to.equal('myIcon');
+      expect(element.link).to.equal('myLink');
+      expect(element.rank).to.equal(1.234);
+      expect(element.styleClass).to.equal('myStyleClass');
+      expect(element.text).to.equal('myText');
+      expect(element.type).to.equal('myType');
+
+      expect(element.headerExtractions).to.deep.equal([{
+        name: 'myHeaderExtraction1',
+        data: [{
+          text: 'myHeaderExtractionText1'
+        }, {
+          text: 'myHeaderExtractionText2'
+        }]
+      }, {
+        name: 'myHeaderExtraction2',
+        data: [{
+          text: 'myHeaderExtractionText3'
+        }, {
+          text: 'myHeaderExtractionText4'
+        }]
+      }]);
+
+      expect(element.details).to.deep.equal([{
+        name: 'myDetail1',
+        text: 'myDetailText1',
+      }, {
+        name: 'myDetail2',
+        highlightedText: '<highlight>myDetailText2</highlight>'
+      }]);
+
+      expect(element.detailExtractions).to.deep.equal([{
+        name: 'myDetailExtraction1',
+        data: [{
+          text: 'myDetailExtractionText1'
+        }, {
+          text: 'myDetailExtractionText2'
+        }]
+      }, {
+        name: 'myDetailExtraction2',
+        data: [{
+          text: 'myDetailExtractionText3'
+        }, {
+          text: 'myDetailExtractionText4'
+        }]
+      }]);
+
+      expect(element.images).to.deep.equal([{
+        source: 'source1'
+      }, {
+        source: 'source2'
+      }]);
+
+      expect(element.smallImageStyleClass).to.equal('small');
+      expect(element.largeImageStyleClass).to.equal('large');
+      expect(element.highlightedTextTags).to.equal('highlight');
+      expect(element.newTab).to.be.true;
     });
 
-    test('_showDetails is false for no details', function() {
-      expect(element._showDetails).to.be.false;
+    test('default properties are set correctly', function() {
+      expect(element.highlightedText).to.equal('');
+      expect(element.extractionDataProperty).to.equal('data');
+      expect(element.extractionDataConfidenceProperty).to.equal('confidence');
+      expect(element.extractionDataHighlightProperty).to.equal('highlight');
+      expect(element.extractionDataIconProperty).to.equal('icon');
+      expect(element.extractionDataLinkProperty).to.equal('link');
+      expect(element.extractionDataStyleClassProperty).to.equal('styleClass');
+      expect(element.extractionDataTextProperty).to.equal('text');
+      expect(element.extractionNameProperty).to.equal('name');
+      expect(element.detailHighlightedTextProperty).to.equal('highlightedText');
+      expect(element.detailLinkProperty).to.equal('link');
+      expect(element.detailNameProperty).to.equal('name');
+      expect(element.detailTextProperty).to.equal('text');
+      expect(element.imageLinkProperty).to.equal('link');
+      expect(element.imageSourceProperty).to.equal('source');
+      expect(element._hovering).to.be.false;
+      expect(element._open).to.be.false;
     });
 
-    test('toggleRecord() does nothing for no details', function() {
+    test('_imageSrc is computed correctly', function() {
+      expect(element._imageSrc).to.equal('source1');
+    });
+
+    test('does have paper-material element', function() {
+      expect(element.$$('paper-material')).to.exist;
+      expect(element.$$('paper-material').classList.contains('closed')).to.be.true;
+      expect(element.$$('paper-material').classList.contains('opened')).to.be.false;
+      expect(element.$$('paper-material').classList.contains('pointer')).to.be.true;
+    });
+
+    test('does have iron-image element', function() {
+      expect(element.$$('iron-image')).to.exist;
+      expect(element.$$('iron-image').classList.contains('show')).to.be.true;
+      expect(element.$$('iron-image').src).to.equal('source1');
+    });
+
+    test('does have modal-icon element', function() {
+      expect(element.$$('modal-icon')).to.exist;
+      expect(element.$$('modal-icon').icon).to.equal('myIcon');
+      expect(element.$$('modal-icon').iconStyleClass).to.equal('myStyleClass');
+      expect(element.$$('modal-icon').showIcon).to.be.true;
+      expect(element.$$('modal-icon').open).to.be.false;
+      expect(element.$$('modal-icon').openable).to.be.true;
+    });
+
+    test('does have highlighted-text element', function() {
+      expect(element.$$('highlighted-text')).to.exist;
+      expect(element.$$('highlighted-text').tags).to.equal('highlight');
+      expect(element.$$('highlighted-text').text).to.equal('myText');
+    });
+
+    test('does have rank element', function() {
+      expect(element.$$('.record-rank')).to.exist;
+      expect(element.$$('.record-rank').innerHTML.indexOf('1.234') >= 0).to.be.true;
+    });
+
+    test('does have flag element', function() {
+      expect(element.$$('.record-flag')).to.exist;
+      expect(element.$$('.record-flag').innerHTML.indexOf('myFlag') >= 0).to.be.true;
+    });
+
+    test('does have anchor element', function() {
+      expect(element.$$('a')).to.exist;
+      expect(element.$$('a').title).to.equal('Open MyType');
+      /*
+      expect(element.$$('a[title="Open MyType"]')).to.exist;
+      expect(element.$$('a[title="Open MyType"]').href.indexOf('myLink') >= 0).to.be.true;
+      expect(element.$$('a[title="Open MyType"]').target).to.equal('_blank');
+      expect(element.$$('a[title="Open MyType"] paper-icon-button[icon="open-in-new"]')).to.exist;
+      */
+    });
+
+    test('does have icon-collapse element', function() {
+      expect(element.$$('iron-collapse')).to.exist;
+      expect(element.$$('iron-collapse').classList.contains('iron-collapse-closed')).to.be.true;
+      expect(element.$$('iron-collapse').classList.contains('iron-collapse-opened')).to.be.false;
+    });
+
+    test('toggleDetails does open the details element', function(done) {
       var mockEvent = {
         target: {
           classList: {
@@ -488,135 +587,160 @@ limitations under the License.
         }
       };
 
-      element.toggleRecord(mockEvent);
+      var detailsElement = element.$$('#details');
+      element.transitionEndListener = function() {
+        expect(element._open).to.be.true;
+        expect(element.$$('.record')).to.exist;
+        expect(element.$$('.record').classList.contains('closed')).to.be.false;
+        expect(element.$$('.record').classList.contains('opened')).to.be.true;
+        expect(detailsElement).to.exist;
+        expect(detailsElement.classList.contains('iron-collapse-closed')).to.be.false;
+        expect(detailsElement.classList.contains('iron-collapse-opened')).to.be.true;
+        done();
+      };
+      element.listen(detailsElement, 'transitionend', 'transitionEndListener');
+      element.toggleDetails(mockEvent);
+    });
+
+    test('toggleDetails does close the details element', function(done) {
+      element._open = true;
+
+      var mockEvent = {
+        target: {
+          classList: {
+            contains: function() {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      };
+
+      var detailsElement = element.$$('#details');
+      element.transitionEndListener = function(event) {
+        if(event.target.opened) {
+          element.toggleDetails(mockEvent);
+        } else {
+          expect(element._open).to.be.false;
+          expect(element.$$('.record')).to.exist;
+          expect(element.$$('.record').classList.contains('closed')).to.be.true;
+          expect(element.$$('.record').classList.contains('opened')).to.be.false;
+          expect(detailsElement).to.exist;
+          expect(detailsElement.classList.contains('iron-collapse-closed')).to.be.true;
+          expect(detailsElement.classList.contains('iron-collapse-opened')).to.be.false;
+          done();
+        }
+      };
+      element.listen(detailsElement, 'transitionend', 'transitionEndListener');
+      detailsElement.show();
+    });
+
+    test('toggleDetails does nothing if a paper-button is clicked', function() {
+      var mockEvent = {
+        target: {
+          localName: 'paper-button'
+        }
+      };
+
+      var detailsElement = element.$$('#details');
+      element.transitionEndListener = function() {
+        expect.fail();
+      };
+      element.listen(detailsElement, 'transitionend', 'transitionEndListener');
+
+      element.toggleDetails(mockEvent);
       expect(element._open).to.be.false;
-      var head = element.$$('.head');
-      expect(head).to.exist;
-      expect(head.classList.contains('closed')).to.be.true;
-      expect(head.classList.contains('opened')).to.be.false;
-      var ironCollapse = element.$$('#recordDetail');
-      expect(ironCollapse).to.not.exist;
+      expect(element.$$('.record')).to.exist;
+      expect(element.$$('.record').classList.contains('closed')).to.be.true;
+      expect(element.$$('.record').classList.contains('opened')).to.be.false;
+      expect(detailsElement).to.exist;
+      expect(detailsElement.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(detailsElement.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('_updateImageSrcFromImages() sets _imageSource and _showDetails', function() {
-      expect(element._imageSource).to.equal('');
-      element._updateImageSrcFromImages([{
-        id: 'id1',
-        source: 'url1'
-      }, {
-        id: 'id2',
-        source: 'url2'
-      }], 'source');
-      expect(element._imageSource).to.equal('url1');
-      expect(element._showDetails).to.be.true;
+    test('toggleDetails does nothing if a link is clicked', function() {
+      var mockEvent = {
+        target: {
+          localName: 'a'
+        }
+      };
+
+      var detailsElement = element.$$('#details');
+      element.transitionEndListener = function() {
+        expect.fail();
+      };
+      element.listen(detailsElement, 'transitionend', 'transitionEndListener');
+
+      element.toggleDetails(mockEvent);
+      expect(element._open).to.be.false;
+      expect(element.$$('.record')).to.exist;
+      expect(element.$$('.record').classList.contains('closed')).to.be.true;
+      expect(element.$$('.record').classList.contains('opened')).to.be.false;
+      expect(detailsElement).to.exist;
+      expect(detailsElement.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(detailsElement.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('_updateImageSrcFromImages() with an empty array sets _imageSource to undefined and _showDetails to false', function() {
-      expect(element._imageSource).to.equal('');
-      element._updateImageSrcFromImages([]);
-      expect(element._imageSource).to.be.undefined;
-      expect(element._showDetails).to.be.false;
+    test('toggleDetails does nothing if a link child is clicked', function() {
+      var mockEvent = {
+        target: {
+          localName: 'my-element',
+          parentElement: {
+            localName: 'a',
+            classList: {
+              contains: function() {
+                return false;
+              }
+            }
+          }
+        }
+      };
+
+      var detailsElement = element.$$('#details');
+      element.transitionEndListener = function() {
+        expect.fail();
+      };
+      element.listen(detailsElement, 'transitionend', 'transitionEndListener');
+
+      element.toggleDetails(mockEvent);
+      expect(element._open).to.be.false;
+      expect(element.$$('.record')).to.exist;
+      expect(element.$$('.record').classList.contains('closed')).to.be.true;
+      expect(element.$$('.record').classList.contains('opened')).to.be.false;
+      expect(detailsElement).to.exist;
+      expect(detailsElement.classList.contains('iron-collapse-closed')).to.be.true;
+      expect(detailsElement.classList.contains('iron-collapse-opened')).to.be.false;
     });
 
-    test('_showImageSpace returns correct class name', function() {
-      expect(element._showImageSpace()).to.equal('');
-      expect(element._showImageSpace(['someimage'])).to.equal('show');
-    });
-  });
+    test('toggleDetails does nothing if an annotate-record is clicked', function() {
+      var mockEvent = {
+        target: {
+          localName: 'my-element',
+          parentElement: {
+            localName: 'parent-element',
+            classList: {
+              contains: function(item) {
+                return item === 'annotate-record';
+              }
+            }
+          }
+        }
+      };
 
-  suite('<single-record> with images', function() {
-    var element;
+      var detailsElement = element.$$('#details');
+      element.transitionEndListener = function() {
+        expect.fail();
+      };
+      element.listen(detailsElement, 'transitionend', 'transitionEndListener');
 
-    setup(function(done) {
-      element = fixture('single-record-fixture');
-      element.itemId = '1';
-      element.link = 'somelink.html';
-      element.text = 'myTitle';
-      element.type = 'offer';
-      element.images = [{
-        id: 'id1',
-        source: 'url1'
-      }, {
-        id: 'id2',
-        source: 'url2'
-      }];
-      flush(function() {
-        done();
-      });
-    });
-
-    test('has images', function() {
-      expect(element.images).to.be.deep.equal([{
-        id: 'id1',
-        source: 'url1'
-      }, {
-        id: 'id2',
-        source: 'url2'
-      }]);
-    });
-
-    test('_imageSource equals images[0].source', function() {
-      expect(element._imageSource).to.equal('url1');
-    });
-
-    test('does show an iron-image element with source', function() {
-      var image = element.$$('iron-image');
-      expect(image).to.exist;
-      expect(image.classList.contains('show')).to.be.true;
-      expect(image.src).to.equal('url1');
-    });
-
-    test('_showDetails is true for images', function() {
-      expect(element._showDetails).to.be.true;
-    });
-
-    test('does show an iron-collapse element for the images', function() {
-      expect(element.$$('iron-collapse')).to.exist;
-    });
-
-    test('does show an image-gallery element for the images', function() {
-      expect(element.$$('image-gallery')).to.exist;
-    });
-  });
-
-  suite('<single-record> with empty image array', function() {
-    var element;
-
-    setup(function(done) {
-      element = fixture('single-record-fixture');
-      element.itemId = '1';
-      element.type = 'offer';
-      element.images = [];
-      flush(function() {
-        done();
-      });
-    });
-
-    test('has empty image array', function() {
-      expect(element.images).to.be.deep.equal([]);
-    });
-
-    test('_imageSource is undefined', function() {
-      expect(element._imageSource).to.be.undefined;
-    });
-
-    test('does show an iron-image element with no source', function() {
-      var image = element.$$('iron-image');
-      expect(image).to.exist;
-      expect(image.classList.contains('show')).to.be.true;
-      expect(image.src).to.be.undefined;
-    });
-
-    test('_showDetails is false for an empty image array', function() {
-      expect(element._showDetails).to.be.false;
-    });
-
-    test('does not show an iron-collapse element', function() {
-      expect(element.$$('iron-collapse')).to.not.exist;
-    });
-
-    test('does not show an image-gallery element', function() {
-      expect(element.$$('image-gallery')).to.not.exist;
+      element.toggleDetails(mockEvent);
+      expect(element._open).to.be.false;
+      expect(element.$$('.record')).to.exist;
+      expect(element.$$('.record').classList.contains('closed')).to.be.true;
+      expect(element.$$('.record').classList.contains('opened')).to.be.false;
+      expect(element.$$('#details')).to.exist;
+      expect(element.$$('#details').classList.contains('iron-collapse-closed')).to.be.true;
+      expect(element.$$('#details').classList.contains('iron-collapse-opened')).to.be.false;
     });
   });
 </script>

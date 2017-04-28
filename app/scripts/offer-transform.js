@@ -154,9 +154,10 @@ var offerTransform = (function(_, commonTransforms) {
 
   function getHighRisk(record, path) {
     var data = getRawFieldDataFromRecord(record, path);
-    return data.strict.some(function(risk) {
+    var highRisk = data.strict.some(function(risk) {
       return risk.name.toLowerCase() === 'yes';
     });
+    return highRisk ? 'High Risk' : '';
   }
 
   function getHighlightedText(record, paths) {
@@ -224,7 +225,7 @@ var offerTransform = (function(_, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      highRisk: getHighRisk(record, '_source.fields.risk'),
+      flag: getHighRisk(record, '_source.fields.risk'),
       title: getSingleStringFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.fields.description') || 'No Description',
       locations: getExtractionsFromRecordOfType(record, '_source.fields.city', 'location'),
@@ -287,7 +288,7 @@ var offerTransform = (function(_, commonTransforms) {
     offer.publishers = addHighlights(offer.publishers, record, ['tld']);
 
     // Handle extraction arrays for single-record elements.
-    offer.headExtractions = [{
+    offer.headerExtractions = [{
       data: offer.dates
     }, {
       data: offer.publishers
@@ -304,7 +305,7 @@ var offerTransform = (function(_, commonTransforms) {
       data: offer.socialIds,
       name: 'Social Media IDs'
     }];
-    offer.bodyExtractions = [{
+    offer.detailExtractions = [{
       data: offer.reviewIds,
       name: 'Review IDs'
     }, {
@@ -391,8 +392,8 @@ var offerTransform = (function(_, commonTransforms) {
       };
 
       return offers.map(function(offer) {
-        offer.headExtractions = offer.headExtractions.map(helperFunction);
-        offer.bodyExtractions = offer.bodyExtractions.map(helperFunction);
+        offer.headerExtractions = offer.headerExtractions.map(helperFunction);
+        offer.detailExtractions = offer.detailExtractions.map(helperFunction);
         return offer;
       });
     },
