@@ -158,6 +158,7 @@ limitations under the License.
       aggregations="[]"
       filters="[[buildArray(notThisAdFilter)]]"
       results="{{revisionAdDataResults}}"
+      result-count="{{revisionAdDataTotalCount}}"
       page="{{revisionAdDataPage}}"
       page-size="20"
       loading="{{revisionAdDataLoading}}"
@@ -189,6 +190,7 @@ limitations under the License.
       aggregations="[]"
       filters="[[buildArray(notThisAdFilter)]]"
       results="{{similarOfferResults}}"
+      result-count="{{similarOfferTotalCount}}"
       page="{{similarOfferPage}}"
       page-size="20"
       loading="{{similarOfferLoading}}"
@@ -348,9 +350,9 @@ limitations under the License.
               <paper-material>
                 <!-- City summary -->
                 <section class="where-header flex-none">
-                  <div class="paper-font-title layout horizontal start center">
+                  <div class="title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div>[[locationHeader]]</div>
+                    <div class="paper-font-title flex">[[locationHeader]]</div>
                   </div>
                 </section>
 
@@ -390,9 +392,9 @@ limitations under the License.
               <!-- Provider Section -->
               <paper-material>
                 <section class="who">
-                  <div class="paper-font-title layout horizontal start center">
+                  <div class="title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
-                    <div>Provider Attributes</div>
+                    <div class="paper-font-title flex">Provider Attributes</div>
                   </div>
 
                   <div class="layout horizontal provider-details">
@@ -512,9 +514,9 @@ limitations under the License.
 
               <paper-material>
                 <section class="photos">
-                  <div class="paper-font-title layout horizontal start center">
+                  <div class="title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                    <div>[[imageHeader]]</div>
+                    <div class="paper-font-title flex">[[imageHeader]]</div>
                   </div>
 
                   <json-combine
@@ -553,19 +555,16 @@ limitations under the License.
 
                 <paper-material>
                   <section class="when">
-                    <template is="dom-if" if="[[!revisionTimeline.length]]">
-                      <div class="paper-font-title layout horizontal start center">
-                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                        <div>No Revisions</div>
-                      </div>
-                    </template>
+                    <div class="title layout horizontal start center">
+                      <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
+                      <template is="dom-if" if="[[!revisionTimeline.length]]">
+                        <div class="paper-font-title flex">No Revisions</div>
+                      </template>
 
-                    <template is="dom-if" if="[[revisionTimeline.length]]">
-                      <div class="paper-font-title layout horizontal start center">
-                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                        <div>[[revisionChartTitle]]</div>
-                      </div>
-                    </template>
+                      <template is="dom-if" if="[[revisionTimeline.length]]">
+                        <div class="paper-font-title flex">[[revisionChartTitle]]</div>
+                      </template>
+                    </div>
 
                     <template is="dom-if" if="[[revisionTimelineError]]">
                       <elastic-error error="[[revisionTimelineError]]" message="{{revisionTimelineErrorMessage}}"></elastic-error>
@@ -591,16 +590,28 @@ limitations under the License.
               <!-- All Revisions - Offers -->
               <paper-material>
                 <section>
-                  <div class="paper-font-title layout horizontal start center">
+                  <div class="title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                    <div class="flex">{{revisionListTitle}}</div>
+                    <div class="layout horizontal flex">
+                      <div class="paper-font-title">[[revisionListTitle]]</div>
+
+                      <info-revisions></info-revisions>
+                    </div>
 
                     <export-button
+                      client="[[esclient]]"
                       data="[[shownRevisions]]"
                       download-image-url="[[config.downloadImageUrl]]"
-                      type="Ad"
-                      csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-                      pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]">
+                      filter-list="[]"
+                      index-name="[[config.elasticIndex]]"
+                      index-types='["ads"]'
+                      query="[[offerRevisionsQuery]]"
+                      size="[[offerRevisionCount]]"
+                      sort-field="validFrom"
+                      sort-order="desc"
+                      csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
+                      pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
+                      query-transform-function="[[clientConfig.transforms.webpage.webpageRevisions]]">
                     </export-button>
                   </div>
 
@@ -621,8 +632,8 @@ limitations under the License.
                     small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                     large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                     text-property="title"
-                    query-results="[[revisionAdData.data]]"
-                    total-results="[[revisionAdData.count]]"
+                    query-results="[[revisionAdData]]"
+                    total-results="[[revisionAdDataTotalCount]]"
                     shown-results="{{shownRevisions}}"
                     page="{{revisionAdDataPage}}"
                     page-size="20"
@@ -730,6 +741,7 @@ limitations under the License.
                         icon-style-class-property="styleClass"
                         data="[[offer.caches]]">
                       </icon-label-grid>
+                      <info-cached-webpages></info-cached-webpages>
                     </div>
                   </div>
 
@@ -749,15 +761,28 @@ limitations under the License.
               <!-- More Ads Like This Ad -->
               <paper-material>
                 <section>
-                  <div class="paper-font-title layout horizontal start center">
+                  <div class="title layout horizontal start center">
                     <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                    <div class="flex">{{similarOfferTitle}}</div>
+                    <div class="layout horizontal flex">
+                      <div class="paper-font-title">[[similarOfferTitle]]</div>
+
+                      <info-similar-offers></info-similar-offers>
+                    </div>
 
                     <export-button
+                      client="[[esclient]]"
                       data="[[shownSimilarOffers]]"
-                      type="Ad"
-                      csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-                      pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]">
+                      download-image-url="[[config.downloadImageUrl]]"
+                      filter-list="[]"
+                      index-name="[[config.elasticIndex]]"
+                      index-types='["ads"]'
+                      query="[[similarOfferQuery]]"
+                      size="[[similarOfferCount]]"
+                      sort-field="validFrom"
+                      sort-order="desc"
+                      csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
+                      pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
+                      query-transform-function="[[clientConfig.transforms.offer.offers]]">
                     </export-button>
                   </div>
 
@@ -778,8 +803,8 @@ limitations under the License.
                     small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                     large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                     text-property="title"
-                    query-results="[[similarOffers.data]]"
-                    total-results="[[similarOffers.count]]"
+                    query-results="[[similarOffers]]"
+                    total-results="[[similarOffersTotalCount]]"
                     shown-results="{{shownSimilarOffers}}"
                     page="{{similarOfferPage}}"
                     page-size="20"

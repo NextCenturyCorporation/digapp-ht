@@ -370,13 +370,11 @@ var offerTransform = (function(_, commonTransforms) {
     },
 
     offers: function(data) {
-      var offers = {data: [], count: 0};
+      var offers = [];
       if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          var offer = getOfferObject(record);
-          offers.data.push(offer);
+        data.hits.hits.forEach(function(record) {
+          offers.push(getOfferObject(record));
         });
-        offers.count = data.hits.total;
       }
       return offers;
     },

@@ -18,6 +18,8 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
+<link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
 <link rel="import" href="../pdfmake.html">
 
 <dom-module id="export-button">
@@ -28,51 +30,155 @@ limitations under the License.
         display: block;
       }
 
-      div {
-        color: var(--secondary-text-color);
-        font-size: 16px;
-        font-weight: 500;
-        line-height: 30px;
+      styled-dialog ::content .inside {
+        min-width: 600px;
       }
 
-      a[is=csv-download],
       .link {
         color: var(--secondary-text-color);
         cursor: pointer;
+        font-weight: 500;
         text-decoration: underline;
       }
 
-      a[is=csv-download]:hover,
       .link:hover {
         color: var(--primary-text-color);
       }
 
-      iron-icon {
+      .link > iron-icon {
         margin-top: 2px;
       }
 
-      span {
+      .link > .open {
+        line-height: 30px;
         margin-left: 5px;
+      }
+
+      .disabled {
+        cursor: default;
+        opacity: 0.5;
+        pointer-events: none;
+        text-decoration: none;
+      }
+
+      .hide {
+        visibility: hidden;
       }
     </style>
 
     <template is="dom-if" if="[[data.length]]">
-      <div class="layout horizontal center">
+      <div class="layout horizontal center link" on-tap="open">
         <iron-icon icon="file-download"></iron-icon>
-        <span>[[_getLabel(data.length, type)]]:</span>
-        <a is="csv-download" data="[[_dataForCsv]]" download="[[filename]].csv" title="[[_getLabel(data.length, type)]] to CSV">
-          <span>CSV</span>
-        </a>
-        <span>|</span>
-        <span class="link" title="[[_getLabel(data.length, type)]] to PDF" on-tap="_exportToPdf">PDF</span>
+        <span class="open">Export</span>
       </div>
     </template>
 
-    <template is="dom-repeat" items="[[_dataForPdf]]">
-      <template is="dom-repeat" items="[[item.images]]" as="image">
-        <img id$="[[image.id]]" crossorigin="anonymous" src="[[_getImageSrc(downloadImageUrl, image.source)]]" style="display:none"/>
+    <styled-dialog id="dialog" header="Export">
+      <div>
+        <div class="text">Name of Export File:</div>
+        <paper-input class="flex" label="Enter Export Filename" value="{{filename}}" no-label-float></paper-input>
+      </div>
+
+      <div>
+        <div class="text">Number to Export:</div>
+
+        <paper-radio-group selected="{{_selectedMode}}">
+          <paper-radio-button name="subset">The [[data.length]] Currently Shown</paper-radio-button>
+          <paper-radio-button disabled="[[_isBulkExportDisabled(data.length, size)]]" name="bulk">The Top 1,000 (CSV Only)</paper-radio-button>
+        </paper-radio-group>
+      </div>
+
+      <div class="layout horizontal text">
+        <span class$="flex link right-space [[_getLoadLinkStyleClass(_needToLoad)]]" on-tap="_runQuery">[[_getLoadLinkText(_selectedMode, _needToLoad)]]</span>
+
+        <template is="dom-if" if="[[_areEqual('bulk', _selectedMode)]]">
+          <span class="link right-space disabled">
+            Export to PDF
+          </span>
+
+          <span class="right-space">|</span>
+
+          <a is="csv-download"
+            class$="link [[_getExportLinkStyleClass(_needToLoad)]]"
+            data="[[_bulkDataForCsv]]"
+            download="[[filename]].csv">
+
+            Export to CSV
+          </a>
+        </template>
+
+        <template is="dom-if" if="[[_areEqual('subset', _selectedMode)]]">
+          <span class$="link right-space [[_getExportLinkStyleClass(_needToLoad)]]"
+            on-tap="_exportDataSubsetForPdf">
+
+            Export to PDF
+          </span>
+
+          <span class="right-space">|</span>
+
+          <a is="csv-download"
+            class$="link [[_getExportLinkStyleClass(_needToLoad)]]"
+            data="[[_dataSubsetForCsv]]"
+            download="[[filename]].csv">
+
+            Export to CSV
+          </a>
+        </template>
+      </div>
+
+      <template is="dom-if" if="[[!_getLongLoadStyleClass(_selectedMode, data.length)]]">
+        <div class$="note [[_getLongLoadStyleClass(_selectedMode, data.length)]]">Please note that it may take a minute or longer to export hundreds of results to PDF.</div>
       </template>
-    </template>
+
+      <template is="dom-if" if="[[!_getTruncateStyleClass(_selectedMode)]]">
+        <div class$="note [[_getTruncateStyleClass(_selectedMode)]]">Please note that ad descriptions will be truncated to 1000 characters.</div>
+      </template>
+
+      <template is="dom-if" if="[[!_getLoadedDataStyleClass(_selectedMode, _bulkData.length)]]">
+        <div class$="note [[_getLoadedDataStyleClass(_selectedMode, _bulkData.length)]]">Loaded Top <span>[[_bulkData.length]]</span> of <span>[[_resultsTotal]]</span>.</div>
+      </template>
+
+      <template is="dom-if" if="[[_loadingQuery]]">
+        <loading-spinner show="[[_loadingQuery]]" type="Data"></loading-spinner>
+      </template>
+
+      <template is="dom-if" if="[[loading]]">
+        <loading-spinner show="[[loading]]" type="File"></loading-spinner>
+      </template>
+    </styled-dialog>
+
+    <elastic-client-search
+      client="[[client]]"
+      index="[[indexName]]"
+      page="0"
+      page-size="1000"
+      elastic-types="[[indexTypes]]"
+      query="[[query]]"
+      aggregations="[]"
+      filters="[[filterList]]"
+      sort="[[sort]]"
+      sort-field="[[sortField]]"
+      sort-order="[[sortOrder]]"
+      results="{{_results}}"
+      result-count="{{_resultsTotal}}"
+      loading="{{_loadingQuery}}"
+      last-error="{{_error}}"
+      properties-ready="{{_run}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[_results]]"
+      data-out="{{_bulkData}}"
+      transform-function="[[queryTransformFunction]]">
+    </json-transform>
+
+    <div id="subsetImages">
+      <template is="dom-repeat" items="[[_dataSubsetForPdf]]">
+        <template is="dom-repeat" items="[[item.images]]" as="image">
+          <img id$="[[image.id]]" crossorigin="anonymous" src="[[_getImageSrc(downloadImageUrl, image.source)]]" style="display:none"/>
+        </template>
+      </template>
+    </div>
   </template>
 
   <script>
@@ -85,7 +191,21 @@ limitations under the License.
       /* globals pdfMake */
       properties: {
         /**
-         * The data to transform and export.
+         * The elasticsearch client to load bulk export data.
+         */
+        client: {
+          type: Object
+        },
+
+        /**
+         * The function to transform the data into CSV export data.
+         */
+        csvTransformFunction: {
+          type: Function
+        },
+
+        /**
+         * The data subset to transform and export.
          */
         data: {
           type: Array
@@ -107,76 +227,225 @@ limitations under the License.
         },
 
         /**
-         * The function to transform the input data into CSV export data.
+         * The bulk data query filters.
          */
-        csvTransformFunction: {
-          type: Function
+        filterList: {
+          observer: '_resetResults',
+          type: Array
         },
 
         /**
-         * The function to transform the input data into PDF export data.
+         * The elasticsearch index name to load bulk export data.
+         */
+        indexName: {
+          type: String
+        },
+
+        /**
+         * The elasticsearch index types to load bulk export data.
+         */
+        indexTypes: {
+          type: Array
+        },
+
+        /**
+         * Whether the export file is loading.
+         */
+        loading: {
+          notify: true,
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The function to transform the data into PDF export data.
          */
         pdfTransformFunction: {
           type: Function
         },
 
         /**
-         * The type of data being exported.
+         * The bulk data query.
          */
-        type: {
-          type: String,
-          value: 'Result'
+        query: {
+          observer: '_resetResults',
+          type: Object
         },
 
         /**
-         * The CSV export data for the csv-download component.
+         * The function to transform the bulk query elasticsearch results into data.
          */
-        _dataForCsv: {
+        queryTransformFunction: {
+          type: Function
+        },
+
+        /**
+         * The size of all the data (not the subset).
+         */
+        size: {
+          type: Number
+        },
+
+        /**
+         * The elasticsearch sort to load bulk export data.
+         */
+        sort: {
+          type: Object
+        },
+
+        /**
+         * The elasticsearch sort field to load bulk export data.
+         */
+        sortField: {
+          type: String
+        },
+
+        /**
+         * The elasticsearch sort order to load bulk export data.
+         */
+        sortOrder: {
+          type: String
+        },
+
+        /**
+         * The bulk data from the elasticsearch query results.
+         */
+        _bulkData: {
           type: Array
         },
 
         /**
-         * The PDF export data.
+         * The CSV export data for the data subset (from the element input) for the csv-download component.
          */
-        _dataForPdf: {
+        _bulkDataForCsv: {
+          type: Array
+        },
+
+        /**
+         * The CSV export data for the bulk data (from the query results) for the csv-download component.
+         */
+        _dataSubsetForCsv: {
+          type: Array
+        },
+
+        /**
+         * The PDF export data for the data subset (from the element input).
+         */
+        _dataSubsetForPdf: {
           notify: true,
           type: Array
+        },
+
+        /**
+         * The elasticsearch error.
+         */
+        _error: {
+          type: Object
+        },
+
+        /**
+         * Whether the elasticsearch query is running.
+         */
+        _loadingQuery: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether the bulk data needs to be loaded.
+         */
+        _needToLoad: {
+          computed: '_updateNeedToLoad(_selectedMode, _bulkData.length)',
+          type: Boolean
+        },
+
+        /**
+         * The elasticsearch query results.
+         */
+        _results: {
+          observer: '_resetRun',
+          type: Object
+        },
+
+        /**
+         * The total count of the elasticsearch query results.
+         */
+        _resultsTotal: {
+          type: Number
+        },
+
+        /**
+         * Whether to run the elasticsearch query.
+         */
+        _run: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The selected mode string (bulk or subset).
+         */
+        _selectedMode: {
+          type: String,
+          value: 'subset'
         }
       },
 
       observers: [
         // Use observers rather than a json-transform element because we must observe changes on data.* rather than data itself.
-        '_computeDataForCsv(data.length, csvTransformFunction)',
-        '_computeDataForCsv(data.*, csvTransformFunction)',
-        '_computeDataForPdf(data.length, pdfTransformFunction)',
-        '_computeDataForPdf(data.*, pdfTransformFunction)'
+        '_computeDataForCsv("subset", data.length, csvTransformFunction)',
+        '_computeDataForCsv("subset", data.*, csvTransformFunction)',
+        '_computeDataForCsv("bulk", _bulkData.*, csvTransformFunction)',
+        '_computeDataForPdf("subset", data.length, pdfTransformFunction)',
+        '_computeDataForPdf("subset", data.*, pdfTransformFunction)',
+        '_computeDataForPdf("bulk", _bulkData.*, pdfTransformFunction)'
       ],
 
       /**
-       * Computes the CSV export data using the input data and the transform function.
+       * Returns whether the two inputs are equal.
        */
-      _computeDataForCsv: function() {
-        this._dataForCsv = this.csvTransformFunction(this.data);
+      _areEqual: function(one, two) {
+        return one === two;
       },
 
       /**
-       * Computes the PDF export data using the input data and the transform function.
+       * Computes the CSV export data for the given type using the data and the transform function.
        */
-      _computeDataForPdf: function() {
-        this._dataForPdf = this.pdfTransformFunction(this.data);
+      _computeDataForCsv: function(dataType) {
+        if(dataType === 'subset') {
+          this._dataSubsetForCsv = this.csvTransformFunction(this.data);
+        }
+
+        if(dataType === 'bulk' && this._bulkData) {
+          this._bulkDataForCsv = this.csvTransformFunction(this._bulkData).map(function(row, index) {
+            if(index && row[9].length > 1000) {
+              row[9] = row[9].slice(0, 1000) + '...';
+            }
+            return row;
+          });
+        }
       },
 
       /**
-       * Creates and returns the PDF content for pdfMake.
+       * Computes the PDF export data for the given type using the data and the transform function.
        */
-      _createPdfContent: function() {
+      _computeDataForPdf: function(dataType) {
+        if(dataType === 'subset') {
+          this._dataSubsetForPdf = this.pdfTransformFunction(this.data);
+        }
+      },
+
+      /**
+       * Creates and returns the pdfMake PDF content for the given data and type.
+       */
+      _createPdfContent: function(data, type) {
         var doc = {
           content: []
         };
 
         var self = this;
 
-        this._dataForPdf.forEach(function(item, index) {
+        data.forEach(function(item, index) {
           if(index) {
             doc.content.push({
               pageBreak: 'after',
@@ -211,17 +480,19 @@ limitations under the License.
               text: image.text
             });
 
-            var imageElement = self.$$('#' + image.id);
+            var imageElement = self.$$('#' + type + 'Images #' + image.id);
             var canvas = document.createElement('canvas');
             canvas.width = imageElement.width;
             canvas.height = imageElement.height;
             canvas.getContext('2d').drawImage(imageElement, 0, 0);
             var source = canvas.toDataURL('image/jpeg');
-            doc.content.push({
-              fit: [500, 250],
-              image: source,
-              margin: [0, 0, 0, 10]
-            });
+            if(source.startsWith('data:image')) {
+              doc.content.push({
+                fit: [500, 250],
+                image: source,
+                margin: [0, 0, 0, 10]
+              });
+            }
           });
         });
 
@@ -229,11 +500,30 @@ limitations under the License.
       },
 
       /**
-       * Creates a PDF from the data and downloads it automatically with pdfMake.
+       * Creates a PDF from the given data and downloads it automatically with pdfMake.
        */
-      _exportToPdf: function() {
-        var doc = this._createPdfContent();
-        pdfMake.createPdf(doc).download(this.filename + '.pdf');
+      _exportDataForPdf: function(data, type) {
+        this.set('loading', true);
+        var doc = this._createPdfContent(data, type);
+        var self = this;
+        setTimeout(function() {
+          pdfMake.createPdf(doc).download(self.filename + '.pdf');
+          self.set('loading', false);
+        }, 500);
+      },
+
+      /**
+       * Creates a PDF from the data subset.
+       */
+      _exportDataSubsetForPdf: function() {
+        this._exportDataForPdf(this._dataSubsetForPdf, 'subset');
+      },
+
+      /**
+       * Returns the style class of the export links.
+       */
+      _getExportLinkStyleClass: function(load) {
+        return load ? 'disabled' : '';
       },
 
       /**
@@ -243,11 +533,79 @@ limitations under the License.
         return '/' + url + '/' + source;
       },
 
+      _getLoadedDataStyleClass: function(mode, length) {
+        return mode === 'bulk' && length ? '' : 'hide';
+      },
+
       /**
-       * Returns the label for the export button.
+       * Returns the style class of the load link.
        */
-      _getLabel: function(length, type) {
-        return 'Export ' + length + ' ' + type + (length === 1 ? '' : 's');
+      _getLoadLinkStyleClass: function(load) {
+        return load ? '' : 'disabled';
+      },
+
+      /**
+       * Returns the text of the load link.
+       */
+      _getLoadLinkText: function(mode, load) {
+        return mode === 'bulk' && load ? 'Load Data' : 'Data Loaded';
+      },
+
+      /**
+       * Returns the style class of the long load warning text.
+       */
+      _getLongLoadStyleClass: function(mode, length) {
+        return mode === 'bulk' || length < 200 ? 'hide' : '';
+      },
+
+      /**
+       * Returns the style class of the truncate warning text.
+       */
+      _getTruncateStyleClass: function(mode) {
+        return mode === 'subset' ? 'hide' : '';
+      },
+
+      /**
+       * Returns whether bulk export is disabled.
+       */
+      _isBulkExportDisabled: function() {
+        return this.data.length >= this.size;
+      },
+
+      /**
+       * Resets the bulk data for a new elasticsearch query.
+       */
+      _resetResults: function() {
+        this.set('_bulkData', []);
+        this.set('_selectedMode', 'subset');
+      },
+
+      /**
+       * Resets the run toggle.
+       */
+      _resetRun: function() {
+        this.set('_run', false);
+      },
+
+      /**
+       * Runs the elasticsearch query.
+       */
+      _runQuery: function() {
+        this.set('_run', true);
+      },
+
+      /**
+       * Returns whether the bulk data needs to be loaded.
+       */
+      _updateNeedToLoad: function(mode, length) {
+        return mode === 'bulk' && !length;
+      },
+
+      /**
+       * Opens the export dialog.
+       */
+      open: function() {
+        this.$$('#dialog').open();
       }
     });
   })();

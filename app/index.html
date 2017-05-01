@@ -76,6 +76,10 @@ limitations under the License.
   <span id="browser-sync-binding"></span>
 
   <template is="dom-bind" id="app">
+    <paper-dialog id="loadDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation" style="border-radius: 5px;">
+      <loading-spinner type="[[loadDialogType]]" show></loading-spinner>
+    </paper-dialog>
+
     <!-- exposes clientConfig object which is a container for data
       transform functions -->
     <client-config config="{{clientConfig}}"></client-config>
@@ -104,6 +108,7 @@ limitations under the License.
       process-request="[[processRequest]]"
       result-function="[[clientConfig.transforms.search.result]]"
       results="{{searchResults}}"
+      total="{{recordsTotalCount}}"
       search-parameters="[[searchParameters]]"
       search-function="[[clientConfig.transforms.search.search]]"
       url="[[config.queryUrl]]">
@@ -416,6 +421,10 @@ limitations under the License.
                 <span>[[getToggleAllFacetsText(facetListsExpanded)]]</span>
                 <iron-icon icon="[[getToggleAllFacetsIcon(facetListsExpanded)]]"></iron-icon>
               </div>
+
+              <div class="h-divider"></div>
+
+              <info-facets></info-facets>
 
               <div class="h-divider"></div>
 
@@ -824,7 +833,17 @@ limitations under the License.
         <paper-header-panel main id="searchPanel">
           <div id="searchTitle" class="layout horizontal">
             <template is="dom-if" if="[[!searchError]]">
-              <div class="paper-font-title flex">[[recordsListTitle]]</div>
+              <div class="layout horizontal flex">
+                <div class="paper-font-title">[[recordsListTitle]]</div>
+
+                <template is="dom-if" if="[[recordsTotalCount]]">
+                  <info-search
+                    advanced-search="[[advancedSearch]]"
+                    search-parameters="[[searchParameters]]"
+                    style="margin-left: 5px;">
+                  </info-search>
+                </template>
+              </div>
             </template>
 
             <template is="dom-if" if="[[searchError]]">
@@ -835,10 +854,18 @@ limitations under the License.
             </template>
 
             <export-button
+              client="[[esclient]]"
               data="[[shownRecords]]"
               download-image-url="[[config.downloadImageUrl]]"
-              csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-              pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]">
+              filter-list="[[filterArray]]"
+              index-name="[[config.elasticIndex]]"
+              index-types="[[getElasticTypes()]]"
+              query="[[ejsQuery]]"
+              size="[[resultCount]]"
+              sort="[[sort]]"
+              csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
+              pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
+              query-transform-function="[[clientConfig.transforms.webpage.webpagesData]]">
             </export-button>
           </div>
 
@@ -855,8 +882,8 @@ limitations under the License.
             large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
             new-tab="true"
             text-property="title"
-            query-results="{{records.data}}"
-            total-results="{{records.count}}"
+            query-results="{{records}}"
+            total-results="{{recordsTotalCount}}"
             shown-results="{{shownRecords}}"
             page="{{pageNum}}"
             page-size="20"
@@ -1099,6 +1126,16 @@ limitations under the License.
 
         for(var i = 0, length = allFacetListNames.length; i < length; i++) {
           allFacetListNames[i].opened = app.facetListsExpanded;
+        }
+      };
+
+      app.toggleLoadDialog = function(event) {
+        if(event.detail.value) {
+          app.loadDialogType = 'PDF';
+          app.$.loadDialog.open();
+        } else {
+          app.$.loadDialog.close();
+          app.loadDialogType = '';
         }
       };
 

@@ -21,10 +21,11 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 <link rel="import" href="../../bower_components/paginated-image-gallery/paginated-image-gallery.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../lodash.html">
@@ -39,91 +40,186 @@ limitations under the License.
         display: block;
       }
 
-      .settings > .margin-top {
-        margin-top: 20px;
+      file-upload ::content .name {
+        @apply(--layout-horizontal);
       }
 
-      .selectable {
-        margin: 0 5px 10px;
+      file-upload ::content .name > span {
+        @apply(--layout-flex);
+        line-height: 22px;
+      }
+
+      file-upload ::content .name > .commands {
+        float: none;
+        margin-left: 5px;
+      }
+
+      file-upload ::content paper-progress {
+        width: 100%;
+      }
+
+      .file-list {
+        /* Size of 10 paper-checkbox elements. */
+        max-height: 340px;
+        overflow: auto;
+      }
+
+      .file-list paper-checkbox {
+        --paper-checkbox-label: {
+          line-height: 24px;
+          padding: 0;
+          vertical-align: top;
+        }
+        --paper-checkbox-ink-size: 34px;
+        --paper-checkbox-margin: 2px 10px 0 5px;
+        --paper-checkbox-vertical-align: top;
+      }
+
+      .selectable-text {
+        cursor: pointer;
+        display: block;
+        line-height: 24px;
+        margin: 0 5px;
         padding: 5px;
       }
 
-      .selected,
-      .selectable:hover {
+      .selected {
         background-color: var(--primary-background-color);
-        cursor: pointer;
       }
 
-      .add-padding {
-        /* Add padding to the query image so it matches the padding in the image results list. */
-        padding: 10px;
+      .hovering,
+      .selectable-text:hover {
+        background-color: yellow;
       }
 
-      .previous-searches {
-        margin-left: 10px;
-        width: 300px;
+      image-gallery.selectable-images {
+        --image-hovering-color: yellow;
+        --image-selected-color: var(--primary-background-color);
       }
 
       paginated-image-gallery {
-        --paginated-image-gallery-max-height: none;
+        /* Size of 4 rows. */
+        --paginated-image-gallery-max-height: 640px;
+      }
+
+      .vertical-divider {
+        margin: 0 10px;
+      }
+
+      .previous-searches {
+        width: 300px;
+      }
+
+      .add-padding {
+        padding: 10px;
       }
     </style>
 
     <paper-dialog id="similarImageSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="settings layout vertical">
         <div class="layout horizontal">
-          <span class="bold tall flex">Upload an Image or Enter a URL</span>
+          <span class="bold tall flex">Upload Images or Enter Image Links</span>
           <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
         </div>
 
         <div class="divider"></div>
 
-        <div class="layout horizontal">
-          <span class="name tall right-space">Instructions</span>
-          <span class="text tall">Please enter or paste an image URL in the text box below or upload your own image.</span>
-        </div>
-
-        <div class="divider"></div>
+        <div class="text note">Enter or paste image links in the text box.  Multiple links may be separated by spaces or new lines.</div>
 
         <div class="layout horizontal">
-          <paper-input class="flex right-space" label="Enter or Paste Image URL" value="{{_urlInput}}" no-label-float></paper-input>
-          <button-action disabled="[[!_urlInput]]" text="Add URL" click-listener="[[_createAddUrlListener()]]"></button-action>
+          <paper-textarea class="flex right-space" label="Enter or Paste Image Links" value="{{_urlInput}}" no-label-float></paper-textarea>
+
+          <button-action disabled="[[!_urlInput]]" text="Add Links" click-listener="[[_createAddUrlListener()]]"></button-action>
         </div>
+
+        <div class="text note">Upload image files by clicking the Upload Images button and selecting one or more files or by dropping one or more files into the drop box.</div>
 
         <div class="layout horizontal center">
           <file-upload
             id="fileUpload"
             accept="image/*"
             droppable
-            files="{{_uploadedImages}}"
             method="POST"
+            multi
             raised
             target="/uploadImage"
             on-error="_setUploadErrorMessage"
-            on-success="_addUploadedImage">Upload Image...
+            on-success="_saveUploadedInputImage">Upload Images...
           </file-upload>
 
-          <span class="text">[[_uploadText]]</span>
+          <span class="text">[[_error]]</span>
         </div>
 
         <div class="divider"></div>
 
-        <div class="name tall">Uploaded Images and URLs:</div>
+        <div class="bold tall">Your Uploaded Images and Links</div>
 
-        <div>
-          <template is="dom-repeat" items="[[_images]]" as="image">
-            <div id$="[[image.id]]" class$="text selectable [[_isSelected(image.id, _selectedObject.id)]]" on-tap="_selectImageEvent">[[image.name]]</div>
-          </template>
+        <template is="dom-if" if="[[_images.length]]">
+          <div class="text note">Click on an image in the list to remove it from or add it to your search.</div>
+        </template>
 
-          <template is="dom-if" if="[[!_images.length]]">
-            <div class="text" style="margin: 0 5px 10px">None</div>
-          </template>
+        <template is="dom-if" if="[[!_images.length]]">
+          <div class="text">None</div>
+        </template>
+
+        <template is="dom-if" if="[[_images.length]]">
+          <div class="layout horizontal">
+            <div class="text tall right-space">[[_getSelectedImagesText(_selectedImageIds.length)]]</div>
+
+            <button-action class="tall right-space"
+              disabled="[[loading]]"
+              text="Select All"
+              click-listener="[[_createSelectListener(1)]]">
+            </button-action>
+
+            <button-action class="tall right-space"
+              disabled="[[loading]]"
+              text="Deselect All"
+              click-listener="[[_createSelectListener(0)]]">
+            </button-action>
+          </div>
+
+          <div class="file-list">
+            <template is="dom-repeat" items="[[_images]]" as="image">
+              <paper-checkbox class$="text selectable-text [[_ifIsInListThenReturn(_selectedImageIds, image.id, 'selected')]] [[_ifIsInListThenReturn(_hoveringImageIds, image.id, 'hovering')]]"
+                disabled="[[loading]]"
+                title$="[[_getInputImageTitle(index, image.name)]]"
+                on-change="_updateSelectedImageIds"
+                on-mouseover="_hoverStart"
+                on-mouseout="_hoverEnd"
+                checked="{{image.selected}}">
+
+                [[_getInputImageLabel(index, image.name)]]
+              </paper-checkbox>
+            </template>
+          </div>
+
+          <image-gallery class="selectable-images"
+            images="[[_images]]"
+            image-source-property="data"
+            hovering="{{_hoveringImageIds}}"
+            selected="[[_selectedImageIds]]"
+            blur="[[blur]]">
+          </image-gallery>
+
+          <div class="text note">Click a Search button to search on the selected images.  Search for near-duplicates if you want to find exact or near-exact matches.  Search for all similar images if you want to find additional matches.  The search on each image will take a few seconds to complete.</div>
+        </template>
+
+        <div class="layout horizontal center-justified">
+          <button-action class="tall right-space"
+            disabled="[[!_enableSearch(loading, _selectedImageIds.length)]]"
+            text="Search for Near-Duplicate Images"
+            click-listener="[[_createSearchListener(1)]]">
+          </button-action>
+
+          <button-action class="tall"
+            disabled="[[!_enableSearch(loading, _selectedImageIds.length)]]"
+            text="Search for All Similar Images"
+            click-listener="[[_createSearchListener(0)]]">
+          </button-action>
         </div>
 
-        <div class="layout horizontal">
-          <button-action class="tall right-space" disabled="[[!_queryInput.data]]" text="Search for Near-Duplicate Images" click-listener="[[_createSearchListener(1)]]"></button-action>
-          <button-action class="tall right-space" disabled="[[!_queryInput.data]]" text="Search for Similar Images" click-listener="[[_createSearchListener(0)]]"></button-action>
-        </div>
+        <loading-spinner show="[[loading]]" type="[[_getLoadingSpinnerText(_images, _queryIndex, _selectedImageIds)]]"></loading-spinner>
 
         <iron-ajax
           id="xhr"
@@ -133,76 +229,86 @@ limitations under the License.
           on-response="_handleImageServiceResponse">
         </iron-ajax>
 
-        <div class="divider margin-top"></div>
+        <div class="divider"></div>
 
         <div class="layout horizontal">
           <div class="padded layout vertical flex">
-            <div class="bold tall">Your Image</div>
+            <div class="bold tall">Your Similar Image Results</div>
 
-            <template is="dom-if" if="[[!_queryInput.data]]">
-              <div class="text tall">None</div>
+            <template is="dom-if" if="[[_results.length]]">
+              <div class="text note">Click on a result in the list to view its similar images.  You can view one result while the others are loading.</div>
+
+              <div class="file-list">
+                <template is="dom-repeat" items="[[_results]]" as="result">
+                  <div class$="layout horizontal text selectable-text [[_ifAreEqualThenReturn(_selectedResultsIndex, index, 'selected')]]" on-tap="_selectImageResults">
+                    <span class="flex-8">[[result.filename]]</span>
+                    <span class="flex-2">[[_getImageResultsDetailText(result.resultsList.length, result.nearDuplicates)]]</span>
+                    <span class="flex-2">[[result.date]]</span>
+                  </div>
+                </template>
+              </div>
+
+              <iron-pages selected="[[_selectedResultsIndex]]">
+                <template is="dom-repeat" items="[[_results]]" as="result">
+                  <div>
+                    <div class="bold tall">Your Image</div>
+
+                    <div class="layout horizontal center">
+                      <image-gallery
+                        images="[[result.imageList]]"
+                        image-source-property="data"
+                        blur="[[blur]]">
+                      </image-gallery>
+                    </div>
+
+                    <div class="bold tall">[[_getImageResultsHeaderText(result.resultsList.length, result.nearDuplicates)]]</div>
+
+                    <paginated-image-gallery
+                      blur="[[blur]]"
+                      new-tab
+                      load-type="Similar Images"
+                      image-items="[[result.resultsList]]"
+                      total-items="[[result.resultsList.length]]">
+                    </paginated-image-gallery>
+                  </div>
+                </template>
+              </iron-pages>
             </template>
 
-            <div class="layout horizontal center">
-              <template is="dom-if" if="[[_queryInput.data]]">
-                <image-thumbnail
-                  class="add-padding"
-                  source="[[_queryInput.data]]"
-                  style-class="[[_getBlurStyleClass(blur)]]">
-                </image-thumbnail>
-              </template>
-
-              <template is="dom-if" if="[[_queryInput.nearDuplicates]]">
-                <span class="name tall right-space">Near-Duplicates?</span>
-                <template is="dom-if" if="[[_queryInput.nearDuplicates.bool]]">
-                  <span class="text tall">ON</span>
-                </template>
-                <template is="dom-if" if="[[!_queryInput.nearDuplicates.bool]]">
-                  <span class="text tall">OFF</span>
-                </template>
-              </template>
-            </div>
-
-            <div class="bold tall">[[_getImageResultsTitle(_imageResults.length)]]</div>
-
-            <paginated-image-gallery
-              small-image-style-class="[[_getBlurStyleClass(blur)]]"
-              large-image-style-class="[[_getBlurStyleClass(blur, 'large')]]"
-              new-tab
-              loading="[[loading]]"
-              load-type="Similar Images"
-              image-items="[[_imageResults]]"
-              total-items="[[_imageResults.length]]">
-            </paginated-image-gallery>
+            <template is="dom-if" if="[[!_results.length]]">
+              <div class="text">None</div>
+            </template>
           </div>
+
+          <!-- Hide until we add permanent similar image search history.
+          <div class="divider vertical-divider"></div>
 
           <div class="padded layout vertical previous-searches">
             <div class="bold tall">Your Previous Searches</div>
 
             <template is="dom-if" if="[[!_previousSearches.length]]">
-              <div class="text tall">None</div>
+              <div class="text">None</div>
             </template>
 
-            <template is="dom-repeat" items="[[_previousSearches]]">
+            <template is="dom-repeat" items="[[_previousSearches]]" as="search">
               <div class="layout horizontal center">
-                <image-thumbnail
-                  class="add-padding"
-                  source="[[item.image]]"
-                  style-class="[[_getBlurStyleClass(blur)]]">
-                </image-thumbnail>
+                <image-gallery
+                  images="[[search.imageList]]"
+                  image-source-property="data"
+                  blur="[[blur]]">
+                </image-gallery>
 
-                <div class="layout vertical center flex">
+                <div class="layout vertical center add-padding flex">
                   <button-action
-                    class="add-padding"
                     text="Show Results"
-                    click-listener="[[_createShowImageResultsListener(item)]]">
+                    click-listener="[[_createShowImageResultsListener(search)]]">
                   </button-action>
 
                   <div class="add-padding">
-                    <template is="dom-if" if="[[item.options.nearDuplicates]]">
+                    <template is="dom-if" if="[[search.nearDuplicates]]">
                       Near-Duplicates:  ON
                     </template>
-                    <template is="dom-if" if="[[!item.options.nearDuplicates]]">
+                    <template is="dom-if" if="[[!search.nearDuplicates]]">
                       Near-Duplicates:  OFF
                     </template>
                   </div>
@@ -210,14 +316,19 @@ limitations under the License.
               </div>
             </template>
           </div>
+          -->
         </div>
+
+        <div class="text note">
+          <span class="bold right-space">How does it work?</span>
+          Near-duplicate and similar images are found by looking at features in the input image like hairstyle, physical characteristics, dress, environment, and pose.  Images that are more similar are ranked higher in the results.  To learn more, please visit <a href="http://www.ee.columbia.edu/ln/dvmm/memex/" target="_blank">this page</a>.</div>
       </div>
     </paper-dialog>
 
     <paper-dialog id="errorDialog" class="small" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="layout vertical">
         <div class="layout horizontal">
-          <span class="bold tall flex">Image service incorrectly configured.  Please contact an administrator.</span>
+          <span class="bold tall flex">The image service is configured incorrectly.  Please contact DIG support immediately.</span>
           <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
         </div>
       </div>
@@ -228,16 +339,17 @@ limitations under the License.
   (function() {
     'use strict';
 
-    /* globals _ */
     Polymer({
+      /* globals _, moment */
       is: 'similar-image-search',
 
       properties: {
         /**
-         * Blur class
+         * Whether to blur the images.
          */
         blur: {
-          type: Boolean
+          type: Boolean,
+          value: false
         },
 
         /**
@@ -255,6 +367,14 @@ limitations under the License.
         },
 
         /**
+         * The threshold for similar image results.
+         */
+        imageThreshold: {
+          type: Number,
+          value: 0.5
+        },
+
+        /**
          * A function that, given an image ID, returns a link for that image.
          */
         linkFunction: {
@@ -265,17 +385,9 @@ limitations under the License.
          * Whether the search request is running.
         */
         loading: {
+          notify: true,
           type: Boolean,
-          value: false,
-          notify: true
-        },
-
-        /**
-         * The threshold for similar image results.
-         */
-        imageThreshold: {
-          type: Number,
-          value: 0.6
+          value: false
         },
 
         /**
@@ -283,6 +395,24 @@ limitations under the License.
          */
         logger: {
           type: Object
+        },
+
+        /**
+         * The file upload error message.
+         */
+        _error: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The list of IDs from _images over which the user is hovering.
+         */
+        _hoveringImageIds: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -296,18 +426,23 @@ limitations under the License.
         },
 
         /**
-         * The list of images returned by the search request.
+         * Whether the search is on near-duplicate images.
          */
-        _imageResults: {
-          type: Array,
-          notify: true,
-          value: function() {
-            return [];
-          }
+        _nearDuplicates: {
+          type: Object,
+          value: false
         },
 
         /**
-         * The list of previous searches which are objects containing the request "image", the similar image "results", and "options.nearDuplicates".
+         * The next available input image ID.
+         */
+        _nextInputImageId: {
+          type: Number,
+          value: 1
+        },
+
+        /**
+         * The list of previous search objects.
          */
         _previousSearches: {
           type: Array,
@@ -317,75 +452,48 @@ limitations under the License.
         },
 
         /**
-         * The uploaded image or URL and other options used for the query input.
+         * The index in _images of the current image service query input.
          */
-        _queryInput: {
-          type: Object,
+        _queryIndex: {
+          type: Number,
+          value: -1
+        },
+
+        /**
+         * The list of images returned by the search request.
+         */
+        _results: {
+          type: Array,
+          notify: true,
           value: function() {
-            return {};
+            return [];
           }
         },
 
         /**
-         * The selected object from the list of images.
+         * The list of IDs from _images that the user selected.
          */
-        _selectedObject: {
-          type: Object,
+        _selectedImageIds: {
+          type: Array,
           value: function() {
-            return {};
+            return [];
           }
         },
 
         /**
-         * The list of uploaded images from the file-upload element.
+         * The index in _results of the selected image results.
          */
-        _uploadedImages: {
-          type: Array
+        _selectedResultsIndex: {
+          type: Number,
+          value: 0
         },
 
         /**
-         * The text to show about a file upload.
-         */
-        _uploadText: {
-          type: String,
-          value: ''
-        },
-
-        /**
-         * The image URL entered by the user.
+         * The image URL(s) entered by the user.
          */
         _urlInput: {
           type: String,
           value: ''
-        }
-      },
-
-      /**
-       * Adds the uploaded image to the list of images.
-       *
-       * @event success
-       * @private
-       */
-      _addUploadedImage: function(event) {
-        if(this._uploadedImages && this._uploadedImages[0] && this._uploadedImages[0].name) {
-          if(event.detail && event.detail.xhr && event.detail.xhr.response) {
-            var response = JSON.parse(event.detail.xhr.response);
-            if(!response.mimeType.startsWith('image')) {
-              this._uploadText = 'Upload image failed:  Not an image file!';
-              return;
-            }
-            this._uploadText = 'Upload image successful!';
-            var id = this._images.length;
-            var data = 'data:' + response.mimeType + ';base64,' + response.base64;
-            this.push('_images', {
-              id: id,
-              data: data,
-              name: this._uploadedImages[0].name,
-              type: 'File'
-            });
-            this._selectImageIndex(id);
-          }
-          this.$$('#fileUpload').clear();
         }
       },
 
@@ -400,16 +508,37 @@ limitations under the License.
         return {
           onClick: function() {
             if(self._urlInput) {
-              var id = self._images.length;
-              self.push('_images', {
-                id: id,
-                data: self._urlInput,
-                name: self._urlInput,
-                type: 'Link'
+              var urls = self._urlInput.replace(/\s/g, ' ').split(' ');
+              urls.forEach(function(url) {
+                if(url) {
+                  self._saveInputImage(url, url, 'Link');
+                }
               });
-              self._selectImageIndex(id);
+              self._updateSelectedImageIds();
+              self.set('_urlInput', '');
             }
           }
+        };
+      },
+
+      /**
+       * Creates and return an input image object with the given properties.
+       *
+       * @param {Number} id
+       * @param {String} data
+       * @param {String} name
+       * @param {String} type
+       * @param {Boolean} selected
+       * @return {Object}
+       * @private
+       */
+      _createInputImageObject: function(id, data, name, type, selected) {
+        return {
+          id: id,
+          data: data,
+          name: name,
+          selected: selected,
+          type: type
         };
       },
 
@@ -424,40 +553,26 @@ limitations under the License.
         var self = this;
         return {
           onClick: function() {
-            self.$.xhr.body = {};
-            self.$.xhr.params = {};
-            if(self._selectedObject.data && self._selectedObject.type) {
-              self.set('_queryInput.nearDuplicates', {
-                bool: nearDuplicates
-              });
-
-              if(self._selectedObject.type === 'File') {
-                self.$.xhr.body = {
-                  data: self._selectedObject.data
-                };
-                if(!nearDuplicates) {
-                  self.$.xhr.body.options = '{"near_dup":0}';
-                }
-                self.$.xhr.contentType = 'application/x-www-form-urlencoded';
-                self.$.xhr.method = 'POST';
-                self._sendXhrRequest('base64');
-              }
-
-              if(self._selectedObject.type === 'Link') {
-                self.$.xhr.params.data = self._selectedObject.data;
-                if(!nearDuplicates) {
-                  self.$.xhr.params.options = '{"near_dup":0}';
-                }
-                self.$.xhr.method = 'GET';
-                self._sendXhrRequest('url');
-              }
-
-              if(self.logger && self.logger.log) {
-                var logType = 'SimilarImageSearch-' + self._selectedObject.type;
-                var logData = 'NearDuplicates=' + (nearDuplicates ? 'TRUE' : 'FALSE') + (self._selectedObject.type === 'Link' ? ',LINK=' + self._selectedObject.data : '');
-                self.logger.log(logType, logData);
-              }
+            if(self._selectedImageIds.length) {
+              self.set('_nearDuplicates', nearDuplicates);
+              self._createXhrRequest(0);
             }
+          }
+        };
+      },
+
+      /**
+       * Creates and returns the listener for a Select/Deselect button with the given select setting.
+       *
+       * @param {Boolean} select
+       * @return {Object}
+       * @private
+       */
+      _createSelectListener: function(select) {
+        var self = this;
+        return {
+          onClick: function() {
+            self._selectOrDeselectImages(!!select);
           }
         };
       },
@@ -473,27 +588,145 @@ limitations under the License.
         var self = this;
         return {
           onClick: function() {
-            self.set('_queryInput', {
-              data: search.image,
-              nearDuplicates: {
-                bool: search.options.nearDuplicates
-              }
+            self.push('_results', {
+              date: search.date,
+              filename: search.filename,
+              imageList: search.imageList,
+              nearDuplicates: search.nearDuplicates,
+              resultsList: search.resultsList
             });
-            self.set('_imageResults', search.results);
           }
         };
       },
 
       /**
-       * Returns the blur style class for the given blur setting.
+       * Creates an XHR request using the given index from _selectedImageIds and sets the properties on the iron-ajax element and sends the XHR request to the image service.
        *
-       * @param {Boolean} blur
-       * @param {Boolean} large
+       * @param {Number} selectedImageIdIndex
+       * @private
+       */
+      _createXhrRequest: function(selectedImageIdIndex) {
+        var self = this;
+        this.set('_queryIndex', _.findIndex(this._images, function(image) {
+          return image.id === self._selectedImageIds[selectedImageIdIndex];
+        }));
+
+        if(this._queryIndex < 0 || this._queryIndex > this._images.length) {
+          return;
+        }
+
+        var inputImage = this._images[this._queryIndex];
+
+        if(inputImage.type === 'File') {
+          this.$.xhr.body = {
+            data: inputImage.data
+          };
+          if(!this._nearDuplicates) {
+            this.$.xhr.body.options = '{"near_dup":1,"near_dup_th":' + this.imageThreshold + '}';
+          }
+          this.$.xhr.params = {};
+          this.$.xhr.contentType = 'application/x-www-form-urlencoded';
+          this.$.xhr.method = 'POST';
+          this._sendXhrRequest('base64');
+        }
+
+        if(inputImage.type === 'Link') {
+          this.$.xhr.body = {};
+          this.$.xhr.params = {
+            data: inputImage.data
+          };
+          if(!this._nearDuplicates) {
+            this.$.xhr.params.options = '{"near_dup":1,"near_dup_th":' + this.imageThreshold + '}';
+          }
+          this.$.xhr.method = 'GET';
+          this._sendXhrRequest('url');
+        }
+
+        if(this.logger && this.logger.log) {
+          this.logger.log('SimilarImageSearch-' + inputImage.type,
+              'NearDuplicates=' + (this._nearDuplicates ? 'TRUE' : 'FALSE'),
+              (inputImage.type === 'Link' ? inputImage.data : ''));
+        }
+      },
+
+      /**
+       * Returns whether to enable the Search buttons.
+       *
+       * @param {Boolean} loading
+       * @param {Number} number
+       * @return {Boolean}
+       * @private
+       */
+      _enableSearch: function(loading, number) {
+        return !loading && number;
+      },
+
+      /**
+       * Returns the label text for an input image.
+       *
+       * @param {Number} index
+       * @param {String} name
        * @return {String}
        * @private
        */
-      _getBlurStyleClass: function(blur, large) {
-        return (blur ? (large ? 'large-blur' : 'small-blur') : '');
+      _getInputImageLabel: function(index, name) {
+        return '#' + (index + 1) + ':  ' + name;
+      },
+
+      /**
+       * Returns the title text for an input image.
+       *
+       * @param {Number} index
+       * @param {String} name
+       * @return {String}
+       * @private
+       */
+      _getInputImageTitle: function(index, name) {
+        return 'Click to Toggle Image #' + (index + 1) + ':  ' + name;
+      },
+
+      /**
+       * Returns the header text for the number of top similar image results.
+       *
+       * @param {Number} number
+       * @param {Boolean} nearDuplicates
+       * @return {String}
+       * @private
+       */
+      _getImageResultsHeaderText: function(number, nearDuplicates) {
+        return (number ? 'Top ' + number + ' ' : 'No ') + (nearDuplicates ? 'Near-Duplicate' : 'Similar') + ' Image' + (number === 1 ? '' : 's');
+      },
+
+      /**
+       * Returns the detail text for the number of top similar image results.
+       *
+       * @param {Number} number
+       * @param {Boolean} nearDuplicates
+       * @return {String}
+       * @private
+       */
+      _getImageResultsDetailText: function(number, nearDuplicates) {
+        return (number ? number + ' ' : 'No ') + (nearDuplicates ? 'Near-Duplicate' : 'Image') + (number === 1 ? '' : 's');
+      },
+
+      /**
+       * Returns the text for the loading spinner.
+       *
+       * @param {Array} images
+       * @param {Number} queryIndex
+       * @param {Array} selectedImageIds
+       * @return {String}
+       * @private
+       */
+      _getLoadingSpinnerText: function(images, queryIndex, selectedImageIds) {
+        if(queryIndex < 0) {
+          return '';
+        }
+        var id = images[queryIndex].id;
+        var number = selectedImageIds.length - _.findIndex(selectedImageIds, function(selectedId) {
+          return selectedId === id;
+        });
+        return (number + ' More Search Result' + (number === 1 ? '' : 's'));
       },
 
       /**
@@ -525,14 +758,14 @@ limitations under the License.
       },
 
       /**
-       * Returns the title for the similar image results.
+       * Returns the text for the number of selected images.
        *
        * @param {Number} number
        * @return {String}
        * @private
        */
-      _getImageResultsTitle: function(number) {
-        return (number ? 'Top ' + number + ' ' : 'No ') + 'Similar Image Result' + (number === 1 ? '' : 's');
+      _getSelectedImagesText: function(number) {
+        return (number ? number : 'No') + ' Image' + (number === 1 ? '' : 's') + ' Selected';
       },
 
       /**
@@ -551,63 +784,157 @@ limitations under the License.
           var imageDistances = response.images[0].similar_images.distance;
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-          imageDistances = imageDistances.filter(function(distance) {
-            return _.toNumber(distance) < self.imageThreshold;
+          var endIndex = _.findIndex(imageDistances, function(distance) {
+            return _.toNumber(distance) > self.imageThreshold;
           });
 
-          self._imageResults = imageUrls.map(function(url, index) {
+          var imageResults = imageUrls.map(function(url, index) {
             return {
               link: ((self.linkFunction && index < imageIds.length) ? self.linkFunction(imageIds[index]) : ''),
               source: url
             };
-          }).slice(0, imageDistances.length);
+          }).slice(0, endIndex < 0 ? imageUrls.length : endIndex);
 
-          // Use this.splice to force the dom-repeat to redraw itself.  Add the latest search to the start of the list.
+          var result = {
+            date: moment.utc(new Date()).format('h:mm:ss A MMM D, YYYY'),
+            filename: self._images[self._queryIndex].name,
+            imageList: [self._images[self._queryIndex]],
+            nearDuplicates: self._nearDuplicates,
+            resultsList: imageResults
+          };
+
+          self.push('_results', result);
+
+          // Use self.splice to force the dom-repeat to redraw itself.  Add the latest search to the start of the list.
           self.splice('_previousSearches', 0, 0, {
-            image: self._queryInput.data,
-            results: _.cloneDeep(self._imageResults),
-            options: {
-              nearDuplicates: self._queryInput.nearDuplicates.bool
-            }
+            date: result.date,
+            filename: result.filename,
+            imageList: _.cloneDeep(result.imageList),
+            nearDuplicates: result.nearDuplicates,
+            resultsList: _.cloneDeep(result.resultsList)
           });
+        }
+
+        var selectedImageIdIndex = _.findIndex(this._selectedImageIds, function(id) {
+          return id === self._images[self._queryIndex].id;
+        });
+
+        if(selectedImageIdIndex + 1 < this._selectedImageIds.length) {
+          this._createXhrRequest(selectedImageIdIndex + 1);
+        } else {
+          this._selectOrDeselectImages(false);
         }
       },
 
       /**
-       * Returns the style class for the selectable items based on whether the given item ID matches the selected ID.
+       * Clears the _hoveringImageIds.
        *
-       * @param {Number} id
-       * @param {Number} selectedId
-       * @return {String}
+       * @event mouseout
        * @private
        */
-      _isSelected: function(id, selectedId) {
-        return id === selectedId ? 'selected' : '';
+      _hoverEnd: function() {
+        this.set('_hoveringImageIds', []);
       },
 
       /**
-       * Selects the clicked item in the selectable list.
+       * Sets the _hoveringImageIds.
+       *
+       * @event mouseover
+       * @private
+       */
+      _hoverStart: function(event) {
+        this.set('_hoveringImageIds', [event.model.image.id]);
+      },
+
+      /**
+       * Returns the third input if the first two inputs are equal.
+       *
+       * @param {Any} one
+       * @param {Any} two
+       * @param {Any} value
+       * @return {Any}
+       * @private
+       */
+      _ifAreEqualThenReturn: function(one, two, value) {
+        return one === two ? value : '';
+      },
+
+      /**
+       * Returns the third input if the given item is in the given list.
+       *
+       * @param {Array} list
+       * @param {Any} item
+       * @param {Any} value
+       * @return {Any}
+       * @private
+       */
+      _ifIsInListThenReturn: function(list, item, value) {
+        return list.indexOf(item) >= 0 ? value : '';
+      },
+
+      /**
+       * Saves a new input image with the given properties in the correct index in _images.
+       *
+       * @param {String} data
+       * @param {String} name
+       * @param {String} type
+       * @private
+       */
+      _saveInputImage: function(data, name, type) {
+        var id = this._nextInputImageId++;
+        var index = _.findIndex(this._images, function(image) {
+          return image.name >= name;
+        });
+        this.splice('_images', (index < 0 ? this._images.length : index), 0, this._createInputImageObject(id, data, name, type, true));
+      },
+
+      /**
+       * Saves the uploaded image to the list of input images.
+       *
+       * @event success
+       * @private
+       */
+      _saveUploadedInputImage: function(event) {
+        if(event.detail && event.detail.filename && event.detail.xhr && event.detail.xhr.response) {
+          var response = JSON.parse(event.detail.xhr.response);
+          if(!response.mimeType.startsWith('image')) {
+            this.set('_error', 'Image Upload Failed (Not an Image File):  ' + event.detail.filename);
+            return;
+          }
+          this.set('_error', '');
+          var data = 'data:' + response.mimeType + ';base64,' + response.base64;
+          this._saveInputImage(data, event.detail.filename, 'File');
+        }
+        this._updateSelectedImageIds();
+        this.$$('#fileUpload').clear();
+      },
+
+      /**
+       * Sets the _selectedResultsIndex.
        *
        * @event tap
        * @private
        */
-      _selectImageEvent: function(event) {
-        this._selectImageIndex(parseInt(event.target.id));
+      _selectImageResults: function(event) {
+        this.set('_selectedResultsIndex', event.model.index);
       },
 
       /**
-       * Selects the image at the given index.
+       * Selects or deselects each object in _images and updates _selectedImageIds.
        *
-       * @param {Number} index
+       * @param {Boolean} select
        * @private
        */
-      _selectImageIndex: function(index) {
-        if(!this.loading) {
-          this.set('_selectedObject', this._images[index]);
-          this.set('_queryInput', {
-            data: this._selectedObject.data
-          });
-        }
+      _selectOrDeselectImages: function(select) {
+        var self = this;
+        this._images.forEach(function(image, index) {
+          if(image.selected === select) {
+            return;
+          }
+          // Must recreate the image object in order to successfully notify the paper-checkbox of the change.
+          self.set('_images.' + index, self._createInputImageObject(image.id, image.data, image.name, image.type, select));
+        });
+        this._updateSelectedImageIds();
       },
 
       /**
@@ -617,8 +944,8 @@ limitations under the License.
        * @private
        */
       _sendXhrRequest: function(type) {
-        this.set('_imageResults', []);
         this.$.xhr.url = this._getRequestHost(this.imageServiceHost, type);
+        this.$.xhr.headers = this.$.xhr.headers || {};
         this.$.xhr.headers.Authorization = this._getRequestAuth(this.imageServiceAuth);
         if(this.$.xhr.headers.Authorization && this.$.xhr.url) {
           this.$.xhr.generateRequest();
@@ -633,8 +960,25 @@ limitations under the License.
        * @event error
        * @private
        */
-      _setUploadErrorMessage: function() {
-        this._uploadText = 'Upload image failed!';
+      _setUploadErrorMessage: function(event) {
+        this.set('_error', 'Image Upload Failed (Unknown Error):  ' + event.detail.filename);
+      },
+
+      /**
+       * Updates the _selectedImageIds using the _images.
+       *
+       * @private
+       */
+      _updateSelectedImageIds: function() {
+        if(!this.loading) {
+          var selectedImageIds = [];
+          this._images.forEach(function(image) {
+            if(image.selected) {
+              selectedImageIds.push(image.id);
+            }
+          });
+          this.set('_selectedImageIds', selectedImageIds);
+        }
       },
 
       /**
