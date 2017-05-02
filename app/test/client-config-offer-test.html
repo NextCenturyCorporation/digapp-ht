@@ -1290,11 +1290,12 @@ limitations under the License.
     });
   });
 
-  suite('<client-config> offer tests for the location page map data', function() {
+  suite('<client-config> offer tests for the locations with icons', function() {
     var clientConfig;
-    var data = [{
+    var primary = [{
       id: 'Atlanta:Georgia:United States:-84.38798:33.749'
-    }, {
+    }];
+    var secondary = [{
       id: 'Brooklyn:New York:United States:-73.94958:40.6501'
     }, {
       id: 'Houston:Texas:United States:-95.36327:29.76328'
@@ -1304,16 +1305,29 @@ limitations under the License.
       clientConfig = fixture('client-config-fixture');
     });
 
-    test('defines config object with map locations transform function', function() {
+    test('defines config object with locations with icons transform function', function() {
       expect(clientConfig).to.exist;
       expect(clientConfig.config).to.be.an('Object');
       expect(clientConfig.config.transforms).to.be.an('Object');
       expect(clientConfig.config.transforms.offer).to.be.an('Object');
-      expect(clientConfig.config.transforms.offer.locationPageMap).to.be.a('Function');
+      expect(clientConfig.config.transforms.offer.locationsWithIcons).to.be.a('Function');
     });
 
-    test('defines locations for map location aggregation buckets', function() {
-      var output = clientConfig.config.transforms.offer.locationPageMap('Atlanta:Georgia:United States:-84.38798:33.749', data);
+    test('locations with icons function given empty primary array does return undefined', function() {
+      var output = clientConfig.config.transforms.offer.locationsWithIcons([], secondary);
+      expect(output).to.not.exist;
+    });
+
+    test('locations with icons function given primary array and empty secondary array does return correct array', function() {
+      var output = clientConfig.config.transforms.offer.locationsWithIcons(primary, []);
+      expect(output).to.deep.equal([{
+        iconId: 'mainLocation',
+        id: 'Atlanta:Georgia:United States:-84.38798:33.749'
+      }]);
+    });
+
+    test('locations with icons function given primary and secondary array does return correct array', function() {
+      var output = clientConfig.config.transforms.offer.locationsWithIcons(primary, secondary);
       expect(output).to.deep.equal([{
         iconId: 'mainLocation',
         id: 'Atlanta:Georgia:United States:-84.38798:33.749'
@@ -1322,16 +1336,6 @@ limitations under the License.
       }, {
         id: 'Houston:Texas:United States:-95.36327:29.76328'
       }]);
-    });
-
-    test('if the first location argument is not yet defined, transform returns undefined', function() {
-      var output = clientConfig.config.transforms.offer.locationPageMap(undefined, data);
-      expect(output).to.be.undefined;
-    });
-
-    test('if aggregation argument is not yet defined, transform returns undefined', function() {
-      var output = clientConfig.config.transforms.offer.locationPageMap('Atlanta:Georgia:United States:-84.38798:33.749', undefined);
-      expect(output).to.be.undefined;
     });
   });
 

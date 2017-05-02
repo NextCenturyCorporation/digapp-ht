@@ -238,15 +238,9 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
       return location.id === locationId;
     });
 
-    var otherLocations = !locationId ? locations : locations.filter(function(location) {
-      return location.id !== locationId;
-    });
-
     return {
       dates: data.dates,
-      locations: locationWithId,
-      allLocations: locations,
-      otherLocations: otherLocations
+      locations: locationWithId
     };
   }
 

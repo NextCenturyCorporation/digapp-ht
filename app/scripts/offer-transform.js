@@ -419,18 +419,26 @@ var offerTransform = (function(_, commonTransforms) {
       return getTitle(size, config.type, config.sayOther);
     },
 
-    locationPageMap: function(locationId, data) {
-      if(!locationId || !data || !data.length) {
+    locationsWithIcons: function(primary, secondary) {
+      if(!primary || !primary.length) {
         // need to return undefined here so that we wait until all data is ready before displaying points on the map
         return undefined;
       }
 
-      return data.map(function(location) {
-        if(location.id === locationId) {
-          location.iconId = 'mainLocation';
-        }
-        return location;
+      var locations = [];
+
+      primary.forEach(function(location) {
+        location.iconId = 'mainLocation';
+        locations.push(location);
       });
+
+      if(secondary) {
+        secondary.forEach(function(location) {
+          locations.push(location);
+        });
+      }
+
+      return locations;
     },
 
     revisions: function(data) {
