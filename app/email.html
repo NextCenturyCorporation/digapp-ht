@@ -228,12 +228,12 @@ limitations under the License.
       <paper-header-panel class="flex" mode="waterfall-tall">
 
         <!-- Entity header -->
-        <section class="paper-header layout horizontal">
+        <div class="paper-header layout horizontal">
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
             <iron-icon class="iron-icon-huge entity-email-font" icon="communication:email"></iron-icon>
-            <section>
+            <div class="page-name">
               <div class="paper-font-headline">
                 Email: <span>[[params.id]]</span>
               </div>
@@ -242,7 +242,7 @@ limitations under the License.
                   [[emailOffersTotalCount]] Total Ads
                 </div>
               </template>
-            </section>
+            </div>
           </div>
 
           <filters-builder
@@ -336,7 +336,7 @@ limitations under the License.
               </paper-icon-item>
             </div>
           </iron-dropdown>
-        </section>
+        </div>
 
         <!-- Entity body -->
         <div class="entity-page">
@@ -346,460 +346,339 @@ limitations under the License.
             <!-- Left Pane -->
             <div class="flex layout vertical">
 
-              <!-- Map -->
-              <paper-material>
-                <!-- City summary -->
-                <section class="where-header flex-none">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div class="paper-font-title flex">[[locationHeader]]</div>
+              <section-and-map
+                show-copy
+                icon="communication:location-on"
+                style-class="entity-location-font"
+                text-property="textAndCount"
+                transform-config='{"type":"location","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[locationData]]">
 
-                    <template is="dom-if" if="[[locationData.length]]">
-                      <div class="copy-data" id="locationDataClipboard" title="Copy Locations to Clipboard" data-clipboard-text$="[[getClipboardText(locationData, 'true')]]">
-                        Copy
-                        <iron-icon icon="content-copy"></iron-icon>
-                      </div>
-                    </template>
-                  </div>
-                </section>
+                <aggregation-query-and-display
+                  aggregation-name="location"
+                  aggregation-field="fields.city.strict.key"
+                  selected="{{filterCollection.location}}"
+                  query-field="fields.email.strict.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('location')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{locationData}}"
+                  header-data-name="Location"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-map>
 
-                <!-- Leaflet map -->
-                <template is="dom-if" if="[[locationData.length]]">
-                  <section class="where flex-auto">
-                    <leaflet-wrapper
-                      text-property="textAndCount"
-                      data="{{locationData}}"
-                      cluster-markers>
-                    </leaflet-wrapper>
-                  </section>
+              <div class="h-divider"></div>
+
+              <section-and-title
+                show-copy
+                copy-type="Telephone Numbers"
+                icon="communication:phone"
+                style-class="entity-phone-font"
+                transform-config='{"type":"phone","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[phoneData]]">
+
+                <aggregation-query-and-display
+                  aggregation-name="phone"
+                  aggregation-field="fields.phone.strict.key"
+                  selected="{{filterCollection.phone}}"
+                  query-field="fields.email.strict.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('phone')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{phoneData}}"
+                  header-data-name="Phone"
+                  header-counts-name="Ads"
+                  header-entity-name="[[params.id]]"
+                  show-checkboxes
+                  show-double-bar-chart>
+                </aggregation-query-and-display>
+
+                <template is="dom-if" if="[[phoneData.length]]">
+                  <info-aggregations entity="[[params.id]]" type="telephone number" style="margin-top: 10px;"></info-aggregations>
                 </template>
-
-                <!-- City summary -->
-                <section class="where-details location-section flex-none">
-                  <json-combine
-                    data-in1="[[locationData.length]]"
-                    data-in2='{"type":"location","sayOther":false}'
-                    data-out="{{locationHeader}}"
-                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
-                  </json-combine>
-
-                  <aggregation-query-and-display
-                    aggregation-name="location"
-                    aggregation-field="fields.city.strict.key"
-                    selected="{{filterCollection.location}}"
-                    query-field="fields.email.strict.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["ads"]'
-                    filter-list="[[filterList]]"
-                    transform-config="[[createAggregationTransformConfig('location')]]"
-                    transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
-                    data="{{locationData}}"
-                    header-data-name="Location"
-                    header-counts-name="Ads"
-                    show-checkboxes>
-                  </aggregation-query-and-display>
-                </section>
-
-              </paper-material>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <!-- Phones Section -->
-              <paper-material>
-                <section class="who phone-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-phone-font" icon="communication:phone"></iron-icon>
-                    <div class="paper-font-title flex">[[phoneHeader]]</div>
+              <section-and-title
+                show-copy
+                copy-type="Email Addresses"
+                icon="communication:email"
+                style-class="entity-email-font"
+                transform-config='{"type":"email","sayOther":true}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[emailData]]">
 
-                    <template is="dom-if" if="[[phoneData.length]]">
-                      <div class="copy-data" id="phoneDataClipboard" title="Copy Telephone Numbers to Clipboard" data-clipboard-text$="[[getClipboardText(phoneData)]]">
-                        Copy
-                        <iron-icon icon="content-copy"></iron-icon>
-                      </div>
-                    </template>
-                  </div>
+                <aggregation-query-and-display
+                  aggregation-name="email"
+                  aggregation-field="fields.email.strict.key"
+                  selected="{{filterCollection.email}}"
+                  query-field="fields.email.strict.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('email', params.id)]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{emailData}}"
+                  header-data-name="Email"
+                  header-counts-name="Ads"
+                  header-entity-name="[[params.id]]"
+                  show-checkboxes
+                  show-double-bar-chart>
+                </aggregation-query-and-display>
 
-                  <json-combine
-                    data-in1="[[phoneData.length]]"
-                    data-in2='{"type":"phone","sayOther":false}'
-                    data-out="{{phoneHeader}}"
-                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
-                  </json-combine>
-
-                  <aggregation-query-and-display
-                    aggregation-name="phone"
-                    aggregation-field="fields.phone.strict.key"
-                    selected="{{filterCollection.phone}}"
-                    query-field="fields.email.strict.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["ads"]'
-                    filter-list="[[filterList]]"
-                    transform-config="[[createAggregationTransformConfig('phone')]]"
-                    transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
-                    data="{{phoneData}}"
-                    header-data-name="Phone"
-                    header-counts-name="Ads"
-                    header-entity-name="[[params.id]]"
-                    show-checkboxes
-                    show-double-bar-chart>
-                  </aggregation-query-and-display>
-
-                  <template is="dom-if" if="[[phoneData.length]]">
-                    <info-aggregations entity="[[params.id]]" type="telephone number" style="margin-top: 10px;"></info-aggregations>
-                  </template>
-                </section>
-              </paper-material>
+                <template is="dom-if" if="[[emailData.length]]">
+                  <info-aggregations entity="[[params.id]]" type="email address" style="margin-top: 10px;"></info-aggregations>
+                </template>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <!-- Emails Section -->
-              <paper-material>
-                <section class="who phone-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-email-font" icon="communication:email"></iron-icon>
-                    <div class="paper-font-title flex">[[emailHeader]]</div>
+              <section-and-title
+                show-copy
+                copy-type="Websites"
+                icon="av:web"
+                style-class="entity-webpage-font"
+                transform-config='{"type":"webpage","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[publisherData]]">
 
-                    <template is="dom-if" if="[[emailData.length]]">
-                      <div class="copy-data" id="emailDataClipboard" title="Copy Other Email Addresses to Clipboard" data-clipboard-text$="[[getClipboardText(emailData)]]">
-                        Copy
-                        <iron-icon icon="content-copy"></iron-icon>
-                      </div>
-                    </template>
-                  </div>
-
-                  <json-combine
-                    data-in1="[[emailData.length]]"
-                    data-in2='{"type":"email","sayOther":true}'
-                    data-out="{{emailHeader}}"
-                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
-                  </json-combine>
-
-                  <aggregation-query-and-display
-                    aggregation-name="email"
-                    aggregation-field="fields.email.strict.key"
-                    selected="{{filterCollection.email}}"
-                    query-field="fields.email.strict.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["ads"]'
-                    filter-list="[[filterList]]"
-                    transform-config="[[createAggregationTransformConfig('email', params.id)]]"
-                    transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
-                    data="{{emailData}}"
-                    header-data-name="Email"
-                    header-counts-name="Ads"
-                    header-entity-name="[[params.id]]"
-                    show-checkboxes
-                    show-double-bar-chart>
-                  </aggregation-query-and-display>
-
-                  <template is="dom-if" if="[[emailData.length]]">
-                    <info-aggregations entity="[[params.id]]" type="email address" style="margin-top: 10px;"></info-aggregations>
-                  </template>
-                </section>
-              </paper-material>
+                <aggregation-query-and-display
+                  aggregation-name="webpage"
+                  aggregation-field="tld.raw"
+                  selected="{{filterCollection.publisher}}"
+                  query-field="fields.email.strict.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('webpage')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{publisherData}}"
+                  header-data-name="Website"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <paper-material>
-                <section class="who publisher-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-webpage-font" icon="av:web"></iron-icon>
-                    <div class="paper-font-title flex">[[publisherHeader]]</div>
+              <section-and-title
+                show-copy
+                copy-type="Social Media IDs"
+                icon="social:public"
+                style-class="entity-social-font"
+                transform-config='{"type":"social","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[socialData]]">
 
-                    <template is="dom-if" if="[[publisherData.length]]">
-                      <div class="copy-data" id="publisherDataClipboard" title="Copy Websites to Clipboard" data-clipboard-text$="[[getClipboardText(publisherData)]]">
-                        Copy
-                        <iron-icon icon="content-copy"></iron-icon>
-                      </div>
-                    </template>
-                  </div>
-
-                  <json-combine
-                    data-in1="[[publisherData.length]]"
-                    data-in2='{"type":"webpage","sayOther":false}'
-                    data-out="{{publisherHeader}}"
-                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
-                  </json-combine>
-
-                  <aggregation-query-and-display
-                    aggregation-name="webpage"
-                    aggregation-field="tld.raw"
-                    selected="{{filterCollection.publisher}}"
-                    query-field="fields.email.strict.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["ads"]'
-                    filter-list="[[filterList]]"
-                    transform-config="[[createAggregationTransformConfig('webpage')]]"
-                    transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
-                    data="{{publisherData}}"
-                    header-data-name="Website"
-                    header-counts-name="Ads"
-                    show-checkboxes>
-                  </aggregation-query-and-display>
-                </section>
-              </paper-material>
+                <aggregation-query-and-display
+                  aggregation-name="social"
+                  aggregation-field="fields.social_media_id.strict.key"
+                  selected="{{filterCollection.social}}"
+                  query-field="fields.email.strict.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('social')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{socialData}}"
+                  header-data-name="Social Media ID"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <paper-material>
-                <section class="who social-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-social-font" icon="social:public"></iron-icon>
-                    <div class="paper-font-title flex">[[socialHeader]]</div>
+              <section-and-title
+                icon="icons:account-circle"
+                style-class="entity-provider-font"
+                title="Summary of Provider Attributes">
 
-                    <template is="dom-if" if="[[socialData.length]]">
-                      <div class="copy-data" id="socialDataClipboard" title="Copy Social Media IDs to Clipboard" data-clipboard-text$="[[getClipboardText(socialData)]]">
-                        Copy
-                        <iron-icon icon="content-copy"></iron-icon>
-                      </div>
-                    </template>
-                  </div>
-
-                  <json-combine
-                    data-in1="[[socialData.length]]"
-                    data-in2='{"type":"social","sayOther":false}'
-                    data-out="{{socialHeader}}"
-                    combine-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]">
-                  </json-combine>
-
-                  <aggregation-query-and-display
-                    aggregation-name="social"
-                    aggregation-field="fields.social_media_id.strict.key"
-                    selected="{{filterCollection.social}}"
-                    query-field="fields.email.strict.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["ads"]'
-                    filter-list="[[filterList]]"
-                    transform-config="[[createAggregationTransformConfig('social')]]"
-                    transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
-                    data="{{socialData}}"
-                    header-data-name="Social Media ID"
-                    header-counts-name="Ads"
-                    show-checkboxes>
-                  </aggregation-query-and-display>
-                </section>
-              </paper-material>
+                <people-features
+                  query-field="fields.email.strict.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  filter-list="[[filterList]]"
+                  selected-age="{{filterCollection.age}}"
+                  selected-ethnicity="{{filterCollection.ethnicity}}"
+                  selected-eye-color="{{filterCollection.eyeColor}}"
+                  selected-gender="{{filterCollection.gender}}"
+                  selected-hair-color="{{filterCollection.hairColor}}"
+                  selected-height="{{filterCollection.height}}"
+                  selected-name="{{filterCollection.name}}"
+                  selected-price="{{filterCollection.price}}"
+                  selected-services="{{filterCollection.services}}"
+                  selected-weight="{{filterCollection.weight}}"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]">
+                </people-features>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <!-- Services -->
-              <paper-material>
-                <section class="who">
+              <section-and-title
+                icon="image:photo"
+                style-class="entity-image-font"
+                transform-config="[[loadedImages.length]]"
+                transform-function="[[clientConfig.transforms.image.imageTitle]]"
+                data="[[images]]">
 
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
-                    <div class="paper-font-title flex">Summary of Provider Attributes</div>
-                  </div>
-
-                  <people-features
-                    query-field="fields.email.strict.key"
-                    query-value="[[params.id]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    filter-list="[[filterList]]"
-                    selected-age="{{filterCollection.age}}"
-                    selected-ethnicity="{{filterCollection.ethnicity}}"
-                    selected-eye-color="{{filterCollection.eyeColor}}"
-                    selected-gender="{{filterCollection.gender}}"
-                    selected-hair-color="{{filterCollection.hairColor}}"
-                    selected-height="{{filterCollection.height}}"
-                    selected-name="{{filterCollection.name}}"
-                    selected-price="{{filterCollection.price}}"
-                    selected-services="{{filterCollection.services}}"
-                    selected-weight="{{filterCollection.weight}}"
-                    transform-function="[[clientConfig.transforms.offer.offerExtractions]]">
-                  </people-features>
-                </section>
-              </paper-material>
+                <image-query-and-display
+                  aggregation-field="url.raw"
+                  aggregation-name="image"
+                  client="[[esclient]]"
+                  filter-list="[]"
+                  header-counts-name="Ads"
+                  header-entity-name="[[params.id]]"
+                  image-id-property="source"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["images"]'
+                  query-fields='"isImagePartOf.mentionsEmail"'
+                  query-values="[[params.imageQueryId]]"
+                  transform-config="{}"
+                  transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  images="{{images}}"
+                  loaded-images="{{loadedImages}}"
+                  selected="{{filterCollection.image}}">
+                </image-query-and-display>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <paper-material>
-                <section class="photos">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                    <div class="paper-font-title flex">[[imageHeader]]</div>
-                  </div>
+              <section-and-title
+                error="[[locationTimelineError]]"
+                icon="icons:timeline"
+                title="[[itineraryTitle]]">
 
-                  <json-combine
-                    data-in1="[[images.length]]"
-                    data-in2="[[loadedImages.length]]"
-                    data-out="{{imageHeader}}"
-                    combine-function="[[clientConfig.transforms.image.imageTitle]]">
-                  </json-combine>
-
-                  <image-query-and-display
-                    aggregation-field="url.raw"
-                    aggregation-name="image"
-                    client="[[esclient]]"
-                    filter-list="[]"
-                    header-counts-name="Ads"
-                    header-entity-name="[[params.id]]"
-                    image-id-property="source"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["images"]'
-                    query-fields='"isImagePartOf.mentionsEmail"'
-                    query-values="[[params.imageQueryId]]"
-                    transform-config="{}"
-                    transform-function="[[clientConfig.transforms.image.images]]"
-                    small-image-style-class="[[getBlurStyleClass(blurImages)]]"
-                    large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
-                    images="{{images}}"
-                    loaded-images="{{loadedImages}}"
-                    selected="{{filterCollection.image}}">
-                  </image-query-and-display>
-                </section>
-              </paper-material>
-
-              <!-- Itinerary section -->
-              <div class="h-divider"></div>
-
-              <paper-material>
-                <section class="who">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <div class="paper-font-title flex">[[itineraryTitle]]</div>
-                  </div>
-
-                  <template is="dom-if" if="[[locationTimelineError]]">
-                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
-                    <div>[[locationTimelineErrorMessage]]</div>
-                  </template>
-
-                  <itinerary-list
-                    items-property="locations"
-                    item-name-property="text"
-                    data="[[timelineData.strippedDates]]"
-                    source="Ads"
-                    interval="[[locationTimelineInterval]]"
-                    itinerary-title="{{itineraryTitle}}"
-                    loading="[[loadingLocationTimeline]]">
-                  </itinerary-list>
-                </section>
-              </paper-material>
+                <itinerary-list
+                  items-property="locations"
+                  item-name-property="text"
+                  data="[[timelineData.strippedDates]]"
+                  source="Ads"
+                  interval="[[locationTimelineInterval]]"
+                  itinerary-title="{{itineraryTitle}}"
+                  loading="[[loadingLocationTimeline]]">
+                </itinerary-list>
+              </section-and-title>
 
             </div>
 
             <!-- Right Pane -->
             <div class="flex layout vertical">
 
-              <!-- Timeline -->
-              <paper-material>
-                <section class="when">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <div class="paper-font-title flex">[[barChartTitle]]</div>
-                  </div>
+              <section-and-title
+                error="[[locationTimelineError]]"
+                icon="editor:insert-chart"
+                title="[[barChartTitle]]">
 
-                  <template is="dom-if" if="[[locationTimelineError]]">
-                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
-                    <div>[[locationTimelineErrorMessage]]</div>
-                  </template>
-
-                  <zoomable-bar-chart timeline
-                    bar-property="date"
-                    label-property="text"
-                    stack-property="locations"
-                    data="[[timelineData.dates]]"
-                    default-label="Unknown Location(s)"
-                    source="Ads"
-                    interval="[[locationTimelineInterval]]"
-                    chart-title="{{barChartTitle}}"
-                    loading="[[loadingLocationTimeline]]">
-                  </zoomable-bar-chart>
-                </section>
-              </paper-material>
+                <zoomable-bar-chart timeline
+                  bar-property="date"
+                  label-property="text"
+                  stack-property="locations"
+                  data="[[timelineData.dates]]"
+                  default-label="Unknown Location(s)"
+                  source="Ads"
+                  interval="[[locationTimelineInterval]]"
+                  chart-title="{{barChartTitle}}"
+                  loading="[[loadingLocationTimeline]]">
+                </zoomable-bar-chart>
+              </section-and-title>
 
               <div class="h-divider"></div>
 
-              <!-- Event drops timeline -->
-              <paper-material>
-                <section>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="editor:bubble-chart"></iron-icon>
-                    <div class="paper-font-title flex">Location Drops Timeline</div>
-                  </div>
+              <section-and-title
+                error="[[eventDropsTimelineError]]"
+                icon="editor:bubble-chart"
+                title="Location Drops Timeline">
 
-                  <drops-query-and-timeline
+                <drops-query-and-timeline
+                  client="[[esclient]]"
+                  index="[[config.elasticIndex]]"
+                  date-hist-name="dates"
+                  date-hist-field="fields.posting_date.strict.key"
+                  location-agg-name="locations"
+                  location-agg-field="fields.city.strict.key"
+                  index-types='["ads"]'
+                  query="[[emailOffersQuery]]"
+                  filter-list="[[filterList]]"
+                  transform="[[clientConfig.transforms.timeline.eventDropsTimeline]]">
+                </drops-query-and-timeline>
+              </section-and-title>
+
+              <div class="h-divider"></div>
+
+              <section-container>
+                <section-title
+                  icon="maps:local-offer"
+                  style-class="entity-offer-font"
+                  title="[[recordsListTitle]]">
+
+                  <export-button
                     client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    date-hist-name="dates"
-                    date-hist-field="fields.posting_date.strict.key"
-                    location-agg-name="locations"
-                    location-agg-field="fields.city.strict.key"
+                    data="[[shownOffers]]"
+                    download-image-url="[[config.downloadImageUrl]]"
+                    filter-list="[[filterList]]"
+                    index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
                     query="[[emailOffersQuery]]"
-                    filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.timeline.eventDropsTimeline]]">
-                  </drops-query-and-timeline>
-                </section>
-              </paper-material>
+                    size="[[emailOffersTotalCount]]"
+                    sort-field="validFrom"
+                    sort-order="desc"
+                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                  </export-button>
+                </section-title>
 
-              <div class="h-divider"></div>
+                <template is="dom-if" if="[[offersError]]">
+                  <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
+                  <div>[[offersErrorMessage]]</div>
+                </template>
 
-              <!-- Offer list -->
-              <paper-material>
-                <section>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                    <div class="paper-font-title flex">[[recordsListTitle]]</div>
-
-                    <export-button
-                      client="[[esclient]]"
-                      data="[[shownOffers]]"
-                      download-image-url="[[config.downloadImageUrl]]"
-                      filter-list="[[filterList]]"
-                      index-name="[[config.elasticIndex]]"
-                      index-types='["ads"]'
-                      query="[[emailOffersQuery]]"
-                      size="[[emailOffersTotalCount]]"
-                      sort-field="validFrom"
-                      sort-order="desc"
-                      csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
-                      pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
-                      query-transform-function="[[clientConfig.transforms.offer.offers]]">
-                    </export-button>
-                  </div>
-
-                  <template is="dom-if" if="[[offersError]]">
-                    <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
-                    <div>[[offersErrorMessage]]</div>
-                  </template>
-
-                  <records-list
-                    annotation-manager="[[annotationManager]]"
-                    client="[[esclient]]"
-                    image-aggregation-field="url.raw"
-                    image-aggregation-name="image"
-                    image-index-name="[[config.elasticIndex]]"
-                    image-index-type="images"
-                    image-query-field="isImagePartOf.uri"
-                    image-transform-function="[[clientConfig.transforms.image.images]]"
-                    small-image-style-class="[[getBlurStyleClass(blurImages)]]"
-                    large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
-                    text-property="title"
-                    query-results="[[strippedOffers]]"
-                    total-results="{{emailOffersTotalCount}}"
-                    shown-results="{{shownOffers}}"
-                    page="{{pageNum}}"
-                    page-size="20"
-                    loading="{{offersLoading}}"
-                    type="Ad"
-                    records-list-title="{{recordsListTitle}}"
-                    current-user="[[config.username]]">
-                  </records-list>
-                </section>
-              </paper-material>
+                <records-list
+                  annotation-manager="[[annotationManager]]"
+                  client="[[esclient]]"
+                  image-aggregation-field="url.raw"
+                  image-aggregation-name="image"
+                  image-index-name="[[config.elasticIndex]]"
+                  image-index-type="images"
+                  image-query-field="isImagePartOf.uri"
+                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  text-property="title"
+                  query-results="[[strippedOffers]]"
+                  total-results="{{emailOffersTotalCount}}"
+                  shown-results="{{shownOffers}}"
+                  page="{{pageNum}}"
+                  page-size="20"
+                  loading="{{offersLoading}}"
+                  type="Ad"
+                  records-list-title="{{recordsListTitle}}"
+                  current-user="[[config.username]]">
+                </records-list>
+              </section-container>
             </div>
           </div>
         </div>
@@ -808,7 +687,6 @@ limitations under the License.
   </template>
 
   <!-- Need to include dependencies here for IE -->
-  <script src="bower_components/clipboard/dist/clipboard.min.js"></script>
   <script src="bower_components/lodash/dist/lodash.js"></script>
   <script src="bower_components/array-behavior/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
@@ -817,7 +695,7 @@ limitations under the License.
 
   <script>
   (function(document) {
-    /* globals Clipboard, DigBehaviors */
+    /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
     app.filterCollection = DigBehaviors.StateBehavior.buildEntityState({});
@@ -915,21 +793,6 @@ limitations under the License.
 
     app.emailSupport = function() {
       window.open('mailto:dig-support@nextcentury.com');
-    };
-
-    app.locationDataClipboard = new Clipboard('#locationDataClipboard');
-    app.phoneDataClipboard = new Clipboard('#phoneDataClipboard');
-    app.emailDataClipboard = new Clipboard('#emailDataClipboard');
-    app.publisherDataClipboard = new Clipboard('#publisherDataClipboard');
-    app.socialDataClipboard = new Clipboard('#socialDataClipboard');
-
-    app.getClipboardText = function(list, isLocation) {
-      return list.map(function(item) {
-        if(isLocation && item.text.indexOf(',') >= 0) {
-          return item.text.substring(0, item.text.indexOf(','));
-        }
-        return item.id;
-      }).join(',');
     };
 
     app.createAggregationTransformConfig = function(type, ignoreId) {

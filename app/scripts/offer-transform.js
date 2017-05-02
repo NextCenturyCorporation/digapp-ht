@@ -419,10 +419,6 @@ var offerTransform = (function(_, commonTransforms) {
       return getTitle(size, config.type, config.sayOther);
     },
 
-    offerLocationsHeader: function(data) {
-      return getTitle(data.length, 'location');
-    },
-
     locationPageMap: function(locationId, data) {
       if(!locationId || !data || !data.length) {
         // need to return undefined here so that we wait until all data is ready before displaying points on the map
