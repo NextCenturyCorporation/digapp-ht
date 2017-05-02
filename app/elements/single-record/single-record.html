@@ -139,6 +139,7 @@ limitations under the License.
       iron-image {
         --iron-image-width: 50px;
         background-color: transparent;
+        margin: 5px 20px 5px 5px;
       }
 
       .opened iron-image,
@@ -174,6 +175,9 @@ limitations under the License.
       modal-icon,
       paper-icon-button {
         --paper-icon-button: {
+          /* Add padding but make the icons the same size as the search navbar icons. */
+          height: 34px;
+          width: 34px;
           padding: 5px;
         };
       }
@@ -186,11 +190,6 @@ limitations under the License.
       modal-icon ::content .entity-offer-font {
         /* Hide the offer icons because users didn't like them. */
         visibility: hidden;
-      }
-
-      .annotation-icon-margin {
-        /* Margin between the header text and the icons. */
-        margin-left: 15px;
       }
 
       .tiny-icon {
@@ -234,7 +233,7 @@ limitations under the License.
         <iron-image class$="[[smallImageStyleClass]] hide [[_showImageElement(images)]]" src="[[_imageSrc]]"></iron-image>
       </div>
 
-      <div class="layout vertical flex center-justified vertical-margin horizontal-margin">
+      <div class="layout vertical flex center-justified vertical-margin">
         <div class="layout horizontal">
           <template is="dom-if" if="[[flag]]">
             <div class="record-flag text border">
@@ -289,12 +288,9 @@ limitations under the License.
         </div>
       </div>
 
-      <template is="dom-if" if="[[_isDefined(notificationQueryDate)]] vertical-margin" restamp="true">
-        <div class="layout vertical center-justified">
-          <iron-icon
-            class$="[[_getNewIconStyleClass(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]] yellowgreen"
-            icon="av:fiber-new">
-          </iron-icon>
+      <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
+        <div class="layout vertical center-justified vertical-margin">
+          <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
         </div>
       </template>
 
@@ -1123,31 +1119,6 @@ limitations under the License.
       },
 
       /**
-       * Returns the style class of the 'new' icon.
-       *
-       * @param {Array} extractions
-       * @param {String} dataProperty
-       * @param {String} textProperty
-       * @param {String} typeProperty
-       * @param {Date} date
-       * @return {String}
-       * @private
-       */
-      _getNewIconStyleClass: function(extractions, dataProperty, textProperty, typeProperty, date) {
-        var hide = true;
-        if(date) {
-          extractions.forEach(function(extraction) {
-            extraction[dataProperty].forEach(function(item) {
-              if(item[typeProperty] === 'date' && (new Date(item[textProperty]).getTime() > date.getTime())) {
-                hide = false;
-              }
-            });
-          });
-        }
-        return hide ? 'hide' : '';
-      },
-
-      /**
        * Returns the object in the given item at the given property.
        *
        * @param {Object} item
@@ -1275,17 +1246,6 @@ limitations under the License.
       },
 
       /**
-       * Returns whether the given input is defined (non-false value).
-       *
-       * @param {Any} input
-       * @return {Boolean}
-       * @private
-       */
-      _isDefined: function(input) {
-        return !!input;
-      },
-
-      /**
        * Returns whether or not to show the iron-image element in the result header based on whether the list of images is set.
        *
        * @param {Array} images
@@ -1294,6 +1254,31 @@ limitations under the License.
        */
       _showImageElement: function(images) {
         return images ? 'show' : '';
+      },
+
+      /**
+       * Returns whether or not to show the "new" iron-icon element in the result header based on the date and the extractions.
+       *
+       * @param {Array} extractions
+       * @param {String} dataProperty
+       * @param {String} textProperty
+       * @param {String} typeProperty
+       * @param {Date} date
+       * @return {Boolean}
+       * @private
+       */
+      _showNewIconElement: function(extractions, dataProperty, textProperty, typeProperty, date) {
+        var show = false;
+        if(date) {
+          extractions.forEach(function(extraction) {
+            extraction[dataProperty].forEach(function(item) {
+              if(item[typeProperty] === 'date' && (new Date(item[textProperty]).getTime() > date.getTime())) {
+                show = true;
+              }
+            });
+          });
+        }
+        return show;
       },
 
       /**

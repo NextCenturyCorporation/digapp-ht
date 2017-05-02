@@ -80,6 +80,7 @@ limitations under the License.
       expect(element.newTab).to.be.false;
       expect(element._hovering).to.be.false;
       expect(element._open).to.be.false;
+      expect(element.notificationQueryDate).to.not.exist;
     });
 
     test('_imageSrc is set to undefined', function() {
@@ -250,39 +251,21 @@ limitations under the License.
       }])).to.equal('show');
     });
 
-    test('toggleDetails does nothing if details, detailExtractions, and images are empty', function() {
-      element.toggleDetails({
-        target: {
-          classList: {
-            contains: function() {
-              return false;
-            }
-          },
-          localName: 'my-element'
-        }
-      });
-
-      expect(element._open).to.be.false;
-      expect(element.$$('paper-material').classList.contains('closed')).to.be.true;
-      expect(element.$$('paper-material').classList.contains('opened')).to.be.false;
-      expect(element.$$('iron-collapse')).to.not.exist;
-    });
-
-    test('_getNewIconStyleClass does return correctly', function() {
+    test('_showNewIconElement does return correctly', function() {
       var date = new Date('April 1, 2017');
-      expect(element._getNewIconStyleClass).to.be.a('Function');
-      expect(element._getNewIconStyleClass([{
+      expect(element._showNewIconElement).to.be.a('Function');
+      expect(element._showNewIconElement([{
         data: [{
           type: 'date',
           text: 'April 2, 2017'
         }]
-      }], 'data', 'text', 'type', date)).to.be.equal('');
-      expect(element._getNewIconStyleClass([{
+      }], 'data', 'text', 'type', date)).to.be.true;
+      expect(element._showNewIconElement([{
         data: [{
           type: 'date',
           text: 'March 31, 2017'
         }]
-      }], 'data', 'text', 'type', date)).to.be.equal('hide');
+      }], 'data', 'text', 'type', date)).to.be.false;
     });
 
     test('_getTypeText does return string correctly', function() {
@@ -325,14 +308,18 @@ limitations under the License.
       }, 'type')).to.equal('Ad');
     });
 
-    test('_isDefined does return correctly', function() {
-      expect(element._isDefined).to.be.a('Function');
-      expect(element._isDefined('text')).to.be.true;
-      expect(element._isDefined(true)).to.be.true;
-      expect(element._isDefined({})).to.be.true;
-      expect(element._isDefined('')).to.be.false;
-      expect(element._isDefined(false)).to.be.false;
-      expect(element._isDefined(undefined)).to.be.false;
+    test('does not show the new icon if the date is undefined', function(done) {
+      element.headerExtractions = [{
+        data: [{
+          type: 'date',
+          text: 'March 31, 2017'
+        }]
+      }];
+
+      flush(function() {
+        expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.not.exist;
+        done();
+      });
     });
 
     test('does not show the new icon if the item is not new', function(done) {
@@ -345,8 +332,7 @@ limitations under the License.
       element.notificationQueryDate = new Date('April 1, 2017');
 
       flush(function() {
-        expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.exist;
-        expect(element.$$('iron-icon[icon="av:fiber-new"]').classList.contains('hide')).to.be.true;
+        expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.not.exist;
         done();
       });
     });
@@ -362,9 +348,26 @@ limitations under the License.
 
       flush(function() {
         expect(element.$$('iron-icon[icon="av:fiber-new"]')).to.exist;
-        expect(element.$$('iron-icon[icon="av:fiber-new"]').classList.contains('hide')).to.be.false;
         done();
       });
+    });
+
+    test('toggleDetails does nothing if details, detailExtractions, and images are empty', function() {
+      element.toggleDetails({
+        target: {
+          classList: {
+            contains: function() {
+              return false;
+            }
+          },
+          localName: 'my-element'
+        }
+      });
+
+      expect(element._open).to.be.false;
+      expect(element.$$('paper-material').classList.contains('closed')).to.be.true;
+      expect(element.$$('paper-material').classList.contains('opened')).to.be.false;
+      expect(element.$$('iron-collapse')).to.not.exist;
     });
   });
 
