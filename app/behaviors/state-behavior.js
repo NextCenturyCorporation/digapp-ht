@@ -23,8 +23,15 @@ var DigBehaviors = DigBehaviors || {};
  */
 DigBehaviors.StateBehavior = {
   updateLegacyId: function(id) {
-    if(id.startsWith('http://dig.isi.edu/ht/data/')) {
+    if(id.startsWith('http://dig.isi.edu/ht/data/email')) {
       return decodeURIComponent(id.substring(id.lastIndexOf('/') + 1));
+    }
+    if(id.startsWith('http://dig.isi.edu/ht/data/phone')) {
+      var phone = id.substring(id.lastIndexOf('/') + 1);
+      if(phone.startsWith('1-')) {
+        return phone.substring(2);
+      }
+      return phone;
     }
     return id;
   },
@@ -109,6 +116,28 @@ DigBehaviors.StateBehavior = {
         });
       }
     });
+
+    // Fix legacy dates.
+    if(_.isEmpty(state.postingDate) && !_.isEmpty(config.dateCreated)) {
+      var start = config.dateCreated['Begin Date'];
+      var end = config.dateCreated['End Date'];
+      state.postingDate = {
+        dateEnd: (end ? {
+          key: 'dateEnd',
+          category: 'To',
+          date: end.date,
+          enabled: end.enabled,
+          text: end.text
+        } : undefined),
+        dateStart: (start ? {
+          key: 'dateStart',
+          category: 'From',
+          date: start.date,
+          enabled: start.enabled,
+          text: start.text
+        } : undefined),
+      };
+    }
 
     return state;
   },
