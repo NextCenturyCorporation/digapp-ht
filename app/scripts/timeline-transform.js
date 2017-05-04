@@ -185,7 +185,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
             date: new Date(dateBucket.key)
           });
           // If locationId is defined, only use dates of locations with that ID.
-          if(!locationId || locationId === id) {
+          if(!locationId || _.isEmpty(locationId) || locationId === id) {
             dates.push(dateBucket.key);
           }
         }
@@ -234,7 +234,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
 
     var locations = createEventDropsLocations(data.locationIdToDateList);
 
-    var locationWithId = !locationId ? locations : locations.filter(function(location) {
+    var locationWithId = (!locationId || _.isEmpty(locationId)) ? locations : locations.filter(function(location) {
       return location.id === locationId;
     });
 
