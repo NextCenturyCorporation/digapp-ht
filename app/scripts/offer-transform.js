@@ -36,45 +36,26 @@ var offerTransform = (function(_, commonTransforms) {
   }
   */
 
-  function getRawFieldDataFromRecord(record, path) {
-    var strict = _.get(record, path + '.strict', []);
-    var strictKeys = strict.map(function(item) {
-      return item.key;
-    });
+  function getSingleStringFromRecord(record, path, property) {
+    var data = _.get(record, path, []);
 
-    // Relaxed is a superset of strict.  Remove all items from relaxed that exist in strict for this use case.
-    var relaxed = _.get(record, path + '.relaxed', []).filter(function(item) {
-      return strictKeys.indexOf(item.key) < 0;
-    });
-
-    // TODO Ignore relaxed for now.
-    relaxed = [];
-
-    return {
-      relaxed: relaxed,
-      strict: strict
-    };
-  }
-
-  function getSingleStringFromRecord(record, path) {
-    var getSingleString = function(list) {
-      return list.length ? list.map(function(item) {
-        return item.name;
+    if(data && _.isArray(data)) {
+      return data.length ? data.map(function(item) {
+        return item[property];
       }).join('\n') : undefined;
-    };
+    }
 
-    var data = getRawFieldDataFromRecord(record, path);
-    return getSingleString(data.strict) || getSingleString(data.relaxed);
+    return data ? data[property] : undefined;
   }
 
   function annotateType(type) {
     return type === 'email' || type === 'phone';
   }
 
-  function getIdOfType(key, name, type) {
+  function getIdOfType(key, value, type) {
     if(type === 'location') {
-      // TODO We should use the key (and ignore the name) once the extractions are improved.
-      return key || name;
+      // TODO We should use the key (and ignore the value) once the extractions are improved.
+      return key || value;
     }
     if(type === 'social') {
       return key.indexOf(' ') ? key.substring(key.indexOf(' ') + 1) : key;
@@ -82,20 +63,20 @@ var offerTransform = (function(_, commonTransforms) {
     return key;
   }
 
-  function getTextOfType(key, name, type) {
+  function getTextOfType(key, value, type) {
     if(type === 'date') {
-      return commonTransforms.getDate(name || key) || 'No Date';
+      return commonTransforms.getDate(value || key) || 'No Date';
     }
     if(type === 'email') {
-      return decodeURIComponent(name || key);
+      return decodeURIComponent(value || key);
     }
     if(type === 'phone') {
-      return commonTransforms.getFormattedPhone(name || key);
+      return commonTransforms.getFormattedPhone(value || key);
     }
     if(type === 'provider' || type === 'review' || type === 'service' || type === 'social') {
-      return name ? ('' + name).toLowerCase() : ('' + key).toLowerCase();
+      return value ? ('' + value).toLowerCase() : ('' + key).toLowerCase();
     }
-    return name || key;
+    return value || key;
   }
 
   function getExtractionOfType(item, type, confidence) {
@@ -106,11 +87,11 @@ var offerTransform = (function(_, commonTransforms) {
       annotate: annotateType(type),
       confidence: confidence,
       count: count,
-      id: getIdOfType(item.key, item.name, type),
+      id: getIdOfType(item.key, item.value, type),
       icon: commonTransforms.getIronIcon(type),
       link: commonTransforms.getLink(item.key, type),
       styleClass: commonTransforms.getStyleClass(type),
-      text: getTextOfType(item.key, item.name, type),
+      text: getTextOfType(item.key, item.value, type),
       type: type
     };
     if(type === 'location') {
@@ -146,16 +127,18 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function getExtractionsFromRecordOfType(record, path, type) {
-    var data = getRawFieldDataFromRecord(record, path);
-    var strictData = getExtractionsFromListOfType(data.strict, type, 'strict');
-    var relaxedData = getExtractionsFromListOfType(data.relaxed, type, 'relaxed');
-    return strictData.concat(relaxedData);
+    var data = _.get(record, path, []);
+    // For now, remove low confidence extractions.
+    var filteredData = data.filter(function(item) {
+      return item.confidence && item.confidence > 0.5;
+    });
+    return getExtractionsFromListOfType(filteredData, type);
   }
 
   function getHighRisk(record, path) {
-    var data = getRawFieldDataFromRecord(record, path);
-    var highRisk = data.strict.some(function(risk) {
-      return risk.name.toLowerCase() === 'yes';
+    var data = _.get(record, path, []);
+    var highRisk = data.some(function(risk) {
+      return risk.value.toLowerCase() === 'yes';
     });
     return highRisk ? 'High Risk' : '';
   }
@@ -170,12 +153,12 @@ var offerTransform = (function(_, commonTransforms) {
   function addHighlights(data, record, paths) {
     if(record.highlight) {
       var cleanHighlight = function(text, path) {
-        var skipPathsForPartialMatches = ['tld', 'fields.email.strict.name', 'fields.email.relaxed.name'];
+        var skipPathsForPartialMatches = ['tld', 'knowledge_graph.email.value'];
         if(skipPathsForPartialMatches.indexOf(path) >= 0 && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
           return text.toLowerCase();
         }
         var output = text;
-        if(path === 'fields.social_media_id.strict.name' || path === 'fields.social_media_id.relaxed.name') {
+        if(path === 'knowledge_graph.social_media_id.value') {
           output = output.indexOf(' ') ? output.substring(output.indexOf(' ') + 1) : output;
         }
         return output.indexOf('<em>') >= 0 ? output.replace(/<\/?em\>/g, '').toLowerCase() : '';
@@ -225,26 +208,26 @@ var offerTransform = (function(_, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      flag: getHighRisk(record, '_source.fields.risk'),
-      title: getSingleStringFromRecord(record, '_source.fields.title') || 'No Title',
-      description: getSingleStringFromRecord(record, '_source.fields.description') || 'No Description',
-      locations: getExtractionsFromRecordOfType(record, '_source.fields.city', 'location'),
-      phones: getExtractionsFromRecordOfType(record, '_source.fields.phone', 'phone'),
-      emails: getExtractionsFromRecordOfType(record, '_source.fields.email', 'email'),
-      socialIds: getExtractionsFromRecordOfType(record, '_source.fields.social_media_id', 'social'),
-      reviewIds: getExtractionsFromRecordOfType(record, '_source.fields.review_id', 'review'),
-      services: getExtractionsFromRecordOfType(record, '_source.fields.service', 'service'),
-      prices: getExtractionsFromRecordOfType(record, '_source.fields.price', 'money'),
-      names: getExtractionsFromRecordOfType(record, '_source.fields.name', 'provider'),
-      genders: getExtractionsFromRecordOfType(record, '_source.fields.gender', 'provider'),
-      ages: getExtractionsFromRecordOfType(record, '_source.fields.age', 'provider'),
-      ethnicities: getExtractionsFromRecordOfType(record, '_source.fields.ethnicity', 'provider'),
-      eyeColors: getExtractionsFromRecordOfType(record, '_source.fields.eye_color', 'provider'),
-      hairColors: getExtractionsFromRecordOfType(record, '_source.fields.hair_color', 'provider'),
-      heights: getExtractionsFromRecordOfType(record, '_source.fields.height', 'provider'),
-      weights: getExtractionsFromRecordOfType(record, '_source.fields.weight', 'provider'),
+      flag: getHighRisk(record, '_source.knowledge_graph.risk'),
+      title: getSingleStringFromRecord(record, '_source.content_extraction.title', 'text') || 'No Title',
+      description: getSingleStringFromRecord(record, '_source.content_extraction.content_strict', 'text') || 'No Description',
+      locations: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.city', 'location'),
+      phones: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.phone', 'phone'),
+      emails: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.email', 'email'),
+      socialIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.social_media_id', 'social'),
+      reviewIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.review_id', 'review'),
+      services: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.service', 'service'),
+      prices: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.price', 'money'),
+      names: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.name', 'provider'),
+      genders: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.gender', 'provider'),
+      ages: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.age', 'provider'),
+      ethnicities: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.ethnicity', 'provider'),
+      eyeColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.eye_color', 'provider'),
+      hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'provider'),
+      heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'provider'),
+      weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'provider'),
       dates: getExtractionsFromListOfType([{
-        key: getSingleStringFromRecord(record, '_source.fields.posting_date')
+        key: getSingleStringFromRecord(record, '_source.knowledge_graph.posting_date', 'value')
       }], 'date'),
       publishers: getExtractionsFromListOfType([{
         key: domain
@@ -254,9 +237,9 @@ var offerTransform = (function(_, commonTransforms) {
       }], 'webpage'),
       caches: getExtractionsFromListOfType([{
         key: id,
-        name: 'Open Cached Ad Webpage'
+        value: 'Open Cached Ad Webpage'
       }], 'cache'),
-      highlightedText: getHighlightedText(record, ['fields.title.strict.name', 'fields.title.relaxed.name']),
+      highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
 
@@ -264,27 +247,24 @@ var offerTransform = (function(_, commonTransforms) {
 
     // Handle highlighted text.
     offer.locations = addHighlights(offer.locations, record, [
-        'fields.city.strict.name',
-        'fields.city.relaxed.name',
-        'fields.state.strict.name',
-        'fields.state.relaxed.name',
-        'fields.country.strict.name',
-        'fields.country.relaxed.name'
+        'knowledge_graph.city.value',
+        'knowledge_graph.state.value',
+        'knowledge_graph.country.value'
     ]);
-    offer.phones = addHighlights(offer.phones, record, ['fields.phone.strict.name', 'fields.phone.relaxed.name']);
-    offer.emails = addHighlights(offer.emails, record, ['fields.email.strict.name', 'fields.email.relaxed.name']);
-    offer.socialIds = addHighlights(offer.socialIds, record, ['fields.social_media_id.strict.name', 'fields.social_media_id.relaxed.name']);
-    offer.reviewIds = addHighlights(offer.reviewIds, record, ['fields.review_id.strict.name', 'fields.review_id.relaxed.name']);
-    offer.services = addHighlights(offer.services, record, ['fields.service.strict.name', 'fields.service.relaxed.name']);
-    offer.prices = addHighlights(offer.prices, record, ['fields.price.strict.name', 'fields.price.relaxed.name']);
-    offer.names = addHighlights(offer.names, record, ['fields.name.strict.name', 'fields.name.relaxed.name']);
-    offer.genders = addHighlights(offer.genders, record, ['fields.gender.strict.name', 'fields.gender.relaxed.name']);
-    offer.ages = addHighlights(offer.ages, record, ['fields.age.strict.name', 'fields.age.relaxed.name']);
-    offer.ethnicities = addHighlights(offer.ethnicities, record, ['fields.ethnicity.strict.name', 'fields.ethnicity.relaxed.name']);
-    offer.eyeColors = addHighlights(offer.eyeColors, record, ['fields.eye_color.strict.name', 'fields.eye_color.relaxed.name']);
-    offer.hairColors = addHighlights(offer.hairColors, record, ['fields.hair_color.strict.name', 'fields.hair_color.relaxed.name']);
-    offer.heights = addHighlights(offer.heights, record, ['fields.height.strict.name', 'fields.height.relaxed.name']);
-    offer.weights = addHighlights(offer.weights, record, ['fields.weight.strict.name', 'fields.weight.relaxed.name']);
+    offer.phones = addHighlights(offer.phones, record, ['knowledge_graph.phone.value']);
+    offer.emails = addHighlights(offer.emails, record, ['knowledge_graph.email.value']);
+    offer.socialIds = addHighlights(offer.socialIds, record, ['knowledge_graph.social_media_id.value']);
+    offer.reviewIds = addHighlights(offer.reviewIds, record, ['knowledge_graph.review_id.value']);
+    offer.services = addHighlights(offer.services, record, ['knowledge_graph.service.value']);
+    offer.prices = addHighlights(offer.prices, record, ['knowledge_graph.price.value']);
+    offer.names = addHighlights(offer.names, record, ['knowledge_graph.name.value']);
+    offer.genders = addHighlights(offer.genders, record, ['knowledge_graph.gender.value']);
+    offer.ages = addHighlights(offer.ages, record, ['knowledge_graph.age.value']);
+    offer.ethnicities = addHighlights(offer.ethnicities, record, ['knowledge_graph.ethnicity.value']);
+    offer.eyeColors = addHighlights(offer.eyeColors, record, ['knowledge_graph.eye_color.value']);
+    offer.hairColors = addHighlights(offer.hairColors, record, ['knowledge_graph.hair_color.value']);
+    offer.heights = addHighlights(offer.heights, record, ['knowledge_graph.height.value']);
+    offer.weights = addHighlights(offer.weights, record, ['knowledge_graph.weight.value']);
     offer.publishers = addHighlights(offer.publishers, record, ['tld']);
 
     // Handle extraction arrays for single-record elements.
@@ -345,7 +325,7 @@ var offerTransform = (function(_, commonTransforms) {
     });
     offer.details.push({
       name: 'Description',
-      highlightedText: getHighlightedText(record, ['fields.description.strict.name', 'fields.description.relaxed.name']),
+      highlightedText: getHighlightedText(record, ['content_extraction.content_strict.text']),
       text: offer.description
     });
     offer.details.push({

@@ -117,10 +117,19 @@ var searchTransform = (function(_) {
           select: {
             variables: [{
               type: 'simple',
+              variable: '?content_extraction.content_strict.text'
+            }, {
+              type: 'simple',
+              variable: '?content_extraction.title.text'
+            }, {
+              type: 'simple',
               variable: '?doc_id'
             }, {
               type: 'simple',
-              variable: '?fields'
+              variable: '?knowledge_graph'
+            }, {
+              type: 'simple',
+              variable: '?timestamp'
             }, {
               type: 'simple',
               variable: '?tld'
