@@ -279,6 +279,10 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
       return (data && data.aggregations) ? createLocationTimeline(data.aggregations.dates.dates.buckets, onlyId) : {};
     },
 
+    filteredLocationTimeline: function(data, onlyId) {
+      return (data && data.aggregations) ? createLocationTimeline(data.aggregations.filteredDates.filteredDates.buckets, onlyId) : {};
+    },
+
     eventDropsTimeline: function(data, locationId) {
       return (data && data.aggregations) ? createEventDropsTimeline(data.aggregations.locations.locations.buckets, locationId) : {};
     }
