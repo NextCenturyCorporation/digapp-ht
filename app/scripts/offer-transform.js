@@ -304,19 +304,20 @@ var offerTransform = (function(_, commonTransforms) {
     }, {
       data: offer.socialIds,
       name: 'Social Media IDs'
-    }];
-    offer.detailExtractions = [{
+    }, {
       data: offer.reviewIds,
       name: 'Review IDs'
     }, {
+      data: offer.names,
+      name: 'Provider Names'
+    }];
+
+    offer.detailExtractions = [{
       data: offer.services,
       name: 'Services Provided'
     }, {
       data: offer.prices,
       name: 'Prices'
-    }, {
-      data: offer.names,
-      name: 'Provider Names'
     }, {
       data: offer.ages,
       name: 'Provider Ages'
