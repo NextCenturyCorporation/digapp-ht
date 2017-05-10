@@ -47,7 +47,7 @@ var imageTransform = (function(_, commonTransforms) {
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           images.push({
             count: count,
-            //icon: commonTransforms.getIronIcon('image'),
+            icon: commonTransforms.getIronIcon('image'),
             link: commonTransforms.getLink(bucket.key, 'image'),
             source: bucket.key,
             styleClass: commonTransforms.getStyleClass('image'),

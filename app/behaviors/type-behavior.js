@@ -52,13 +52,13 @@ DigBehaviors.TypeBehavior = {
       case 'cache': return 'icons:cached';
       case 'date': return 'icons:date-range';
       case 'email': return 'communication:email';
-      case 'image': return 'image:photo';
+      case 'image': return 'image:photo-camera';
       case 'location': return 'communication:location-on';
-      case 'money': return 'editor:attach-money';
+      case 'money': return 'editor:monetization-on';
       case 'offer': return 'maps:local-offer';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
-      case 'review': return 'icons:thumbs-up-down';
+      case 'review': return 'icons:stars';
       case 'service': return 'icons:work';
       case 'social': return 'social:public';
       case 'webpage': return 'av:web';

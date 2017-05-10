@@ -57,6 +57,7 @@ DigBehaviors.StateBehavior = {
       phone: config.phone || [],
       price: config.price || [],
       publisher: config.publisher || [],
+      review: config.review || [],
       services: config.services || [],
       social: config.social || [],
       weight: config.weight || []
