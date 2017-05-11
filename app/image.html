@@ -148,7 +148,8 @@ limitations under the License.
       total="{{imageOffersTotalCount}}">
     </build-and-run-query>
 
-    <!-- Location timeline for bar chart and itinerary -->
+    <!-- Location timeline for bar chart - will ignore its own date filter (which is done by
+         naming the date aggregation 'dates', the same name as the date filter) -->
 
     <location-timeline
       location-aggregation-name="locations"
@@ -173,6 +174,33 @@ limitations under the License.
       results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
+    </location-timeline>
+
+    <!-- Location timeline for itinerary (will use filters set by bar chart) -->
+
+    <location-timeline
+      location-aggregation-name="locations"
+      location-aggregation-field="fields.city.strict.key"
+      date-aggregation-name="filteredDates"
+      date-aggregation-field="fields.posting_date.strict.key"
+      email-aggregation-name="emails"
+      email-aggregation-field="fields.email.strict.key"
+      phone-aggregation-name="phones"
+      phone-aggregation-field="fields.phone.strict.key"
+      publisher-aggregation-name="publishers"
+      publisher-aggregation-field="tld.raw"
+      query-field="doc_id"
+      query-value="[[image.ads]]"
+      client="[[esclient]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
+      filters="[[filterList]]"
+      transform-function="[[clientConfig.transforms.timeline.filteredLocationTimeline]]"
+      count="[[imageOffersTotalCount]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{filteredTimelineData}}"
+      loading="{{loadingFilteredTimeline}}"
+      error="{{filteredTimelineError}}">
     </location-timeline>
 
     <!-- Logger for Page View -->
@@ -612,11 +640,11 @@ limitations under the License.
                 <itinerary-list
                   items-property="locations"
                   item-name-property="text"
-                  data="[[timelineData.dates]]"
+                  data="[[filteredTimelineData.dates]]"
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   itinerary-title="{{itineraryTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingFilteredTimeline]]">
                 </itinerary-list>
               </section-and-title>
 
@@ -635,6 +663,7 @@ limitations under the License.
                 title="[[barChartTitle]]">
 
                 <zoomable-bar-chart timeline
+                  selected="{{filterCollection.dates}}"
                   bar-property="date"
                   label-property="text"
                   stack-property="locations"
@@ -644,7 +673,8 @@ limitations under the License.
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   chart-title="{{barChartTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingLocationTimeline]]"
+                  display-filter-text>
                 </zoomable-bar-chart>
               </section-and-title>
 
@@ -765,12 +795,17 @@ limitations under the License.
     app.image = {};
 
     app.filtersBuilderCallback = {
-      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems
+      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems,
+      dates: DigBehaviors.FilterBehavior.getEntityPageFilterItems
     };
 
     app.filtersBuilderConfig = {
       age: {
         field: 'fields.age.strict.key'
+      },
+      dates: {
+        field: 'fields.posting_date.strict.key',
+        type: 'date'
       },
       email: {
         field: 'fields.email.strict.key'

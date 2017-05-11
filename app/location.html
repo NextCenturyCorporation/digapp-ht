@@ -99,7 +99,9 @@
       total="{{locationOffersTotalCount}}">
     </build-and-run-query>
 
-    <!-- Location timeline for bar chart and itinerary -->
+    <!-- Location timeline for bar chart - will ignore its own date filter (which is done by
+         naming the date aggregation 'dates', the same name as the date filter) -->
+
     <location-timeline
       aggregation-count="100"
       location-aggregation-name="locations"
@@ -127,10 +129,39 @@
       error="{{locationTimelineError}}">
     </location-timeline>
 
+    <!-- Location timeline for itinerary (will use filters set by bar chart) -->
+
+    <location-timeline
+      aggregation-count="100"
+      location-aggregation-name="locations"
+      location-aggregation-field="fields.city.strict.key"
+      date-aggregation-name="filteredDates"
+      date-aggregation-field="fields.posting_date.strict.key"
+      email-aggregation-name="emails"
+      email-aggregation-field="fields.email.strict.key"
+      phone-aggregation-name="phones"
+      phone-aggregation-field="fields.phone.strict.key"
+      publisher-aggregation-name="publishers"
+      publisher-aggregation-field="tld.raw"
+      query-field="fields.city.strict.key"
+      query-value="[[location.id]]"
+      client="[[esclient]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
+      filters="[[filterList]]"
+      location-id="[[location.id]]"
+      transform-function="[[clientConfig.transforms.timeline.filteredLocationTimeline]]"
+      count="[[locationOffersTotalCount]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{filteredTimelineData}}"
+      loading="{{loadingFilteredTimeline}}"
+      error="{{filteredTimelineError}}">
+    </location-timeline>
+
     <json-combine
       data-in1="[[location.id]]"
-      data-in2="[[timelineData.dates]]"
-      data-out="{{timelineData.strippedDates}}"
+      data-in2="[[filteredTimelineData.dates]]"
+      data-out="{{filteredTimelineData.strippedDates}}"
       combine-function="[[clientConfig.transforms.timeline.removeDetailFromLocationTimeline]]">
     </json-combine>
 
@@ -543,11 +574,11 @@
                 <itinerary-list
                   items-property="locations"
                   item-name-property="text"
-                  data="[[timelineData.strippedDates]]"
+                  data="[[filteredTimelineData.strippedDates]]"
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   itinerary-title="{{itineraryTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingFilteredTimeline]]">
                 </itinerary-list>
               </section-and-title> 
             </div>
@@ -561,6 +592,7 @@
                 title="[[barChartTitle]]">
 
                 <zoomable-bar-chart timeline
+                  selected="{{filterCollection.dates}}"
                   bar-property="date"
                   label-property="text"
                   stack-property="locations"
@@ -569,7 +601,8 @@
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   chart-title="{{barChartTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingLocationTimeline]]"
+                  display-filter-text>
                 </zoomable-bar-chart>
               </section-and-title>
 
@@ -706,12 +739,17 @@
     app.location = app.createLocationProperties(app.params.id);
 
     app.filtersBuilderCallback = {
-      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems
+      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems,
+      dates: DigBehaviors.FilterBehavior.getEntityPageFilterItems
     };
 
     app.filtersBuilderConfig = {
       age: {
         field: 'fields.age.strict.key'
+      },
+      dates: {
+        field: 'fields.posting_date.strict.key',
+        type: 'date'
       },
       email: {
         field: 'fields.email.strict.key'
