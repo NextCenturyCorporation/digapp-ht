@@ -15,6 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
@@ -147,30 +148,27 @@ limitations under the License.
       </template>
     </styled-dialog>
 
-    <elastic-client-search
-      client="[[client]]"
-      index="[[indexName]]"
-      page="0"
-      page-size="1000"
-      elastic-types="[[indexTypes]]"
+    <build-and-run-query
+      fields="[[queryFields]]"
+      values="[[queryValues]]"
       query="[[query]]"
+      client="[[client]]"
+      index-name="[[indexName]]"
+      index-types="[[indexTypes]]"
       aggregations="[]"
       filters="[[filterList]]"
-      sort="[[sort]]"
+      page="0"
+      page-size="1000"
+      properties-ready="[[_run]]"
       sort-field="[[sortField]]"
       sort-order="[[sortOrder]]"
-      results="{{_results}}"
-      result-count="{{_resultsTotal}}"
+      source-include="[[sourceInclude]]"
+      transform-function="[[queryTransformFunction]]"
+      error="{{_error}}"
       loading="{{_loadingQuery}}"
-      last-error="{{_error}}"
-      properties-ready="{{_run}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[_results]]"
-      data-out="{{_bulkData}}"
-      transform-function="[[queryTransformFunction]]">
-    </json-transform>
+      results="{{_bulkData}}"
+      total="{{_resultsTotal}}">
+    </build-and-run-query>
 
     <div id="subsetImages">
       <template is="dom-repeat" items="[[_dataSubsetForPdf]]">
@@ -265,11 +263,19 @@ limitations under the License.
         },
 
         /**
-         * The bulk data query.
+         * The bulk data query object.  Set either `query` or both `queryFields` and `queryValues`.
          */
         query: {
           observer: '_resetResults',
           type: Object
+        },
+
+        /**
+         * The bulk data query field string or array.  Set either `query` or both `queryFields` and `queryValues`.
+         */
+        queryFields: {
+          observer: '_resetResults',
+          type: Array
         },
 
         /**
@@ -280,17 +286,18 @@ limitations under the License.
         },
 
         /**
+         * The bulk data query value string or array.  Set either `query` or both `queryFields` and `queryValues`.
+         */
+        queryValues: {
+          observer: '_resetResults',
+          type: Array
+        },
+
+        /**
          * The size of all the data (not the subset).
          */
         size: {
           type: Number
-        },
-
-        /**
-         * The elasticsearch sort to load bulk export data.
-         */
-        sort: {
-          type: Object
         },
 
         /**
@@ -305,6 +312,13 @@ limitations under the License.
          */
         sortOrder: {
           type: String
+        },
+
+        /**
+         * The fields to include in the bulk data query results.
+         */
+        sourceInclude: {
+          type: Array
         },
 
         /**
@@ -357,14 +371,6 @@ limitations under the License.
         _needToLoad: {
           computed: '_updateNeedToLoad(_selectedMode, _bulkData.length)',
           type: Boolean
-        },
-
-        /**
-         * The elasticsearch query results.
-         */
-        _results: {
-          observer: '_resetRun',
-          type: Object
         },
 
         /**
