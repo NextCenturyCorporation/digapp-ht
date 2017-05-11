@@ -225,6 +225,7 @@ var offerTransform = (function(_, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
+      classification: '',
       flag: getHighRisk(record, '_source.fields.risk'),
       title: getSingleStringFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.fields.description') || 'No Description',
