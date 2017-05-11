@@ -128,7 +128,8 @@ limitations under the License.
       combine-function="[[clientConfig.transforms.offer.removeExtractionFromOffers]]">
     </json-combine>
 
-    <!-- Location timeline for bar chart and itinerary -->
+    <!-- Location timeline for bar chart - will ignore its own date filter (which is done by
+         naming the date aggregation 'dates', the same name as the date filter) -->
 
     <location-timeline
       location-aggregation-name="locations"
@@ -159,6 +160,40 @@ limitations under the License.
       data-in1="[[params.id]]"
       data-in2="[[timelineData.dates]]"
       data-out="{{timelineData.strippedDates}}"
+      combine-function="[[clientConfig.transforms.timeline.removeDetailFromLocationTimeline]]">
+    </json-combine>
+
+    <!-- Location timeline for itinerary (will use filters set by bar chart) -->
+
+    <location-timeline
+      location-aggregation-name="locations"
+      location-aggregation-field="fields.city.strict.key"
+      date-aggregation-name="filteredDates"
+      date-aggregation-field="fields.posting_date.strict.key"
+      email-aggregation-name="emails"
+      email-aggregation-field="fields.email.strict.key"
+      phone-aggregation-name="phones"
+      phone-aggregation-field="fields.phone.strict.key"
+      publisher-aggregation-name="publishers"
+      publisher-aggregation-field="tld.raw"
+      query-field="fields.phone.strict.key"
+      query-value="[[params.id]]"
+      client="[[esclient]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
+      filters="[[filterList]]"
+      transform-function="[[clientConfig.transforms.timeline.filteredLocationTimeline]]"
+      count="[[phoneOffersTotalCount]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{filteredTimelineData}}"
+      loading="{{loadingFilteredTimeline}}"
+      error="{{filteredTimelineError}}">
+    </location-timeline>
+
+    <json-combine
+      data-in1="[[params.id]]"
+      data-in2="[[filteredTimelineData.dates]]"
+      data-out="{{filteredTimelineData.strippedDates}}"
       combine-function="[[clientConfig.transforms.timeline.removeDetailFromLocationTimeline]]">
     </json-combine>
 
@@ -589,11 +624,11 @@ limitations under the License.
                 <itinerary-list
                   items-property="locations"
                   item-name-property="text"
-                  data="[[timelineData.strippedDates]]"
+                  data="[[filteredTimelineData.strippedDates]]"
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   itinerary-title="{{itineraryTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingFilteredTimeline]]">
                 </itinerary-list>
               </section-and-title>
 
@@ -608,6 +643,7 @@ limitations under the License.
                 title="[[barChartTitle]]">
 
                 <zoomable-bar-chart timeline
+                  selected="{{filterCollection.dates}}"
                   bar-property="date"
                   label-property="text"
                   stack-property="locations"
@@ -617,7 +653,8 @@ limitations under the License.
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   chart-title="{{barChartTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingLocationTimeline]]"
+                  display-filter-text>
                 </zoomable-bar-chart>
               </section-and-title>
 
@@ -742,12 +779,17 @@ limitations under the License.
     app.phone = {};
 
     app.filtersBuilderCallback = {
-      terms: DigBehaviors.FilterBehavior.getEntityPageFilterTerms
+      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems,
+      dates: DigBehaviors.FilterBehavior.getEntityPageFilterItems
     };
 
     app.filtersBuilderConfig = {
       age: {
         field: 'fields.age.strict.key'
+      },
+      dates: {
+        field: 'fields.posting_date.strict.key',
+        type: 'date'
       },
       email: {
         field: 'fields.email.strict.key'
