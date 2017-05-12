@@ -37,6 +37,14 @@ limitations under the License.
         };
       }
 
+      #negativeIcon:hover {
+        color: var(--red);
+      }
+
+      #positiveIcon:hover {
+        color: var(--green);
+      }
+
       .negative-color {
         color: var(--red);
       }
@@ -52,10 +60,10 @@ limitations under the License.
       }
     </style>
 
-    <template is="dom-if" if="[[_getFlag(classificationManager)]]">
+    <template is="dom-if" if="[[_flag]]">
       <div class="layout horizontal center">
         <strong class="text">Flag:</strong>
-        <strong class="text">[[_getFlag(classificationManager)]]</strong>
+        <strong class="text">[[_flag]]</strong>
 
         <paper-icon-button id="negativeIcon"
           class$="[[_getStyleClass('negative', classification, _userClassification)]]"
@@ -83,6 +91,7 @@ limitations under the License.
 
       properties: {
         classificationManager: {
+          observer: '_addFlagListener',
           type: Object
         },
 
@@ -96,17 +105,35 @@ limitations under the License.
           value: ''
         },
 
+        _flag: {
+          type: String,
+          value: ''
+        },
+
+        _flagListenerId: {
+          type: Number,
+          value: -1
+        },
+
         _userClassification: {
           type: String,
           value: ''
         }
       },
 
-      _getFlag: function(classificationManager) {
-        if(classificationManager && classificationManager.getFlag) {
-          return classificationManager.getFlag();
+      detached: function() {
+        if(this.classificationManager && this.classificationManager.removeFlagListener && this._flagListenerId >= 0) {
+          this.classificationManager.removeFlagListener(this._flagListenerId);
         }
-        return undefined;
+      },
+
+      _addFlagListener: function() {
+        if(this.classificationManager && this.classificationManager.addFlagListener) {
+          var self = this;
+          this._flagListenerId = this.classificationManager.addFlagListener(function(flag) {
+            self.set('_flag', flag);
+          });
+        }
       },
 
       _getIcon: function(type, itemClassification, userClassification) {

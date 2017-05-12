@@ -51,6 +51,8 @@ limitations under the License.
       expect(element.flag).to.not.exist;
       expect(element.url).to.not.exist;
       expect(element._body).to.not.exist;
+      expect(element._flagListeners).to.deep.equal({});
+      expect(element._nextFlagListenerId).to.equal(1);
       expect(element._response).to.not.exist;
     });
 
@@ -78,18 +80,79 @@ limitations under the License.
       });
     });
 
-    test('classificationManager.getFlag does work correctly', function() {
+    test('classificationManager.addFlagListener does work correctly', function(done) {
       expect(element.classificationManager).to.be.an('Object');
-      expect(element.classificationManager.getFlag).to.be.a('Function');
-      expect(element.classificationManager.getFlag()).to.not.exist;
-      element.flag = 'flag';
-      expect(element.classificationManager.getFlag()).to.equal('flag');
+      expect(element.classificationManager.addFlagListener).to.be.a('Function');
+
+      var listener = function(flag) {
+        expect(flag).to.not.exist;
+        expect(element._flagListeners[1]).to.be.a('Function');
+        expect(element._nextFlagListenerId).to.equal(2);
+        done();
+      };
+
+      element.classificationManager.addFlagListener(listener);
+    });
+
+    test('classificationManager.addFlagListener does work correctly with existing listener', function(done) {
+      expect(element.classificationManager).to.be.an('Object');
+      expect(element.classificationManager.addFlagListener).to.be.a('Function');
+
+      element._flagListeners[1] = function() {};
+      element._nextFlagListenerId++;
+
+      var listener = function(flag) {
+        expect(flag).to.not.exist;
+        expect(element._flagListeners[1]).to.be.a('Function');
+        expect(element._flagListeners[2]).to.be.a('Function');
+        expect(element._flagListeners[1]).to.not.deep.equal(element._flagListeners[2]);
+        expect(element._nextFlagListenerId).to.equal(3);
+        done();
+      };
+
+      element.classificationManager.addFlagListener(listener);
+    });
+
+    test('classificationManager.addFlagListener does work correctly with existing flag', function(done) {
+      expect(element.classificationManager).to.be.an('Object');
+      expect(element.classificationManager.addFlagListener).to.be.a('Function');
+
+      element.flag = 'testFlag';
+
+      var listener = function(flag) {
+        expect(flag).to.equal('testFlag');
+        expect(element._flagListeners[1]).to.be.a('Function');
+        expect(element._nextFlagListenerId).to.equal(2);
+        done();
+      };
+
+      element.classificationManager.addFlagListener(listener);
+    });
+
+    test('classificationManager.removeFlagListener does work correctly', function() {
+      expect(element.classificationManager).to.be.an('Object');
+      expect(element.classificationManager.removeFlagListener).to.be.a('Function');
+
+      element._flagListeners[1] = function() {};
+      element._flagListeners[2] = function() {};
+      element.classificationManager.removeFlagListener(1);
+      expect(element._flagListeners[1]).to.not.exist;
+      expect(element._flagListeners[2]).to.exist;
     });
 
     test('classificationManager.setClassification does work correctly', function() {
       expect(element.classificationManager).to.be.an('Object');
       expect(element.classificationManager.setClassification).to.be.a('Function');
       // TODO
+    });
+
+    test('_notifyFlagListeners does work correctly', function(done) {
+      element._flagListeners[1] = function(flag) {
+        expect(flag).to.equal('testFlag');
+        done();
+      };
+
+      element.flag = 'testFlag';
     });
   });
 </script>

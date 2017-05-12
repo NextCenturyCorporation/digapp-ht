@@ -49,6 +49,8 @@ limitations under the License.
       expect(element.classificationManager).to.not.exist;
       expect(element.classification).to.equal('');
       expect(element.itemId).to.equal('');
+      expect(element._flag).to.equal('');
+      expect(element._flagListenerId).to.equal(-1);
       expect(element._userClassification).to.equal('');
     });
 
@@ -57,17 +59,6 @@ limitations under the License.
       expect(element.$$('strong')).to.not.exist;
       expect(element.$$('paper-icon-button[id="negativeIcon"]')).to.not.exist;
       expect(element.$$('paper-icon-button[id="positiveIcon"]')).to.not.exist;
-    });
-
-    test('_getFlag does return correctly', function() {
-      expect(element._getFlag).to.be.a('Function');
-      expect(element._getFlag()).to.not.exist;
-      expect(element._getFlag({})).to.not.exist;
-      expect(element._getFlag({
-        getFlag: function() {
-          return 'testFlag';
-        }
-      })).to.equal('testFlag');
     });
 
     test('_getIcon does return correctly', function() {
@@ -159,17 +150,12 @@ limitations under the License.
 
   suite('<classification-buttons> default unit tests', function() {
     var element;
-    var classificationManager = {
-      getFlag: function() {
-        return 'testFlag';
-      }
-    };
 
     setup(function(done) {
       element = fixture('classification-buttons-fixture');
-      element.classificationManager = classificationManager;
       element.classification = 'positive';
       element.itemId = 'testId';
+      element._flag = 'testFlag';
       flush(done);
     });
 
@@ -178,10 +164,9 @@ limitations under the License.
     });
 
     test('input properties are set correctly', function() {
-      expect(element.classificationManager).to.deep.equal(classificationManager);
-      expect(element.classificationManager.getFlag()).to.equal('testFlag');
       expect(element.classification).to.equal('positive');
       expect(element.itemId).to.equal('testId');
+      expect(element._flag).to.equal('testFlag');
     });
 
     test('does have elements', function() {
@@ -197,6 +182,17 @@ limitations under the License.
       expect(element.$$('paper-icon-button[id="positiveIcon"]').icon).to.equal('fa:circle');
       expect(element.$$('paper-icon-button[id="positiveIcon"]').classList.contains('negative-color')).to.be.false;
       expect(element.$$('paper-icon-button[id="positiveIcon"]').classList.contains('positive-color')).to.be.true;
+    });
+
+    test('setting classificationManager does call _addFlagListener', function(done) {
+      element.classificationManager = {
+        addFlagListener: function(listener) {
+          expect(listener).to.be.a('Function');
+          listener('changeFlag');
+          expect(element._flag).to.equal('changeFlag');
+          done();
+        }
+      };
     });
 
     test('changing classification does update icon styling', function(done) {
@@ -234,28 +230,34 @@ limitations under the License.
     });
 
     test('setClassification does set _userClassification and call classificationManager.setClassification', function(done) {
-      element.classificationManager.setClassification = function(classification) {
-        expect(classification).to.equal('testClassification');
-        expect(element._userClassification).to.equal('testClassification');
-        done();
+      element.classificationManager = {
+        setClassification: function(classification) {
+          expect(classification).to.equal('testClassification');
+          expect(element._userClassification).to.equal('testClassification');
+          done();
+        }
       };
       element.setClassification('testClassification');
     });
 
     test('_toggleNegative does set _userClassification and call classificationManager.setClassification', function(done) {
-      element.classificationManager.setClassification = function(classification) {
-        expect(classification).to.equal('negative');
-        expect(element._userClassification).to.equal('negative');
-        done();
+      element.classificationManager = {
+        setClassification: function(classification) {
+          expect(classification).to.equal('negative');
+          expect(element._userClassification).to.equal('negative');
+          done();
+        }
       };
       element._toggleNegative();
     });
 
     test('_togglePositive does set _userClassification and class classificationManager.setClassification', function(done) {
-      element.classificationManager.setClassification = function(classification) {
-        expect(classification).to.equal('positive');
-        expect(element._userClassification).to.equal('positive');
-        done();
+      element.classificationManager = {
+        setClassification: function(classification) {
+          expect(classification).to.equal('positive');
+          expect(element._userClassification).to.equal('positive');
+          done();
+        }
       };
       element._togglePositive();
     });
