@@ -205,6 +205,24 @@ var offerTransform = (function(_, commonTransforms) {
     return data;
   }
 
+  function getClassifications(record, path) {
+    // TODO
+    return {
+      flag1: {
+        ai: '',
+        user: ''
+      },
+      flag2: {
+        ai: '',
+        user: ''
+      },
+      flag3: {
+        ai: '',
+        user: ''
+      }
+    };
+  }
+
   function getOfferObject(record) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
@@ -225,7 +243,7 @@ var offerTransform = (function(_, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      classification: '',
+      classifications: getClassifications(record, ''),
       flag: getHighRisk(record, '_source.fields.risk'),
       title: getSingleStringFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.fields.description') || 'No Description',

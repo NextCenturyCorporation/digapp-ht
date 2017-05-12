@@ -66,15 +66,15 @@ limitations under the License.
         <strong class="text">[[_flag]]</strong>
 
         <paper-icon-button id="negativeIcon"
-          class$="[[_getStyleClass('negative', classification, _userClassification)]]"
-          icon="[[_getIcon('negative', classification, _userClassification)]]"
+          class$="[[_getStyleClass('negative', _classificationByAI, _classificationByUser)]]"
+          icon="[[_getIcon('negative', _classificationByAI, _classificationByUser)]]"
           title="Toggle Negative Flag"
           on-tap="_toggleNegative">
         </paper-icon-button>
 
         <paper-icon-button id="positiveIcon"
-          class$="[[_getStyleClass('positive', classification, _userClassification)]]"
-          icon="[[_getIcon('positive', classification, _userClassification)]]"
+          class$="[[_getStyleClass('positive', _classificationByAI, _classificationByUser)]]"
+          icon="[[_getIcon('positive', _classificationByAI, _classificationByUser)]]"
           title="Toggle Positive Flag"
           on-tap="_togglePositive">
         </paper-icon-button>
@@ -95,12 +95,23 @@ limitations under the License.
           type: Object
         },
 
-        classification: {
+        classifications: {
+          notify: true,
+          type: Object,
+          value: {}
+        },
+
+        itemId: {
           type: String,
           value: ''
         },
 
-        itemId: {
+        _classificationByAI: {
+          type: String,
+          value: ''
+        },
+
+        _classificationByUser: {
           type: String,
           value: ''
         },
@@ -113,13 +124,12 @@ limitations under the License.
         _flagListenerId: {
           type: Number,
           value: -1
-        },
-
-        _userClassification: {
-          type: String,
-          value: ''
         }
       },
+
+      observers: [
+        '_handleDataChange(classifications, classifications.*, _flag)'
+      ],
 
       detached: function() {
         if(this.classificationManager && this.classificationManager.removeFlagListener && this._flagListenerId >= 0) {
@@ -136,16 +146,16 @@ limitations under the License.
         }
       },
 
-      _getIcon: function(type, itemClassification, userClassification) {
-        if(!itemClassification && userClassification === type) {
+      _getIcon: function(type, aiClassification, userClassification) {
+        if(!aiClassification && userClassification === type) {
           return 'fa:check-circle-o';
         }
-        if(itemClassification === type && !userClassification) {
+        if(aiClassification === type && !userClassification) {
           return 'fa:circle';
         }
-        if(itemClassification && userClassification) {
+        if(aiClassification && userClassification) {
           // True positive/negative.
-          if(itemClassification === userClassification) {
+          if(aiClassification === userClassification) {
             return userClassification === type ? 'fa:check-circle' : 'fa:circle-o';
           }
           // False positive/negative.
@@ -154,22 +164,31 @@ limitations under the License.
         return 'fa:circle-o';
       },
 
-      _getStyleClass: function(type, itemClassification, userClassification) {
-        return (itemClassification === type || userClassification === type) ? (type + '-color') : '';
+      _getStyleClass: function(type, aiClassification, userClassification) {
+        return (aiClassification === type || userClassification === type) ? (type + '-color') : '';
+      },
+
+      _handleDataChange: function() {
+        var classification = this.classifications[this._flag] || {};
+        this.set('_classificationByAI', classification.ai || '');
+        this.set('_classificationByUser', classification.user || '');
       },
 
       _toggleNegative: function() {
-        this.setClassification(this._userClassification === 'negative' ? '' : 'negative');
+        this.setClassification(this.itemId, this._flag, (this._classificationByUser === 'negative' ? '' : 'negative'));
       },
 
       _togglePositive: function() {
-        this.setClassification(this._userClassification === 'positive' ? '' : 'positive');
+        this.setClassification(this.itemId, this._flag, (this._classificationByUser === 'positive' ? '' : 'positive'));
       },
 
-      setClassification: function(classification) {
-        this.set('_userClassification', classification);
+      setClassification: function(itemId, flag, classification) {
+        this.set('classifications.' + flag, {
+          ai: this.classifications.ai || '',
+          user: classification
+        });
         if(this.classificationManager && this.classificationManager.setClassification) {
-          this.classificationManager.setClassification(classification, this.itemId);
+          this.classificationManager.setClassification(itemId, flag, classification);
         }
       }
     });
