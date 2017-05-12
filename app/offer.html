@@ -223,15 +223,25 @@ limitations under the License.
       username="[[config.username]]">
     </dig-logger>
 
-    <annotation-manager
-      client="[[esclient]]"
-      annotation-index="[[config.annotationIndex]]"
-      annotation-type="[[config.annotationType]]"
-      relevant="[[config.annotationRelevant]]"
-      username="[[config.username]]"
-      annotations="{{annotations}}"
-      annotation-manager="{{annotationManager}}">
-    </annotation-manager>
+    <template is="dom-if" if="[[config.annotationOn]]">
+      <annotation-manager
+        client="[[esclient]]"
+        annotation-index="[[config.annotationIndex]]"
+        annotation-type="[[config.annotationType]]"
+        relevant="[[config.annotationRelevant]]"
+        username="[[config.username]]"
+        annotations="{{annotations}}"
+        annotation-manager="{{annotationManager}}">
+      </annotation-manager>
+    </template>
+
+    <template is="dom-if" if="[[config.classificationOn]]">
+      <classification-manager
+        url="[[config.classificationUrl]]"
+        flag="[[classificationFlag]]"
+        classification-manager="{{classificationManager}}">
+      </classification-manager>
+    </template>
 
     <!-- Main Content -->
     <div class="entity">
@@ -262,12 +272,14 @@ limitations under the License.
             process-request="{{processRequest}}">
           </state-manager>
 
-          <annotate-record client="[[esclient]]"
-            annotation-manager="[[annotationManager]]"
-            item-id="[[params.id]]"
-            item-type="ad"
-            current-user="[[config.username]]">
-          </annotate-record>
+          <template is="dom-if" if="[[annotationManager]]">
+            <annotate-record client="[[esclient]]"
+              annotation-manager="[[annotationManager]]"
+              item-id="[[params.id]]"
+              item-type="ad"
+              current-user="[[config.username]]">
+            </annotate-record>
+          </template>
 
           <save-entity id="saveEntity"
             client="[[esclient]]"
@@ -288,6 +300,8 @@ limitations under the License.
             username="[[config.username]]"
             advanced-search="{{advancedSearch}}"
             blur-images="{{blurImages}}"
+            classification-config="[[config.classificationFlags]]"
+            classification-flag="{{classificationFlag}}"
             entities="{{userEntities}}"
             user-id="{{userId}}"
             user-index="[[config.userIndex]]"
@@ -564,6 +578,7 @@ limitations under the License.
 
                 <records-list
                   annotation-manager="[[annotationManager]]"
+                  classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
@@ -595,106 +610,113 @@ limitations under the License.
                 style-class="entity-offer-font"
                 title="Ad Details">
 
+                <template is="dom-if" if="[[classificationManager]]">
+                  <div>
+                    <classification-buttons
+                      classification-manager="[[classificationManager]]"
+                      classifications="{{offer.classifications}}"
+                      item-id="[[offer.id]]">
+                    </classification-buttons>
+                  </div>
+
+                  <hr>
+                </template>
+
+                <!-- Hide high risk for now.
                 <div>
-                  <div class="flex">
+                  <div class="desc-header layout horizontal center">
+                    <span style="padding-right: 5px;">High Risk:</span>
+                    <template is="dom-if" if="[[offer.flag]]">
+                      <strong>Yes</strong>
+                    </template>
+                    <template is="dom-if" if="[[!offer.flag]]">
+                      <strong>No</strong>
+                    </template>
+                  </div>
+                </div>
+
+                <hr>
+                -->
+
+                <template is="dom-if" if="[[offer.phones.length]]">
+                  <div>
+                    <div class="desc-header layout horizontal center entity-phone-font">
+                      Telephone Numbers:
+                    </div>
+                    <icon-label-grid
+                      icon-style-class-property="styleClass"
+                      data="[[offer.phones]]">
+                    </icon-label-grid>
+                  </div>
+
+                  <hr>
+                </template>
+
+                <template is="dom-if" if="[[offer.emails.length]]">
+                  <div>
+                    <div class="desc-header emails layout horizontal center entity-email-font">
+                      Email Addresses:
+                    </div>
+                    <icon-label-grid
+                      icon-style-class-property="styleClass"
+                      data="[[offer.emails]]">
+                    </icon-label-grid>
+                  </div>
+
+                  <hr>
+                </template>
+
+                <template is="dom-if" if="[[offer.socialIds.length]]">
+                  <div>
+                    <div class="desc-header layout horizontal center entity-social-font">
+                      Social Media IDs:
+                    </div>
+                    <icon-label-grid
+                      icon-style-class-property="styleClass"
+                      data="[[offer.socialIds]]">
+                    </icon-label-grid>
+                  </div>
+
+                  <hr>
+                </template>
+
+                <template is="dom-if" if="[[offer.reviewIds.length]]">
+                  <div>
                     <div class="desc-header layout horizontal center">
-                      <span style="padding-right: 5px;">High Risk:</span>
-                      <template is="dom-if" if="[[offer.flag]]">
-                        <strong>Yes</strong>
-                      </template>
-                      <template is="dom-if" if="[[!offer.flag]]">
-                        <strong>No</strong>
-                      </template>
+                      Review IDs:
                     </div>
+                    <icon-label-grid
+                      icon-style-class-property="styleClass"
+                      data="[[offer.reviewIds]]">
+                    </icon-label-grid>
                   </div>
-                </div>
 
-                <hr>
-
-                <template is="dom-if" if="{{offer.phones.length}}">
-                  <div>
-                    <div class="flex">
-                      <div class="desc-header layout horizontal center entity-phone-font">
-                        Telephone Numbers:
-                      </div>
-                      <icon-label-grid
-                        icon-style-class-property="styleClass"
-                        data="[[offer.phones]]">
-                      </icon-label-grid>
-                    </div>
-                  </div>
-                  <hr>
-                </template>
-
-                <template is="dom-if" if="{{offer.emails.length}}">
-                  <div>
-                    <div class="flex">
-                      <div class="desc-header emails layout horizontal center entity-email-font">
-                        Email Addresses:
-                      </div>
-                      <icon-label-grid
-                        icon-style-class-property="styleClass"
-                        data="[[offer.emails]]">
-                      </icon-label-grid>
-                    </div>
-                  </div>
-                  <hr>
-                </template>
-
-                <template is="dom-if" if="{{offer.socialIds.length}}">
-                  <div>
-                    <div class="flex">
-                      <div class="desc-header layout horizontal center entity-social-font">
-                        Social Media IDs:
-                      </div>
-                      <icon-label-grid
-                        icon-style-class-property="styleClass"
-                        data="[[offer.socialIds]]">
-                      </icon-label-grid>
-                    </div>
-                  </div>
-                  <hr>
-                </template>
-
-                <template is="dom-if" if="{{offer.reviewIds.length}}">
-                  <div>
-                    <div class="flex">
-                      <div class="desc-header layout horizontal center">
-                        Review IDs:
-                      </div>
-                      <icon-label-grid
-                        icon-style-class-property="styleClass"
-                        data="[[offer.reviewIds]]">
-                      </icon-label-grid>
-                    </div>
-                  </div>
                   <hr>
                 </template>
 
                 <div>
-                  <div class="layout vertical flex">
-                    <div class="desc-header layout horizontal center entity-webpage-font">
-                      Webpage:
-                    </div>
-                    <icon-label-grid class="wide"
-                      icon-style-class-property="styleClass"
-                      data="[[offer.webpages]]">
-                    </icon-label-grid>
-                    <icon-label-grid class="wide"
-                      icon-style-class-property="styleClass"
-                      data="[[offer.caches]]">
-                    </icon-label-grid>
-                    <info-cached-webpages></info-cached-webpages>
+                  <div class="desc-header layout horizontal center entity-webpage-font">
+                    Webpage:
                   </div>
+
+                  <icon-label-grid class="wide"
+                    icon-style-class-property="styleClass"
+                    data="[[offer.webpages]]">
+                  </icon-label-grid>
+
+                  <icon-label-grid class="wide"
+                    icon-style-class-property="styleClass"
+                    data="[[offer.caches]]">
+                  </icon-label-grid>
+
+                  <info-cached-webpages></info-cached-webpages>
                 </div>
 
                 <hr>
 
                 <div>
-                  <div class="flex-12">
-                    <div class="desc-header">Description:</div>
-                    <div class="desc-body">[[offer.description]]</div>
-                  </div>
+                  <div class="desc-header">Description:</div>
+                  <div class="desc-body">[[offer.description]]</div>
                 </div>
               </section-and-title>
 
@@ -732,6 +754,7 @@ limitations under the License.
 
                 <records-list
                   annotation-manager="[[annotationManager]]"
+                  classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
