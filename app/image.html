@@ -128,14 +128,6 @@ limitations under the License.
       transform-function="[[clientConfig.transforms.image.image]]">
     </json-transform>
 
-    <!-- TODO Remove when able -->
-    <elastic-client-query-builder
-      type="terms"
-      fields='"doc_id"'
-      values="[[image.ads]]"
-      ejs-query="{{imageOffersQuery}}">
-    </elastic-client-query-builder>
-
     <build-and-run-query
       fields='"doc_id"'
       values="[[image.ads]]"
@@ -156,7 +148,8 @@ limitations under the License.
       total="{{imageOffersTotalCount}}">
     </build-and-run-query>
 
-    <!-- Location timeline for bar chart and itinerary -->
+    <!-- Location timeline for bar chart - will ignore its own date filter (which is done by
+         naming the date aggregation 'dates', the same name as the date filter) -->
 
     <location-timeline
       location-aggregation-name="locations"
@@ -181,6 +174,33 @@ limitations under the License.
       results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
+    </location-timeline>
+
+    <!-- Location timeline for itinerary (will use filters set by bar chart) -->
+
+    <location-timeline
+      location-aggregation-name="locations"
+      location-aggregation-field="fields.city.strict.key"
+      date-aggregation-name="filteredDates"
+      date-aggregation-field="fields.posting_date.strict.key"
+      email-aggregation-name="emails"
+      email-aggregation-field="fields.email.strict.key"
+      phone-aggregation-name="phones"
+      phone-aggregation-field="fields.phone.strict.key"
+      publisher-aggregation-name="publishers"
+      publisher-aggregation-field="tld.raw"
+      query-field="doc_id"
+      query-value="[[image.ads]]"
+      client="[[esclient]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
+      filters="[[filterList]]"
+      transform-function="[[clientConfig.transforms.timeline.filteredLocationTimeline]]"
+      count="[[imageOffersTotalCount]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{filteredTimelineData}}"
+      loading="{{loadingFilteredTimeline}}"
+      error="{{filteredTimelineError}}">
     </location-timeline>
 
     <!-- Logger for Page View -->
@@ -226,7 +246,9 @@ limitations under the License.
       name-selected="[[filterCollection.name]]"
       phone-selected="[[filterCollection.phone]]"
       price-selected="[[filterCollection.price]]"
+      review-selected="[[filterCollection.review]]"
       services-selected="[[filterCollection.services]]"
+      social-selected="[[filterCollection.social]]"
       website-selected="[[filterCollection.publisher]]"
       weight-selected="[[filterCollection.weight]]"
       log-message="{{logMessage}}">
@@ -525,9 +547,37 @@ limitations under the License.
               </section-and-title>
 
               <section-and-title
+                show-copy
+                copy-type="Review IDs"
+                icon="icons:stars"
+                style-class="entity-review-font"
+                transform-config='{"type":"review","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[reviewData]]">
+
+                <aggregation-query-and-display
+                  aggregation-name="review"
+                  aggregation-field="fields.review_id.strict.key"
+                  selected="{{filterCollection.review}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('review')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{reviewData}}"
+                  header-data-name="Review ID"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-title>
+
+              <section-and-title
                 icon="icons:account-circle"
                 style-class="entity-provider-font"
-                title="Summary of Provider Attributes">
+                title="Provider Summary">
 
                 <people-features
                   query-field="doc_id"
@@ -550,7 +600,7 @@ limitations under the License.
               </section-and-title>
 
               <section-and-title
-                icon="image:photo"
+                icon="image:photo-camera"
                 style-class="entity-image-font"
                 transform-config="[[loadedImages.length]]"
                 transform-function="[[clientConfig.transforms.image.imageTitle]]"
@@ -590,11 +640,11 @@ limitations under the License.
                 <itinerary-list
                   items-property="locations"
                   item-name-property="text"
-                  data="[[timelineData.dates]]"
+                  data="[[filteredTimelineData.dates]]"
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   itinerary-title="{{itineraryTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingFilteredTimeline]]">
                 </itinerary-list>
               </section-and-title>
 
@@ -613,6 +663,7 @@ limitations under the License.
                 title="[[barChartTitle]]">
 
                 <zoomable-bar-chart timeline
+                  selected="{{filterCollection.dates}}"
                   bar-property="date"
                   label-property="text"
                   stack-property="locations"
@@ -622,7 +673,8 @@ limitations under the License.
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
                   chart-title="{{barChartTitle}}"
-                  loading="[[loadingLocationTimeline]]">
+                  loading="[[loadingLocationTimeline]]"
+                  display-filter-text>
                 </zoomable-bar-chart>
               </section-and-title>
 
@@ -639,7 +691,8 @@ limitations under the License.
                   item-agg-name="locations"
                   item-agg-field="knowledge_graph.city.key"
                   index-types='["ads"]'
-                  query="[[imageOffersQuery]]"
+                  query-fields='"doc_id"'
+                  query-values="[[image.ads]]"
                   filter-list="[[filterList]]"
                   transform="[[clientConfig.transforms.timeline.eventDropsTimeline]]"
                   transform-items-property="locations"
@@ -665,10 +718,12 @@ limitations under the License.
                     filter-list="[[filterList]]"
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
-                    query="[[imageOffersQuery]]"
+                    query-fields='"doc_id"'
+                    query-values="[[image.ads]]"
                     size="[[imageOffersTotalCount]]"
-                    sort-field="validFrom"
+                    sort-field="fields.posting_date.strict.key"
                     sort-order="desc"
+                    source-include='["doc_id", "fields", "tld", "url"]'
                     csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
                     pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
                     query-transform-function="[[clientConfig.transforms.offer.offers]]">
@@ -714,7 +769,6 @@ limitations under the License.
   </template>
 
   <!-- Need to include dependencies here for IE -->
-  <script src="bower_components/clipboard/dist/clipboard.min.js"></script>
   <script src="bower_components/lodash/dist/lodash.js"></script>
   <script src="bower_components/array-behavior/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
@@ -722,7 +776,7 @@ limitations under the License.
 
   <script>
   (function(document) {
-    /* globals Clipboard, DigBehaviors */
+    /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
     app.filterCollection = DigBehaviors.StateBehavior.buildEntityState({});
@@ -741,12 +795,17 @@ limitations under the License.
     app.image = {};
 
     app.filtersBuilderCallback = {
-      terms: DigBehaviors.FilterBehavior.getEntityPageFilterTerms
+      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems,
+      dates: DigBehaviors.FilterBehavior.getEntityPageFilterItems
     };
 
     app.filtersBuilderConfig = {
       age: {
         field: 'knowledge_graph.age.key'
+      },
+      dates: {
+        field: 'fields.posting_date.strict.key',
+        type: 'date'
       },
       email: {
         field: 'knowledge_graph.email.key'
@@ -780,6 +839,9 @@ limitations under the License.
       },
       publisher: {
         field: 'tld.raw'
+      },
+      review: {
+        field: 'fields.review_id.strict.key'
       },
       services: {
         field: 'knowledge_graph.service.key'
@@ -818,12 +880,6 @@ limitations under the License.
     app.emailSupport = function() {
       window.open('mailto:dig-support@nextcentury.com');
     };
-
-    app.locationDataClipboard = new Clipboard('#locationDataClipboard');
-    app.phoneDataClipboard = new Clipboard('#phoneDataClipboard');
-    app.emailDataClipboard = new Clipboard('#emailDataClipboard');
-    app.publisherDataClipboard = new Clipboard('#publisherDataClipboard');
-    app.socialDataClipboard = new Clipboard('#socialDataClipboard');
 
     app.getClipboardText = function(list, isLocation) {
       return list.map(function(item) {

@@ -67,12 +67,12 @@ DigBehaviors.FilterBehavior = {
   },
 
   /**
-   * Returns the array of query terms from the given entity page filter.
+   * Returns the array of query items from the given entity page filter (can be used for terms or dates).
    *
-   * @param {Array} terms
+   * @param {Array} items
    * @return {Array}
    */
-  getEntityPageFilterTerms: function(terms) {
-    return terms;
+  getEntityPageFilterItems: function(items) {
+    return items;
   }
 };

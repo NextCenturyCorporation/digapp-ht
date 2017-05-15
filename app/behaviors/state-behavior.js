@@ -45,6 +45,7 @@ DigBehaviors.StateBehavior = {
   buildEntityState: function(config) {
     var state = {
       age: config.age || [],
+      dates: config.dates || [],
       email: config.email || [],
       ethnicity: config.ethnicity || [],
       eyeColor: config.eyeColor || [],
@@ -57,6 +58,7 @@ DigBehaviors.StateBehavior = {
       phone: config.phone || [],
       price: config.price || [],
       publisher: config.publisher || [],
+      review: config.review || [],
       services: config.services || [],
       social: config.social || [],
       weight: config.weight || []
