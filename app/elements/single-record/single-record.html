@@ -284,13 +284,15 @@ limitations under the License.
                       </iron-icon>
                     </template>
                     <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
-                      <annotate-record class="tiny-icon"
-                        annotation-manager="[[annotationManager]]"
-                        client="[[client]]"
-                        item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                        item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
-                        noink>
-                      </annotate-record>
+                      <template is="dom-if" if="[[annotationManager]]">
+                        <annotate-record class="tiny-icon"
+                          annotation-manager="[[annotationManager]]"
+                          client="[[client]]"
+                          item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                          item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                          noink>
+                        </annotate-record>
+                      </template>
                     </template>
                   </div>
                 </template>
@@ -298,6 +300,14 @@ limitations under the License.
             </template>
           </template>
         </div>
+
+        <template is="dom-if" if="[[classificationManager]]">
+          <classification-buttons
+            classification-manager="[[classificationManager]]"
+            classifications="{{classifications}}"
+            item-id="[[itemId]]">
+          </classification-buttons>
+        </template>
       </div>
 
       <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
@@ -306,12 +316,14 @@ limitations under the License.
         </div>
       </template>
 
-      <annotate-record class="layout vertical center-justified"
-        client="[[client]]"
-        annotation-manager="[[annotationManager]]"
-        item-id="{{itemId}}"
-        item-type="[[_getTypeText(type)]]">
-      </annotate-record>
+      <template is="dom-if" if="[[annotationManager]]">
+        <annotate-record class="layout vertical center-justified"
+          client="[[client]]"
+          annotation-manager="[[annotationManager]]"
+          item-id="[[itemId]]"
+          item-type="[[_getTypeText(type)]]">
+        </annotate-record>
+      </template>
 
       <template is="dom-if" if="[[link]]">
         <div class="layout vertical center-justified">
@@ -377,13 +389,15 @@ limitations under the License.
                         </iron-icon>
                       </template>
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
-                        <annotate-record class="tiny-icon"
-                          annotation-manager="[[annotationManager]]"
-                          client="[[client]]"
-                          item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                          item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
-                          noink>
-                        </annotate-record>
+                        <template is="dom-if" if="[[annotationManager]]">
+                          <annotate-record class="tiny-icon"
+                            annotation-manager="[[annotationManager]]"
+                            client="[[client]]"
+                            item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                            item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                            noink>
+                          </annotate-record>
+                        </template>
                       </template>
                     </div>
                   </template>
@@ -433,6 +447,20 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * The collection of flags mapped to the AI and user classifications for the result.
+         *
+         * @type {Object}
+         * @default {}
+         */
+        classifications: {
+          notify: true,
+          type: Object,
+          value: {}
+        },
+
+        /**
+         * (Optional)
+         *
          * The flag of the result.
          *
          * @type {String}
@@ -465,6 +493,19 @@ limitations under the License.
          * @default ''
          */
         icon: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The ID of the result.
+         *
+         * @type {String}
+         * @default ''
+         */
+        itemId: {
           type: String,
           value: ''
         },
@@ -875,6 +916,17 @@ limitations under the License.
          * @type {Object}
          */
         annotationManager: {
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
+         * The classification manager object.
+         *
+         * @type {Object}
+         */
+        classificationManager: {
           type: Object
         },
 
@@ -1321,10 +1373,10 @@ limitations under the License.
         if(this._doesHaveDetails(this.details, this.detailExtractions, this.images)) {
           var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
           var isButton = (event.target.localName === 'paper-button');
-          var isOpenLinkButton = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button' && event.target.parentElement.getAttribute('icon').indexOf('open-in-') >= 0);
+          var isButtonLink = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button');
           var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
           // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
-          if(!isAnnotation && !isButton && !isOpenLinkButton && !isLink) {
+          if(!isAnnotation && !isButton && !isButtonLink && !isLink) {
             this.set('_open', !this._open);
             this.$$('#details').toggle();
           }

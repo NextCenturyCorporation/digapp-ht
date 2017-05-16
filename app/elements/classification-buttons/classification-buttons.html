@@ -1,0 +1,197 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="classification-buttons">
+  <template>
+    <style include="iron-flex iron-flex-alignment"></style>
+
+    <style>
+      :host {
+        display: block;
+      }
+
+      paper-icon-button {
+        margin-right: 5px;
+        --paper-icon-button: {
+          height: 20px;
+          width: 20px;
+          padding: 0;
+        };
+      }
+
+      #negativeIcon:hover {
+        color: var(--red);
+      }
+
+      #positiveIcon:hover {
+        color: var(--green);
+      }
+
+      .negative-color {
+        color: var(--red);
+      }
+
+      .positive-color {
+        color: var(--green);
+      }
+
+      .text {
+        color: var(--secondary-text-color);
+        font-size: 14px;
+        margin-right: 5px;
+      }
+    </style>
+
+    <template is="dom-if" if="[[_flag]]">
+      <div class="layout horizontal center">
+        <strong class="text">Flag:</strong>
+        <strong class="text">[[_flag]]</strong>
+
+        <paper-icon-button id="negativeIcon"
+          class$="[[_getStyleClass('negative', _classificationByAI, _classificationByUser)]]"
+          icon="[[_getIcon('negative', _classificationByAI, _classificationByUser)]]"
+          title="Toggle Negative Flag"
+          on-tap="_toggleNegative">
+        </paper-icon-button>
+
+        <paper-icon-button id="positiveIcon"
+          class$="[[_getStyleClass('positive', _classificationByAI, _classificationByUser)]]"
+          icon="[[_getIcon('positive', _classificationByAI, _classificationByUser)]]"
+          title="Toggle Positive Flag"
+          on-tap="_togglePositive">
+        </paper-icon-button>
+      </div>
+    </template>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'classification-buttons',
+
+      properties: {
+        classificationManager: {
+          observer: '_addFlagListener',
+          type: Object
+        },
+
+        classifications: {
+          notify: true,
+          type: Object,
+          value: {}
+        },
+
+        itemId: {
+          type: String,
+          value: ''
+        },
+
+        _classificationByAI: {
+          type: String,
+          value: ''
+        },
+
+        _classificationByUser: {
+          type: String,
+          value: ''
+        },
+
+        _flag: {
+          type: String,
+          value: ''
+        },
+
+        _flagListenerId: {
+          type: Number,
+          value: -1
+        }
+      },
+
+      observers: [
+        '_handleDataChange(classifications, classifications.*, _flag)'
+      ],
+
+      detached: function() {
+        if(this.classificationManager && this.classificationManager.removeFlagListener && this._flagListenerId >= 0) {
+          this.classificationManager.removeFlagListener(this._flagListenerId);
+        }
+      },
+
+      _addFlagListener: function() {
+        if(this.classificationManager && this.classificationManager.addFlagListener) {
+          var self = this;
+          this._flagListenerId = this.classificationManager.addFlagListener(function(flag) {
+            self.set('_flag', flag);
+          });
+        }
+      },
+
+      _getIcon: function(type, aiClassification, userClassification) {
+        if(!aiClassification && userClassification === type) {
+          return 'fa:check-circle-o';
+        }
+        if(aiClassification === type && !userClassification) {
+          return 'fa:circle';
+        }
+        if(aiClassification && userClassification) {
+          // True positive/negative.
+          if(aiClassification === userClassification) {
+            return userClassification === type ? 'fa:check-circle' : 'fa:circle-o';
+          }
+          // False positive/negative.
+          return userClassification === type ? 'fa:check-circle-o' : 'fa:circle';
+        }
+        return 'fa:circle-o';
+      },
+
+      _getStyleClass: function(type, aiClassification, userClassification) {
+        return (aiClassification === type || userClassification === type) ? (type + '-color') : '';
+      },
+
+      _handleDataChange: function() {
+        var classification = this.classifications[this._flag] || {};
+        this.set('_classificationByAI', classification.ai || '');
+        this.set('_classificationByUser', classification.user || '');
+      },
+
+      _toggleNegative: function() {
+        this.setClassification(this.itemId, this._flag, (this._classificationByUser === 'negative' ? '' : 'negative'));
+      },
+
+      _togglePositive: function() {
+        this.setClassification(this.itemId, this._flag, (this._classificationByUser === 'positive' ? '' : 'positive'));
+      },
+
+      setClassification: function(itemId, flag, classification) {
+        this.set('classifications.' + flag, {
+          ai: this.classifications.ai || '',
+          user: classification
+        });
+        if(this.classificationManager && this.classificationManager.setClassification) {
+          this.classificationManager.setClassification(itemId, flag, classification);
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>
