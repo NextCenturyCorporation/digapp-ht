@@ -31,11 +31,28 @@ var filterAggTransform = (function(_, commonTransforms) {
           return {
             count: bucket.doc_count,
             id: city,
+            link: commonTransforms.getLink(bucket.key, 'location'),
             text: city
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         }).filter(function(city) {
           return city.text;
+        });
+      }
+      return [];
+    },
+
+    emailList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          var id = ('' + bucket.key).toLowerCase();
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: id,
+            link: commonTransforms.getLink(bucket.key, 'email')
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
       }
       return [];
@@ -56,6 +73,22 @@ var filterAggTransform = (function(_, commonTransforms) {
       return [];
     },
 
+    phoneList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: bucket.key,
+            link: commonTransforms.getLink(bucket.key, 'phone'),
+            text: commonTransforms.getFormattedPhone(bucket.key)
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        });
+      }
+      return [];
+    },
+
     socialMediaList: function(data, property) {
       if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
         return data.aggregations[property][property].buckets.map(function(bucket) {
@@ -65,22 +98,8 @@ var filterAggTransform = (function(_, commonTransforms) {
           return {
             count: bucket.doc_count,
             id: id.substring(id.indexOf(' ') + 1, id.length),
+            link: commonTransforms.getLink(bucket.key, 'social'),
             text: id
-          };
-          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-        });
-      }
-      return [];
-    },
-
-    phoneList: function(data, property) {
-      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
-        return data.aggregations[property][property].buckets.map(function(bucket) {
-          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-          return {
-            count: bucket.doc_count,
-            id: bucket.key,
-            text: commonTransforms.getFormattedPhone(bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
         });
