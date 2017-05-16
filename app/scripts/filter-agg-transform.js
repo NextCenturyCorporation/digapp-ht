@@ -21,7 +21,7 @@
 /* exported filterAggTransform */
 /* jshint camelcase:false */
 
-var filterAggTransform = (function() {
+var filterAggTransform = (function(commonTransforms) {
 
   function getCityText(id) {
     var idList = id.split(':');
@@ -53,6 +53,7 @@ var filterAggTransform = (function() {
           return {
             count: bucket.doc_count,
             id: bucket.key,
+            link: commonTransforms.getLink(bucket.key, 'location'),
             text: getCityText(bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -70,6 +71,7 @@ var filterAggTransform = (function() {
           return {
             count: bucket.doc_count,
             id: bucket.key,
+            link: commonTransforms.getLink(bucket.key, 'email'),
             text: getEmailText(bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -85,6 +87,7 @@ var filterAggTransform = (function() {
           return {
             count: bucket.doc_count,
             id: bucket.key,
+            link: commonTransforms.getLink(bucket.key, 'phone'),
             text: getPhoneText(bucket.key)
           };
           /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */

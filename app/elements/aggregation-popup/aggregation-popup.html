@@ -59,9 +59,26 @@ limitations under the License.
         width: 560px;
       }
 
+      paper-icon-button {
+        --paper-icon-button: {
+          height: 24px;
+          width: 24px;
+          padding: 0;
+        }
+      }
+
       .header {
-        line-height: 40px;
-        margin: 0 5px;
+        line-height: 24px;
+        margin: 0 5px 5px;
+        min-height: 24px;
+      }
+
+      .header strong {
+        margin-right: 5px;
+      }
+
+      status-text {
+        margin: 5px 5px 0;
       }
     </style>
 
@@ -69,17 +86,25 @@ limitations under the License.
       <span class$="flex link [[_isLinkDisabled(items.length)]]" on-tap="openDialog">View More</span>
     </template>
 
-    <paper-dialog id="aggregationPopup" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+    <paper-dialog id="aggregationPopup" with-backdrop entry-animation="fade-in-animation" exit-animation="fade-out-animation">
       <div class="layout vertical">
         <div class="layout horizontal header">
           <aggregation-sort class="flex" order-by="{{orderBy}}"></aggregation-sort>
+          <template is="dom-if" if="[[!loading]]">
+            <template is="dom-if" if="[[!_isAtMaxLimit(items.length)]]">
+              <strong>Showing All [[items.length]]</strong>
+            </template>
+            <template is="dom-if" if="[[_isAtMaxLimit(items.length)]]">
+              <strong>Showing Top 1,000</strong>
+            </template>
+          </template>
           <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
         </div>
 
         <feature-aggregation
           show-checkboxes
           hide-no-data-text
-          limit="0"
+          limit="1000"
           item-type="[[itemType]]"
           count-type="[[countType]]"
           count-property="[[countProperty]]"
@@ -315,6 +340,10 @@ limitations under the License.
 
         this.set('aggregationCount', 0);
         this.$$('#aggregationPopup').open();
+      },
+
+      _isAtMaxLimit: function(length) {
+        return length > 1000;
       },
 
       /**

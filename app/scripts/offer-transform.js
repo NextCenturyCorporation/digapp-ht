@@ -161,13 +161,13 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
 
     var locationKey = offer.locations.length ? offer.locations[0].key : undefined;
-    offer.locationDescriptor = {
+    offer.locationDescriptor = offer.locations.length ? {
       icon: commonTransforms.getIronIcon('location'),
       styleClass: commonTransforms.getStyleClass('location'),
       text: offer.location,
       link: commonTransforms.getLink(locationKey, 'location'),
       type: 'location'
-    };
+    } : undefined;
 
     offer.descriptors.push({
       icon: commonTransforms.getIronIcon('date'),
