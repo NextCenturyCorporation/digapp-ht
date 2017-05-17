@@ -37,7 +37,6 @@ var searchTransform = (function(_) {
       case 'price': return 'price';
       case 'region': return 'state';
       case 'review': return 'review_id';
-      case 'risk': return 'risk';
       case 'services': return 'service';
       case 'social': return 'social_media_id';
       case 'title': return 'title';

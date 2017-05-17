@@ -156,14 +156,6 @@ var offerTransform = (function(_, commonTransforms) {
     return strictData.concat(relaxedData);
   }
 
-  function getHighRisk(record, path) {
-    var data = getRawFieldDataFromRecord(record, path);
-    var highRisk = data.strict.some(function(risk) {
-      return risk.name.toLowerCase() === 'yes';
-    });
-    return highRisk ? 'High Risk' : '';
-  }
-
   function getHighlightedText(record, paths) {
     var path = _.find(paths, function(path) {
       return record.highlight && record.highlight[path] && record.highlight[path].length && record.highlight[path][0];
@@ -248,7 +240,7 @@ var offerTransform = (function(_, commonTransforms) {
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
       classifications: getClassifications(record, ''),
-      flag: getHighRisk(record, '_source.fields.risk'),
+      flag: '',
       title: getSingleStringFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.fields.description') || 'No Description',
       locations: getExtractionsFromRecordOfType(record, '_source.fields.city', 'location'),

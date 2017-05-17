@@ -25,7 +25,6 @@ var exportTransform = (function() {
         'ad url',
         'dig url',
         'title',
-        'high risk',
         'date',
         'locations',
         'telephone numbers',
@@ -58,7 +57,6 @@ var exportTransform = (function() {
           result.url,
           linkPrefix + result.link,
           result.title,
-          result.flag ? 'yes' : 'no',
           result.date,
           locations,
           phones,
@@ -109,10 +107,6 @@ var exportTransform = (function() {
           big: true,
           label: result.title,
           value: ''
-        });
-        item.paragraphs.push({
-          label: 'High Risk:  ',
-          value: result.flag ? 'Yes' : 'No'
         });
         item.paragraphs.push({
           label: 'Posting Date:  ',
