@@ -132,6 +132,7 @@ limitations under the License.
         margin-top: 5px;
       }
 
+      /* TODO Fix in image-gallery */
       .body image-gallery ::content > div {
         @apply(--layout-start-justified);
       }
@@ -228,7 +229,7 @@ limitations under the License.
     </build-and-run-aggregation>
 
     <paper-material
-      class$="layout horizontal flex head record [[_getResultHeaderStyleClass(details, detailExtractions, images, _open)]]"
+      class$="layout horizontal flex head record [[_getResultHeaderStyleClass(details, detailExtractions, images, opened)]]"
       on-mouseover="_hoverStart"
       on-mouseout="_hoverEnd"
       on-tap="toggleDetails">
@@ -313,11 +314,11 @@ limitations under the License.
         </div>
 
         <template is="dom-if" if="[[classificationManager]]">
-          <classification-buttons
+          <classify-ad-buttons
             classification-manager="[[classificationManager]]"
             classifications="{{classifications}}"
             item-id="[[itemId]]">
-          </classification-buttons>
+          </classify-ad-buttons>
         </template>
       </div>
 
@@ -349,13 +350,13 @@ limitations under the License.
         icon-style-class="[[styleClass]]"
         show-icon="[[!_hovering]]"
         openable="[[_doesHaveDetails(details, detailExtractions, images)]]"
-        open="[[_open]]">
+        open="[[opened]]">
       </modal-icon>
 
     </paper-material>
 
     <template is="dom-if" if="[[_doesHaveDetails(details, detailExtractions, images)]]">
-      <iron-collapse id="details">
+      <iron-collapse id="details" opened="{{opened}}">
         <paper-material class="body">
           <template is="dom-repeat" items="[[details]]" as="detail">
             <div class="detail text">
@@ -1057,6 +1058,20 @@ limitations under the License.
         },
 
         /**
+         * (Optional|Output)
+         *
+         * Whether the collapsible details are opened.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        opened: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
          * Whether the user is hovering over the result.
          *
          * @type {Boolean}
@@ -1079,18 +1094,6 @@ limitations under the License.
           computed: '_computeImageSrc(images, imageSourceProperty)',
           type: String,
           value: ''
-        },
-
-        /**
-         * Whether the collapsible details are opened.
-         *
-         * @type {Boolean}
-         * @default false
-         * @private
-         */
-        _open: {
-          type: Boolean,
-          value: false
         }
       },
 
@@ -1412,7 +1415,6 @@ limitations under the License.
           var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
           // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
           if(!isAnnotation && !isButton && !isButtonLink && !isLink) {
-            this.set('_open', !this._open);
             this.$$('#details').toggle();
           }
         }
