@@ -19,7 +19,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 
-<dom-module id="classification-buttons">
+<dom-module id="classify-ad-buttons">
   <template>
     <style include="iron-flex iron-flex-alignment"></style>
 
@@ -66,15 +66,15 @@ limitations under the License.
         <strong class="text">[[_flag]]</strong>
 
         <paper-icon-button id="negativeIcon"
-          class$="[[_getStyleClass('negative', _classificationByAI, _classificationByUser)]]"
-          icon="[[_getIcon('negative', _classificationByAI, _classificationByUser)]]"
+          class$="[[_getStyleClass('negative', _classificationFromDatabase, _classificationFromUser)]]"
+          icon="[[_getIcon('negative', _classificationFromDatabase, _classificationFromUser)]]"
           title="Toggle Negative Flag"
           on-tap="_toggleNegative">
         </paper-icon-button>
 
         <paper-icon-button id="positiveIcon"
-          class$="[[_getStyleClass('positive', _classificationByAI, _classificationByUser)]]"
-          icon="[[_getIcon('positive', _classificationByAI, _classificationByUser)]]"
+          class$="[[_getStyleClass('positive', _classificationFromDatabase, _classificationFromUser)]]"
+          icon="[[_getIcon('positive', _classificationFromDatabase, _classificationFromUser)]]"
           title="Toggle Positive Flag"
           on-tap="_togglePositive">
         </paper-icon-button>
@@ -87,7 +87,7 @@ limitations under the License.
     'use strict';
 
     Polymer({
-      is: 'classification-buttons',
+      is: 'classify-ad-buttons',
 
       properties: {
         classificationManager: {
@@ -106,12 +106,12 @@ limitations under the License.
           value: ''
         },
 
-        _classificationByAI: {
+        _classificationFromDatabase: {
           type: String,
           value: ''
         },
 
-        _classificationByUser: {
+        _classificationFromUser: {
           type: String,
           value: ''
         },
@@ -146,49 +146,49 @@ limitations under the License.
         }
       },
 
-      _getIcon: function(type, aiClassification, userClassification) {
-        if(!aiClassification && userClassification === type) {
+      _getIcon: function(type, classificationFromDatabase, classificationFromUser) {
+        if(!classificationFromDatabase && classificationFromUser === type) {
           return 'fa:check-circle-o';
         }
-        if(aiClassification === type && !userClassification) {
+        if(classificationFromDatabase === type && !classificationFromUser) {
           return 'fa:circle';
         }
-        if(aiClassification && userClassification) {
+        if(classificationFromDatabase && classificationFromUser) {
           // True positive/negative.
-          if(aiClassification === userClassification) {
-            return userClassification === type ? 'fa:check-circle' : 'fa:circle-o';
+          if(classificationFromDatabase === classificationFromUser) {
+            return classificationFromUser === type ? 'fa:check-circle' : 'fa:circle-o';
           }
           // False positive/negative.
-          return userClassification === type ? 'fa:check-circle-o' : 'fa:circle';
+          return classificationFromUser === type ? 'fa:check-circle-o' : 'fa:circle';
         }
         return 'fa:circle-o';
       },
 
-      _getStyleClass: function(type, aiClassification, userClassification) {
-        return (aiClassification === type || userClassification === type) ? (type + '-color') : '';
+      _getStyleClass: function(type, classificationFromDatabase, classificationFromUser) {
+        return (classificationFromDatabase === type || classificationFromUser === type) ? (type + '-color') : '';
       },
 
       _handleDataChange: function() {
         var classification = this.classifications[this._flag] || {};
-        this.set('_classificationByAI', classification.ai || '');
-        this.set('_classificationByUser', classification.user || '');
+        this.set('_classificationFromDatabase', classification.database || '');
+        this.set('_classificationFromUser', classification.user || '');
       },
 
       _toggleNegative: function() {
-        this.setClassification(this.itemId, this._flag, (this._classificationByUser === 'negative' ? '' : 'negative'));
+        this.setClassification((this._classificationFromUser === 'negative' ? '' : 'negative'), this._flag, this.itemId);
       },
 
       _togglePositive: function() {
-        this.setClassification(this.itemId, this._flag, (this._classificationByUser === 'positive' ? '' : 'positive'));
+        this.setClassification((this._classificationFromUser === 'positive' ? '' : 'positive'), this._flag, this.itemId);
       },
 
-      setClassification: function(itemId, flag, classification) {
+      setClassification: function(classification, flag, itemId) {
         this.set('classifications.' + flag, {
-          ai: this.classifications.ai || '',
+          database: this.classifications.database || '',
           user: classification
         });
-        if(this.classificationManager && this.classificationManager.setClassification) {
-          this.classificationManager.setClassification(itemId, flag, classification);
+        if(this.classificationManager && this.classificationManager.setFlagClassification) {
+          this.classificationManager.setFlagClassification(classification, flag, itemId);
         }
       }
     });

@@ -104,6 +104,10 @@ var offerTransform = (function(_, commonTransforms) {
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     var extraction = {
       annotate: annotateType(type),
+      classifications: {
+        database: '',
+        user: ''
+      },
       confidence: confidence,
       count: count,
       id: getIdOfType(item.key, item.name, type),
@@ -209,15 +213,15 @@ var offerTransform = (function(_, commonTransforms) {
     // TODO
     return {
       flag1: {
-        ai: '',
+        database: '',
         user: ''
       },
       flag2: {
-        ai: '',
+        database: '',
         user: ''
       },
       flag3: {
-        ai: '',
+        database: '',
         user: ''
       }
     };
