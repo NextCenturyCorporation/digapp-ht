@@ -47,6 +47,24 @@ limitations under the License.
       is: 'classification-manager',
 
       properties: {
+        /**
+         * Whether dev mode is on.
+         */
+        dev: {
+          observer: '_notifyShowListeners',
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether to show classifications.
+         */
+        show: {
+          observer: '_notifyShowListeners',
+          type: Boolean,
+          value: false
+        },
+
         classificationManager: {
           notify: true,
           type: Object,
@@ -79,14 +97,14 @@ limitations under the License.
           type: Object
         },
 
-        _flagListeners: {
+        _listeners: {
           type: Object,
           value: function() {
             return {};
           }
         },
 
-        _nextFlagListenerId: {
+        _nextListenerId: {
           type: Number,
           value: 1
         },
@@ -99,16 +117,23 @@ limitations under the License.
       _buildClassificationManager: function() {
         var self = this;
         return {
-          addFlagListener: function(listener) {
-            var id = self._nextFlagListenerId++;
-            self._flagListeners[id] = listener;
-            if(listener) {
-              listener(self.flag);
+          addListener: function(showListener, flagListener) {
+            var id = self._nextListenerId++;
+            self._listeners[id] = {
+              flag: flagListener,
+              show: showListener
+            };
+            if(flagListener) {
+              flagListener(self.flag);
+              console.log('notify ' + id + ' flag ' + self.flag);
+            }
+            if(showListener) {
+              showListener(self.dev && self.show);
             }
             return id;
           },
-          removeFlagListener: function(id) {
-            delete self._flagListeners[id];
+          removeListener: function(id) {
+            delete self._listeners[id];
           },
           setExtractionClassification: function(classification, extraction) {
             // TODO
@@ -125,10 +150,21 @@ limitations under the License.
 
       _notifyFlagListeners: function() {
         var self = this;
-        _.keys(this._flagListeners).forEach(function(listenerId) {
-          var listener = self._flagListeners[listenerId];
-          if(listener) {
-            listener(self.flag);
+        _.keys(this._listeners).forEach(function(listenerId) {
+          var flagListener = self._listeners[listenerId].flag;
+          if(flagListener) {
+            flagListener(self.flag);
+            console.log('notify ' + listenerId + ' flag ' + self.flag);
+          }
+        });
+      },
+
+      _notifyShowListeners: function() {
+        var self = this;
+        _.keys(this._listeners).forEach(function(listenerId) {
+          var showListener = self._listeners[listenerId].show;
+          if(showListener) {
+            showListener(self.dev && self.show);
           }
         });
       }

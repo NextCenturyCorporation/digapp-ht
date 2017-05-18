@@ -60,6 +60,8 @@ limitations under the License.
     });
 
     test('properties are set correctly', function() {
+      expect(element.dev).to.be.false;
+      expect(element.show).to.be.false;
       expect(element.annotationIndex).to.equal('myIndex');
       expect(element.annotationType).to.equal('myType');
       expect(element.username).to.equal('myUser');
@@ -91,13 +93,22 @@ limitations under the License.
       expect(element.annotationManager.getWhyTheAnnotationIsRelevant()).to.equal('');
     });
 
-    test('annotationManager.addListener does add the listener', function() {
+    test('annotationManager.addListener does add the listeners', function(done) {
+      var changeListener = function() {
+        expect.fail();
+      };
+
+      var showListener = function(show) {
+        expect(show).to.be.true;
+        expect(element._listeners[1]).to.be.an('Object');
+        expect(element._listeners[1].change).to.deep.equal(changeListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
+        done();
+      };
+
       expect(element.annotationManager.addListener).to.be.a('Function');
-      element.annotationManager.addListener('myListener');
-      expect(element._listeners).to.deep.equal({
-        1: 'myListener'
-      });
-      expect(element._nextListenerId).to.equal(2);
+      element.annotationManager.addListener(changeListener, showListener);
     });
 
     test('annotationManager.createAnnotation does set _createBody', function() {
@@ -132,7 +143,7 @@ limitations under the License.
     test('annotationManager.removeListener does remove the listener', function() {
       expect(element.annotationManager.removeListener).to.be.a('Function');
       element._listeners = {
-        1: 'myListener'
+        1: {}
       };
       element.annotationManager.removeListener(1);
       expect(element._listeners).to.deep.equal({});
@@ -175,7 +186,7 @@ limitations under the License.
       });
     });
 
-    test('_notifyListeners does call the listeners', function(done) {
+    test('_notifyChangeListeners does call the change listeners', function(done) {
       var listener = function(uri, label, justification, annotationId) {
         expect(uri).to.equal('myUri');
         expect(label).to.equal('myLabel');
@@ -185,14 +196,83 @@ limitations under the License.
       };
 
       element._listeners = {
-        1: listener
+        1: {
+          change: listener
+        }
       };
+
       element._createBody = {
         uri: 'myUri',
         label: 'myLabel',
         justification: 'myJustification'
       };
-      element._notifyListeners('myAnnotationId');
+
+      element._notifyChangeListeners('myAnnotationId');
+    });
+
+    test('_notifyShowListeners does call the show listeners', function(done) {
+      var listener = function(show) {
+        expect(show).to.be.true;
+        done();
+      };
+
+      element._listeners = {
+        1: {
+          show: listener
+        }
+      };
+
+      element._notifyShowListeners(true);
+    });
+
+    test('setting dev does call the show listeners', function(done) {
+      var listener = function(show) {
+        expect(show).to.be.false;
+        done();
+      };
+
+      element._listeners = {
+        1: {
+          show: listener
+        }
+      };
+
+      element.dev = true;
+    });
+
+    test('setting show to true does call the show listeners', function(done) {
+      element.dev = true;
+
+      var listener = function(show) {
+        expect(show).to.be.true;
+        done();
+      };
+
+      element._listeners = {
+        1: {
+          show: listener
+        }
+      };
+
+      element.show = true;
+    });
+
+    test('setting show to false does call the show listeners', function(done) {
+      element.dev = true;
+      element.show = true;
+
+      var listener = function(show) {
+        expect(show).to.be.false;
+        done();
+      };
+
+      element._listeners = {
+        1: {
+          show: listener
+        }
+      };
+
+      element.show = false;
     });
   });
 

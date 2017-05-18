@@ -48,10 +48,13 @@ limitations under the License.
     });
 
     test('properties are the correct values', function() {
+      assert.isUndefined(element.dev);
       assert.equal(element.username, 'testUser');
       assert.equal(element.userIndex, 'dig-users');
       assert.equal(element.userType, 'user');
       assert.isTrue(element.showSearch);
+      assert.isFalse(element.annotationsDarpa);
+      assert.isFalse(element.annotationsIsi);
       assert.isTrue(element.blurImages);
       assert.equal(element.classificationConfig, '[]');
       assert.equal(element.classificationFlag, '');
@@ -199,11 +202,58 @@ limitations under the License.
       });
     });
 
+    test('_toggleAnnotationsDarpa toggles annotationsDarpa', function() {
+      element._toggleAnnotationsDarpa();
+      assert.isTrue(element.annotationsDarpa);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsDarpa: true
+        }
+      });
+
+      element._toggleAnnotationsDarpa();
+      assert.isFalse(element.annotationsDarpa);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsDarpa: false
+        }
+      });
+    });
+
+    test('_toggleAnnotationsIsi toggles annotationsIsi', function() {
+      element._toggleAnnotationsIsi();
+      assert.isTrue(element.annotationsIsi);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsIsi: true
+        }
+      });
+
+      element._toggleAnnotationsIsi();
+      assert.isFalse(element.annotationsIsi);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsIsi: false
+        }
+      });
+    });
+
     test('_toggleBlur toggles blurImages', function() {
       element._toggleBlur();
       assert.isFalse(element.blurImages);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          blurImages: false
+        }
+      });
+
       element._toggleBlur();
       assert.isTrue(element.blurImages);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          blurImages: true
+        }
+      });
     });
 
     test('#receiveAlert is closed by default', function(done) {
@@ -1006,6 +1056,27 @@ limitations under the License.
         assert.isNotNull(element.$$('paper-item[id="testFlag2"]'));
         element.$$('paper-item[id="testFlag2"]').click();
         assert.equal(element.classificationFlag, 'testFlag2');
+        done();
+      });
+    });
+
+    test('annotations toggles are not shown if dev is false or undefined', function(done) {
+      assert.isNull(element.$$('#toggleAnnotationsDarpa'));
+      assert.isNull(element.$$('#toggleAnnotationsIsi'));
+
+      element.dev = false;
+      flush(function() {
+        assert.isNull(element.$$('#toggleAnnotationsDarpa'));
+        assert.isNull(element.$$('#toggleAnnotationsIsi'));
+        done();
+      });
+    });
+
+    test('annotations toggles are shown if dev is true', function(done) {
+      element.dev = true;
+      flush(function() {
+        assert.isDefined(element.$$('#toggleAnnotationsDarpa'));
+        assert.isDefined(element.$$('#toggleAnnotationsIsi'));
         done();
       });
     });

@@ -29,6 +29,7 @@ limitations under the License.
       }
 
       paper-icon-button {
+        color: var(--secondary-text-color);
         margin-right: 5px;
         --paper-icon-button: {
           height: 20px;
@@ -54,21 +55,23 @@ limitations under the License.
       }
     </style>
 
-    <div class="layout horizontal center">
-      <paper-icon-button id="negativeIcon"
-        class$="[[_getStyleClass('negative', _classificationFromDatabase, _classificationFromUser)]]"
-        icon="[[_getIcon('negative', _classificationFromDatabase, _classificationFromUser)]]"
-        title="Toggle Incorrect Extraction"
-        on-tap="_toggleNegative">
-      </paper-icon-button>
+    <template is="dom-if" if="[[_show]]">
+      <div class="layout horizontal center">
+        <paper-icon-button id="negativeIcon"
+          class$="[[_getStyleClass('negative', _classificationFromDatabase, _classificationFromUser)]]"
+          icon="[[_getIcon('negative', _classificationFromDatabase, _classificationFromUser)]]"
+          title="Toggle Incorrect Extraction"
+          on-tap="_toggleNegative">
+        </paper-icon-button>
 
-      <paper-icon-button id="positiveIcon"
-        class$="[[_getStyleClass('positive', _classificationFromDatabase, _classificationFromUser)]]"
-        icon="[[_getIcon('positive', _classificationFromDatabase, _classificationFromUser)]]"
-        title="Toggle Correct Extraction"
-        on-tap="_togglePositive">
-      </paper-icon-button>
-    </div>
+        <paper-icon-button id="positiveIcon"
+          class$="[[_getStyleClass('positive', _classificationFromDatabase, _classificationFromUser)]]"
+          icon="[[_getIcon('positive', _classificationFromDatabase, _classificationFromUser)]]"
+          title="Toggle Correct Extraction"
+          on-tap="_togglePositive">
+        </paper-icon-button>
+      </div>
+    </template>
   </template>
 
   <script>
@@ -80,6 +83,7 @@ limitations under the License.
 
       properties: {
         classificationManager: {
+          observer: '_addListenerToClassificationManager',
           type: Object
         },
 
@@ -107,12 +111,38 @@ limitations under the License.
         _classificationFromUser: {
           type: String,
           value: ''
+        },
+
+        _listenerId: {
+          type: Number,
+          value: -1
+        },
+
+        _show: {
+          type: Boolean,
+          value: false
         }
       },
 
       observers: [
         '_handleDataChange(classifications, classifications.*)'
       ],
+
+      detached: function() {
+        if(this.classificationManager && this.classificationManager.removeListener && this._listenerId >= 0) {
+          this.classificationManager.removeListener(this._listenerId);
+        }
+      },
+
+      _addListenerToClassificationManager: function() {
+        if(this.classificationManager && this.classificationManager.addListener) {
+          var self = this;
+          var showListener = function(show) {
+            self.set('_show', show);
+          };
+          this._listenerId = this.classificationManager.addListener(showListener);
+        }
+      },
 
       _getIcon: function(type, classificationFromDatabase, classificationFromUser) {
         if(!classificationFromDatabase && classificationFromUser === type) {

@@ -46,13 +46,15 @@ limitations under the License.
     });
 
     test('default properties are set correctly', function() {
+      expect(element.dev).to.be.false;
       expect(element.loading).to.be.false;
+      expect(element.show).to.be.false;
       expect(element.error).to.not.exist;
       expect(element.flag).to.not.exist;
       expect(element.url).to.not.exist;
       expect(element._body).to.not.exist;
-      expect(element._flagListeners).to.deep.equal({});
-      expect(element._nextFlagListenerId).to.equal(1);
+      expect(element._listeners).to.deep.equal({});
+      expect(element._nextListenerId).to.equal(1);
       expect(element._response).to.not.exist;
     });
 
@@ -82,58 +84,107 @@ limitations under the License.
 
     test('classificationManager does have classificationManager object', function() {
       expect(element.classificationManager).to.be.an('Object');
-      expect(element.classificationManager.addFlagListener).to.be.a('Function');
-      expect(element.classificationManager.removeFlagListener).to.be.a('Function');
+      expect(element.classificationManager.addListener).to.be.a('Function');
+      expect(element.classificationManager.removeListener).to.be.a('Function');
       expect(element.classificationManager.setExtractionClassification).to.be.a('Function');
       expect(element.classificationManager.setFlagClassification).to.be.a('Function');
     });
 
-    test('classificationManager.addFlagListener does work correctly', function(done) {
-      var listener = function(flag) {
+    test('classificationManager.addListener does work correctly', function(done) {
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
         expect(flag).to.not.exist;
-        expect(element._flagListeners[1]).to.be.a('Function');
-        expect(element._nextFlagListenerId).to.equal(2);
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.false;
+        expect(element._listeners[1].flag).to.deep.equal(flagListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
         done();
       };
 
-      element.classificationManager.addFlagListener(listener);
+      element.classificationManager.addListener(showListener, flagListener);
     });
 
-    test('classificationManager.addFlagListener does work correctly with existing listener', function(done) {
-      element._flagListeners[1] = function() {};
-      element._nextFlagListenerId++;
+    test('classificationManager.addListener does work correctly with existing listener', function(done) {
+      element._listeners[1] = {};
+      element._nextListenerId++;
 
-      var listener = function(flag) {
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
         expect(flag).to.not.exist;
-        expect(element._flagListeners[1]).to.be.a('Function');
-        expect(element._flagListeners[2]).to.be.a('Function');
-        expect(element._flagListeners[1]).to.not.deep.equal(element._flagListeners[2]);
-        expect(element._nextFlagListenerId).to.equal(3);
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.false;
+        expect(element._listeners[1]).to.be.an('Object');
+        expect(element._listeners[2].flag).to.deep.equal(flagListener);
+        expect(element._listeners[2].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(3);
         done();
       };
 
-      element.classificationManager.addFlagListener(listener);
+      element.classificationManager.addListener(showListener, flagListener);
     });
 
-    test('classificationManager.addFlagListener does work correctly with existing flag', function(done) {
+    test('classificationManager.addListener does work correctly with existing flag', function(done) {
       element.flag = 'testFlag';
 
-      var listener = function(flag) {
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
         expect(flag).to.equal('testFlag');
-        expect(element._flagListeners[1]).to.be.a('Function');
-        expect(element._nextFlagListenerId).to.equal(2);
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.false;
+        expect(element._listeners[1].flag).to.deep.equal(flagListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
         done();
       };
 
-      element.classificationManager.addFlagListener(listener);
+      element.classificationManager.addListener(showListener, flagListener);
     });
 
-    test('classificationManager.removeFlagListener does work correctly', function() {
-      element._flagListeners[1] = function() {};
-      element._flagListeners[2] = function() {};
-      element.classificationManager.removeFlagListener(1);
-      expect(element._flagListeners[1]).to.not.exist;
-      expect(element._flagListeners[2]).to.exist;
+    test('classificationManager.addListener does work correctly with dev and show set to true', function(done) {
+      element.dev = true;
+      element.show = true;
+
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
+        expect(flag).to.not.exist;
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.true;
+        expect(element._listeners[1].flag).to.deep.equal(flagListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
+        done();
+      };
+
+      element.classificationManager.addListener(showListener, flagListener);
+    });
+
+    test('classificationManager.removeListener does work correctly', function() {
+      element._listeners[1] = function() {};
+      element._listeners[2] = function() {};
+      element.classificationManager.removeListener(1);
+      expect(element._listeners[1]).to.not.exist;
+      expect(element._listeners[2]).to.exist;
     });
 
     test('classificationManager.setExtractionClassification does work correctly', function() {
@@ -144,13 +195,50 @@ limitations under the License.
       // TODO
     });
 
-    test('_notifyFlagListeners does work correctly', function(done) {
-      element._flagListeners[1] = function(flag) {
-        expect(flag).to.equal('testFlag');
-        done();
+    test('_notifyFlagListeners is called if flag is set', function(done) {
+      element._listeners[1] = {
+        flag: function(flag) {
+          expect(flag).to.equal('testFlag');
+          done();
+        }
       };
 
       element.flag = 'testFlag';
+    });
+
+    test('_notifyShowListeners is called if dev is set', function(done) {
+      element._listeners[1] = {
+        show: function(show) {
+          expect(show).to.be.false;
+          done();
+        }
+      };
+
+      element.dev = true;
+    });
+
+    test('_notifyShowListeners is called if show is set', function(done) {
+      element._listeners[1] = {
+        show: function(show) {
+          expect(show).to.be.false;
+          done();
+        }
+      };
+
+      element.show = true;
+    });
+
+    test('_notifyShowListeners is called with true argument if dev and show are both true', function(done) {
+      element.dev = true;
+
+      element._listeners[1] = {
+        show: function(show) {
+          expect(show).to.be.true;
+          done();
+        }
+      };
+
+      element.show = true;
     });
   });
 </script>

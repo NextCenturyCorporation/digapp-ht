@@ -42,6 +42,7 @@ limitations under the License.
 
     setup(function(done) {
       element = fixture('classify-extraction-buttons-fixture');
+      element._show = true;
       flush(done);
     });
 
@@ -52,6 +53,8 @@ limitations under the License.
       expect(element.itemType).to.equal('');
       expect(element._classificationFromDatabase).to.equal('');
       expect(element._classificationFromUser).to.equal('');
+      expect(element._listenerId).to.equal(-1);
+      expect(element._show).to.be.true;
     });
 
     test('does have elements', function() {
@@ -217,6 +220,7 @@ limitations under the License.
         database: 'classification1',
         user: 'classification2'
       };
+      element._show = true;
       flush(done);
     });
 
@@ -260,6 +264,7 @@ limitations under the License.
       };
       element.itemId = 'itemId';
       element.itemType = 'itemType';
+      element._show = true;
       flush(done);
     });
 
@@ -271,6 +276,8 @@ limitations under the License.
       expect(element.itemType).to.equal('itemType');
       expect(element._classificationFromDatabase).to.equal('positive');
       expect(element._classificationFromUser).to.equal('');
+      expect(element._listenerId).to.equal(-1);
+      expect(element._show).to.be.true;
     });
 
     test('does have elements', function() {
@@ -331,6 +338,27 @@ limitations under the License.
       });
     });
 
+    test('setting classificationManager does call classificationManager.addListener', function(done) {
+      element.classificationManager = {
+        addListener: function(showListener) {
+          expect(showListener).to.be.a('Function');
+          showListener(false);
+          expect(element._show).to.be.false;
+          done();
+        }
+      };
+    });
+
+    test('setting classificationManager does set listenerId', function() {
+      element.classificationManager = {
+        addListener: function() {
+          return 123;
+        }
+      };
+
+      expect(element._listenerId).to.equal(123);
+    });
+
     test('setClassification does call classificationManager.setExtractionClassification', function(done) {
       element.classificationManager = {
         setExtractionClassification: function(classification, itemId, itemType) {
@@ -368,6 +396,37 @@ limitations under the License.
         }
       };
       element._togglePositive();
+    });
+  });
+
+  suite('<classify-extraction-buttons> no-show unit tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('classify-extraction-buttons-fixture');
+      element.classifications = {
+        database: 'positive'
+      };
+      element.itemId = 'itemId';
+      element.itemType = 'itemType';
+      flush(done);
+    });
+
+    test('all properties are set correctly', function() {
+      expect(element.classifications).to.deep.equal({
+        database: 'positive'
+      });
+      expect(element.itemId).to.equal('itemId');
+      expect(element.itemType).to.equal('itemType');
+      expect(element._classificationFromDatabase).to.equal('positive');
+      expect(element._classificationFromUser).to.equal('');
+      expect(element._listenerId).to.equal(-1);
+      expect(element._show).to.be.false;
+    });
+
+    test('does not have elements because _show is false', function() {
+      expect(element.$$('paper-icon-button[id="negativeIcon"]')).to.not.exist;
+      expect(element.$$('paper-icon-button[id="positiveIcon"]')).to.not.exist;
     });
   });
 </script>

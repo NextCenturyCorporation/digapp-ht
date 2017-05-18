@@ -240,7 +240,6 @@ var offerTransform = (function(_, commonTransforms) {
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
       classifications: getClassifications(record, ''),
-      flag: '',
       title: getSingleStringFromRecord(record, '_source.fields.title') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.fields.description') || 'No Description',
       locations: getExtractionsFromRecordOfType(record, '_source.fields.city', 'location'),
@@ -323,22 +322,28 @@ var offerTransform = (function(_, commonTransforms) {
       data: offer.reviewIds,
       name: 'Review IDs'
     }, {
-      data: offer.names,
-      name: 'Provider Names'
+      data: [],
+      name: 'Automated Classifications'
     }];
 
     offer.detailExtractions = [{
+      data: offer.prices,
+      name: 'Prices'
+    }, {
       data: offer.services,
       name: 'Services Provided'
     }, {
-      data: offer.prices,
-      name: 'Prices'
+      data: offer.names,
+      name: 'Provider Names'
+    }, {
+      data: offer.ethnicities,
+      name: 'Provider Ethnicities'
     }, {
       data: offer.ages,
       name: 'Provider Ages'
     }, {
-      data: offer.ethnicities,
-      name: 'Provider Ethnicities'
+      data: offer.genders,
+      name: 'Provider Genders'
     }, {
       data: offer.eyeColors,
       name: 'Provider Eye Colors'

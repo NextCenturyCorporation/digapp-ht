@@ -42,6 +42,7 @@ limitations under the License.
 
     setup(function(done) {
       element = fixture('classify-ad-buttons-fixture');
+      element._show = true;
       flush(done);
     });
 
@@ -52,11 +53,11 @@ limitations under the License.
       expect(element._classificationFromDatabase).to.equal('');
       expect(element._classificationFromUser).to.equal('');
       expect(element._flag).to.equal('');
-      expect(element._flagListenerId).to.equal(-1);
+      expect(element._listenerId).to.equal(-1);
+      expect(element._show).to.be.true;
     });
 
     test('does not have elements', function() {
-      expect(element.$$('div')).to.not.exist;
       expect(element.$$('strong')).to.not.exist;
       expect(element.$$('paper-icon-button[id="negativeIcon"]')).to.not.exist;
       expect(element.$$('paper-icon-button[id="positiveIcon"]')).to.not.exist;
@@ -237,6 +238,7 @@ limitations under the License.
         }
       };
       element._flag  = 'flag1';
+      element._show = true;
       flush(done);
     });
 
@@ -299,6 +301,7 @@ limitations under the License.
       };
       element.itemId = 'itemId';
       element._flag = 'flag1';
+      element._show = true;
       flush(done);
     });
 
@@ -315,11 +318,15 @@ limitations under the License.
       expect(element._classificationFromDatabase).to.equal('positive');
       expect(element._classificationFromUser).to.equal('');
       expect(element._flag).to.equal('flag1');
+      expect(element._show).to.be.true;
     });
 
-    test('does have elements', function() {
-      expect(element.$$('div')).to.exist;
+    test('does have text elements', function() {
       expect(element.$$('strong')).to.exist;
+      expect(element.$$('strong').innerHTML).to.equal('flag1');
+    });
+
+    test('does have icon elements', function() {
       expect(element.$$('paper-icon-button[id="negativeIcon"]')).to.exist;
       expect(element.$$('paper-icon-button[id="negativeIcon"]').title).to.equal('Toggle Negative Flag');
       expect(element.$$('paper-icon-button[id="negativeIcon"]').icon).to.equal('fa:circle-o');
@@ -404,17 +411,30 @@ limitations under the License.
       });
     });
 
-    test('setting classificationManager does call _addFlagListener', function(done) {
+    test('setting classificationManager does call classificationManager.addListener', function(done) {
       element.classificationManager = {
-        addFlagListener: function(listener) {
-          expect(listener).to.be.a('Function');
-          listener('flag2');
+        addListener: function(showListener, flagListener) {
+          expect(showListener).to.be.a('Function');
+          showListener(false);
+          expect(element._show).to.be.false;
+          expect(flagListener).to.be.a('Function');
+          flagListener('flag2');
           expect(element._classificationFromDatabase).to.equal('');
           expect(element._classificationFromUser).to.equal('positive');
           expect(element._flag).to.equal('flag2');
           done();
         }
       };
+    });
+
+    test('setting classificationManager does set listenerId', function() {
+      element.classificationManager = {
+        addListener: function() {
+          return 123;
+        }
+      };
+
+      expect(element._listenerId).to.equal(123);
     });
 
     test('setClassification does call classificationManager.setFlagClassification', function(done) {
@@ -454,6 +474,47 @@ limitations under the License.
         }
       };
       element._togglePositive();
+    });
+  });
+
+  suite('<classify-ad-buttons> no-show unit tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('classify-ad-buttons-fixture');
+      element.classifications = {
+        flag1: {
+          database: 'positive'
+        },
+        flag2: {
+          user: 'positive'
+        }
+      };
+      element.itemId = 'itemId';
+      element._flag = 'flag1';
+      flush(done);
+    });
+
+    test('all properties are set correctly', function() {
+      expect(element.classifications).to.deep.equal({
+        flag1: {
+          database: 'positive'
+        },
+        flag2: {
+          user: 'positive'
+        }
+      });
+      expect(element.itemId).to.equal('itemId');
+      expect(element._classificationFromDatabase).to.equal('positive');
+      expect(element._classificationFromUser).to.equal('');
+      expect(element._flag).to.equal('flag1');
+      expect(element._show).to.be.false;
+    });
+
+    test('does not have elements because _show is false', function() {
+      expect(element.$$('strong')).to.not.exist;
+      expect(element.$$('paper-icon-button[id="negativeIcon"]')).to.not.exist;
+      expect(element.$$('paper-icon-button[id="positiveIcon"]')).to.not.exist;
     });
   });
 </script>
