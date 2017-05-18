@@ -1,0 +1,208 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
+
+<dom-module id="classify-ad-buttons">
+  <template>
+    <style include="iron-flex iron-flex-alignment"></style>
+
+    <style>
+      :host {
+        display: block;
+      }
+
+      paper-icon-button {
+        color: var(--secondary-text-color);
+        margin-right: 5px;
+        --paper-icon-button: {
+          height: 20px;
+          width: 20px;
+          padding: 0;
+        };
+      }
+
+      #negativeIcon:hover {
+        color: var(--red);
+      }
+
+      #positiveIcon:hover {
+        color: var(--green);
+      }
+
+      .negative-color {
+        color: var(--red);
+      }
+
+      .positive-color {
+        color: var(--green);
+      }
+
+      .text {
+        color: var(--primary-text-color);
+        font-size: 14px;
+        margin-right: 5px;
+      }
+    </style>
+
+    <template is="dom-if" if="[[_show]]">
+      <template is="dom-if" if="[[_flag]]">
+        <div class="layout horizontal center">
+          <strong class="text">[[_flag]]</strong>
+
+          <paper-icon-button id="negativeIcon"
+            class$="[[_getStyleClass('negative', _classificationFromDatabase, _classificationFromUser)]]"
+            icon="[[_getIcon('negative', _classificationFromDatabase, _classificationFromUser)]]"
+            title="Toggle Negative Flag"
+            on-tap="_toggleNegative">
+          </paper-icon-button>
+
+          <paper-icon-button id="positiveIcon"
+            class$="[[_getStyleClass('positive', _classificationFromDatabase, _classificationFromUser)]]"
+            icon="[[_getIcon('positive', _classificationFromDatabase, _classificationFromUser)]]"
+            title="Toggle Positive Flag"
+            on-tap="_togglePositive">
+          </paper-icon-button>
+        </div>
+      </template>
+    </template>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'classify-ad-buttons',
+
+      properties: {
+        classificationManager: {
+          observer: '_addListenerToClassificationManager',
+          type: Object
+        },
+
+        classifications: {
+          notify: true,
+          type: Object,
+          value: {}
+        },
+
+        itemId: {
+          type: String,
+          value: ''
+        },
+
+        _classificationFromDatabase: {
+          type: String,
+          value: ''
+        },
+
+        _classificationFromUser: {
+          type: String,
+          value: ''
+        },
+
+        _flag: {
+          type: String,
+          value: ''
+        },
+
+        _listenerId: {
+          type: Number,
+          value: -1
+        },
+
+        _show: {
+          type: Boolean,
+          value: false
+        }
+      },
+
+      observers: [
+        '_handleDataChange(classifications, classifications.*, _flag)'
+      ],
+
+      detached: function() {
+        if(this.classificationManager && this.classificationManager.removeListener && this._listenerId >= 0) {
+          this.classificationManager.removeListener(this._listenerId);
+        }
+      },
+
+      _addListenerToClassificationManager: function() {
+        if(this.classificationManager && this.classificationManager.addListener) {
+          var self = this;
+          var showListener = function(show) {
+            self.set('_show', show);
+          };
+          var flagListener = function(flag) {
+            self.set('_flag', flag);
+          };
+          this._listenerId = this.classificationManager.addListener(showListener, flagListener);
+        }
+      },
+
+      _getIcon: function(type, classificationFromDatabase, classificationFromUser) {
+        if(!classificationFromDatabase && classificationFromUser === type) {
+          return 'fa:check-circle-o';
+        }
+        if(classificationFromDatabase === type && !classificationFromUser) {
+          return 'fa:circle';
+        }
+        if(classificationFromDatabase && classificationFromUser) {
+          // True positive/negative.
+          if(classificationFromDatabase === classificationFromUser) {
+            return classificationFromUser === type ? 'fa:check-circle' : 'fa:circle-o';
+          }
+          // False positive/negative.
+          return classificationFromUser === type ? 'fa:check-circle-o' : 'fa:circle';
+        }
+        return 'fa:circle-o';
+      },
+
+      _getStyleClass: function(type, classificationFromDatabase, classificationFromUser) {
+        return (classificationFromDatabase === type || classificationFromUser === type) ? (type + '-color') : '';
+      },
+
+      _handleDataChange: function() {
+        var classification = this.classifications[this._flag] || {};
+        this.set('_classificationFromDatabase', classification.database || '');
+        this.set('_classificationFromUser', classification.user || '');
+      },
+
+      _toggleNegative: function() {
+        this.setClassification((this._classificationFromUser === 'negative' ? '' : 'negative'), this._flag, this.itemId);
+      },
+
+      _togglePositive: function() {
+        this.setClassification((this._classificationFromUser === 'positive' ? '' : 'positive'), this._flag, this.itemId);
+      },
+
+      setClassification: function(classification, flag, itemId) {
+        this.set('classifications.' + flag, {
+          database: this.classifications.database || '',
+          user: classification
+        });
+        if(this.classificationManager && this.classificationManager.setFlagClassification) {
+          this.classificationManager.setFlagClassification(classification, flag, itemId);
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>

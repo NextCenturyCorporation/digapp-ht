@@ -78,6 +78,12 @@ limitations under the License.
         border-radius: 5px;
       }
 
+      paper-listbox {
+        --paper-listbox: {
+          padding: 0;
+        }
+      }
+
       paper-listbox paper-item {
         cursor: pointer;
       }
@@ -112,6 +118,36 @@ limitations under the License.
             </div>
           </div>
 
+          <template is="dom-if" if="[[dev]]">
+            <div class="layout horizontal pointer" id="toggleAnnotationsIsi" title="Toggle ISI Annotations" on-tap="_toggleAnnotationsIsi">
+              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsIsi)]]"></iron-icon>
+              <span class="text">ISI Annotations</span>
+            </div>
+
+            <div class="layout horizontal pointer" id="toggleAnnotationsDarpa" title="Toggle DARPA Annotations" on-tap="_toggleAnnotationsDarpa">
+              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsDarpa)]]"></iron-icon>
+              <span class="text">DARPA Annotations</span>
+            </div>
+          </template>
+
+          <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
+            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
+            <span class="text">Blur Images</span>
+          </div>
+
+          <template is="dom-if" if="[[_classificationFlagList.length]]">
+            <div class="layout horizontal">
+              <span class="name tall right-space">Classification Focus:</span>
+              <paper-dropdown-menu label="Flag" no-label-float>
+                <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{classificationFlag}}">
+                  <template is="dom-repeat" items="[[_classificationFlagList]]" as="flag">
+                    <paper-item id$="[[flag]]" value="[[flag]]">[[flag]]</paper-item>
+                  </template>
+                </paper-listbox>
+              </paper-dropdown-menu>
+            </div>
+          </template>
+
           <div class="layout horizontal">
             <span class="name tall right-space">Email Address for Notifications:</span>
             <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}"
@@ -137,13 +173,6 @@ limitations under the License.
           <iron-collapse id="notificationHelp">
             <span>DIG can automatically run one or more of your saved searches every day or week and notify you if any of those searches have new results.  Select the interval to run your searches above, then select which searches you want to be checked for new results in your list of saved searches below.</span>
           </iron-collapse>
-
-          <div class="divider"></div>
-
-          <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
-            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
-            <span class="text">Blur Images</span>
-          </div>
 
           <div class="divider"></div>
 
@@ -305,6 +334,13 @@ limitations under the License.
 
       properties: {
         /**
+         * Whether dev mode is on.
+         */
+        dev: {
+          type: Boolean
+        },
+
+        /**
          * The name of this user.
          */
         username: {
@@ -359,12 +395,47 @@ limitations under the License.
         },
 
         /**
+         * Whether to enable DARPA annotations.
+         */
+        annotationsDarpa: {
+          notify: true,
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether to enable ISI annotations (classifications).
+         */
+        annotationsIsi: {
+          notify: true,
+          type: Boolean,
+          value: false
+        },
+
+        /**
          * Whether image blurring is enabled.
          */
         blurImages: {
+          notify: true,
           type: Boolean,
-          value: true,
-          notify: true
+          value: true
+        },
+
+        /**
+         * The config for the classification flags as a stringified array.
+         */
+        classificationConfig: {
+          type: String,
+          value: '[]'
+        },
+
+        /**
+         * The current classification focus flag.
+         */
+        classificationFlag: {
+          notify: true,
+          type: String,
+          value: ''
         },
 
         /**
@@ -469,6 +540,14 @@ limitations under the License.
         },
 
         /**
+         * The list of available classification flags.
+         */
+        _classificationFlagList: {
+          computed: '_createClassificationFlagList(classificationConfig)',
+          type: Array
+        },
+
+        /**
          * Index to replace in searches if saving over existing search.
          */
         _saveOverIndex: {
@@ -498,18 +577,32 @@ limitations under the License.
           type: Boolean
         }
       },
+
       observers: [
         '_resetNotificationQuery(searchParameters.*)'
       ],
+
       _getRunButtonClass: function(showSearch, notificationHasRun) {
         return showSearch && notificationHasRun === false ? 'highlight-btn' : '';
       },
+
       _getSettingsButtonClass: function(showSearch, hasNotifications) {
         return showSearch && hasNotifications ? 'highlight-btn' : '';
       },
+
       _getSettingsButtonText: function(hasNotifications) {
         return hasNotifications ? 'Notifications Pending' : 'Open User Settings';
       },
+
+      _createClassificationFlagList: function(config) {
+        var list = (config ? JSON.parse(config) : []);
+        if(_.isArray(list) && list.length) {
+          this.set('classificationFlag', list[0]);
+          return list;
+        }
+        return [];
+      },
+
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
@@ -530,6 +623,32 @@ limitations under the License.
             }
           }
         };
+      },
+
+      /**
+       * Toggles the DARPA annotations setting of the user.
+       */
+      _toggleAnnotationsDarpa: function() {
+        var self = this;
+        this.annotationsDarpa = !this.annotationsDarpa;
+        self.set('userUpdateBody', {
+          doc: {
+            annotationsDarpa: self.annotationsDarpa
+          }
+        });
+      },
+
+      /**
+       * Toggles the ISI annotations setting of the user.
+       */
+      _toggleAnnotationsIsi: function() {
+        var self = this;
+        this.annotationsIsi = !this.annotationsIsi;
+        self.set('userUpdateBody', {
+          doc: {
+            annotationsIsi: self.annotationsIsi
+          }
+        });
       },
 
       /**

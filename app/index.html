@@ -92,6 +92,13 @@ limitations under the License.
       last-response="{{config}}">
     </iron-ajax>
 
+    <iron-ajax
+      auto
+      url="[[config.classificationFlagsUrl]]"
+      handle-as="json"
+      last-response="{{classificationFlags}}">
+    </iron-ajax>
+
     <!--initialize new elastic client connection to server
       esclient can be used throughout the application lifecycle -->
     <elastic-client
@@ -171,7 +178,6 @@ limitations under the License.
       price-selected="[[searchParameters.price]]"
       region-selected="[[searchParameters.region]]"
       review-selected="[[searchParameters.review]]"
-      risk-selected="[[searchParameters.risk]]"
       services-selected="[[searchParameters.services]]"
       social-selected="[[searchParameters.social]]"
       title-selected="[[searchParameters.title]]"
@@ -181,6 +187,8 @@ limitations under the License.
     </create-log-message>
 
     <annotation-manager
+      dev="[[config.dev]]"
+      show="[[annotationsDarpa]]"
       client="[[esclient]]"
       annotation-index="[[config.annotationIndex]]"
       annotation-type="[[config.annotationType]]"
@@ -189,6 +197,14 @@ limitations under the License.
       annotations="{{annotations}}"
       annotation-manager="{{annotationManager}}">
     </annotation-manager>
+
+    <classification-manager
+      dev="[[config.dev]]"
+      show="[[annotationsIsi]]"
+      url="[[config.classificationUrl]]"
+      flag="[[classificationFlag]]"
+      classification-manager="{{classificationManager}}">
+    </classification-manager>
 
     <paper-header-panel class="flex" mode="waterfall">
 
@@ -216,12 +232,17 @@ limitations under the License.
 
         <load-user-info class="bottom"
           show-search
+          dev="[[config.dev]]"
           client="[[esclient]]"
           loading="[[searchLoading]]"
           username="[[config.username]]"
           user-id="{{userId}}"
           user-record-exists="{{userRecordExists}}"
+          annotations-darpa="{{annotationsDarpa}}"
+          annotations-isi="{{annotationsIsi}}"
           blur-images="{{blurImages}}"
+          classification-config="[[classificationFlags]]"
+          classification-flag="{{classificationFlag}}"
           searches="{{userSearches}}"
           entities="{{userEntities}}"
           search-parameters="{{searchParameters}}"
@@ -384,7 +405,6 @@ limitations under the License.
                 <selected-facets-display facet-selection="{{searchParameters.height}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.weight}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.review}}"></selected-facets-display>
-                <selected-facets-display facet-selection="{{searchParameters.risk}}"></selected-facets-display>
                 <selected-facets-display facet-selection="{{searchParameters.image}}"></selected-facets-display>
               </div>
             </div>
@@ -438,7 +458,7 @@ limitations under the License.
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.email}}"
                 index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
+                combine-function="[[clientConfig.transforms.filterAggs.emailList]]"
                 agg-field="[[emailConfig.aggregationField]]"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -702,22 +722,6 @@ limitations under the License.
                 process-request="{{processRequest}}">
               </facet-list>
 
-              <facet-list
-                class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
-                name="[[riskConfig.key]]"
-                title="[[riskConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
-                search-parameters="{{searchParameters}}"
-                search-param-subset="{{searchParameters.risk}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[riskConfig.aggregationField]]"
-                text-property="id"
-                process-request="{{processRequest}}">
-              </facet-list>
-
               <!-- TODO
               <facet-list
                 class="facet"
@@ -782,6 +786,7 @@ limitations under the License.
 
           <records-list id="searchResults"
             annotation-manager="[[annotationManager]]"
+            classification-manager="[[classificationManager]]"
             client="[[esclient]]"
             image-aggregation-field="url.raw"
             image-aggregation-name="image"
@@ -859,14 +864,13 @@ limitations under the License.
       app.priceConfig = app.createSingleSearchField('price', 'Price of Provider', 'knowledge_graph.price.key', 'knowledge_graph.price.value');
       app.regionConfig = app.createSingleSearchField('region', 'State/Region', 'knowledge_graph.state.key', 'knowledge_graph.state.value');
       app.reviewConfig = app.createSingleSearchField('review', 'Review ID', 'knowledge_graph.review_id.key', 'knowledge_graph.review_id.value');
-      app.riskConfig = app.createSingleSearchField('risk', 'High Risk', 'knowledge_graph.risk.key', 'knowledge_graph.risk.value');
       app.servicesConfig = app.createSingleSearchField('services', 'Services Provided', 'knowledge_graph.service.key', 'knowledge_graph.service.value');
       app.socialConfig = app.createSingleSearchField('social', 'Social Media ID', 'knowledge_graph.social_media_id.key', 'knowledge_graph.social_media_id.value');
       app.titleConfig = app.createSingleSearchField('title', 'Title', 'content_extraction.title.text');
       app.websiteConfig = app.createSingleSearchField('website', 'Website', 'tld.raw', 'tld');
       app.weightConfig = app.createSingleSearchField('weight', 'Weight (kg) of Provider', 'knowledge_graph.weight.key', 'knowledge_graph.weight.value');
 
-      app.searchFieldGroups = ['identifiers', 'location', 'provider', 'ad', 'risk'];
+      app.searchFieldGroups = ['identifiers', 'location', 'provider', 'ad'];
 
       app.searchFields = {
         identifiers: {
@@ -885,10 +889,6 @@ limitations under the License.
         ad: {
           title: 'Ad',
           data: app.buildArray(app.websiteConfig, app.titleConfig, app.descriptionConfig)
-        },
-        risk: {
-          title: 'High Risk',
-          data: app.buildArray(app.riskConfig)
         }
       };
 
@@ -940,9 +940,6 @@ limitations under the License.
         },
         review: {
           field: app.reviewConfig.queryField
-        },
-        risk: {
-          field: app.riskConfig.queryField
         },
         services: {
           field: app.servicesConfig.queryField
@@ -1051,6 +1048,8 @@ limitations under the License.
       app.getToggleAllFacetsIcon = function() {
         return (app.facetListsExpanded ? 'icons:expand-less' : 'icons:expand-more');
       };
+
+      app.classificationFlags = '["Test Flag 1", "Test Flag 2", "Test Flag 3"]';
     })(document);
   </script>
 </body>

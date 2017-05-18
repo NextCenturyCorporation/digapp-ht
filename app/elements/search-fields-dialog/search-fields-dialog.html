@@ -193,30 +193,12 @@ limitations under the License.
               <div class="name search-labels right-space">[[group]]:</div>
               <div class="layout horizontal wrap">
                 <template is="dom-repeat" items="[[getGroupProperty(group, dataProperty, searchFields.*)]]">
-                  <template is="dom-if" if="[[!_isRiskConfig(item.key)]]">
-                    <paper-input
-                      id$="input_[[item.key]]"
-                      label="[[item.title]]"
-                      value="{{item.value}}"
-                      on-keydown="checkSearchFieldInputKey">
-                    </paper-input>
-                  </template>
-                  <!-- All other searchFields use text inputs, but the risk config will have a dropdown -->
-                  <!-- with options to choose from. -->
-                  <template is="dom-if" if="[[_isRiskConfig(item.key)]]">
-                    <paper-dropdown-menu
-                      id$="input_[[item.key]]"
-                      label="[[item.title]]"
-                      value="{{item.value}}"
-                      vertical-align="bottom"
-                      no-label-float>
-                      <paper-listbox id="riskList" class="dropdown-content" selected="0">
-                        <paper-item>Any</paper-item>
-                        <paper-item>Yes</paper-item>
-                        <paper-item>No</paper-item>
-                      </paper-listbox>
-                    </paper-dropdown-menu>
-                  </template>
+                  <paper-input
+                    id$="input_[[item.key]]"
+                    label="[[item.title]]"
+                    value="{{item.value}}"
+                    on-keydown="checkSearchFieldInputKey">
+                  </paper-input>
                 </template>
               </div>
             </div>
@@ -342,9 +324,6 @@ limitations under the License.
           if(searchConfig.key === 'phone') {
             return DigBehaviors.PhoneBehavior.getUnformattedPhones(term);
           }
-          if(self._isRiskConfig(searchConfig.key)) {
-            return term === 'Yes' || term === 'No' ? term.toLowerCase() : '';
-          }
           return term.trim();
         });
 
@@ -414,12 +393,7 @@ limitations under the License.
           return self.searchParameters[searchConfig.key][term].text;
         }).join(', ');
 
-        if(self._isRiskConfig(searchConfig.key)) {
-          searchConfig.value = searchConfig.value === 'yes' ? 'Yes' : (searchConfig.value === 'no' ? 'No' : 'Any');
-          this.$$('#riskList').selected = searchConfig.value === 'Yes' ? '1' : (searchConfig.value === 'No' ? '2' : '0');
-        } else {
-          this.$$('#input_' + searchConfig.key).value = searchConfig.value;
-        }
+        this.$$('#input_' + searchConfig.key).value = searchConfig.value;
       },
 
       updateDateFieldFromParameter: function(dateConfig, property) {
@@ -448,11 +422,7 @@ limitations under the License.
 
           if(data) {
             data.forEach(function(searchConfig) {
-              if(self._isRiskConfig(searchConfig.key)) {
-                self.$$('#riskList').selected = 0;
-              } else {
-                self.$$('#input_' + searchConfig.key).value = '';
-              }
+              self.$$('#input_' + searchConfig.key).value = '';
             });
           }
         });
@@ -472,10 +442,6 @@ limitations under the License.
         if(event.keyCode === 13) {
           this.handleSearch();
         }
-      },
-
-      _isRiskConfig: function(key) {
-        return key === 'risk';
       }
     });
   })();

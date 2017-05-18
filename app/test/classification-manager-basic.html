@@ -1,0 +1,246 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>classification-manager</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+  <link rel="import" href="../elements/classification-manager/classification-manager.html">
+</head>
+
+<body>
+<test-fixture id="classification-manager-fixture">
+  <template>
+    <classification-manager></classification-manager>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, expect, setup, fixture, flush */
+  /* jshint -W030 */
+  suite('<classification-manager> default unit tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('classification-manager-fixture');
+      flush(done);
+    });
+
+    test('default properties are set correctly', function() {
+      expect(element.dev).to.be.false;
+      expect(element.loading).to.be.false;
+      expect(element.show).to.be.false;
+      expect(element.error).to.not.exist;
+      expect(element.flag).to.not.exist;
+      expect(element.url).to.not.exist;
+      expect(element._body).to.not.exist;
+      expect(element._listeners).to.deep.equal({});
+      expect(element._nextListenerId).to.equal(1);
+      expect(element._response).to.not.exist;
+    });
+
+    test('does have an iron-ajax element', function(done) {
+      expect(element.$$('iron-ajax')).to.exist;
+      expect(element.$$('iron-ajax').contentType).to.equal('application/json');
+      expect(element.$$('iron-ajax').method).to.equal('POST');
+      expect(element.$$('iron-ajax').body).to.not.exist;
+      expect(element.$$('iron-ajax').lastError).to.not.exist;
+      expect(element.$$('iron-ajax').lastResponse).to.not.exist;
+      expect(element.$$('iron-ajax').loading).to.not.exist;
+      expect(element.$$('iron-ajax').url).to.not.exist;
+
+      element._body = {
+        key: 'value'
+      };
+      element.url = 'url';
+
+      flush(function() {
+        expect(element.$$('iron-ajax').body).to.deep.equal({
+          key: 'value'
+        });
+        expect(element.$$('iron-ajax').url).to.equal('url');
+        done();
+      });
+    });
+
+    test('classificationManager does have classificationManager object', function() {
+      expect(element.classificationManager).to.be.an('Object');
+      expect(element.classificationManager.addListener).to.be.a('Function');
+      expect(element.classificationManager.removeListener).to.be.a('Function');
+      expect(element.classificationManager.setExtractionClassification).to.be.a('Function');
+      expect(element.classificationManager.setFlagClassification).to.be.a('Function');
+    });
+
+    test('classificationManager.addListener does work correctly', function(done) {
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
+        expect(flag).to.not.exist;
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.false;
+        expect(element._listeners[1].flag).to.deep.equal(flagListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
+        done();
+      };
+
+      element.classificationManager.addListener(showListener, flagListener);
+    });
+
+    test('classificationManager.addListener does work correctly with existing listener', function(done) {
+      element._listeners[1] = {};
+      element._nextListenerId++;
+
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
+        expect(flag).to.not.exist;
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.false;
+        expect(element._listeners[1]).to.be.an('Object');
+        expect(element._listeners[2].flag).to.deep.equal(flagListener);
+        expect(element._listeners[2].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(3);
+        done();
+      };
+
+      element.classificationManager.addListener(showListener, flagListener);
+    });
+
+    test('classificationManager.addListener does work correctly with existing flag', function(done) {
+      element.flag = 'testFlag';
+
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
+        expect(flag).to.equal('testFlag');
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.false;
+        expect(element._listeners[1].flag).to.deep.equal(flagListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
+        done();
+      };
+
+      element.classificationManager.addListener(showListener, flagListener);
+    });
+
+    test('classificationManager.addListener does work correctly with dev and show set to true', function(done) {
+      element.dev = true;
+      element.show = true;
+
+      var flagListenerCalled = false;
+
+      var flagListener = function(flag) {
+        flagListenerCalled = true;
+        expect(flag).to.not.exist;
+      };
+
+      var showListener = function(show) {
+        expect(flagListenerCalled).to.be.true;
+        expect(show).to.be.true;
+        expect(element._listeners[1].flag).to.deep.equal(flagListener);
+        expect(element._listeners[1].show).to.deep.equal(showListener);
+        expect(element._nextListenerId).to.equal(2);
+        done();
+      };
+
+      element.classificationManager.addListener(showListener, flagListener);
+    });
+
+    test('classificationManager.removeListener does work correctly', function() {
+      element._listeners[1] = function() {};
+      element._listeners[2] = function() {};
+      element.classificationManager.removeListener(1);
+      expect(element._listeners[1]).to.not.exist;
+      expect(element._listeners[2]).to.exist;
+    });
+
+    test('classificationManager.setExtractionClassification does work correctly', function() {
+      // TODO
+    });
+
+    test('classificationManager.setFlagClassification does work correctly', function() {
+      // TODO
+    });
+
+    test('_notifyFlagListeners is called if flag is set', function(done) {
+      element._listeners[1] = {
+        flag: function(flag) {
+          expect(flag).to.equal('testFlag');
+          done();
+        }
+      };
+
+      element.flag = 'testFlag';
+    });
+
+    test('_notifyShowListeners is called if dev is set', function(done) {
+      element._listeners[1] = {
+        show: function(show) {
+          expect(show).to.be.false;
+          done();
+        }
+      };
+
+      element.dev = true;
+    });
+
+    test('_notifyShowListeners is called if show is set', function(done) {
+      element._listeners[1] = {
+        show: function(show) {
+          expect(show).to.be.false;
+          done();
+        }
+      };
+
+      element.show = true;
+    });
+
+    test('_notifyShowListeners is called with true argument if dev and show are both true', function(done) {
+      element.dev = true;
+
+      element._listeners[1] = {
+        show: function(show) {
+          expect(show).to.be.true;
+          done();
+        }
+      };
+
+      element.show = true;
+    });
+  });
+</script>
+</body>
+</html>

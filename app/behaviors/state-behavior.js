@@ -100,7 +100,6 @@ DigBehaviors.StateBehavior = {
       price: config.price || {},
       region: config.region || {},
       review: config.review || {},
-      risk: config.risk || {},
       services: config.services || {},
       social: config.social || {},
       title: config.title || {},

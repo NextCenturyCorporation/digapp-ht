@@ -132,6 +132,7 @@ limitations under the License.
         margin-top: 5px;
       }
 
+      /* TODO Fix in image-gallery */
       .body image-gallery ::content > div {
         @apply(--layout-start-justified);
       }
@@ -228,7 +229,7 @@ limitations under the License.
     </build-and-run-aggregation>
 
     <paper-material
-      class$="layout horizontal flex head record [[_getResultHeaderStyleClass(details, detailExtractions, images, _open)]]"
+      class$="layout horizontal flex head record [[_getResultHeaderStyleClass(details, detailExtractions, images, opened)]]"
       on-mouseover="_hoverStart"
       on-mouseout="_hoverEnd"
       on-tap="toggleDetails">
@@ -277,20 +278,33 @@ limitations under the License.
                       target="[[_getTarget(newTab)]]"
                       text="[[_getProperty(extraction, extractionDataTextProperty)]]">
                     </icon-label>
+
                     <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
                       <iron-icon icon="fa:circle"
                         class$="confidence-icon [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
                         title$="[[_getConfidenceText(extraction, extractionDataConfidenceProperty)]]">
                       </iron-icon>
                     </template>
-                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
-                      <annotate-record class="tiny-icon"
-                        annotation-manager="[[annotationManager]]"
-                        client="[[client]]"
+
+                    <template is="dom-if" if="[[classificationManager]]">
+                      <classify-extraction-buttons
+                        classification-manager="[[classificationManager]]"
+                        classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
                         item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                        item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
-                        noink>
-                      </annotate-record>
+                        item-type="[[_getProperty(extraction, extractionDataTypeProperty)]]">
+                      </classify-extraction-buttons>
+                    </template>
+
+                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
+                      <template is="dom-if" if="[[annotationManager]]">
+                        <annotate-record class="tiny-icon"
+                          annotation-manager="[[annotationManager]]"
+                          client="[[client]]"
+                          item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                          item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                          noink>
+                        </annotate-record>
+                      </template>
                     </template>
                   </div>
                 </template>
@@ -298,6 +312,14 @@ limitations under the License.
             </template>
           </template>
         </div>
+
+        <template is="dom-if" if="[[classificationManager]]">
+          <classify-ad-buttons
+            classification-manager="[[classificationManager]]"
+            classifications="{{classifications}}"
+            item-id="[[itemId]]">
+          </classify-ad-buttons>
+        </template>
       </div>
 
       <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
@@ -306,12 +328,14 @@ limitations under the License.
         </div>
       </template>
 
-      <annotate-record class="layout vertical center-justified"
-        client="[[client]]"
-        annotation-manager="[[annotationManager]]"
-        item-id="{{itemId}}"
-        item-type="[[_getTypeText(type)]]">
-      </annotate-record>
+      <template is="dom-if" if="[[annotationManager]]">
+        <annotate-record class="layout vertical center-justified"
+          client="[[client]]"
+          annotation-manager="[[annotationManager]]"
+          item-id="[[itemId]]"
+          item-type="[[_getTypeText(type)]]">
+        </annotate-record>
+      </template>
 
       <template is="dom-if" if="[[link]]">
         <div class="layout vertical center-justified">
@@ -326,13 +350,13 @@ limitations under the License.
         icon-style-class="[[styleClass]]"
         show-icon="[[!_hovering]]"
         openable="[[_doesHaveDetails(details, detailExtractions, images)]]"
-        open="[[_open]]">
+        open="[[opened]]">
       </modal-icon>
 
     </paper-material>
 
     <template is="dom-if" if="[[_doesHaveDetails(details, detailExtractions, images)]]">
-      <iron-collapse id="details">
+      <iron-collapse id="details" opened="{{opened}}">
         <paper-material class="body">
           <template is="dom-repeat" items="[[details]]" as="detail">
             <div class="detail text">
@@ -370,20 +394,33 @@ limitations under the License.
                         target="[[_getTarget(newTab)]]"
                         text="[[_getProperty(extraction, extractionDataTextProperty)]]">
                       </icon-label>
+
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
                         <iron-icon icon="fa:circle"
                           class$="confidence-icon [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
                           title$="[[_getConfidenceText(extraction, extractionDataConfidenceProperty)]]">
                         </iron-icon>
                       </template>
-                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
-                        <annotate-record class="tiny-icon"
-                          annotation-manager="[[annotationManager]]"
-                          client="[[client]]"
+
+                      <template is="dom-if" if="[[classificationManager]]">
+                        <classify-extraction-buttons
+                          classification-manager="[[classificationManager]]"
+                          classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
                           item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                          item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
-                          noink>
-                        </annotate-record>
+                          item-type="[[_getProperty(extraction, extractionDataTypeProperty)]]">
+                        </classify-extraction-buttons>
+                      </template>
+
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
+                        <template is="dom-if" if="[[annotationManager]]">
+                          <annotate-record class="tiny-icon"
+                            annotation-manager="[[annotationManager]]"
+                            client="[[client]]"
+                            item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                            item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                            noink>
+                          </annotate-record>
+                        </template>
                       </template>
                     </div>
                   </template>
@@ -433,6 +470,20 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * The collection of flags mapped to the AI and user classifications for the result.
+         *
+         * @type {Object}
+         * @default {}
+         */
+        classifications: {
+          notify: true,
+          type: Object,
+          value: {}
+        },
+
+        /**
+         * (Optional)
+         *
          * The flag of the result.
          *
          * @type {String}
@@ -465,6 +516,19 @@ limitations under the License.
          * @default ''
          */
         icon: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The ID of the result.
+         *
+         * @type {String}
+         * @default ''
+         */
+        itemId: {
           type: String,
           value: ''
         },
@@ -588,6 +652,19 @@ limitations under the License.
         extractionDataAnnotateProperty: {
           type: String,
           value: 'annotate'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The classifications property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'classifications'
+         */
+        extractionDataClassificationsProperty: {
+          type: String,
+          value: 'classifications'
         },
 
         /**
@@ -881,6 +958,17 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * The classification manager object.
+         *
+         * @type {Object}
+         */
+        classificationManager: {
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
          * The elasticsearch client object for image query.
          *
          * @type {Object}
@@ -970,6 +1058,20 @@ limitations under the License.
         },
 
         /**
+         * (Optional|Output)
+         *
+         * Whether the collapsible details are opened.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        opened: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
          * Whether the user is hovering over the result.
          *
          * @type {Boolean}
@@ -992,18 +1094,6 @@ limitations under the License.
           computed: '_computeImageSrc(images, imageSourceProperty)',
           type: String,
           value: ''
-        },
-
-        /**
-         * Whether the collapsible details are opened.
-         *
-         * @type {Boolean}
-         * @default false
-         * @private
-         */
-        _open: {
-          type: Boolean,
-          value: false
         }
       },
 
@@ -1321,11 +1411,10 @@ limitations under the License.
         if(this._doesHaveDetails(this.details, this.detailExtractions, this.images)) {
           var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
           var isButton = (event.target.localName === 'paper-button');
-          var isOpenLinkButton = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button' && event.target.parentElement.getAttribute('icon').indexOf('open-in-') >= 0);
+          var isButtonLink = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button');
           var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
           // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
-          if(!isAnnotation && !isButton && !isOpenLinkButton && !isLink) {
-            this.set('_open', !this._open);
+          if(!isAnnotation && !isButton && !isButtonLink && !isLink) {
             this.$$('#details').toggle();
           }
         }

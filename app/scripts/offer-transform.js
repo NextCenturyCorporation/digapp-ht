@@ -85,6 +85,10 @@ var offerTransform = (function(_, commonTransforms) {
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
     var extraction = {
       annotate: annotateType(type),
+      classifications: {
+        database: '',
+        user: ''
+      },
       confidence: confidence,
       count: count,
       id: getIdOfType(item.key, item.value, type),
@@ -135,14 +139,6 @@ var offerTransform = (function(_, commonTransforms) {
     return getExtractionsFromListOfType(filteredData, type);
   }
 
-  function getHighRisk(record, path) {
-    var data = _.get(record, path, []);
-    var highRisk = data.some(function(risk) {
-      return risk.value.toLowerCase() === 'yes';
-    });
-    return highRisk ? 'High Risk' : '';
-  }
-
   function getHighlightedText(record, paths) {
     var path = _.find(paths, function(path) {
       return record.highlight && record.highlight[path] && record.highlight[path].length && record.highlight[path][0];
@@ -188,6 +184,24 @@ var offerTransform = (function(_, commonTransforms) {
     return data;
   }
 
+  function getClassifications(record, path) {
+    // TODO
+    return {
+      flag1: {
+        database: '',
+        user: ''
+      },
+      flag2: {
+        database: '',
+        user: ''
+      },
+      flag3: {
+        database: '',
+        user: ''
+      }
+    };
+  }
+
   function getOfferObject(record) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
@@ -208,7 +222,7 @@ var offerTransform = (function(_, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      flag: getHighRisk(record, '_source.knowledge_graph.risk'),
+      classifications: getClassifications(record, ''),
       title: getSingleStringFromRecord(record, '_source.content_extraction.title', 'text') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.content_extraction.content_strict', 'text') || 'No Description',
       locations: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.city', 'location'),
@@ -216,12 +230,12 @@ var offerTransform = (function(_, commonTransforms) {
       emails: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.email', 'email'),
       socialIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.social_media_id', 'social'),
       reviewIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.review_id', 'review'),
-      services: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.service', 'service'),
       prices: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.price', 'money'),
+      services: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.service', 'service'),
       names: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.name', 'provider'),
       genders: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.gender', 'provider'),
-      ages: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.age', 'provider'),
       ethnicities: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.ethnicity', 'provider'),
+      ages: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.age', 'provider'),
       eyeColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.eye_color', 'provider'),
       hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'provider'),
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'provider'),
@@ -288,22 +302,28 @@ var offerTransform = (function(_, commonTransforms) {
       data: offer.reviewIds,
       name: 'Review IDs'
     }, {
-      data: offer.names,
-      name: 'Provider Names'
+      data: [],
+      name: 'Automated Classifications'
     }];
 
     offer.detailExtractions = [{
+      data: offer.prices,
+      name: 'Prices'
+    }, {
       data: offer.services,
       name: 'Services Provided'
     }, {
-      data: offer.prices,
-      name: 'Prices'
+      data: offer.names,
+      name: 'Provider Names'
+    }, {
+      data: offer.ethnicities,
+      name: 'Provider Ethnicities'
     }, {
       data: offer.ages,
       name: 'Provider Ages'
     }, {
-      data: offer.ethnicities,
-      name: 'Provider Ethnicities'
+      data: offer.genders,
+      name: 'Provider Genders'
     }, {
       data: offer.eyeColors,
       name: 'Provider Eye Colors'

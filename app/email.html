@@ -88,6 +88,13 @@ limitations under the License.
       last-response="{{config}}">
     </iron-ajax>
 
+    <iron-ajax
+      auto
+      url="[[config.classificationFlagsUrl]]"
+      handle-as="json"
+      last-response="{{classificationFlags}}">
+    </iron-ajax>
+
     <!--initialize new elastic client connection to server
       esclient can be used throughout the application lifecycle -->
     <elastic-client
@@ -235,6 +242,8 @@ limitations under the License.
     </create-log-message>
 
     <annotation-manager
+      dev="[[config.dev]]"
+      show="[[annotationsDarpa]]"
       client="[[esclient]]"
       annotation-index="[[config.annotationIndex]]"
       annotation-type="[[config.annotationType]]"
@@ -243,6 +252,14 @@ limitations under the License.
       annotations="{{annotations}}"
       annotation-manager="{{annotationManager}}">
     </annotation-manager>
+
+    <classification-manager
+      dev="[[config.dev]]"
+      show="[[annotationsIsi]]"
+      url="[[config.classificationUrl]]"
+      flag="[[classificationFlag]]"
+      classification-manager="{{classificationManager}}">
+    </classification-manager>
 
     <!-- Main Content -->
     <div class="entity">
@@ -283,12 +300,14 @@ limitations under the License.
             process-request="{{processRequest}}">
           </state-manager>
 
-          <annotate-record client="[[esclient]]"
-            annotation-manager="[[annotationManager]]"
-            item-id="{{params.id}}"
-            item-type="email address"
-            current-user="[[config.username]]">
-          </annotate-record>
+          <template is="dom-if" if="[[annotationManager]]">
+            <annotate-record client="[[esclient]]"
+              annotation-manager="[[annotationManager]]"
+              item-id="{{params.id}}"
+              item-type="email address"
+              current-user="[[config.username]]">
+            </annotate-record>
+          </template>
 
           <save-entity id="saveEntity"
             client="[[esclient]]"
@@ -305,11 +324,15 @@ limitations under the License.
           </save-entity>
 
           <load-user-info
+            dev="[[config.dev]]"
             client="[[esclient]]"
             loading="[[loading]]"
             username="[[config.username]]"
-            advanced-search="{{advancedSearch}}"
+            annotations-darpa="{{annotationsDarpa}}"
+            annotations-isi="{{annotationsIsi}}"
             blur-images="{{blurImages}}"
+            classification-config="[[classificationFlags]]"
+            classification-flag="{{classificationFlag}}"
             entities="{{userEntities}}"
             user-id="{{userId}}"
             user-index="[[config.userIndex]]"
@@ -701,6 +724,7 @@ limitations under the License.
 
                 <records-list
                   annotation-manager="[[annotationManager]]"
+                  classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
@@ -857,6 +881,8 @@ limitations under the License.
     app.getBlurStyleClass = function(blur, large) {
       return (blur ? (large ? 'large-blur' : 'small-blur') : '');
     };
+
+    app.classificationFlags = '["Test Flag 1", "Test Flag 2", "Test Flag 3"]';
   })(document);
   </script>
 </body>
