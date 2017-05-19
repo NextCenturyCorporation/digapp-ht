@@ -835,28 +835,109 @@ limitations under the License.
     setup(function() {
       clientConfig = fixture('client-config-fixture');
       data = _.cloneDeep(AD_DATA);
+
       data.hits.hits[0].highlight = {
         'content_extraction.title.text': ['<em>Test</em> Ad'],
         'content_extraction.content_strict.text': ['The <em>quick brown</em> fox jumped over the <em>lazy</em> dog.'],
         'knowledge_graph.city.value': ['<em>Roanoke</em>', '<em>Atlanta</em>'],
-        'knowledge_graph.state.value': ['<em>Texas</em>'],
+        'knowledge_graph.state.value': ['<em>Virginia</em>'],
+        'knowledge_graph.country.value': ['<em>United States</em>'],
         'knowledge_graph.phone.value': ['<em>1234567890</em>'],
-        'knowledge_graph.email.value': ['<em>test1@gmail.com</em>'],
+        'knowledge_graph.email.value': ['<em>test1@gmail.com</em>', '<em>test2</em>@gmail.com'],
         'knowledge_graph.review_id.value': ['<em>123456</em>'],
         'knowledge_graph.social_media_id.value': ['twitter <em>username</em>'],
         'knowledge_graph.service.value': ['<em>massage</em>'],
         'knowledge_graph.price.value': ['<em>180</em>'],
         'knowledge_graph.name.value': ['<em>bianca</em>'],
         'knowledge_graph.gender.value': ['<em>female</em>'],
-        'knowledge_graph.age.value': ['<em>24</em>'],
         'knowledge_graph.ethnicity.value': ['<em>hispanic</em>'],
+        'knowledge_graph.age.value': ['<em>24</em>'],
         'knowledge_graph.eye_color.value': ['<em>brown</em>'],
         'knowledge_graph.hair_color.value': ['<em>black</em>'],
         'knowledge_graph.height.value': ['<em>155</em>'],
         'knowledge_graph.weight.value': ['<em>60</em>'],
         'tld': ['<em>google.com</em>']
       };
-      output = clientConfig.config.transforms.offer.offer(data);
+
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      data.hits.hits[0].matched_queries = [
+        '1:knowledge_graph.city.value:Roanoke:Virginia:United States:-79.94143:37.27097',
+        '1:knowledge_graph.state.value:Roanoke:Virginia:United States:-79.94143:37.27097',
+        '1:knowledge_graph.country.value:Roanoke:Virginia:United States:-79.94143:37.27097',
+        '2:knowledge_graph.city.value:Atlanta:Georgia:United States:-84.38798:33.749',
+        '3:knowledge_graph.phone.value:1234567890',
+        '4:knowledge_graph.email.value:test1@gmail.com',
+        '5:knowledge_graph.email.value:test2@gmail.com',
+        '6:knowledge_graph.review_id.value:123456',
+        '7:knowledge_graph.social_media_id.value:twitter username',
+        '8:knowledge_graph.service.value:massage',
+        '9:knowledge_graph.price.value:180',
+        '10:knowledge_graph.name.value:bianca',
+        '11:knowledge_graph.gender.value:female',
+        '12:knowledge_graph.ethnicity.value:hispanic',
+        '13:knowledge_graph.age.value:24',
+        '14:knowledge_graph.eye_color.value:brown',
+        '15:knowledge_graph.hair_color.value:black',
+        '16:knowledge_graph.height.value:155',
+        '17:knowledge_graph.weight.value:60',
+        '18:tld:google.com'
+      ];
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      data.fields = {
+        location: {
+          'Roanoke:Virginia:United States:-79.94143:37.27097': 1,
+          'Atlanta:Georgia:United States:-84.38798:33.749': 2
+        },
+        phone: {
+          1234567890: 3
+        },
+        email: {
+          'test1@gmail.com': 4,
+          'test2@yahoo.com': 5
+        },
+        review: {
+          123456: 6
+        },
+        social: {
+          username: 7
+        },
+        services: {
+          massage: 8
+        },
+        price: {
+          '180-per-60min': 9
+        },
+        name: {
+          bianca: 10
+        },
+        gender: {
+          female: 11
+        },
+        ethnicity: {
+          hispanic: 12
+        },
+        age: {
+          24: 13
+        },
+        eyeColor: {
+          brown: 14
+        },
+        hairColor: {
+          black: 15
+        },
+        height: {
+          155: 16
+        },
+        weight: {
+          60: 17
+        },
+        webpage: {
+          'google.com': 18
+        }
+      };
+
+      output = clientConfig.config.transforms.offer.queryResults(data)[0];
     });
 
     test('defines offer', function() {
@@ -1009,6 +1090,7 @@ limitations under the License.
         },
         confidence: undefined,
         count: undefined,
+        highlight: false,
         id: 'test2@yahoo.com',
         icon: 'communication:email',
         link: '/email.html?id=test2%40yahoo.com',

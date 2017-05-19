@@ -18,39 +18,59 @@
 /* jshint camelcase:false */
 
 var searchTransform = (function(_) {
-  function getPredicate(type) {
+  function getSearchPredicateFromUiType(type) {
     switch(type) {
-      case 'age': return 'age';
-      case 'city': return 'city';
-      case 'country': return 'country';
-      case 'description': return 'description';
-      case 'email': return 'email';
-      case 'ethnicity': return 'ethnicity';
       case 'eyeColor': return 'eye_color';
-      case 'gender': return 'gender';
       case 'hairColor': return 'hair_color';
-      case 'height': return 'height';
       case 'image': return '';
-      case 'name': return 'name';
-      case 'phone': return 'phone';
       case 'postingDate': return 'posting_date';
-      case 'price': return 'price';
       case 'region': return 'state';
       case 'review': return 'review_id';
       case 'services': return 'service';
       case 'social': return 'social_media_id';
-      case 'title': return 'title';
       case 'website': return 'tld';
-      case 'weight': return 'weight';
     }
+    return type;
+  }
+
+  function getUiTypeFromSearchPredicate(type) {
+    switch(type) {
+      case 'city': return 'location';
+      case 'country': return 'location';
+      case 'eye_color': return 'eyeColor';
+      case 'hair_color': return 'hairColor';
+      case 'posting_date': return 'postingDate';
+      case 'review_id': return 'review';
+      case 'service': return 'services';
+      case 'state': return 'location';
+      case 'social_media_id': return 'social';
+      case 'tld': return 'website';
+    }
+    return type;
   }
 
   return {
     result: function(response) {
       if(response && response.length && response[0].result) {
-        return response[0].result;
+        var fields = {};
+        if(response[0].query && response[0].query.SPARQL && response[0].query.SPARQL.where && response[0].query.SPARQL.where.clauses && response[0].query.SPARQL.where.clauses.length) {
+          response[0].query.SPARQL.where.clauses.forEach(function(clause) {
+            if(clause.predicate && clause.constraint && clause._id) {
+              var type = getUiTypeFromSearchPredicate(clause.predicate);
+              fields[type] = fields[type] || {};
+              fields[type][clause.constraint] = clause._id;
+            }
+          });
+        }
+        return {
+          fields: fields,
+          hits: response[0].result.hits
+        };
       }
-      return {};
+      return {
+        fields: {},
+        hits: {}
+      };
     },
 
     search: function(page, pageSize, searchParameters) {
@@ -61,7 +81,7 @@ var searchTransform = (function(_) {
 
       if(!_.isEmpty(searchParameters)) {
         _.keys(searchParameters).forEach(function(type) {
-          var predicate = getPredicate(type);
+          var predicate = getSearchPredicateFromUiType(type);
           _.keys(searchParameters[type]).forEach(function(term) {
             if(searchParameters[type][term].enabled) {
               if(type === 'postingDate') {

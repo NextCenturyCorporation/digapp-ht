@@ -146,42 +146,56 @@ var offerTransform = (function(_, commonTransforms) {
     return path ? record.highlight[path][0] : undefined;
   }
 
-  function addHighlights(data, record, paths) {
-    if(record.highlight) {
-      var cleanHighlight = function(text, path) {
-        var skipPathsForPartialMatches = ['tld', 'knowledge_graph.email.value'];
-        if(skipPathsForPartialMatches.indexOf(path) >= 0 && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
-          return text.toLowerCase();
-        }
-        var output = text;
-        if(path === 'knowledge_graph.social_media_id.value') {
-          output = output.indexOf(' ') ? output.substring(output.indexOf(' ') + 1) : output;
-        }
-        return output.indexOf('<em>') >= 0 ? output.replace(/<\/?em\>/g, '').toLowerCase() : '';
-      };
+  function getHighlightPathList(item, record, highlightMapping) {
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var pathList = record.matched_queries;
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-      var highlights = {};
-
-      paths.forEach(function(path) {
-        if(record.highlight[path] && record.highlight[path].length) {
-          record.highlight[path].forEach(function(highlight) {
-            var cleanedHighlight = cleanHighlight(highlight, path);
-            if(cleanedHighlight) {
-              highlights[cleanedHighlight] = true;
-            }
-          });
-        }
+    if(pathList && pathList.length && highlightMapping && highlightMapping[item.id]) {
+      return pathList.filter(function(path) {
+        return _.startsWith(path, highlightMapping[item.id]);
+      }).map(function(path) {
+        return path.split(':')[1];
       });
+    }
 
-      _.keys(highlights).forEach(function(highlight) {
-        data.forEach(function(item) {
-          if(item.id && ('' + item.id).toLowerCase().indexOf(highlight) >= 0) {
-            item.highlight = true;
-          }
+    return [];
+  }
+
+  function cleanHighlight(text, type) {
+    // Ignore partial matches for emails and webpages.
+    if((type === 'email' || type === 'webpage') && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
+      return text.toLowerCase();
+    }
+
+    var output = text;
+
+    // Social media usernames are formatted "<website> <username>".
+    // Ignore matches on websites in social media usernames.
+    if(type === 'social') {
+      output = output.indexOf(' ') ? output.substring(output.indexOf(' ') + 1) : output;
+    }
+
+    return output.indexOf('<em>') >= 0 ? output.replace(/<\/?em\>/g, '').toLowerCase() : '';
+  }
+
+  function addHighlight(item, record, highlightMapping) {
+    var pathList = getHighlightPathList(item, record, highlightMapping);
+    if(record.highlight && pathList.length) {
+      item.highlight = pathList.some(function(path) {
+        return (record.highlight[path] || []).some(function(text) {
+          var cleanedHighlight = cleanHighlight(text, item.type);
+          return cleanedHighlight && (('' + item.id).toLowerCase().indexOf(cleanedHighlight) >= 0);
         });
       });
     }
-    return data;
+    return item;
+  }
+
+  function addAllHighlights(data, record, highlightMapping) {
+    return data.map(function(item) {
+      return addHighlight(item, record, highlightMapping);
+    });
   }
 
   function getClassifications(record, path) {
@@ -202,7 +216,7 @@ var offerTransform = (function(_, commonTransforms) {
     };
   }
 
-  function getOfferObject(record) {
+  function getOfferObject(record, highlightMapping) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
 
@@ -259,27 +273,25 @@ var offerTransform = (function(_, commonTransforms) {
 
     offer.date = offer.dates.length ? offer.dates[0].text : 'Unknown Date';
 
-    // Handle highlighted text.
-    offer.locations = addHighlights(offer.locations, record, [
-        'knowledge_graph.city.value',
-        'knowledge_graph.state.value',
-        'knowledge_graph.country.value'
-    ]);
-    offer.phones = addHighlights(offer.phones, record, ['knowledge_graph.phone.value']);
-    offer.emails = addHighlights(offer.emails, record, ['knowledge_graph.email.value']);
-    offer.socialIds = addHighlights(offer.socialIds, record, ['knowledge_graph.social_media_id.value']);
-    offer.reviewIds = addHighlights(offer.reviewIds, record, ['knowledge_graph.review_id.value']);
-    offer.services = addHighlights(offer.services, record, ['knowledge_graph.service.value']);
-    offer.prices = addHighlights(offer.prices, record, ['knowledge_graph.price.value']);
-    offer.names = addHighlights(offer.names, record, ['knowledge_graph.name.value']);
-    offer.genders = addHighlights(offer.genders, record, ['knowledge_graph.gender.value']);
-    offer.ages = addHighlights(offer.ages, record, ['knowledge_graph.age.value']);
-    offer.ethnicities = addHighlights(offer.ethnicities, record, ['knowledge_graph.ethnicity.value']);
-    offer.eyeColors = addHighlights(offer.eyeColors, record, ['knowledge_graph.eye_color.value']);
-    offer.hairColors = addHighlights(offer.hairColors, record, ['knowledge_graph.hair_color.value']);
-    offer.heights = addHighlights(offer.heights, record, ['knowledge_graph.height.value']);
-    offer.weights = addHighlights(offer.weights, record, ['knowledge_graph.weight.value']);
-    offer.publishers = addHighlights(offer.publishers, record, ['tld']);
+    // Handle highlighted extractions.
+    if(highlightMapping) {
+      offer.locations = addAllHighlights(offer.locations, record, highlightMapping.location);
+      offer.phones = addAllHighlights(offer.phones, record, highlightMapping.phone);
+      offer.emails = addAllHighlights(offer.emails, record, highlightMapping.email);
+      offer.socialIds = addAllHighlights(offer.socialIds, record, highlightMapping.social);
+      offer.reviewIds = addAllHighlights(offer.reviewIds, record, highlightMapping.review);
+      offer.services = addAllHighlights(offer.services, record, highlightMapping.services);
+      offer.prices = addAllHighlights(offer.prices, record, highlightMapping.price);
+      offer.names = addAllHighlights(offer.names, record, highlightMapping.name);
+      offer.genders = addAllHighlights(offer.genders, record, highlightMapping.gender);
+      offer.ethnicities = addAllHighlights(offer.ethnicities, record, highlightMapping.ethnicity);
+      offer.ages = addAllHighlights(offer.ages, record, highlightMapping.age);
+      offer.eyeColors = addAllHighlights(offer.eyeColors, record, highlightMapping.eyeColor);
+      offer.hairColors = addAllHighlights(offer.hairColors, record, highlightMapping.hairColor);
+      offer.heights = addAllHighlights(offer.heights, record, highlightMapping.height);
+      offer.weights = addAllHighlights(offer.weights, record, highlightMapping.weight);
+      offer.publishers = addAllHighlights(offer.publishers, record, highlightMapping.webpage);
+    }
 
     // Handle extraction arrays for single-record elements.
     offer.headerExtractions = [{
@@ -364,20 +376,28 @@ var offerTransform = (function(_, commonTransforms) {
 
   return {
     offer: function(data) {
-      if(data && data.hits.hits.length > 0) {
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
         return getOfferObject(data.hits.hits[0]);
       }
       return {};
     },
 
     offers: function(data) {
-      var offers = [];
-      if(data && data.hits.hits.length > 0) {
-        data.hits.hits.forEach(function(record) {
-          offers.push(getOfferObject(record));
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        data.hits.hits.map(function(record) {
+          return getOfferObject(record);
         });
       }
-      return offers;
+      return [];
+    },
+
+    queryResults: function(data) {
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        return data.hits.hits.map(function(record) {
+          return getOfferObject(record, data.fields);
+        });
+      }
+      return [];
     },
 
     removeExtractionFromOffers: function(extractionId, offers) {
