@@ -58,7 +58,7 @@ DigBehaviors.TypeBehavior = {
       case 'offer': return 'maps:local-offer';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
-      case 'review': return 'icons:stars';
+      case 'review': return 'icons:star';
       case 'service': return 'icons:work';
       case 'social': return 'social:public';
       case 'webpage': return 'av:web';
