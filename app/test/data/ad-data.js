@@ -113,15 +113,15 @@ var AD_DATA = {
           }],
           'price': [{
             'confidence': '1.0',
-            'key': '180-per-60min',
+            'key': '180-currency:roses-time_unit:60',
             'value': '180'
           }, {
             'confidence': '0.7',
-            'key': '120-per-30min',
+            'key': '120-time_unit:30',
             'value': '120'
           }, {
             'confidence': '0.3',
-            'key': '75-per-15min',
+            'key': '75-time_unit:15',
             'value': '75'
           }],
           'service': [{
@@ -188,8 +188,12 @@ var AD_DATA = {
           }],
           'height': [{
             'confidence': '1.0',
-            'key': '155',
+            'key': '155-unit:centimeter',
             'value': '155'
+          }, {
+            'confidence': '0.7',
+            'key': '5\'1"-unit:foot/inch',
+            'value': '5\'1"'
           }, {
             'confidence': '0.3',
             'key': '60',
@@ -201,7 +205,7 @@ var AD_DATA = {
           }],
           'weight': [{
             'confidence': '1.0',
-            'key': '60',
+            'key': '60-unit:kg',
             'value': '60'
           }, {
             'confidence': '0.3',

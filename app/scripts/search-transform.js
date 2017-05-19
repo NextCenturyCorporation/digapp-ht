@@ -37,9 +37,9 @@ var searchTransform = (function(_) {
     switch(type) {
       case 'city': return 'location';
       case 'country': return 'location';
-      case 'eye_color': return 'eyeColor';
-      case 'hair_color': return 'hairColor';
-      case 'posting_date': return 'postingDate';
+      case 'eye_color': return 'eye';
+      case 'hair_color': return 'hair';
+      case 'posting_date': return 'date';
       case 'review_id': return 'review';
       case 'service': return 'services';
       case 'state': return 'location';
@@ -74,10 +74,11 @@ var searchTransform = (function(_) {
     },
 
     search: function(page, pageSize, searchParameters) {
+      var selects = [];
       var clauses = [];
       var filters = [];
       var groupBy;
-      var hasDateFilter = false;
+      var predicates = {};
 
       if(!_.isEmpty(searchParameters)) {
         _.keys(searchParameters).forEach(function(type) {
@@ -85,7 +86,7 @@ var searchTransform = (function(_) {
           _.keys(searchParameters[type]).forEach(function(term) {
             if(searchParameters[type][term].enabled) {
               if(type === 'postingDate') {
-                hasDateFilter = true;
+                predicates.date = true;
 
                 if(filters.length === 0) {
                   filters.push({});
@@ -104,8 +105,9 @@ var searchTransform = (function(_) {
                   operator: term === 'dateStart' ? '>' : '<',
                   variable: '?date'
                 });
-
               } else if(predicate) {
+                predicates[predicate] = true;
+
                 clauses.push({
                   constraint: searchParameters[type][term].key,
                   isOptional: true,
@@ -116,13 +118,17 @@ var searchTransform = (function(_) {
           });
         });
 
-        if(hasDateFilter) {
-          clauses.push({
-            isOptional: false,
-            predicate: 'posting_date',
-            variable: '?date'
+        _.keys(predicates).forEach(function(predicate) {
+          selects.push({
+            type: 'simple',
+            variable: '?' + predicate
           });
-        }
+          clauses.push({
+            isOptional: !(predicate === 'date'),
+            predicate: predicate === 'date' ? 'posting_date' : predicate,
+            variable: '?' + predicate
+          });
+        });
 
         groupBy = (!page || !pageSize) ? undefined : {
           limit: pageSize,
@@ -134,28 +140,7 @@ var searchTransform = (function(_) {
         SPARQL: {
           'group-by': groupBy,
           select: {
-            variables: [{
-              type: 'simple',
-              variable: '?content_extraction.content_strict.text'
-            }, {
-              type: 'simple',
-              variable: '?content_extraction.title.text'
-            }, {
-              type: 'simple',
-              variable: '?doc_id'
-            }, {
-              type: 'simple',
-              variable: '?knowledge_graph'
-            }, {
-              type: 'simple',
-              variable: '?timestamp'
-            }, {
-              type: 'simple',
-              variable: '?tld'
-            }, {
-              type: 'simple',
-              variable: '?url'
-            }]
+            variables: selects
           },
           where: {
             clauses: clauses,

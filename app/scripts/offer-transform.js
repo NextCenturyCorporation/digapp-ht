@@ -52,6 +52,13 @@ var offerTransform = (function(_, commonTransforms) {
     return type === 'email' || type === 'phone';
   }
 
+  function getExtractionType(type) {
+    if(type === 'name' || type === 'gender' || type === 'ethnicity' || type === 'age' || type === 'eye' || type === 'hair' || type === 'height' || type === 'weight') {
+      return 'provider';
+    }
+    return type;
+  }
+
   function getIdOfType(key, value, type) {
     if(type === 'location') {
       // TODO We should use the key (and ignore the value) once the extractions are improved.
@@ -83,6 +90,7 @@ var offerTransform = (function(_, commonTransforms) {
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
     var count = item.doc_count;
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    var extractionType = getExtractionType(type);
     var extraction = {
       annotate: annotateType(type),
       classifications: {
@@ -92,11 +100,11 @@ var offerTransform = (function(_, commonTransforms) {
       confidence: confidence,
       count: count,
       id: getIdOfType(item.key, item.value, type),
-      icon: commonTransforms.getIronIcon(type),
-      link: commonTransforms.getLink(item.key, type),
-      styleClass: commonTransforms.getStyleClass(type),
+      icon: commonTransforms.getIronIcon(extractionType),
+      link: commonTransforms.getLink(item.key, extractionType),
+      styleClass: commonTransforms.getStyleClass(extractionType),
       text: getTextOfType(item.key, item.value, type),
-      type: type
+      type: extractionType
     };
     if(type === 'location') {
       var locationData = commonTransforms.getLocationDataFromId(extraction.id);
@@ -105,6 +113,11 @@ var offerTransform = (function(_, commonTransforms) {
       extraction.text = locationData.text;
       extraction.textAndCount = locationData.text + (extraction.count ? (' (' + extraction.count + ')') : '');
       extraction.textAndCountry = locationData.text + (locationData.country ? (', ' + locationData.country) : '');
+    }
+    if(type === 'height' || type === 'money' || type === 'weight') {
+      var compoundExtractionData = commonTransforms.getExtractionDataFromCompoundId(extraction.id);
+      extraction.id = compoundExtractionData.id;
+      extraction.text = compoundExtractionData.text;
     }
     return extraction;
   }
@@ -246,14 +259,14 @@ var offerTransform = (function(_, commonTransforms) {
       reviewIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.review_id', 'review'),
       prices: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.price', 'money'),
       services: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.service', 'service'),
-      names: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.name', 'provider'),
-      genders: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.gender', 'provider'),
-      ethnicities: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.ethnicity', 'provider'),
-      ages: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.age', 'provider'),
-      eyeColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.eye_color', 'provider'),
-      hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'provider'),
-      heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'provider'),
-      weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'provider'),
+      names: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.name', 'name'),
+      genders: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.gender', 'gender'),
+      ethnicities: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.ethnicity', 'ethnicity'),
+      ages: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.age', 'age'),
+      eyeColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.eye_color', 'eye'),
+      hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'hair'),
+      heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
+      weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
       dates: getExtractionsFromListOfType([{
         key: getSingleStringFromRecord(record, '_source.knowledge_graph.posting_date', 'value')
       }], 'date'),
@@ -286,8 +299,8 @@ var offerTransform = (function(_, commonTransforms) {
       offer.genders = addAllHighlights(offer.genders, record, highlightMapping.gender);
       offer.ethnicities = addAllHighlights(offer.ethnicities, record, highlightMapping.ethnicity);
       offer.ages = addAllHighlights(offer.ages, record, highlightMapping.age);
-      offer.eyeColors = addAllHighlights(offer.eyeColors, record, highlightMapping.eyeColor);
-      offer.hairColors = addAllHighlights(offer.hairColors, record, highlightMapping.hairColor);
+      offer.eyeColors = addAllHighlights(offer.eyeColors, record, highlightMapping.eye);
+      offer.hairColors = addAllHighlights(offer.hairColors, record, highlightMapping.hair);
       offer.heights = addAllHighlights(offer.heights, record, highlightMapping.height);
       offer.weights = addAllHighlights(offer.weights, record, highlightMapping.weight);
       offer.publishers = addAllHighlights(offer.publishers, record, highlightMapping.webpage);
@@ -384,7 +397,7 @@ var offerTransform = (function(_, commonTransforms) {
 
     offers: function(data) {
       if(data && data.hits && data.hits.hits && data.hits.hits.length) {
-        data.hits.hits.map(function(record) {
+        return data.hits.hits.map(function(record) {
           return getOfferObject(record);
         });
       }

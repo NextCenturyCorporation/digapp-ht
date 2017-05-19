@@ -107,6 +107,25 @@ var filterAggTransform = (function(_, commonTransforms) {
       return [];
     },
 
+    // Heights, prices, weights, etc.
+    compoundExtractionList: function(data, property) {
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property] && data.aggregations[property][property].buckets) {
+        return data.aggregations[property][property].buckets.map(function(bucket) {
+          var extractionData = commonTransforms.getExtractionDataFromCompoundId(bucket.key);
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          return {
+            count: bucket.doc_count,
+            id: extractionData.id,
+            text: extractionData.text
+          };
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        }).filter(function(extraction) {
+          return extraction.text;
+        });
+      }
+      return [];
+    },
+
     cityIdToText: function(id) {
       return commonTransforms.getLocationDataFromId(id).text || '';
     }
