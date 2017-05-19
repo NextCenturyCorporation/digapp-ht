@@ -1,0 +1,137 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../behaviors.html">
+
+<dom-module id="search-history">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .text {
+        /* Align the left of the text with the left of the facets/text in collapsed view */
+        margin-left: 10px;
+      }
+
+      .name {
+        /* Align the left of the text with the left of labels in collapsed view */
+        margin-left: 10px;
+      }
+
+      .nowrap {
+        flex-wrap: nowrap;
+      }
+    </style>
+    <style include="user-dialog-styles"></style>
+    <paper-dialog id="searchHistoryDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+      <div class="settings layout vertical">
+        <div class="layout horizontal">
+          <span class="bold tall flex">View Search History</span>
+          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
+        </div>
+        <div class="divider"></div>
+        <template is="dom-repeat" items="[[_searchHistory]]">
+          <div class="layout horizontal">
+            <div class="name tall right-space">Searched At</div>
+            <div class="text tall right-space nowrap">
+              [[item.time]]
+            </div>
+            <search-info-display search-parameters="[[item.searchParameters]]"></search-info-display>
+          </div>
+        </template>
+        <div class="divider"></div>
+      </div>
+    </paper-dialog>
+  </template>
+  <script>
+  (function() {
+    /* globals moment, DigBehaviors */
+    'use strict';
+
+    Polymer({
+      is: 'search-history',
+      behaviors: [DigBehaviors.FilterBehavior],
+
+      properties: {
+        searchParameters: {
+          type: Object,
+          notify: true
+        },
+        processRequest: {
+          type: Boolean,
+          notify: true
+        },
+        format: {
+          type: String,
+          value: 'hh:mm:ss A'
+        },
+        hasHistory: {
+          type: Boolean,
+          notify: true,
+          value: false
+        },
+        _searchHistory: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        }
+      },
+
+      observers: [
+        '_addToHistory(searchParameters.*, processRequest)',
+        '_checkHistory(_searchHistory.*)'
+      ],
+
+      /**
+       * Opens the dialog.
+       */
+      open: function() {
+        this.$$('#searchHistoryDialog').open();
+      },
+
+      /**
+       * If current search parameters are not a duplicate of the previously performed search, add to the _searchHistory array along with a timestamp.
+       *
+       * @private
+       */
+      _addToHistory: function() {
+        if(!this.processRequest || DigBehaviors.FilterBehavior.areAllFacetsDisabled(this.searchParameters, ['sort'])) {
+          return;
+        }
+
+        if(this._searchHistory.length === 0 || (this._searchHistory.length > 0 &&
+          JSON.stringify(this.searchParameters) !== JSON.stringify(this._searchHistory[0].searchParameters))) {
+          this.unshift('_searchHistory', {searchParameters: JSON.parse(JSON.stringify(this.searchParameters)), time: moment(new Date()).format(this.format)});
+        }
+      },
+
+      /**
+       * Recalculates value of hasHistory based on current state of _searchHistory array.
+       *
+       * @private
+       */
+      _checkHistory: function() {
+        this.hasHistory = this._searchHistory && this._searchHistory.length > 0;
+      }
+    });
+  })();
+  </script>
+</dom-module>
