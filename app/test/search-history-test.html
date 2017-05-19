@@ -1,0 +1,164 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>search-history</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/search-history/search-history.html">
+</head>
+
+<body>
+<test-fixture id="search-history-fixture">
+  <template>
+    <search-history>
+    </search-history>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture, flush */
+  /* jshint -W030 */
+
+  suite('search-history tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('search-history-fixture');
+      flush(function() {
+        done();
+      });
+    });
+
+    test('properties are set to correct default values', function() {
+      assert.equal(element.format, 'hh:mm:ss A');
+      assert.isFalse(element.hasHistory);
+      assert.deepEqual(element._searchHistory, []);
+    });
+
+    test('open() opens the dialog', function(done) {
+      assert.isFalse(element.$$('#searchHistoryDialog').opened);
+      element.open();
+
+      flush(function() {
+        assert.isTrue(element.$$('#searchHistoryDialog').opened);
+        done();
+      });
+    });
+
+    test('_addToHistory() adds items correctly', function() {
+      element.set('searchParameters', {age: {term: {key: '21', enabled: true}}});
+      element.processRequest = true;
+      element._addToHistory();
+
+      assert.equal(element._searchHistory.length, 1);
+      assert.deepEqual(Object.keys(element._searchHistory[0]), ['searchParameters', 'time']);
+      assert.deepEqual(element._searchHistory[0].searchParameters, element.searchParameters);
+      assert.isString(element._searchHistory[0].time);
+    });
+
+    test('_addToHistory() works as observer', function(done) {
+      element.set('searchParameters', {age: {term: {key: '21', enabled: true}}});
+      element.processRequest = true;
+
+      flush(function() {
+        assert.equal(element._searchHistory.length, 1);
+        assert.deepEqual(Object.keys(element._searchHistory[0]), ['searchParameters', 'time']);
+        assert.deepEqual(element._searchHistory[0].searchParameters, element.searchParameters);
+        assert.isString(element._searchHistory[0].time);
+        done();
+      });
+    });
+
+    test('_addToHistory() will not add item if searchParameters are disabled', function() {
+      element.set('searchParameters', {age: {term: {key: '21', enabled: false}}});
+      element.processRequest = true;
+      element._addToHistory();
+
+      assert.equal(element._searchHistory.length, 0);
+    });
+
+    test('_addToHistory() will not add item if processRequest is false', function() {
+      element.set('searchParameters', {age: {term: {key: '21', enabled: true}}});
+      element.processRequest = false;
+      element._addToHistory();
+
+      assert.equal(element._searchHistory.length, 0);
+    });
+
+    test('_runSearch() sets searchParameters to the value of the clicked search history item, moves items in _searchHistory and closes dialog', function() {
+      element.$$('#searchHistoryDialog').opened = true;
+      element.set('_searchHistory', [
+        {searchParameters: 'some param', time: 'string value'},
+        {searchParameters: 'new parameters', time: 'some other time'}
+      ]);
+      element._runSearch({model: {index: 1, item: {searchParameters: 'new parameters', time: 'some other time'}}});
+
+      assert.deepEqual(element.searchParameters, 'new parameters');
+      assert.deepEqual(element._searchHistory.length, 2);
+      assert.deepEqual(element._searchHistory[0].searchParameters, 'new parameters');
+      assert.deepEqual(element._searchHistory[1].searchParameters, 'some param');
+      assert.isFalse(element.$$('#searchHistoryDialog').opened);
+    });
+
+    test('_copySearchParameters() returns a copy of argument passed in', function() {
+      var searchParams = {text: 'some string here'};
+      var searchParamsCopy = element._copySearchParameters(searchParams);
+
+      assert.notEqual(searchParams, searchParamsCopy);
+      assert.deepEqual(searchParams, searchParamsCopy);
+    });
+
+    test('_unshiftSearchHistoryItem() correctly adds item to the beginning of the _searchHistory array', function() {
+      element.set('_searchHistory', [{searchParameters: 'some param', time: 'string value'}]);
+      element._unshiftSearchHistoryItem({searchParameters: 'some string here'});
+
+      assert.equal(element._searchHistory.length, 2);
+      assert.deepEqual(Object.keys(element._searchHistory[0]), ['searchParameters', 'time']);
+      assert.deepEqual(element._searchHistory[0].searchParameters, {searchParameters: 'some string here'});
+      assert.isString(element._searchHistory[0].time);
+      assert.deepEqual(element._searchHistory[1], {searchParameters: 'some param', time: 'string value'});
+    });
+
+    test('_checkHistory() correctly sets hasHistory to true when _searchHistory array is populated', function() {
+      element.set('_searchHistory', [{hasObject: true}]);
+      element._checkHistory();
+      assert.isTrue(element.hasHistory);
+    });
+
+    test('_checkHistory() correctly sets hasHistory to false when _searchHistory array is empty', function() {
+      element.set('_searchHistory', []);
+      element._checkHistory();
+      assert.isFalse(element.hasHistory);
+    });
+
+    test('_checkHistory() works as observer', function(done) {
+      element.set('_searchHistory', [{hasObject: true}]);
+
+      flush(function() {
+        assert.isTrue(element.hasHistory);
+        element.set('_searchHistory', []);
+        done();
+      });
+    });
+  });
+</script>
+</body>
+</html>

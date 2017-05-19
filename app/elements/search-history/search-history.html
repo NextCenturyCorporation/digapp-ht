@@ -14,8 +14,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../search-info-display/search-info-display.html">
 <link rel="import" href="../behaviors.html">
 
 <dom-module id="search-history">
@@ -54,6 +58,7 @@ limitations under the License.
               [[item.time]]
             </div>
             <search-info-display search-parameters="[[item.searchParameters]]"></search-info-display>
+            <paper-icon-button icon="search" title="Run Search" on-tap="_runSearch"></paper-icon-button>
           </div>
         </template>
         <div class="divider"></div>
@@ -119,8 +124,42 @@ limitations under the License.
 
         if(this._searchHistory.length === 0 || (this._searchHistory.length > 0 &&
           JSON.stringify(this.searchParameters) !== JSON.stringify(this._searchHistory[0].searchParameters))) {
-          this.unshift('_searchHistory', {searchParameters: JSON.parse(JSON.stringify(this.searchParameters)), time: moment(new Date()).format(this.format)});
+          this._unshiftSearchHistoryItem(this.searchParameters);
         }
+      },
+
+      /**
+       * Runs a search from the _searchHistory list. When run, that history item is moved to be the first item in the list and dialog is closed.
+       *
+       * @param {Object} event
+       * @private
+       */
+      _runSearch: function(event) {
+        this.splice('_searchHistory', event.model.index, 1);
+        this._unshiftSearchHistoryItem(event.model.item.searchParameters);
+        this.set('searchParameters', this._copySearchParameters(event.model.item.searchParameters));
+        this.$$('#searchHistoryDialog').close();
+      },
+
+      /**
+       * Returns a copy of searchParameters passed in.
+       *
+       * @param {Object} searchParameters
+       * @return {Object} copy
+       * @private
+       */
+      _copySearchParameters: function(searchParameters) {
+        return JSON.parse(JSON.stringify(searchParameters));
+      },
+
+      /**
+       * Place a new search history item at the beginning of the _searchHistory list.
+       *
+       * @param {Object} searchParameters
+       * @private
+       */
+      _unshiftSearchHistoryItem: function(searchParameters) {
+        this.unshift('_searchHistory', {searchParameters: this._copySearchParameters(searchParameters), time: moment(new Date()).format(this.format)});
       },
 
       /**
