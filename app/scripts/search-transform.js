@@ -124,7 +124,7 @@ var searchTransform = (function(_) {
             variable: '?' + predicate
           });
           clauses.push({
-            isOptional: !(predicate === 'date'),
+            isOptional: (predicate !== 'date'),
             predicate: predicate === 'date' ? 'posting_date' : predicate,
             variable: '?' + predicate
           });

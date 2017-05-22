@@ -52,6 +52,22 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   }
 
   /**
+   * Returns the text for the given unit.
+   */
+  function getUnit(unit) {
+    if(unit === 'foot/inch') {
+      return '';
+    }
+    if(unit === 'centimeter') {
+      return 'cm';
+    }
+    if(unit === 'pound') {
+      return 'lbs';
+    }
+    return unit;
+  }
+
+  /**
    * Returns the extraction data from the given compound ID formatted as text-key1:value1-key2:value2-key3:value3...
    */
   function getExtractionDataFromCompoundId(id) {
@@ -138,19 +154,6 @@ var commonTransforms = (function(_, moment, typeBehavior) {
       state: state,
       text: text
     };
-  }
-
-  function getUnit(unit) {
-    if(unit === 'foot/inch') {
-      return '';
-    }
-    if(unit === 'centimeter') {
-      return 'cm';
-    }
-    if(unit === 'pound') {
-      return 'lbs';
-    }
-    return unit;
   }
 
   function isGoodLocation(location) {
