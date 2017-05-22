@@ -73,22 +73,26 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   function getExtractionDataFromCompoundId(id) {
     var idData = id ? id.split('-') : [];
 
-    var data = {
+    var extractionData = {
       id: idData.length ? idData[0] : undefined,
       text: idData.length ? idData[0] : undefined
     };
 
     if(idData.length < 2) {
-      return data;
+      return extractionData;
     }
 
     var currency;
     var timeUnit;
+    var site;
     var unit;
 
     for(var i = 1; i < idData.length; ++i) {
       if(idData[i].indexOf('unit:') === 0) {
         unit = getUnit(idData[i].split(':')[1]);
+      }
+      if(idData[i].indexOf('site:') === 0) {
+        site = getUnit(idData[i].split(':')[1]);
       }
       if(idData[i].indexOf('time_unit:') === 0) {
         timeUnit = idData[i].split(':')[1];
@@ -99,14 +103,18 @@ var commonTransforms = (function(_, moment, typeBehavior) {
     }
 
     if(unit) {
-      data.text = data.text + ' ' + unit;
+      extractionData.text = extractionData.text + ' ' + unit;
+    }
+
+    if(site) {
+      extractionData.text = extractionData.text + ' (' + site + ')';
     }
 
     if(timeUnit || currency) {
-      data.text = data.text + (currency ? ' ' + currency : '') + (timeUnit ? ' per ' + timeUnit + ' minutes' : '');
+      extractionData.text = extractionData.text + (currency ? ' ' + currency : '') + (timeUnit ? ' per ' + timeUnit + ' minutes' : '');
     }
 
-    return data;
+    return extractionData;
   }
 
   /**
