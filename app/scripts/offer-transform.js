@@ -71,7 +71,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     return (_.isArray(mentions) ? mentions : [mentions]).map(function(uri) {
       var text = uri.substring(uri.lastIndexOf('/') + 1);
       if(type === 'phone') {
-        if(text.startsWith('1-')) {
+        if(text.indexOf('1-') === 0) {
           text = text.substring(2);
         }
         text = text.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
@@ -538,7 +538,7 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       if(data && data.aggregations) {
         data.aggregations.phone.phone.buckets.forEach(function(bucket) {
           var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
-          if(text.startsWith('1-')) {
+          if(text.indexOf('1-') === 0) {
             text = text.substring(2);
           }
           text = text.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {

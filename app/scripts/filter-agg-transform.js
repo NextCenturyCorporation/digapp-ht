@@ -34,7 +34,7 @@ var filterAggTransform = (function(commonTransforms) {
 
   function getPhoneText(id) {
     var text = id.substring(id.lastIndexOf('/') + 1);
-    if(text.startsWith('1-')) {
+    if(text.indexOf('1-') === 0) {
       text = text.substring(2);
     }
     return text.replace(/(\d{0,4})-?(\d{3})(\d{3})(\d{4})/, function(match, p1, p2, p3, p4) {
