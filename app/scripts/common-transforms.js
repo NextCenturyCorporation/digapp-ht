@@ -52,6 +52,72 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   }
 
   /**
+   * Returns the text for the given unit.
+   */
+  function getUnit(unit) {
+    if(unit === 'foot/inch') {
+      return '';
+    }
+    if(unit === 'centimeter') {
+      return 'cm';
+    }
+    if(unit === 'pound') {
+      return 'lbs';
+    }
+    return unit;
+  }
+
+  /**
+   * Returns the extraction data from the given compound ID formatted as text-key1:value1-key2:value2-key3:value3...
+   */
+  function getExtractionDataFromCompoundId(id) {
+    var idData = id ? id.split('-') : [];
+
+    var extractionData = {
+      id: idData.length ? idData[0] : undefined,
+      text: idData.length ? idData[0] : undefined
+    };
+
+    if(idData.length < 2) {
+      return extractionData;
+    }
+
+    var currency;
+    var timeUnit;
+    var site;
+    var unit;
+
+    for(var i = 1; i < idData.length; ++i) {
+      if(idData[i].indexOf('unit:') === 0) {
+        unit = getUnit(idData[i].split(':')[1]);
+      }
+      if(idData[i].indexOf('site:') === 0) {
+        site = getUnit(idData[i].split(':')[1]);
+      }
+      if(idData[i].indexOf('time_unit:') === 0) {
+        timeUnit = idData[i].split(':')[1];
+      }
+      if(idData[i].indexOf('currency:') === 0) {
+        currency = idData[i].split(':')[1];
+      }
+    }
+
+    if(unit) {
+      extractionData.text = extractionData.text + ' ' + unit;
+    }
+
+    if(site) {
+      extractionData.text = extractionData.text + ' (' + site + ')';
+    }
+
+    if(timeUnit || currency) {
+      extractionData.text = extractionData.text + (currency ? ' ' + currency : '') + (timeUnit ? ' per ' + timeUnit + ' minutes' : '');
+    }
+
+    return extractionData;
+  }
+
+  /**
    * Returns the formatted telephone number.
    */
   function getFormattedPhone(phone) {
@@ -71,21 +137,21 @@ var commonTransforms = (function(_, moment, typeBehavior) {
    * Returns the location data from the given ID formatted as city:state:country:longitude:latitude.
    */
   function getLocationDataFromId(id) {
-    var idList = id ? id.split(':') : [];
+    var idData = id ? id.split(':') : [];
 
     // TODO We should return an empty object if the ID is formatted incorrectly once the extractions are improved.
-    if(!idList.length) {
+    if(!idData.length) {
       return {
         city: id,
         text: id
       };
     }
 
-    var city = idList[0];
-    var state = idList.length > 1 ? idList[1] : undefined;
-    var country = idList.length > 2 ? idList[2] : undefined;
-    var longitude = idList.length > 3 ? idList[3] : undefined;
-    var latitude = idList.length > 4 ? idList[4] : undefined;
+    var city = idData[0];
+    var state = idData.length > 1 ? idData[1] : undefined;
+    var country = idData.length > 2 ? idData[2] : undefined;
+    var longitude = idData.length > 3 ? idData[3] : undefined;
+    var latitude = idData.length > 4 ? idData[4] : undefined;
     var text = city ? (city + (state ? (', ' + state) : '')) : 'Unknown Location';
 
     return {
@@ -135,6 +201,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
      */
     getLink: function(id, type) {
       return getLink(id, type);
+    },
+
+    /**
+     * Returns the extraction data from the given compound extraction ID formatted as text-key1:value1-key2:value2...
+     */
+    getExtractionDataFromCompoundId: function(id) {
+      return getExtractionDataFromCompoundId(id);
     },
 
     /**

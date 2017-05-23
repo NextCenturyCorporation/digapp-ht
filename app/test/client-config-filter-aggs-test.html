@@ -80,6 +80,31 @@ limitations under the License.
       }
     };
 
+    var compoundData = {
+      aggregations: {
+        property: {
+          property: {
+            buckets: [{
+              key: '175',
+              doc_count: 80
+            }, {
+              key: '175-unit:centimeter',
+              doc_count: 40
+            }, {
+              key: '175-time_unit:60',
+              doc_count: 20
+            }, {
+              key: '175-currency:dollars',
+              doc_count: 10
+            }, {
+              key: '175-currency:dollars-time_unit:60',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    };
+
     var emailData = {
       aggregations: {
         property: {
@@ -256,6 +281,62 @@ limitations under the License.
       }]);
     });
 
+    test('filter aggregations transform does have compoundExtractionList function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.filterAggs);
+      assert.isFunction(clientConfig.config.transforms.filterAggs.compoundExtractionList);
+    });
+
+    test('compoundExtractionList function does create an extraction list from the given aggregation buckets', function() {
+      var compoundExtractionList = clientConfig.config.transforms.filterAggs.compoundExtractionList(compoundData, 'property');
+      assert.deepEqual(compoundExtractionList, [{
+        count: 80,
+        id: '175',
+        text: '175'
+      }, {
+        count: 40,
+        id: '175',
+        text: '175 cm'
+      }, {
+        count: 20,
+        id: '175',
+        text: '175 per 60 minutes'
+      }, {
+        count: 10,
+        id: '175',
+        text: '175 dollars'
+      }, {
+        count: 5,
+        id: '175',
+        text: '175 dollars per 60 minutes'
+      }]);
+    });
+
+    test('filter aggregations transform does have emailList function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.filterAggs);
+      assert.isFunction(clientConfig.config.transforms.filterAggs.emailList);
+    });
+
+    test('emailList function does create an email list from the given aggregation buckets', function() {
+      var emailList = clientConfig.config.transforms.filterAggs.emailList(emailData, 'property');
+      assert.deepEqual(emailList, [{
+        count: 20,
+        id: 'abc@gmail.com',
+        link: '/email.html?id=abc%40gmail.com'
+      }, {
+        count: 10,
+        id: 'xyz@gmail.com',
+        link: '/email.html?id=xyz%40gmail.com'
+      }, {
+        count: 5,
+        id: 'abc@yahoo.com',
+        link: '/email.html?id=abc%40yahoo.com'
+      }]);
+    });
+
     test('filter aggregations transform does have phoneList function', function() {
       assert.isObject(clientConfig.config);
       assert.isObject(clientConfig.config.transforms);
@@ -293,50 +374,6 @@ limitations under the License.
       }]);
     });
 
-    test('filter aggregations transform does have cityIdToText function', function() {
-      assert.isObject(clientConfig.config);
-      assert.isObject(clientConfig.config.transforms);
-      assert.isObject(clientConfig.config.transforms.filterAggs);
-      assert.isFunction(clientConfig.config.transforms.filterAggs.cityIdToText);
-    });
-
-    test('cityIdToText function does create city text', function() {
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Ontario:California:United States:-117.65089:34.06334'), 'Ontario, California');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Los Angeles:California:United States:-118.24368:34.05223'), 'Los Angeles, California');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Mumbai:State of Maharashtra:India:72.88261:19.07283'), 'Mumbai, State of Maharashtra');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Melbourne:Florida:United States:-80.60811:28.08363'), 'Melbourne, Florida');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Bakersfield:California:United States:-119.01871:35.37329'), 'Bakersfield, California');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Dallas:Texas:United States:-96.80667:32.78306'), 'Dallas, Texas');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Shanghai:Shanghai Shi:China:121.45806:31.22222'), 'Shanghai, Shanghai Shi');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Miami:Florida:United States:-80.19366:25.77427'), 'Miami, Florida');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('New York:New York:United States:-74.00597:40.71427'), 'New York, New York');
-      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Oklahoma City:Oklahoma:United States:-97.51643:35.46756'), 'Oklahoma City, Oklahoma');
-    });
-
-    test('filter aggregations transform does have emailList function', function() {
-      assert.isObject(clientConfig.config);
-      assert.isObject(clientConfig.config.transforms);
-      assert.isObject(clientConfig.config.transforms.filterAggs);
-      assert.isFunction(clientConfig.config.transforms.filterAggs.emailList);
-    });
-
-    test('emailList function does create a filter list from the given aggregation buckets', function() {
-      var emailList = clientConfig.config.transforms.filterAggs.emailList(emailData, 'property');
-      assert.deepEqual(emailList, [{
-        count: 20,
-        id: 'abc@gmail.com',
-        link: '/email.html?id=abc%40gmail.com'
-      }, {
-        count: 10,
-        id: 'xyz@gmail.com',
-        link: '/email.html?id=xyz%40gmail.com'
-      }, {
-        count: 5,
-        id: 'abc@yahoo.com',
-        link: '/email.html?id=abc%40yahoo.com'
-      }]);
-    });
-
     test('filter aggregations transform does have socialMediaList function', function() {
       assert.isObject(clientConfig.config);
       assert.isObject(clientConfig.config.transforms);
@@ -344,7 +381,7 @@ limitations under the License.
       assert.isFunction(clientConfig.config.transforms.filterAggs.socialMediaList);
     });
 
-    test('socialMediaList function does create a filter list from the given aggregation buckets', function() {
+    test('socialMediaList function does create a social media list from the given aggregation buckets', function() {
       var socialMediaList = clientConfig.config.transforms.filterAggs.socialMediaList(socialMediaData, 'property');
       assert.deepEqual(socialMediaList, [{
         count: 80,
@@ -372,6 +409,26 @@ limitations under the License.
         link: undefined,
         text: 'userxyz'
       }]);
+    });
+
+    test('filter aggregations transform does have cityIdToText function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.filterAggs);
+      assert.isFunction(clientConfig.config.transforms.filterAggs.cityIdToText);
+    });
+
+    test('cityIdToText function does create city text', function() {
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Ontario:California:United States:-117.65089:34.06334'), 'Ontario, California');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Los Angeles:California:United States:-118.24368:34.05223'), 'Los Angeles, California');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Mumbai:State of Maharashtra:India:72.88261:19.07283'), 'Mumbai, State of Maharashtra');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Melbourne:Florida:United States:-80.60811:28.08363'), 'Melbourne, Florida');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Bakersfield:California:United States:-119.01871:35.37329'), 'Bakersfield, California');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Dallas:Texas:United States:-96.80667:32.78306'), 'Dallas, Texas');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Shanghai:Shanghai Shi:China:121.45806:31.22222'), 'Shanghai, Shanghai Shi');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Miami:Florida:United States:-80.19366:25.77427'), 'Miami, Florida');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('New York:New York:United States:-74.00597:40.71427'), 'New York, New York');
+      assert.equal(clientConfig.config.transforms.filterAggs.cityIdToText('Oklahoma City:Oklahoma:United States:-97.51643:35.46756'), 'Oklahoma City, Oklahoma');
     });
   });
 </script>

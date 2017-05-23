@@ -35,21 +35,21 @@ var entityTransform = (function(_) {
       if(ids && ids.length && results && results.hits && results.hits.hits && results.hits.hits.length) {
         results.hits.hits.forEach(function(item) {
           if(ids.indexOf(item._id) >= 0 && entityIds.indexOf(item._id) < 0) {
-            addEntity(item._id, _.get(item, '_source.fields.title.strict[0].name', 'Ad'), 'offer');
+            addEntity(item._id, _.get(item, '_source.content_extraction.title.text', 'Ad'), 'offer');
           }
-          (_.get(item, '_source.fields.email.relaxed', [])).forEach(function(email) {
+          (_.get(item, '_source.knowledge_graph.email', [])).forEach(function(email) {
             if(ids.indexOf(email.key) >= 0 && entityIds.indexOf(email.key) < 0) {
-              addEntity(email.key, email.name, 'email');
+              addEntity(email.key, email.value, 'email');
             }
           });
-          (_.get(item, '_source.fields.image.relaxed', [])).forEach(function(image) {
+          (_.get(item, '_source.knowledge_graph.image', [])).forEach(function(image) {
             if(ids.indexOf(image.key) >= 0 && entityIds.indexOf(image.key) < 0) {
-              addEntity(image.key, image.name, 'image');
+              addEntity(image.key, image.value, 'image');
             }
           });
-          (_.get(item, '_source.fields.phone.relaxed', [])).forEach(function(phone) {
+          (_.get(item, '_source.knowledge_graph.phone', [])).forEach(function(phone) {
             if(ids.indexOf(phone.key) >= 0 && entityIds.indexOf(phone.key) < 0) {
-              addEntity(phone.key, phone.name, 'phone');
+              addEntity(phone.key, phone.value, 'phone');
             }
           });
         });

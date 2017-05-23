@@ -31,7 +31,7 @@ limitations under the License.
 
     <paginated-list
       loading="[[loading]]"
-      load-type="[[_computeLoadType(type)]]"
+      load-type="[[_getLoadType(type)]]"
       items="[[queryResults]]"
       total-items="[[totalResults]]"
       page="{{page}}"
@@ -478,10 +478,8 @@ limitations under the License.
          * The title for this list.
          */
         recordsListTitle: {
-          type: String,
-          value: 'No Records',
-          computed: '_computeTitle(type, loading, shownResults.length, totalResults)',
-          notify: true
+          notify: true,
+          type: String
         },
 
         /**
@@ -493,31 +491,38 @@ limitations under the License.
         }
       },
 
-      _computeLoadType: function(type) {
-        return type + 's';
-      },
+      observers: [
+        '_buildTitle(type)',
+        '_buildTitle(type, loading)',
+        '_buildTitle(type, loading, shownResults.length, totalResults)'
+      ],
 
       /**
        * Returns the title for this list based on the type, loading, shownResults, and totalResults.
        */
-      _computeTitle: function(type, loading, count, total) {
-        if(total) {
+      _buildTitle: function() {
+        if(this.totalResults) {
           // Use regex replace to add commas to count.
-          var totalString = total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          if(count && count < total) {
-            var countString = count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            return countString + ' of ' + totalString + ' ' + type + (total === 1 ? '' : 's');
+          var totalString = this.totalResults.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          if(this.shownResults.length && this.shownResults.length < this.totalResults) {
+            var countString = this.shownResults.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            this.set('recordsListTitle', countString + ' of ' + totalString + ' ' + this.type + (this.totalResults === 1 ? '' : 's'));
+          } else {
+            this.set('recordsListTitle', totalString + ' ' + this.type + (this.totalResults === 1 ? '' : 's'));
           }
-          return totalString + ' ' + type + (total === 1 ? '' : 's');
+        } else if(this.loading) {
+          this.set('recordsListTitle', 'Loading ' + this.type + 's...');
+        } else {
+          this.set('recordsListTitle', 'No ' + this.type + 's');
         }
-        if(loading) {
-          return 'Loading ' + type + 's...';
-        }
-        return 'No ' + type + 's';
       },
 
       _getList: function(item, property) {
         return (item ? item[property] : undefined) || [];
+      },
+
+      _getLoadType: function(type) {
+        return type + 's';
       },
 
       _getObject: function(item, property) {

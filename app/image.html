@@ -146,8 +146,8 @@ limitations under the License.
       page="{{pageNum}}"
       page-size="25"
       properties-ready="{{processRequest}}"
-      sort-field="fields.posting_date.strict.key"
-      source-include='["doc_id", "fields", "tld", "url"]'
+      sort-field="knowledge_graph.posting_date.key"
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
       transform-function="[[clientConfig.transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
@@ -160,13 +160,13 @@ limitations under the License.
 
     <location-timeline
       location-aggregation-name="locations"
-      location-aggregation-field="fields.city.strict.key"
+      location-aggregation-field="knowledge_graph.city.key"
       date-aggregation-name="dates"
-      date-aggregation-field="fields.posting_date.strict.key"
+      date-aggregation-field="knowledge_graph.posting_date.key"
       email-aggregation-name="emails"
-      email-aggregation-field="fields.email.strict.key"
+      email-aggregation-field="knowledge_graph.email.key"
       phone-aggregation-name="phones"
-      phone-aggregation-field="fields.phone.strict.key"
+      phone-aggregation-field="knowledge_graph.phone.key"
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="tld.raw"
       query-field="doc_id"
@@ -367,10 +367,10 @@ limitations under the License.
             annotation-manager="[[annotationManager]]"
             client="[[esclient]]"
             index-name="[[config.elasticIndex]]"
-            email-field="fields.email.strict.key"
-            image-field="fields.image.strict.key"
+            email-field="knowledge_graph.email.key"
+            image-field="knowledge_graph.image.key"
             offer-field="doc_id"
-            phone-field="fields.phone.strict.key"
+            phone-field="knowledge_graph.phone.key"
             transform-function="[[clientConfig.transforms.entity.entities]]"
             entities="{{userEntities}}"
             user-update-body="{{userUpdateBody}}">
@@ -423,7 +423,7 @@ limitations under the License.
                 <aggregation-query-and-display
                   class="location-list"
                   aggregation-name="location"
-                  aggregation-field="fields.city.strict.key"
+                  aggregation-field="knowledge_graph.city.key"
                   selected="{{filterCollection.location}}"
                   query-field="identifier"
                   query-value="[[params.id]]"
@@ -452,7 +452,7 @@ limitations under the License.
 
                 <aggregation-query-and-display
                   aggregation-name="phone"
-                  aggregation-field="fields.phone.strict.key"
+                  aggregation-field="knowledge_graph.phone.key"
                   selected="{{filterCollection.phone}}"
                   query-field="identifier"
                   query-value="[[params.id]]"
@@ -487,7 +487,7 @@ limitations under the License.
 
                 <aggregation-query-and-display
                   aggregation-name="email"
-                  aggregation-field="fields.email.strict.key"
+                  aggregation-field="knowledge_graph.email.key"
                   selected="{{filterCollection.email}}"
                   query-field="identifier"
                   query-value="[[params.id]]"
@@ -551,7 +551,7 @@ limitations under the License.
 
                 <aggregation-query-and-display
                   aggregation-name="social"
-                  aggregation-field="fields.social_media_id.strict.key"
+                  aggregation-field="knowledge_graph.social_media_id.key"
                   selected="{{filterCollection.social}}"
                   query-field="identifier"
                   query-value="[[params.id]]"
@@ -572,7 +572,7 @@ limitations under the License.
               <section-and-title
                 show-copy
                 copy-type="Review IDs"
-                icon="icons:stars"
+                icon="icons:star"
                 style-class="entity-review-font"
                 transform-config='{"type":"review","sayOther":false}'
                 transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
@@ -600,7 +600,7 @@ limitations under the License.
               <section-and-title
                 icon="icons:account-circle"
                 style-class="entity-provider-font"
-                title="Provider Summary">
+                section-title="Provider Summary">
 
                 <people-features
                   query-field="doc_id"
@@ -658,7 +658,7 @@ limitations under the License.
               <section-and-title
                 error="[[locationTimelineError]]"
                 icon="icons:timeline"
-                title="[[itineraryTitle]]">
+                section-title="[[itineraryTitle]]">
 
                 <itinerary-list
                   items-property="locations"
@@ -683,7 +683,19 @@ limitations under the License.
               <section-and-title
                 error="[[locationTimelineError]]"
                 icon="editor:insert-chart"
-                title="[[barChartTitle]]">
+                section-title="Bar Timeline">
+
+                <template is="dom-if" if="[[!offersLoading]]">
+                  <template is="dom-if" if="[[!loadingLocationTimeline]]">
+                    <template is="dom-if" if="[[!timelineData.dates.length]]">
+                      <div>No Ads or Dates</div>
+                    </template>
+                  </template>
+                </template>
+
+                <template is="dom-if" if="[[offersLoading]]">
+                  <loading-spinner show type="Ads"></loading-spinner>
+                </template>
 
                 <zoomable-bar-chart timeline
                   selected="{{filterCollection.dates}}"
@@ -695,7 +707,6 @@ limitations under the License.
                   default-label="Unknown Location(s)"
                   source="Ads"
                   interval="[[locationTimelineInterval]]"
-                  chart-title="{{barChartTitle}}"
                   loading="[[loadingLocationTimeline]]"
                   display-filter-text>
                 </zoomable-bar-chart>
@@ -704,21 +715,29 @@ limitations under the License.
               <section-and-title
                 error="[[eventDropsTimelineError]]"
                 icon="editor:bubble-chart"
-                title="Location Drops Timeline">
+                section-title="Drops Timeline">
+
+                <template is="dom-if" if="[[!eventDropsTimelineLoading]]">
+                  <template is="dom-if" if="[[!eventDropsLocations.length]]">
+                    <div>No Ads or Locations</div>
+                  </template>
+                </template>
 
                 <drops-query-and-timeline
                   client="[[esclient]]"
                   index="[[config.elasticIndex]]"
                   date-hist-name="dates"
-                  date-hist-field="fields.posting_date.strict.key"
+                  date-hist-field="knowledge_graph.posting_date.key"
                   item-agg-name="locations"
-                  item-agg-field="fields.city.strict.key"
+                  item-agg-field="knowledge_graph.city.key"
                   index-types='["ads"]'
                   query-fields='"doc_id"'
                   query-values="[[image.ads]]"
                   filter-list="[[filterList]]"
                   transform="[[clientConfig.transforms.timeline.eventDropsTimeline]]"
                   transform-items-property="locations"
+                  error="{{eventDropsTimelineError}}"
+                  loading="{{eventDropsTimelineLoading}}"
                   items="{{eventDropsLocations}}">
                 </drops-query-and-timeline>
 
@@ -732,7 +751,7 @@ limitations under the License.
                 <section-title
                   icon="maps:local-offer"
                   style-class="entity-offer-font"
-                  title="[[recordsListTitle]]">
+                  section-title="[[recordsListTitle]]">
 
                   <export-button
                     client="[[esclient]]"
@@ -746,7 +765,7 @@ limitations under the License.
                     size="[[imageOffersTotalCount]]"
                     sort-field="fields.posting_date.strict.key"
                     sort-order="desc"
-                    source-include='["doc_id", "fields", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
                     csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
                     pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
                     query-transform-function="[[clientConfig.transforms.offer.offers]]">
@@ -825,41 +844,41 @@ limitations under the License.
 
     app.filtersBuilderConfig = {
       age: {
-        field: 'fields.age.strict.key'
+        field: 'knowledge_graph.age.key'
       },
       dates: {
         field: 'fields.posting_date.strict.key',
         type: 'date'
       },
       email: {
-        field: 'fields.email.strict.key'
+        field: 'knowledge_graph.email.key'
       },
       ethnicity: {
-        field: 'fields.ethnicity.strict.key'
+        field: 'knowledge_graph.ethnicity.key'
       },
       eyeColor: {
-        field: 'fields.eye_color.strict.key'
+        field: 'knowledge_graph.eye_color.key'
       },
       gender: {
-        field: 'fields.gender.strict.key'
+        field: 'knowledge_graph.gender.key'
       },
       hairColor: {
-        field: 'fields.hair_color.strict.key'
+        field: 'knowledge_graph.hair_color.key'
       },
       height: {
-        field: 'fields.height.strict.key'
+        field: 'knowledge_graph.height.key'
       },
       location: {
-        field: 'fields.city.strict.key'
+        field: 'knowledge_graph.city.key'
       },
       name: {
-        field: 'fields.name.strict.key'
+        field: 'knowledge_graph.name.key'
       },
       phone: {
-        field: 'fields.phone.strict.key'
+        field: 'knowledge_graph.phone.key'
       },
       price: {
-        field: 'fields.price.strict.key'
+        field: 'knowledge_graph.price.key'
       },
       publisher: {
         field: 'tld.raw'
@@ -868,13 +887,13 @@ limitations under the License.
         field: 'fields.review_id.strict.key'
       },
       services: {
-        field: 'fields.service.strict.key'
+        field: 'knowledge_graph.service.key'
       },
       social: {
-        field: 'fields.social_media_id.strict.key'
+        field: 'knowledge_graph.social_media_id.key'
       },
       weight: {
-        field: 'fields.weight.strict.key'
+        field: 'knowledge_graph.weight.key'
       }
     };
 

@@ -157,7 +157,7 @@ DigBehaviors.StateBehavior = {
       key: key,
       title: title,
       aggregationField: aggField,
-      queryField: queryField,
+      queryField: queryField || aggField,
       value: ''
     };
   },
