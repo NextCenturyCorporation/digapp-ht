@@ -56,71 +56,277 @@ limitations under the License.
       };
     });
 
-    test('properties are set correctly', function() {
-      expect(element.data).to.deep.equal([]);
+    test('default properties are set correctly', function() {
       expect(element.filename).to.equal('data');
+      expect(element.loading).to.be.false;
+      expect(element._bulkDataForCsv).to.deep.equal([]);
+      expect(element._bulkDataSubset).to.deep.equal([]);
+      expect(element._bulkDataSubsetForCsv).to.deep.equal([]);
+      expect(element._bulkExportError).to.not.exist;
+      expect(element._bulkExportLoading).to.not.exist;
+      expect(element._bulkExportResponse).to.not.exist;
+      expect(element._keywordArray).to.not.exist;
+      expect(element._keywordIndex).to.deep.equal(0);
+      expect(element._query).to.not.exist;
+      expect(element._queryError).to.not.exist;
+      expect(element._queryLoading).to.be.false;
+      expect(element._queryReady).to.be.false;
+      expect(element._queryResults).to.not.exist;
+      expect(element._selectedMode).to.equal('input');
+    });
+
+    test('input and computed properties are set correctly', function() {
+      expect(element.data).to.deep.equal([]);
+      expect(element.downloadImageUrl).to.equal('downloadImage');
       expect(element.csvTransformFunction).to.be.a('Function');
       expect(element.pdfTransformFunction).to.be.a('Function');
-      expect(element._dataSubsetForCsv).to.deep.equal([{
+      expect(element._dataForCsv).to.deep.equal([{
         csv: []
       }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+      expect(element._dataForPdf).to.deep.equal([{
         pdf: []
       }]);
     });
 
-    test('does show a styled-dialog, elastic-client-search, and json-transform', function() {
-      expect(element.$$('styled-dialog')).to.exist;
-      expect(element.$$('elastic-client-search')).to.exist;
-      expect(element.$$('json-transform')).to.exist;
+    test('does not show a link element', function() {
+      expect(element.$$('.link')).to.not.exist;
+      expect(element.$$('.link .open')).to.not.exist;
     });
 
-    test('changing data does update _dataSubsetForCsv and _dataSubsetForPdf', function() {
+    test('does show a styled-dialog element', function() {
+      expect(element.$$('styled-dialog')).to.exist;
+      expect(element.$$('styled-dialog').getAttribute('fill')).to.exist;
+      expect(element.$$('styled-dialog').getAttribute('header')).to.equal('Export');
+      expect(element.$$('styled-dialog').id).to.equal('dialog');
+    });
+
+    test('does show an elastic-client-query-builder element', function() {
+      expect(element.$$('elastic-client-query-builder')).to.exist;
+      expect(element.$$('elastic-client-query-builder').getAttribute('fields')).to.equal('["_all"]');
+      expect(element.$$('elastic-client-query-builder').getAttribute('type')).to.equal('terms');
+    });
+
+    test('does show an elastic-client-search element', function() {
+      expect(element.$$('elastic-client-search')).to.exist;
+      expect(element.$$('elastic-client-search').getAttribute('page')).to.equal('1');
+      expect(element.$$('elastic-client-search').getAttribute('page-size')).to.equal('10000');
+    });
+
+    test('does show two json-transform elements', function() {
+      var transforms = Polymer.dom(element.root).querySelectorAll('json-transform');
+      expect(transforms[0]).to.exist;
+      expect(transforms[1]).to.exist;
+    });
+
+    test('does an iron-ajax element', function() {
+      expect(element.$$('iron-ajax')).to.exist;
+      expect(element.$$('iron-ajax').getAttribute('body')).to.not.exist;
+      expect(element.$$('iron-ajax').getAttribute('content-type')).to.equal('application/json');
+      expect(element.$$('iron-ajax').getAttribute('handle-as')).to.equal('text');
+      expect(element.$$('iron-ajax').getAttribute('method')).to.equal('POST');
+      expect(element.$$('iron-ajax').getAttribute('url')).to.equal('/export');
+      expect(element.$$('iron-ajax').id).to.equal('bulkExport');
+    });
+
+    test('changing data does update _dataForCsv and _dataForPdf', function() {
       element.data = ['a'];
-      expect(element._dataSubsetForCsv).to.deep.equal([{
+      expect(element._dataForCsv).to.deep.equal([{
         csv: ['a']
       }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+      expect(element._dataForPdf).to.deep.equal([{
         pdf: ['a']
       }]);
 
       element.data = ['a', 'b'];
-      expect(element._dataSubsetForCsv).to.deep.equal([{
+      expect(element._dataForCsv).to.deep.equal([{
         csv: ['a', 'b']
       }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+      expect(element._dataForPdf).to.deep.equal([{
         pdf: ['a', 'b']
       }]);
     });
 
-    test('changing a property in data does update _dataSubsetForCsv and _dataSubsetForPdf', function() {
+    test('changing a property in data does update _dataForCsv and _dataForPdf', function() {
       element.data = [{
         property1: 'a'
       }];
-      expect(element._dataSubsetForCsv).to.deep.equal([{
+      expect(element._dataForCsv).to.deep.equal([{
         csv: [{
           property1: 'a'
         }]
       }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+      expect(element._dataForPdf).to.deep.equal([{
         pdf: [{
           property1: 'a'
         }]
       }]);
 
       element.data[0].property2 = 'b';
-      expect(element._dataSubsetForCsv).to.deep.equal([{
+      expect(element._dataForCsv).to.deep.equal([{
         csv: [{
           property1: 'a',
           property2: 'b'
         }]
       }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+      expect(element._dataForPdf).to.deep.equal([{
         pdf: [{
           property1: 'a',
           property2: 'b'
         }]
       }]);
+    });
+
+    test('changing filterList does update _bulkDataForCsv, _keywordArray, _keywordIndex, and _selectedMode', function() {
+      element.keywords = 'a b';
+      element._bulkDataForCsv = ['a', 'b'];
+      element._keywordArray[0].count = 1;
+      element._keywordArray[1].count = 1;
+      element._keywordIndex = 2;
+      element._selectedMode = 'query';
+
+      element.filterList = [{}];
+      expect(element._bulkDataForCsv).to.deep.equal([]);
+      expect(element._keywordArray[0].count).to.not.exist;
+      expect(element._keywordArray[1].count).to.not.exist;
+      expect(element._keywordIndex).to.equal(0);
+      expect(element._selectedMode).to.equal('input');
+    });
+
+    test('changing keywords does update _bulkDataForCsv, _keywordArray, _keywordIndex, and _selectedMode', function() {
+      element.keywords = 'a b';
+      element._bulkDataForCsv = ['a', 'b'];
+      element._keywordArray[0].count = 1;
+      element._keywordArray[1].count = 1;
+      element._keywordIndex = 2;
+      element._selectedMode = 'query';
+
+      element.keywords = 'c d';
+      expect(element._bulkDataForCsv).to.deep.equal([]);
+      expect(element._keywordArray[0].count).to.not.exist;
+      expect(element._keywordArray[1].count).to.not.exist;
+      expect(element._keywordIndex).to.equal(0);
+      expect(element._selectedMode).to.equal('input');
+    });
+
+    test('changing filename does update _bulkDataForCsv', function() {
+      element._bulkDataForCsv = ['data'];
+      element.filename = 'filename';
+      expect(element._bulkDataForCsv).to.deep.equal(['filename']);
+    });
+
+    test('changing keywords does update _keywordArray and _keywordIndex', function() {
+      element._keywordArray = [{
+        value: 'a'
+      }, {
+        value: 'b'
+      }];
+      element._keywordIndex = 1;
+
+      element.keywords = 'c d';
+      expect(element._keywordArray).to.deep.equal([{
+        value: 'c'
+      }, {
+        value: 'd'
+      }]);
+      expect(element._keywordIndex).to.equal(0);
+    });
+
+    test('changing _bulkDataSubsetForCsv does not update _bulkDataForCsv, _keywordArray, _keywordIndex, or _queryReady if _keywordArray is undefined', function() {
+      element._queryReady = true;
+      element._bulkDataSubsetForCsv = [['header'], ['row1'], ['row2'], ['row3']];
+      expect(element._bulkDataForCsv).to.deep.equal([]);
+      expect(element._keywordArray).to.not.exist;
+      expect(element._keywordIndex).to.equal(0);
+      expect(element._queryReady).to.be.true;
+    });
+
+    test('changing _bulkDataSubsetForCsv does not update _bulkDataForCsv, _keywordArray, _keywordIndex, or _queryReady if _queryResults is undefined', function() {
+      element._queryReady = true;
+      element._bulkDataSubsetForCsv = [['header'], ['row1'], ['row2'], ['row3']];
+      expect(element._bulkDataForCsv).to.deep.equal([]);
+      expect(element._keywordArray).to.not.exist;
+      expect(element._keywordIndex).to.equal(0);
+      expect(element._queryReady).to.be.true;
+    });
+
+    test('changing _bulkDataSubsetForCsv does update _bulkDataForCsv, _keywordArray, _keywordIndex, and _queryReady on a single keyword', function(done) {
+      element._exportBulkDataForCsv = function() {
+        expect(element._bulkDataForCsv).to.deep.equal(['data', ['header'], ['row1'], ['row2'], ['row3']]);
+        expect(element._keywordArray).to.deep.equal([{
+          count: 3,
+          value: 'a'
+        }]);
+        expect(element._keywordIndex).to.equal(1);
+        expect(element._queryReady).to.be.false;
+        done();
+      };
+
+      element.keywords = 'a';
+      element._queryResults = {};
+      element._queryReady = true;
+      element._bulkDataSubsetForCsv = [['header'], ['row1'], ['row2'], ['row3']];
+    });
+
+    test('changing _bulkDataSubsetForCsv with only header does update _bulkDataForCsv and _keywordArray with no data', function(done) {
+      element._exportBulkDataForCsv = function() {
+        expect(element._bulkDataForCsv).to.deep.equal(['data', ['header']]);
+        expect(element._keywordArray).to.deep.equal([{
+          count: 0,
+          value: 'a'
+        }]);
+        done();
+      };
+
+      element.keywords = 'a';
+      element._queryResults = {};
+      element._bulkDataSubsetForCsv = [['header']];
+    });
+
+    test('changing _bulkDataSubsetForCsv does update _bulkDataForCsv, _keywordArray, _keywordIndex, and _queryReady on the final keyword index', function(done) {
+      element._exportBulkDataForCsv = function() {
+        expect(element._bulkDataForCsv).to.deep.equal(['previousFilename', ['previousHeader'], ['previousRow1'], ['row1'], ['row2'], ['row3']]);
+        expect(element._keywordArray).to.deep.equal([{
+          value: 'a'
+        }, {
+          value: 'b'
+        }, {
+          count: 3,
+          value: 'c'
+        }]);
+        expect(element._keywordIndex).to.equal(3);
+        expect(element._queryReady).to.be.false;
+        done();
+      };
+
+      element.keywords = 'a b c';
+      element._keywordIndex = 2;
+      element._queryResults = {};
+      element._queryReady = true;
+      element._bulkDataForCsv = ['previousFilename', ['previousHeader'], ['previousRow1']];
+      element._bulkDataSubsetForCsv = [['header'], ['row1'], ['row2'], ['row3']];
+    });
+
+    test('changing _bulkDataSubsetForCsv does update _bulkDataForCsv, _keywordArray, _keywordIndex, but not _queryReady on a non-final keyword index', function() {
+      element._exportBulkDataForCsv = function() {
+        expect.fail();
+      };
+
+      element.keywords = 'a b c';
+      element._queryResults = {};
+      element._queryReady = true;
+      element._bulkDataSubsetForCsv = [['header'], ['row1'], ['row2'], ['row3']];
+
+      expect(element._bulkDataForCsv).to.deep.equal(['data', ['header'], ['row1'], ['row2'], ['row3']]);
+      expect(element._keywordArray).to.deep.equal([{
+        count: 3,
+        value: 'a'
+      }, {
+        value: 'b'
+      }, {
+        value: 'c'
+      }]);
+      expect(element._keywordIndex).to.equal(1);
+      expect(element._queryReady).to.be.true;
     });
   });
 
@@ -160,19 +366,19 @@ limitations under the License.
       flush(done);
     });
 
-    test('properties are set correctly', function() {
+    test('input and computed properties are set correctly', function() {
       expect(element.data).to.deep.equal(['a', 'b', 'c']);
       expect(element.filename).to.equal('file');
       expect(element.csvTransformFunction).to.be.a('Function');
       expect(element.pdfTransformFunction).to.be.a('Function');
-      expect(element._dataSubsetForCsv).to.deep.equal([{
+      expect(element._dataForCsv).to.deep.equal([{
         property: 'a'
       }, {
         property: 'b'
       }, {
         property: 'c'
       }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+      expect(element._dataForPdf).to.deep.equal([{
         images: [{
           id: 'imageId',
           source: 'imageSource',
@@ -194,10 +400,9 @@ limitations under the License.
       }]);
     });
 
-    test('does show a styled-dialog, elastic-client-search, and json-transform', function() {
-      expect(element.$$('styled-dialog')).to.exist;
-      expect(element.$$('elastic-client-search')).to.exist;
-      expect(element.$$('json-transform')).to.exist;
+    test('does show a link element', function() {
+      expect(element.$$('.link')).to.exist;
+      expect(element.$$('.link .open')).to.exist;
     });
 
     test('does show an image element', function() {
@@ -205,7 +410,7 @@ limitations under the License.
     });
 
     test('_createPdfContent returns correctly', function() {
-      expect(element._createPdfContent(element._dataSubsetForPdf, 'subset').content).to.deep.equal([{
+      expect(element._createPdfContent(element._dataForPdf).content).to.deep.equal([{
         fontSize: 12,
         margin: [0, 0, 0, 10],
         text: [{

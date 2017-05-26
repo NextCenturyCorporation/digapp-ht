@@ -713,22 +713,70 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
 
     createExportDataForCsv: function(results) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];
+      var data = [[
+        'ad url',
+        'dig url',
+        'title',
+        'date',
+        'website',
+        'locations',
+        'telephone numbers',
+        'email addresses',
+        'provider names',
+        'provider prices',
+        'provider ages',
+        'provider ethnicities',
+        'provider eye colors',
+        'provider hair colors',
+        'provider heights',
+        'provider weights',
+        'images',
+        'description'
+      ]];
+
       results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.text;
-        }).join('; ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join('; ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join('; ');
-        var images = result.images.map(function(image) {
-          return image.source;
-        }).join('; ');
+        var getExtractionTextList = function(extractions, property) {
+          return extractions.map(function(extraction) {
+            return extraction[property || 'text'];
+          }).join('; ');
+        };
+
+        var locations = getExtractionTextList(result.locations);
+        var phones = getExtractionTextList(result.phones);
+        var emails = getExtractionTextList(result.emails);
+        var prices = getExtractionTextList(result.prices);
+        var images = getExtractionTextList(result.images, 'source');
+
+        var names = result.person.names ? result.person.names.join('; ') : '';
+        var ages = result.person.ages ? result.person.ages.join('; ') : '';
+        var ethnicities = result.person.ethnicities ? result.person.ethnicities.join('; ') : '';
+        var eyeColors = result.person.eyeColors ? result.person.eyeColors.join('; ') : '';
+        var hairColors = result.person.hairColors ? result.person.hairColors.join('; ') : '';
+        var heights = result.person.heights ? result.person.heights.join('; ') : '';
+        var weights = result.person.weights ? result.person.weights.join('; ') : '';
+
         var description = result.description.replace(/\s/g, ' ');
-        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, description]);
+
+        data.push([
+            result.url,
+            linkPrefix + result.link,
+            result.name,
+            result.date,
+            result.publisher,
+            locations,
+            phones,
+            emails,
+            names,
+            prices,
+            ages,
+            ethnicities,
+            eyeColors,
+            hairColors,
+            heights,
+            weights,
+            images,
+            description
+        ]);
       });
       return data;
     },

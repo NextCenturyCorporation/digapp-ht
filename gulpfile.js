@@ -296,6 +296,12 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
   var downloadProxyOptions = url.parse('http://localhost:9000/download');
   downloadProxyOptions.route = '/download';
 
+  var exportProxyOptions = url.parse('http://localhost:9000/export');
+  exportProxyOptions.route = '/export';
+
+  var fileProxyOptions = url.parse('http://localhost:9000/file');
+  fileProxyOptions.route = '/file';
+
   var uploadProxyOptions = url.parse('http://localhost:9000/upload');
   uploadProxyOptions.route = '/upload';
 
@@ -317,7 +323,7 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
     // https: true,
     server: {
       baseDir: ['.tmp', 'app'],
-      middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
+      middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(exportProxyOptions), proxy(fileProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
     }
   });
 
@@ -334,6 +340,12 @@ gulp.task('serve:dist', ['default', 'nodemon'], function() {
 
   var downloadProxyOptions = url.parse('http://localhost:9000/download');
   downloadProxyOptions.route = '/download';
+
+  var exportProxyOptions = url.parse('http://localhost:9000/export');
+  exportProxyOptions.route = '/export';
+
+  var fileProxyOptions = url.parse('http://localhost:9000/file');
+  fileProxyOptions.route = '/file';
 
   var uploadProxyOptions = url.parse('http://localhost:9000/upload');
   uploadProxyOptions.route = '/upload';
@@ -355,7 +367,7 @@ gulp.task('serve:dist', ['default', 'nodemon'], function() {
     //       will present a certificate warning in the browser.
     // https: true,
     server: dist(),
-    middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
+    middleware: [proxy(configProxyOptions), proxy(downloadProxyOptions), proxy(exportProxyOptions), proxy(fileProxyOptions), proxy(uploadProxyOptions), historyApiFallback()]
   });
 });
 
