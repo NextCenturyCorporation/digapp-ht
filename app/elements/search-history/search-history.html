@@ -51,7 +51,7 @@ limitations under the License.
           <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
         </div>
         <div class="divider"></div>
-        <template is="dom-repeat" items="[[_searchHistory]]">
+        <template is="dom-repeat" items="[[searchHistory]]">
           <div class="layout horizontal">
             <div class="name tall right-space">Searched At</div>
             <div class="text tall right-space nowrap">
@@ -92,7 +92,7 @@ limitations under the License.
           notify: true,
           value: false
         },
-        _searchHistory: {
+        searchHistory: {
           type: Array,
           value: function() {
             return [];
@@ -102,7 +102,7 @@ limitations under the License.
 
       observers: [
         '_addToHistory(searchParameters.*, processRequest)',
-        '_checkHistory(_searchHistory.*)'
+        '_checkHistory(searchHistory.*)'
       ],
 
       /**
@@ -113,7 +113,7 @@ limitations under the License.
       },
 
       /**
-       * If current search parameters are not a duplicate of the previously performed search, add to the _searchHistory array along with a timestamp.
+       * If current search parameters are not a duplicate of the previously performed search, add to the searchHistory array along with a timestamp.
        *
        * @private
        */
@@ -122,20 +122,22 @@ limitations under the License.
           return;
         }
 
-        if(this._searchHistory.length === 0 || (this._searchHistory.length > 0 &&
-          JSON.stringify(this.searchParameters) !== JSON.stringify(this._searchHistory[0].searchParameters))) {
+        if(this.searchHistory.length === 0 || (this.searchHistory.length > 0 &&
+          JSON.stringify(this.searchParameters) !== JSON.stringify(this.searchHistory[0].searchParameters))) {
           this._unshiftSearchHistoryItem(this.searchParameters);
         }
       },
 
       /**
-       * Runs a search from the _searchHistory list. When run, that history item is moved to be the first item in the list and dialog is closed.
+       * Runs a search from the searchHistory list. When run, that history item is moved to be the first item in the list and dialog is closed.
        *
        * @param {Object} event
        * @private
        */
       _runSearch: function(event) {
-        this.splice('_searchHistory', event.model.index, 1);
+        // TODO: update so that replaceState event happens as well and updates url -- need to save state parameter?
+        // consistency between this view and going back/forward in browser?
+        this.splice('searchHistory', event.model.index, 1);
         this._unshiftSearchHistoryItem(event.model.item.searchParameters);
         this.set('searchParameters', this._copySearchParameters(event.model.item.searchParameters));
         this.$$('#searchHistoryDialog').close();
@@ -153,22 +155,22 @@ limitations under the License.
       },
 
       /**
-       * Place a new search history item at the beginning of the _searchHistory list.
+       * Place a new search history item at the beginning of the searchHistory list.
        *
        * @param {Object} searchParameters
        * @private
        */
       _unshiftSearchHistoryItem: function(searchParameters) {
-        this.unshift('_searchHistory', {searchParameters: this._copySearchParameters(searchParameters), time: moment(new Date()).format(this.format)});
+        this.unshift('searchHistory', {searchParameters: this._copySearchParameters(searchParameters), time: moment(new Date()).format(this.format)});
       },
 
       /**
-       * Recalculates value of hasHistory based on current state of _searchHistory array.
+       * Recalculates value of hasHistory based on current state of searchHistory array.
        *
        * @private
        */
       _checkHistory: function() {
-        this.hasHistory = this._searchHistory && this._searchHistory.length > 0;
+        this.hasHistory = this.searchHistory && this.searchHistory.length > 0;
       }
     });
   })();

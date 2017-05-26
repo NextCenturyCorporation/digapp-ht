@@ -90,6 +90,14 @@ limitations under the License.
         </div>
       </div>
     </paper-dialog>
+
+    <search-history id="searchHistoryDialog"
+      search-parameters="{{filterCollection}}"
+      search-history="{{searchHistory}}"
+      process-request="{{processRequest}}"
+      has-history="{{hasHistory}}">
+    </search-history>
+
   </template>
 
   <script>
@@ -102,6 +110,7 @@ limitations under the License.
 
       behaviors: [
         DigBehaviors.BrowserBehavior,
+        DigBehaviors.FilterBehavior,
         DigBehaviors.StateBehavior
       ],
 
@@ -123,6 +132,28 @@ limitations under the License.
         filterCollection: {
           type: Object,
           notify: true
+        },
+
+        /**
+         * The object with properties for lists of strings to filter.
+         *
+         * @type {Object}
+         */
+        hasHistory: {
+          type: Boolean,
+          notify: true
+        },
+
+        /**
+         * Tracking the search history.
+         *
+         * @type {Array}
+         */
+        searchHistory: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -255,7 +286,33 @@ limitations under the License.
          */
         _clipboard: {
           type: Object
+        },
+
+        /**
+         * Temporary -- we still need to display the link popup on entity views since we're only
+         * working on search history on the main search page right now.
+         */
+        showLinkDialog: {
+          type: Boolean,
+          notify: true,
+          value: true
         }
+      },
+
+      observers: [
+        '_addToBrowserHistory(filterCollection.*, processRequest, showLinkDialog)',
+      ],
+
+      openSearchHistory: function() {
+        this.$$('#searchHistoryDialog').open();
+      },
+
+      _addToBrowserHistory: function() {
+        if(this.showLinkDialog || !this.processRequest || this.areAllFacetsDisabled(this.filterCollection, ['sort'])) {
+          return;
+        }
+
+        this.generateLink();
       },
 
       _activateClipboard: function() {
@@ -274,9 +331,10 @@ limitations under the License.
        */
       generateLink: function() {
         var state = this._createStringifiedState(this.filterCollection, this.pageType);
+
         if(this._isEmptyState(JSON.parse(state))) {
           this._updateUrlAndShowDialog();
-        } else if(state === this._stringifiedState) {
+        } else if(state === this._stringifiedState && this.showLinkDialog) {
           this.$$('#linkDialog').open();
         } else {
           this._stringifiedState = state;
@@ -385,7 +443,20 @@ limitations under the License.
       _updateUrlAndShowDialog: function(id) {
         // From DigBehaviors.BrowserBehavior
         this._link = this.generateLinkWithStateParameter(window.location, id);
-        this.$$('#linkDialog').open();
+        var params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+        if(params.state && params.state === id) {
+          return;
+        }
+
+        if(this.showLinkDialog) {
+          this.$$('#linkDialog').open();
+        } else {
+          // TODO: The searchHistory popup and the browser history aren't yet linked.
+          // Calling addToHistory here directly didn't seem to work very well (timing issues
+          // occurred) -- perhaps the solution is to integrate search-history into this
+          // component, or add the call to addHistory elsewhere.
+          history.pushState({state: id, searchHistory: this.searchHistory}, '', '?state=' + id);
+        }
       }
     });
   })();

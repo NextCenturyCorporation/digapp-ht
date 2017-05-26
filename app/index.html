@@ -314,14 +314,11 @@ limitations under the License.
           state-type="[[config.filterStatesType]]"
           state-id="[[params.state]]"
           filter-collection="{{searchParameters}}"
-          process-request="{{processRequest}}">
-        </state-manager>
-
-        <search-history id="searchHistoryDialog"
-          search-parameters="{{searchParameters}}"
           process-request="{{processRequest}}"
-          has-history="{{hasSearchHistory}}">
-        </search-history>
+          search-history="{{searchHistory}}"
+          has-history="{{hasSearchHistory}}"
+          show-link-dialog="{{showLinkDialog}}">
+        </state-manager>
 
         <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="More Options" on-tap="toggleMenu"></paper-icon-button>
 
@@ -335,11 +332,6 @@ limitations under the License.
             <paper-icon-item disabled="{{!hasSearchHistory}}" title="View Search History" on-tap="openSearchHistoryDialog">
               <iron-icon icon="history" item-icon></iron-icon>
               View Search History
-            </paper-icon-item>
-
-            <paper-icon-item disabled="[[noSearchParameters(searchParameters.*)]]" title="Generate a Link for this Page with the Selected Search Terms" on-tap="generateLink">
-              <iron-icon icon="link" item-icon></iron-icon>
-              Generate Link
             </paper-icon-item>
 
             <paper-icon-item title="Upload or Enter Multiple Telephone Numbers" on-tap="openBatchPhoneSearchDialog">
@@ -1041,7 +1033,7 @@ limitations under the License.
 
       app.openSearchHistoryDialog = function() {
         this.$.menuDropdown.close();
-        this.$.searchHistoryDialog.open();
+        this.$.stateManager.openSearchHistory();
       };
 
       app.toggleMenu = function() {
@@ -1081,6 +1073,24 @@ limitations under the License.
       };
 
       app.classificationFlags = '["Test Flag 1", "Test Flag 2", "Test Flag 3"]';
+
+      // history related functions
+
+      app.showLinkDialog = false;
+
+      window.onpopstate = function() {
+        // TODO: refreshing for now. Need to address issues with interrupting logging entries -- perhaps a better
+        // approach would to be not to reload the page, but to rerun the query with the changed parameters + make
+        // sure logging is done correctly in this case, which may involve adding processRequest to create-log-message.
+        window.location.reload();
+      };
+
+      window.onload = function() {
+        if(window.history.state && window.history.state.searchHistory) {
+          app.searchHistory = window.history.state.searchHistory;
+        }
+      };
+
     })(document);
   </script>
 </body>
