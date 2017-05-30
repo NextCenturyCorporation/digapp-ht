@@ -20,7 +20,7 @@ var AD_DATA = {
             'key': 'Roanoke:Virginia:United States:-79.94143:37.27097',
             'value': 'Roanoke'
           }, {
-            'confidence': '0.99',
+            'confidence': '0.9',
             'key': 'Atlanta:Georgia:United States:-84.38798:33.749',
             'value': 'Atlanta'
           }, {
@@ -41,7 +41,7 @@ var AD_DATA = {
             'key': 'Virginia',
             'value': 'Virginia'
           }, {
-            'confidence': '0.99',
+            'confidence': '0.9',
             'key': 'Georgia',
             'value': 'Georgia'
           }, {

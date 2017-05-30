@@ -36,6 +36,15 @@ var offerTransform = (function(_, commonTransforms) {
   }
   */
 
+  function getDateFromRecord(record, path) {
+    var data = _.get(record, path, []);
+    var item = data ? (_.isArray(data) ? (data.length ? data[0] : {}) : data) : {};
+    return {
+      confidence: item.confidence,
+      key: item.value
+    };
+  }
+
   function getSingleStringFromRecord(record, path, property) {
     var data = _.get(record, path, []);
 
@@ -135,8 +144,9 @@ var offerTransform = (function(_, commonTransforms) {
     return null;
   }
 
-  function getExtractionsFromListOfType(extractionList, type, confidence) {
+  function getExtractionsFromListOfType(extractionList, type) {
     var extractionData = extractionList.map(function(item) {
+      var confidence = _.isUndefined(item.confidence) ? undefined : (Math.round(Math.min(item.confidence, 1) * 10000.0) / 100.0);
       return getExtractionOfType(item, type, confidence);
     });
     var filterFunction = getFilterFunctionOfType(type);
@@ -145,11 +155,7 @@ var offerTransform = (function(_, commonTransforms) {
 
   function getExtractionsFromRecordOfType(record, path, type) {
     var data = _.get(record, path, []);
-    // For now, remove low confidence extractions.
-    var filteredData = data.filter(function(item) {
-      return item.confidence && item.confidence > 0.5;
-    });
-    return getExtractionsFromListOfType(filteredData, type);
+    return getExtractionsFromListOfType(data, type);
   }
 
   function getHighlightedText(record, paths) {
@@ -267,9 +273,7 @@ var offerTransform = (function(_, commonTransforms) {
       hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'hair'),
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
-      dates: getExtractionsFromListOfType([{
-        key: getSingleStringFromRecord(record, '_source.knowledge_graph.posting_date', 'value')
-      }], 'date'),
+      dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
       publishers: getExtractionsFromListOfType([{
         key: domain
       }], 'webpage'),
@@ -494,12 +498,12 @@ var offerTransform = (function(_, commonTransforms) {
       return [];
     },
 
-    getExtractionOfType: function(list, type, confidence) {
-      return getExtractionOfType(list, type, confidence);
+    getExtractionOfType: function(list, type) {
+      return getExtractionOfType(list, type);
     },
 
-    getExtractionsFromListOfType: function(list, type, confidence) {
-      return getExtractionsFromListOfType(list, type, confidence);
+    getExtractionsFromListOfType: function(list, type) {
+      return getExtractionsFromListOfType(list, type);
     },
 
     /**

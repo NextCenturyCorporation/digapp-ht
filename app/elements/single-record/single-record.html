@@ -35,6 +35,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paper-styles/color.html">
 <link rel="import" href="../../bower_components/highlighted-text/highlighted-text.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../../styles/confidence-styles.html">
 <link rel="import" href="../../styles/single-item-styles.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../info-cached-webpages/info-cached-webpages.html">
@@ -42,6 +43,7 @@ limitations under the License.
 
 <dom-module id="single-record">
   <template>
+    <style include="confidence-styles"></style>
     <style include="iron-flex iron-flex-alignment iron-flex-factors"></style>
     <style include="single-item-styles"></style>
 
@@ -73,20 +75,6 @@ limitations under the License.
 
       .extraction-item {
         margin-bottom: 5px;
-      }
-
-      .confidence-icon {
-        --iron-icon-width: 16px;
-        --iron-icon-height: 16px;
-        margin-right: 5px;
-      }
-
-      .high-confidence {
-        color: var(--paper-green-600);
-      }
-
-      .low-confidence {
-        color: var(--paper-orange-600);
       }
 
       icon-label {
@@ -280,10 +268,10 @@ limitations under the License.
                     </icon-label>
 
                     <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                        title$="[[_getConfidenceText(extraction, extractionDataConfidenceProperty)]]">
-                      </iron-icon>
+                      <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                      <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
                     </template>
 
                     <template is="dom-if" if="[[classificationManager]]">
@@ -393,10 +381,10 @@ limitations under the License.
                       </icon-label>
 
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
-                        <iron-icon icon="fa:circle"
-                          class$="confidence-icon [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                          title$="[[_getConfidenceText(extraction, extractionDataConfidenceProperty)]]">
-                        </iron-icon>
+                        <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                        <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
                       </template>
 
                       <template is="dom-if" if="[[classificationManager]]">
@@ -1136,31 +1124,19 @@ limitations under the License.
        * @private
        */
       _getConfidenceStyleClass: function(item, property) {
-        if(item[property] === 'high') {
-          return 'high-confidence';
+        if(item[property] > 99) {
+          return 'full';
         }
-        if(item[property] === 'low') {
-          return 'low-confidence';
+        if(item[property] > 66) {
+          return 'high';
         }
-        return 'hide';
-      },
-
-      /**
-       * Returns the text of the confidence icon using the given item and confidence property.
-       *
-       * @param {Object} item
-       * @param {String} property
-       * @return {String}
-       * @private
-       */
-      _getConfidenceText: function(item, property) {
-        if(item[property] === 'high') {
-          return 'High Confidence Extraction';
+        if(item[property] > 33) {
+          return 'med';
         }
-        if(item[property] === 'low') {
-          return 'Low Confidence Extraction';
+        if(item[property] > 0) {
+          return 'low';
         }
-        return '';
+        return item[property] === 0 ? 'no' : 'hide';
       },
 
       /**
