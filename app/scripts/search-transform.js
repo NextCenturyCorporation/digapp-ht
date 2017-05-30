@@ -86,7 +86,8 @@ var searchTransform = (function(_) {
           _.keys(searchParameters[type]).forEach(function(term) {
             if(searchParameters[type][term].enabled) {
               if(type === 'postingDate') {
-                predicates.date = true;
+                // Use a single date variable ('date1').
+                predicates.date = 1;
 
                 if(filters.length === 0) {
                   filters.push({});
@@ -103,10 +104,10 @@ var searchTransform = (function(_) {
                 filters[0].clauses.push({
                   constraint: searchParameters[type][term].date,
                   operator: term === 'dateStart' ? '>' : '<',
-                  variable: '?date'
+                  variable: '?date1'
                 });
               } else if(predicate) {
-                predicates[predicate] = true;
+                predicates[predicate] = (predicates[predicate] || 0) + 1;
 
                 clauses.push({
                   constraint: searchParameters[type][term].key,
@@ -119,15 +120,17 @@ var searchTransform = (function(_) {
         });
 
         _.keys(predicates).forEach(function(predicate) {
-          selects.push({
-            type: 'simple',
-            variable: '?' + predicate
-          });
-          clauses.push({
-            isOptional: (predicate !== 'date'),
-            predicate: predicate === 'date' ? 'posting_date' : predicate,
-            variable: '?' + predicate
-          });
+          for(var i = 1; i <= predicates[predicate]; ++i) {
+            selects.push({
+              type: 'simple',
+              variable: '?' + predicate + i
+            });
+            clauses.push({
+              isOptional: (predicate !== 'date'),
+              predicate: predicate === 'date' ? 'posting_date' : predicate,
+              variable: '?' + predicate + i
+            });
+          }
         });
 
         groupBy = (!page || !pageSize) ? undefined : {
