@@ -34,85 +34,237 @@ limitations under the License.
 
 <script>
   'use strict';
-  /* globals expect, fixture, setup, suite, test */
+  /* globals fixture, suite, setup, test, assert, expect */
   /* jshint -W030 */
 
   suite('<client-config> search transform tests', function() {
     var clientConfig;
 
-    var DEFAULT_QUERY = {
-      SPARQL: {
-        'group-by': undefined,
-        select: {
-          variables: [],
-        },
-        where: {
-          clauses: [],
-          filters: [],
-          type: 'Ad',
-          variable: '?ad'
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var cityResponse = [{
+      result: {
+        aggregations: {
+          '?city': {
+            buckets: [{
+              key: 'Ontario:California:United States:-117.65089:34.06334',
+              doc_count: 11
+            }, {
+              key: 'Los Angeles:California:United States:-118.24368:34.05223',
+              doc_count: 10
+            }, {
+              key: 'Mumbai:State of Maharashtra:India:72.88261:19.07283',
+              doc_count: 10
+            }, {
+              key: 'Melbourne:Florida:United States:-80.60811:28.08363',
+              doc_count: 9
+            }, {
+              key: 'Bakersfield:California:United States:-119.01871:35.37329',
+              doc_count: 8
+            }, {
+              key: 'Dallas:Texas:United States:-96.80667:32.78306',
+              doc_count: 8
+            }, {
+              key: 'Shanghai:Shanghai Shi:China:121.45806:31.22222',
+              doc_count: 8
+            }, {
+              key: 'Miami:Florida:United States:-80.19366:25.77427',
+              doc_count: 7
+            }, {
+              key: 'New York:New York:United States:-74.00597:40.71427',
+              doc_count: 7
+            }, {
+              key: 'Oklahoma City:Oklahoma:United States:-97.51643:35.46756',
+              doc_count: 7
+            }]
+          }
         }
-      },
-      type: 'Point Fact'
-    };
+      }
+    }];
 
-    var GROUP_BY = {
-      limit: 50,
-      offset: 0
-    };
+    var compoundResponse = [{
+      result: {
+        aggregations: {
+          '?property': {
+            buckets: [{
+              key: '175',
+              doc_count: 80
+            }, {
+              key: '175-unit:centimeter',
+              doc_count: 40
+            }, {
+              key: '175-time_unit:60',
+              doc_count: 20
+            }, {
+              key: '175-currency:dollars',
+              doc_count: 10
+            }, {
+              key: '175-currency:dollars-time_unit:60',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    }];
+
+    var emailResponse = [{
+      result: {
+        aggregations: {
+          '?email': {
+            buckets: [{
+              key: 'abc@gmail.com',
+              doc_count: 20
+            }, {
+              key: 'xyz@gmail.com',
+              doc_count: 10
+            }, {
+              key: 'abc@yahoo.com',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    }];
+
+    var filterResponse = [{
+      result: {
+        aggregations: {
+          '?property': {
+            buckets: [{
+              key: 123,
+              doc_count: 20
+            }, {
+              key: 'UPPERCASE',
+              doc_count: 10
+            }, {
+              key: 'lowercase',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    }];
+
+    var phoneResponse = [{
+      result: {
+        aggregations: {
+          '?phone': {
+            buckets: [{
+              key: '1234567890',
+              doc_count: 80
+            }, {
+              key: '+1-1112223333',
+              doc_count: 40
+            }, {
+              key: '+2-4445556666',
+              doc_count: 20
+            }, {
+              key: '+1234-7778889999',
+              doc_count: 10
+            }, {
+              key: '+x-9876543210',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    }];
+
+    var socialMediaResponse = [{
+      result: {
+        aggregations: {
+          '?social': {
+            buckets: [{
+              key: 'twitter user123',
+              doc_count: 80
+            }, {
+              key: 'twitter user456',
+              doc_count: 40
+            }, {
+              key: 'twitter user789',
+              doc_count: 20
+            }, {
+              key: 'instagram userABC',
+              doc_count: 10
+            }, {
+              key: 'userXYZ',
+              doc_count: 5
+            }]
+          }
+        }
+      }
+    }];
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
     setup(function() {
       clientConfig = fixture('client-config-fixture');
     });
 
-    test('does define search transform function', function() {
+    test('does define adQuery transform function', function() {
       expect(clientConfig).to.exist;
       expect(clientConfig.config).to.exist;
       expect(clientConfig.config.transforms).to.exist;
       expect(clientConfig.config.transforms.search).to.exist;
-      expect(clientConfig.config.transforms.search.search).to.be.a('Function');
+      expect(clientConfig.config.transforms.search.adQuery).to.be.a('Function');
     });
 
-    test('search transform function given empty input does return default query', function() {
-      expect(clientConfig.config.transforms.search.search()).to.deep.equal(DEFAULT_QUERY);
-      expect(clientConfig.config.transforms.search.search(1)).to.deep.equal(DEFAULT_QUERY);
-      expect(clientConfig.config.transforms.search.search(1, 50)).to.deep.equal(DEFAULT_QUERY);
-      expect(clientConfig.config.transforms.search.search(1, 50, {})).to.deep.equal(DEFAULT_QUERY);
-    });
-
-    test('search transform function given page size above 1 does return correct query', function() {
-      var data = {
-        title: {
-          titleA: {
-            enabled: true,
-            key: 'titleA'
+    test('adQuery transform function given empty input does return default query', function() {
+      var DEFAULT_AD_QUERY = {
+        SPARQL: {
+          'group-by': undefined,
+          select: {
+            variables: [],
+          },
+          where: {
+            clauses: [],
+            filters: [],
+            type: 'Ad',
+            variable: '?ad'
           }
-        }
+        },
+        type: 'Point Fact'
       };
 
-      expect(clientConfig.config.transforms.search.search(2, 50, data).SPARQL['group-by']).to.deep.equal({
+      expect(clientConfig.config.transforms.search.adQuery()).to.deep.equal(DEFAULT_AD_QUERY);
+      expect(clientConfig.config.transforms.search.adQuery({})).to.deep.equal(DEFAULT_AD_QUERY);
+      expect(clientConfig.config.transforms.search.adQuery({}, {})).to.deep.equal(DEFAULT_AD_QUERY);
+    });
+
+    test('adQuery transform function given page and page size does return correct query', function() {
+      expect(clientConfig.config.transforms.search.adQuery({}, {
+        page: 2,
+        pageSize: 50
+      }).SPARQL['group-by']).to.deep.equal({
         limit: 50,
         offset: 50
       });
 
-      expect(clientConfig.config.transforms.search.search(2, 100, data).SPARQL['group-by']).to.deep.equal({
+      expect(clientConfig.config.transforms.search.adQuery({}, {
+        page: 2,
+        pageSize: 100
+      }).SPARQL['group-by']).to.deep.equal({
         limit: 100,
         offset: 100
       });
 
-      expect(clientConfig.config.transforms.search.search(5, 50, data).SPARQL['group-by']).to.deep.equal({
+      expect(clientConfig.config.transforms.search.adQuery({}, {
+        page: 5,
+        pageSize: 50
+      }).SPARQL['group-by']).to.deep.equal({
         limit: 50,
         offset: 200
       });
 
-      expect(clientConfig.config.transforms.search.search(5, 100, data).SPARQL['group-by']).to.deep.equal({
+      expect(clientConfig.config.transforms.search.adQuery({}, {
+        page: 5,
+        pageSize: 100
+      }).SPARQL['group-by']).to.deep.equal({
         limit: 100,
         offset: 400
       });
     });
 
-    test('search transform function given search parameters of same type does return correct query', function() {
-      var output = clientConfig.config.transforms.search.search(1, 50, {
+    test('adQuery transform function given search parameters of same type does return correct query', function() {
+      var output = clientConfig.config.transforms.search.adQuery({
         title: {
           titleA: {
             enabled: true,
@@ -123,11 +275,17 @@ limitations under the License.
             key: 'titleB'
           }
         }
+      }, {
+        page: 1,
+        pageSize: 50
       });
 
       expect(output.type).to.equal('Point Fact');
       expect(output.SPARQL).to.be.an('Object');
-      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
       expect(output.SPARQL.select).to.deep.equal({
         variables: [{
           type: 'simple',
@@ -160,8 +318,8 @@ limitations under the License.
       }]);
     });
 
-    test('search transform function given disabled search parameters does return correct query', function() {
-      var output = clientConfig.config.transforms.search.search(1, 50, {
+    test('adQuery transform function given disabled search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.adQuery({
         title: {
           titleA: {
             enabled: true,
@@ -172,11 +330,17 @@ limitations under the License.
             key: 'titleB'
           }
         }
+      }, {
+        page: 1,
+        pageSize: 50
       });
 
       expect(output.type).to.equal('Point Fact');
       expect(output.SPARQL).to.be.an('Object');
-      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
       expect(output.SPARQL.select).to.deep.equal({
         variables: [{
           type: 'simple',
@@ -198,8 +362,8 @@ limitations under the License.
       }]);
     });
 
-    test('search transform function given search parameters of multiple types does return correct query', function() {
-      var output = clientConfig.config.transforms.search.search(1, 50, {
+    test('adQuery transform function given search parameters of multiple types does return correct query', function() {
+      var output = clientConfig.config.transforms.search.adQuery({
         age: {
           ageA: {
             enabled: true,
@@ -320,11 +484,17 @@ limitations under the License.
             key: 'weightA'
           }
         }
+      }, {
+        page: 1,
+        pageSize: 50
       });
 
       expect(output.type).to.equal('Point Fact');
       expect(output.SPARQL).to.be.an('Object');
-      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
       expect(output.SPARQL.select).to.deep.equal({
         variables: [{
           type: 'simple',
@@ -556,8 +726,8 @@ limitations under the License.
       }]);
     });
 
-    test('search transform function given date search parameters does return correct query', function() {
-      var output = clientConfig.config.transforms.search.search(1, 50, {
+    test('adQuery transform function given date search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.adQuery({
         postingDate: {
           dateStart: {
             enabled: true,
@@ -568,11 +738,17 @@ limitations under the License.
             date: 'end'
           }
         }
+      }, {
+        page: 1,
+        pageSize: 50
       });
 
       expect(output.type).to.equal('Point Fact');
       expect(output.SPARQL).to.be.an('Object');
-      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
       expect(output.SPARQL.select).to.deep.equal({
         variables: [{
           type: 'simple',
@@ -601,8 +777,8 @@ limitations under the License.
       }]);
     });
 
-    test('search transform function given both enabled and disabled date search parameters does return correct query', function() {
-      var output = clientConfig.config.transforms.search.search(1, 50, {
+    test('adQuery transform function given both enabled and disabled date search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.adQuery({
         postingDate: {
           dateStart: {
             enabled: true,
@@ -613,11 +789,17 @@ limitations under the License.
             date: 'end'
           }
         }
+      }, {
+        page: 1,
+        pageSize: 50
       });
 
       expect(output.type).to.equal('Point Fact');
       expect(output.SPARQL).to.be.an('Object');
-      expect(output.SPARQL['group-by']).to.deep.equal(GROUP_BY);
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
       expect(output.SPARQL.select).to.deep.equal({
         variables: [{
           type: 'simple',
@@ -639,6 +821,841 @@ limitations under the License.
         variable: '?date1',
         isOptional: false,
         predicate: 'posting_date'
+      }]);
+    });
+
+    test('does define adResults transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.exist;
+      expect(clientConfig.config.transforms).to.exist;
+      expect(clientConfig.config.transforms.search).to.exist;
+      expect(clientConfig.config.transforms.search.adResults).to.be.a('Function');
+    });
+
+    test('adResults transform function given empty input does return an object', function() {
+      expect(clientConfig.config.transforms.search.adResults()).to.deep.equal({
+        fields: {},
+        hits: {}
+      });
+      expect(clientConfig.config.transforms.search.adResults([])).to.deep.equal({
+        fields: {},
+        hits: {}
+      });
+      expect(clientConfig.config.transforms.search.adResults([{}])).to.deep.equal({
+        fields: {},
+        hits: {}
+      });
+      expect(clientConfig.config.transforms.search.adResults([{
+        query: {},
+        result: {}
+      }])).to.deep.equal({
+        fields: {},
+        hits: []
+      });
+    });
+
+    test('adResults transform function given a response with hits does return an object with hits', function() {
+      expect(clientConfig.config.transforms.search.adResults([{
+        result: {
+          hits: [1, 2, 3]
+        }
+      }])).to.deep.equal({
+        fields: {},
+        hits: [1, 2, 3]
+      });
+    });
+
+    test('adResults transform function given a response with clauses and hits does return an object with fields and hits', function() {
+      expect(clientConfig.config.transforms.search.adResults([{
+        query: {
+          SPARQL: {
+            where: {
+              clauses: [{
+                '_id': 'idA',
+                constraint: 'constraintA',
+                predicate: 'age'
+              }, {
+                '_id': 'idB',
+                constraint: 'constraintB',
+                predicate: 'age'
+              }, {
+                '_id': 'idC',
+                constraint: 'constraintC',
+                predicate: 'social_media_id'
+              }]
+            }
+          }
+        },
+        result: {
+          hits: [1, 2, 3]
+        }
+      }])).to.deep.equal({
+        fields: {
+          age: {
+            constraintA: 'idA',
+            constraintB: 'idB'
+          },
+          social: {
+            constraintC: 'idC'
+          }
+        },
+        hits: [1, 2, 3]
+      });
+    });
+
+    test('does define facetsQuery transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.exist;
+      expect(clientConfig.config.transforms).to.exist;
+      expect(clientConfig.config.transforms.search).to.exist;
+      expect(clientConfig.config.transforms.search.facetsQuery).to.be.a('Function');
+    });
+
+    test('facetsQuery transform function given empty input does return default query', function() {
+      var DEFAULT_FACETS_QUERY = {
+        SPARQL: {
+          'group-by': {
+            limit: 0,
+            offset: 0
+          },
+          select: {
+            variables: [],
+          },
+          where: {
+            clauses: [],
+            filters: [],
+            type: 'Ad',
+            variable: '?ad'
+          }
+        },
+        type: 'Aggregation'
+      };
+
+      expect(clientConfig.config.transforms.search.facetsQuery()).to.deep.equal(DEFAULT_FACETS_QUERY);
+      expect(clientConfig.config.transforms.search.facetsQuery({})).to.deep.equal(DEFAULT_FACETS_QUERY);
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {})).to.deep.equal(DEFAULT_FACETS_QUERY);
+    });
+
+    test('facetsQuery transform function given aggregation type does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'age'
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function does support all aggregation types', function() {
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'age'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?age'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'city'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?city'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'country'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?country'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'email'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?email'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'ethnicity'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?ethnicity'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'eyeColor'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?eye_color'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'gender'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?gender'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'hairColor'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?hair_color'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'height'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?height'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'name'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?name'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'phone'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?phone'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'price'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?price'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'region'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?state'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'review'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?review_id'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'services'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?service'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'social'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?social_media_id'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'website'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?tld'
+      }]);
+
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'weight'
+      }).SPARQL.select.variables).to.deep.equal([{
+        'function': 'count',
+        type: 'function',
+        variable: '?weight'
+      }]);
+    });
+
+    test('facetsQuery transform function given page size does return correct query', function() {
+      expect(clientConfig.config.transforms.search.facetsQuery({}, {
+        pageSize: 10
+      }).SPARQL['group-by']).to.deep.equal({
+        limit: 10,
+        offset: 0
+      });
+    });
+
+    test('facetsQuery transform function given search parameters of same type does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({
+        title: {
+          titleA: {
+            enabled: true,
+            key: 'titleA'
+          },
+          titleB: {
+            enabled: true,
+            key: 'titleB'
+          }
+        }
+      }, {
+        aggregationType: 'age'
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?title1'
+        }, {
+          type: 'simple',
+          variable: '?title2'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'titleA',
+        isOptional: false,
+        predicate: 'title'
+      }, {
+        constraint: 'titleB',
+        isOptional: false,
+        predicate: 'title'
+      }, {
+        isOptional: false,
+        predicate: 'title',
+        variable: '?title1'
+      }, {
+        isOptional: false,
+        predicate: 'title',
+        variable: '?title2'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given disabled search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({
+        title: {
+          titleA: {
+            enabled: true,
+            key: 'titleA'
+          },
+          titleB: {
+            enabled: false,
+            key: 'titleB'
+          }
+        }
+      }, {
+        aggregationType: 'age'
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?title1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'titleA',
+        isOptional: false,
+        predicate: 'title'
+      }, {
+        isOptional: false,
+        predicate: 'title',
+        variable: '?title1'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given search parameters of multiple types does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({
+        age: {
+          ageA: {
+            enabled: true,
+            key: 'ageA'
+          }
+        },
+        city: {
+          cityA: {
+            enabled: true,
+            key: 'cityA'
+          }
+        },
+        social: {
+          socialA: {
+            enabled: true,
+            key: 'socialA'
+          }
+        }
+      }, {
+        aggregationType: 'age',
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?age1'
+        }, {
+          type: 'simple',
+          variable: '?city1'
+        }, {
+          type: 'simple',
+          variable: '?social_media_id1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'ageA',
+        isOptional: false,
+        predicate: 'age'
+      }, {
+        constraint: 'cityA',
+        isOptional: false,
+        predicate: 'city'
+      }, {
+        constraint: 'socialA',
+        isOptional: false,
+        predicate: 'social_media_id'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age1'
+      }, {
+        isOptional: false,
+        predicate: 'city',
+        variable: '?city1'
+      }, {
+        isOptional: false,
+        predicate: 'social_media_id',
+        variable: '?social_media_id1'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given date search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({
+        postingDate: {
+          dateStart: {
+            enabled: true,
+            date: 'start'
+          },
+          dateEnd: {
+            enabled: true,
+            date: 'end'
+          }
+        }
+      }, {
+        aggregationType: 'city'
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?city'
+        }]
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?date1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?city'
+        }]
+      });
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([{
+        operator: 'and',
+        clauses: [{
+          constraint: 'start',
+          operator: '>',
+          variable: '?date1'
+        }, {
+          constraint: 'end',
+          operator: '<',
+          variable: '?date1'
+        }]
+      }]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        isOptional: false,
+        predicate: 'posting_date',
+        variable: '?date1'
+      }, {
+        isOptional: false,
+        predicate: 'city',
+        variable: '?city'
+      }]);
+    });
+
+    test('facetsQuery transform function given both enabled and disabled date search parameters does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({
+        postingDate: {
+          dateStart: {
+            enabled: true,
+            date: 'start'
+          },
+          dateEnd: {
+            enabled: false,
+            date: 'end'
+          }
+        }
+      }, {
+        aggregationType: 'city'
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?city'
+        }]
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?date1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?city'
+        }]
+      });
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([{
+        operator: 'and',
+        clauses: [{
+          constraint: 'start',
+          operator: '>',
+          variable: '?date1'
+        }]
+      }]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        isOptional: false,
+        predicate: 'posting_date',
+        variable: '?date1'
+      }, {
+        isOptional: false,
+        predicate: 'city',
+        variable: '?city'
+      }]);
+    });
+
+    test('does define cityAggregations transform function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.search);
+      assert.isFunction(clientConfig.config.transforms.search.cityAggregations);
+    });
+
+    test('cityAggregations transform function does create a city list from the given response', function() {
+      var cityAggregations = clientConfig.config.transforms.search.cityAggregations(cityResponse, 'city');
+      assert.deepEqual(cityAggregations, [{
+        count: 11,
+        id: 'Ontario',
+        link: '/location.html?id=Ontario:California:United States:-117.65089:34.06334',
+        text: 'Ontario'
+      }, {
+        count: 10,
+        id: 'Los Angeles',
+        link: '/location.html?id=Los Angeles:California:United States:-118.24368:34.05223',
+        text: 'Los Angeles'
+      }, {
+        count: 10,
+        id: 'Mumbai',
+        link: '/location.html?id=Mumbai:State of Maharashtra:India:72.88261:19.07283',
+        text: 'Mumbai'
+      }, {
+        count: 9,
+        id: 'Melbourne',
+        link: '/location.html?id=Melbourne:Florida:United States:-80.60811:28.08363',
+        text: 'Melbourne'
+      }, {
+        count: 8,
+        id: 'Bakersfield',
+        link: '/location.html?id=Bakersfield:California:United States:-119.01871:35.37329',
+        text: 'Bakersfield'
+      }, {
+        count: 8,
+        id: 'Dallas',
+        link: '/location.html?id=Dallas:Texas:United States:-96.80667:32.78306',
+        text: 'Dallas'
+      }, {
+        count: 8,
+        id: 'Shanghai',
+        link: '/location.html?id=Shanghai:Shanghai Shi:China:121.45806:31.22222',
+        text: 'Shanghai'
+      }, {
+        count: 7,
+        id: 'Miami',
+        link: '/location.html?id=Miami:Florida:United States:-80.19366:25.77427',
+        text: 'Miami'
+      }, {
+        count: 7,
+        id: 'New York',
+        link: '/location.html?id=New York:New York:United States:-74.00597:40.71427',
+        text: 'New York'
+      }, {
+        count: 7,
+        id: 'Oklahoma City',
+        link: '/location.html?id=Oklahoma City:Oklahoma:United States:-97.51643:35.46756',
+        text: 'Oklahoma City'
+      }]);
+    });
+
+    test('does define filterAggregations transform function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.search);
+      assert.isFunction(clientConfig.config.transforms.search.filterAggregations);
+    });
+
+    test('filterAggregations transform function does create a filter list from the given response', function() {
+      var filterAggregations = clientConfig.config.transforms.search.filterAggregations(filterResponse, 'property');
+      assert.deepEqual(filterAggregations, [{
+        count: 20,
+        id: '123'
+      }, {
+        count: 10,
+        id: 'uppercase'
+      }, {
+        count: 5,
+        id: 'lowercase'
+      }]);
+    });
+
+    test('does define compoundExtractionAggregations transform function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.search);
+      assert.isFunction(clientConfig.config.transforms.search.compoundExtractionAggregations);
+    });
+
+    test('compoundExtractionAggregations transform function does create an extraction list from the given response', function() {
+      var compoundExtractionAggregations = clientConfig.config.transforms.search.compoundExtractionAggregations(compoundResponse, 'property');
+      assert.deepEqual(compoundExtractionAggregations, [{
+        count: 80,
+        id: '175',
+        text: '175'
+      }, {
+        count: 40,
+        id: '175',
+        text: '175 cm'
+      }, {
+        count: 20,
+        id: '175',
+        text: '175 per 60 minutes'
+      }, {
+        count: 10,
+        id: '175',
+        text: '175 dollars'
+      }, {
+        count: 5,
+        id: '175',
+        text: '175 dollars per 60 minutes'
+      }]);
+    });
+
+    test('does define emailAggregations transform function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.search);
+      assert.isFunction(clientConfig.config.transforms.search.emailAggregations);
+    });
+
+    test('emailAggregations transform function does create an email list from the given response', function() {
+      var emailAggregations = clientConfig.config.transforms.search.emailAggregations(emailResponse, 'email');
+      assert.deepEqual(emailAggregations, [{
+        count: 20,
+        id: 'abc@gmail.com',
+        link: '/email.html?id=abc%40gmail.com'
+      }, {
+        count: 10,
+        id: 'xyz@gmail.com',
+        link: '/email.html?id=xyz%40gmail.com'
+      }, {
+        count: 5,
+        id: 'abc@yahoo.com',
+        link: '/email.html?id=abc%40yahoo.com'
+      }]);
+    });
+
+    test('does define phoneAggregations transform function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.search);
+      assert.isFunction(clientConfig.config.transforms.search.phoneAggregations);
+    });
+
+    test('phoneAggregations transform function does create a phone list from the given response', function() {
+      var phoneAggregations = clientConfig.config.transforms.search.phoneAggregations(phoneResponse, 'phone');
+      assert.deepEqual(phoneAggregations, [{
+        count: 80,
+        id: '1234567890',
+        link: '/phone.html?id=1234567890',
+        text: '123-456-7890'
+      }, {
+        count: 40,
+        id: '+1-1112223333',
+        link: '/phone.html?id=+1-1112223333',
+        text: '111-222-3333'
+      }, {
+        count: 20,
+        id: '+2-4445556666',
+        link: '/phone.html?id=+2-4445556666',
+        text: '+2-444-555-6666'
+      }, {
+        count: 10,
+        id: '+1234-7778889999',
+        link: '/phone.html?id=+1234-7778889999',
+        text: '+1234-777-888-9999'
+      }, {
+        count: 5,
+        id: '+x-9876543210',
+        link: '/phone.html?id=+x-9876543210',
+        text: '987-654-3210'
+      }]);
+    });
+
+    test('does define socialMediaAggregations transform function', function() {
+      assert.isObject(clientConfig.config);
+      assert.isObject(clientConfig.config.transforms);
+      assert.isObject(clientConfig.config.transforms.search);
+      assert.isFunction(clientConfig.config.transforms.search.socialMediaAggregations);
+    });
+
+    test('socialMediaAggregations transform function does create a social media list from the given response', function() {
+      var socialMediaAggregations = clientConfig.config.transforms.search.socialMediaAggregations(socialMediaResponse, 'social');
+      assert.deepEqual(socialMediaAggregations, [{
+        count: 80,
+        id: 'user123',
+        link: undefined,
+        text: 'twitter user123'
+      }, {
+        count: 40,
+        id: 'user456',
+        link: undefined,
+        text: 'twitter user456'
+      }, {
+        count: 20,
+        id: 'user789',
+        link: undefined,
+        text: 'twitter user789'
+      }, {
+        count: 10,
+        id: 'userabc',
+        link: undefined,
+        text: 'instagram userabc'
+      }, {
+        count: 5,
+        id: 'userxyz',
+        link: undefined,
+        text: 'userxyz'
       }]);
     });
   });
