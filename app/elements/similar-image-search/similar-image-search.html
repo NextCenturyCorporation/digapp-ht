@@ -24,21 +24,37 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 <link rel="import" href="../../bower_components/paginated-image-gallery/paginated-image-gallery.html">
-<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
-<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="similar-image-search">
   <template>
     <style include="iron-flex iron-flex-alignment"></style>
-    <style include="user-dialog-styles"></style>
 
     <style>
       :host {
         display: block;
+      }
+
+      /* Apply DIG Element button styling to the file upload button. */
+      file-upload ::content paper-button {
+        @apply(--shadow-elevation-4dp);
+        font-size: 14px;
+        line-height: 20px;
+        margin: 0;
+        padding: 5px 10px;
+      }
+
+      /* Apply DIG Element button styling to the file upload button. */
+      file-upload ::content paper-button:hover {
+        @apply(--shadow-elevation-8dp);
+      }
+
+      file-upload ::content #UploadBorder {
+        margin: 10px;
       }
 
       file-upload ::content .name {
@@ -80,7 +96,6 @@ limitations under the License.
         cursor: pointer;
         display: block;
         line-height: 24px;
-        margin: 0 5px;
         padding: 5px;
       }
 
@@ -116,224 +131,173 @@ limitations under the License.
       }
     </style>
 
-    <paper-dialog id="similarImageSearchDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <div class="settings layout vertical">
+    <styled-dialog id="similarImageSearchDialog" header="Upload Images or Enter Image Links" fill>
+      <div class="styled-dialog-note">Enter or paste image links in the text box.  Multiple links may be separated by spaces or new lines.</div>
+
+      <div class="layout horizontal">
+        <paper-textarea class="flex styled-dialog-right-space" label="Enter or Paste Image Links" value="{{_urlInput}}" no-label-float></paper-textarea>
+
+        <button-action disabled="[[!_urlInput]]" text="Add Links" click-listener="[[_createAddUrlListener()]]"></button-action>
+      </div>
+
+      <div class="styled-dialog-note">Upload image files by clicking the Upload Images button and selecting one or more files or by dropping one or more files into the drop box.</div>
+
+      <div class="layout horizontal center">
+        <file-upload
+          id="fileUpload"
+          accept="image/*"
+          droppable
+          method="POST"
+          multi
+          raised
+          target="/uploadImage"
+          on-error="_setUploadErrorMessage"
+          on-success="_saveUploadedInputImage">Upload Images...
+        </file-upload>
+
+        <span class="styled-dialog-text">[[_error]]</span>
+      </div>
+
+      <div class="styled-dialog-divider"></div>
+
+      <div class="styled-dialog-bold styled-dialog-tall">Your Uploaded Images and Links</div>
+
+      <template is="dom-if" if="[[_images.length]]">
+        <div class="styled-dialog-note">Click on an image in the list to remove it from or add it to your search.</div>
+      </template>
+
+      <template is="dom-if" if="[[!_images.length]]">
+        <div class="styled-dialog-text">None</div>
+      </template>
+
+      <template is="dom-if" if="[[_images.length]]">
         <div class="layout horizontal">
-          <span class="bold tall flex">Upload Images or Enter Image Links</span>
-          <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
-        </div>
+          <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space">[[_getSelectedImagesText(_selectedImageIds.length)]]</div>
 
-        <div class="divider"></div>
-
-        <div class="text note">Enter or paste image links in the text box.  Multiple links may be separated by spaces or new lines.</div>
-
-        <div class="layout horizontal">
-          <paper-textarea class="flex right-space" label="Enter or Paste Image Links" value="{{_urlInput}}" no-label-float></paper-textarea>
-
-          <button-action disabled="[[!_urlInput]]" text="Add Links" click-listener="[[_createAddUrlListener()]]"></button-action>
-        </div>
-
-        <div class="text note">Upload image files by clicking the Upload Images button and selecting one or more files or by dropping one or more files into the drop box.</div>
-
-        <div class="layout horizontal center">
-          <file-upload
-            id="fileUpload"
-            accept="image/*"
-            droppable
-            method="POST"
-            multi
-            raised
-            target="/uploadImage"
-            on-error="_setUploadErrorMessage"
-            on-success="_saveUploadedInputImage">Upload Images...
-          </file-upload>
-
-          <span class="text">[[_error]]</span>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="bold tall">Your Uploaded Images and Links</div>
-
-        <template is="dom-if" if="[[_images.length]]">
-          <div class="text note">Click on an image in the list to remove it from or add it to your search.</div>
-        </template>
-
-        <template is="dom-if" if="[[!_images.length]]">
-          <div class="text">None</div>
-        </template>
-
-        <template is="dom-if" if="[[_images.length]]">
-          <div class="layout horizontal">
-            <div class="text tall right-space">[[_getSelectedImagesText(_selectedImageIds.length)]]</div>
-
-            <button-action class="tall right-space"
-              disabled="[[loading]]"
-              text="Select All"
-              click-listener="[[_createSelectListener(1)]]">
-            </button-action>
-
-            <button-action class="tall right-space"
-              disabled="[[loading]]"
-              text="Deselect All"
-              click-listener="[[_createSelectListener(0)]]">
-            </button-action>
-          </div>
-
-          <div class="file-list">
-            <template is="dom-repeat" items="[[_images]]" as="image">
-              <paper-checkbox class$="text selectable-text [[_ifIsInListThenReturn(_selectedImageIds, image.id, 'selected')]] [[_ifIsInListThenReturn(_hoveringImageIds, image.id, 'hovering')]]"
-                disabled="[[loading]]"
-                title$="[[_getInputImageTitle(index, image.name)]]"
-                on-change="_updateSelectedImageIds"
-                on-mouseover="_hoverStart"
-                on-mouseout="_hoverEnd"
-                checked="{{image.selected}}">
-
-                [[_getInputImageLabel(index, image.name)]]
-              </paper-checkbox>
-            </template>
-          </div>
-
-          <image-gallery class="selectable-images"
-            images="[[_images]]"
-            image-source-property="data"
-            hovering="{{_hoveringImageIds}}"
-            selected="[[_selectedImageIds]]"
-            blur="[[blur]]">
-          </image-gallery>
-
-          <div class="text note">Click a Search button to search on the selected images.  Search for near-duplicates if you want to find exact or near-exact matches.  Search for all similar images if you want to find additional matches.  The search on each image will take a few seconds to complete.</div>
-        </template>
-
-        <div class="layout horizontal center-justified">
-          <button-action class="tall right-space"
-            disabled="[[!_enableSearch(loading, _selectedImageIds.length)]]"
-            text="Search for Near-Duplicate Images"
-            click-listener="[[_createSearchListener(1)]]">
+          <button-action class="styled-dialog-tall styled-dialog-right-space"
+            disabled="[[loading]]"
+            text="Select All"
+            click-listener="[[_createSelectListener(1)]]">
           </button-action>
 
-          <button-action class="tall"
-            disabled="[[!_enableSearch(loading, _selectedImageIds.length)]]"
-            text="Search for All Similar Images"
-            click-listener="[[_createSearchListener(0)]]">
+          <button-action class="styled-dialog-tall styled-dialog-right-space"
+            disabled="[[loading]]"
+            text="Deselect All"
+            click-listener="[[_createSelectListener(0)]]">
           </button-action>
         </div>
 
-        <loading-spinner show="[[loading]]" type="[[_getLoadingSpinnerText(_images, _queryIndex, _selectedImageIds)]]"></loading-spinner>
+        <div class="file-list">
+          <template is="dom-repeat" items="[[_images]]" as="image">
+            <paper-checkbox class$="styled-dialog-text selectable-text [[_ifIsInListThenReturn(_selectedImageIds, image.id, 'selected')]] [[_ifIsInListThenReturn(_hoveringImageIds, image.id, 'hovering')]]"
+              disabled="[[loading]]"
+              title$="[[_getInputImageTitle(index, image.name)]]"
+              on-change="_updateSelectedImageIds"
+              on-mouseover="_hoverStart"
+              on-mouseout="_hoverEnd"
+              checked="{{image.selected}}">
 
-        <iron-ajax
-          id="xhr"
-          handle-as="json"
-          with-credentials="true"
-          loading="{{loading}}"
-          on-response="_handleImageServiceResponse">
-        </iron-ajax>
+              [[_getInputImageLabel(index, image.name)]]
+            </paper-checkbox>
+          </template>
+        </div>
 
-        <div class="divider"></div>
+        <image-gallery class="selectable-images"
+          images="[[_images]]"
+          image-source-property="data"
+          hovering="{{_hoveringImageIds}}"
+          selected="[[_selectedImageIds]]"
+          blur="[[blur]]">
+        </image-gallery>
 
-        <div class="layout horizontal">
-          <div class="padded layout vertical flex">
-            <div class="bold tall">Your Similar Image Results</div>
+        <div class="styled-dialog-note">Click a Search button to search on the selected images.  Search for near-duplicates if you want to find exact or near-exact matches.  Search for all similar images if you want to find additional matches.  The search on each image will take a few seconds to complete.</div>
+      </template>
 
-            <template is="dom-if" if="[[_results.length]]">
-              <div class="text note">Click on a result in the list to view its similar images.  You can view one result while the others are loading.</div>
+      <div class="layout horizontal center-justified">
+        <button-action class="styled-dialog-tall styled-dialog-right-space"
+          disabled="[[!_enableSearch(loading, _selectedImageIds.length)]]"
+          text="Search for Near-Duplicate Images"
+          click-listener="[[_createSearchListener(1)]]">
+        </button-action>
 
-              <div class="file-list">
-                <template is="dom-repeat" items="[[_results]]" as="result">
-                  <div class$="layout horizontal text selectable-text [[_ifAreEqualThenReturn(_selectedResultsIndex, index, 'selected')]]" on-tap="_selectImageResults">
-                    <span class="flex-8">[[result.filename]]</span>
-                    <span class="flex-2">[[_getImageResultsDetailText(result.resultsList.length, result.nearDuplicates)]]</span>
-                    <span class="flex-2">[[result.date]]</span>
-                  </div>
-                </template>
-              </div>
+        <button-action class="styled-dialog-tall"
+          disabled="[[!_enableSearch(loading, _selectedImageIds.length)]]"
+          text="Search for All Similar Images"
+          click-listener="[[_createSearchListener(0)]]">
+        </button-action>
+      </div>
 
-              <iron-pages selected="[[_selectedResultsIndex]]">
-                <template is="dom-repeat" items="[[_results]]" as="result">
-                  <div>
-                    <div class="bold tall">Your Image</div>
+      <loading-spinner show="[[loading]]" type="[[_getLoadingSpinnerText(_images, _queryIndex, _selectedImageIds)]]"></loading-spinner>
 
-                    <div class="layout horizontal center">
-                      <image-gallery
-                        images="[[result.imageList]]"
-                        image-source-property="data"
-                        blur="[[blur]]">
-                      </image-gallery>
-                    </div>
+      <iron-ajax
+        id="xhr"
+        handle-as="json"
+        with-credentials="true"
+        loading="{{loading}}"
+        on-response="_handleImageServiceResponse">
+      </iron-ajax>
 
-                    <div class="bold tall">[[_getImageResultsHeaderText(result.resultsList.length, result.nearDuplicates)]]</div>
+      <div class="styled-dialog-divider"></div>
 
-                    <paginated-image-gallery
-                      blur="[[blur]]"
-                      new-tab
-                      load-type="Similar Images"
-                      image-items="[[result.resultsList]]"
-                      total-items="[[result.resultsList.length]]">
-                    </paginated-image-gallery>
-                  </div>
-                </template>
-              </iron-pages>
-            </template>
+      <div class="styled-dialog-bold styled-dialog-tall">Your Similar Image Results</div>
 
-            <template is="dom-if" if="[[!_results.length]]">
-              <div class="text">None</div>
-            </template>
-          </div>
+      <template is="dom-if" if="[[_results.length]]">
+        <div class="styled-dialog-note">Click on a result in the list to view its similar images.  You can view one result while the others are loading.</div>
 
-          <!-- Hide until we add permanent similar image search history.
-          <div class="divider vertical-divider"></div>
+        <div class="file-list">
+          <template is="dom-repeat" items="[[_results]]" as="result">
+            <div class$="layout horizontal styled-dialog-text selectable-text [[_ifAreEqualThenReturn(_selectedResultsIndex, index, 'selected')]]" on-tap="_selectImageResults">
+              <span class="flex-8">[[result.filename]]</span>
+              <span class="flex-2">[[_getImageResultsDetailText(result.resultsList.length, result.nearDuplicates)]]</span>
+              <span class="flex-2">[[result.date]]</span>
+            </div>
+          </template>
+        </div>
 
-          <div class="padded layout vertical previous-searches">
-            <div class="bold tall">Your Previous Searches</div>
+        <iron-pages selected="[[_selectedResultsIndex]]">
+          <template is="dom-repeat" items="[[_results]]" as="result">
+            <div>
+              <div class="styled-dialog-bold styled-dialog-tall">Your Image</div>
 
-            <template is="dom-if" if="[[!_previousSearches.length]]">
-              <div class="text">None</div>
-            </template>
-
-            <template is="dom-repeat" items="[[_previousSearches]]" as="search">
               <div class="layout horizontal center">
                 <image-gallery
-                  images="[[search.imageList]]"
+                  images="[[result.imageList]]"
                   image-source-property="data"
                   blur="[[blur]]">
                 </image-gallery>
-
-                <div class="layout vertical center add-padding flex">
-                  <button-action
-                    text="Show Results"
-                    click-listener="[[_createShowImageResultsListener(search)]]">
-                  </button-action>
-
-                  <div class="add-padding">
-                    <template is="dom-if" if="[[search.nearDuplicates]]">
-                      Near-Duplicates:  ON
-                    </template>
-                    <template is="dom-if" if="[[!search.nearDuplicates]]">
-                      Near-Duplicates:  OFF
-                    </template>
-                  </div>
-                </div>
               </div>
-            </template>
-          </div>
-          -->
-        </div>
 
-        <div class="text note">
-          <span class="bold right-space">How does it work?</span>
-          Near-duplicate and similar images are found by looking at features in the input image like hairstyle, physical characteristics, dress, environment, and pose.  Images that are more similar are ranked higher in the results.  To learn more, please visit <a href="http://www.ee.columbia.edu/ln/dvmm/memex/" target="_blank">this page</a>.</div>
-      </div>
-    </paper-dialog>
+              <div class="styled-dialog-bold styled-dialog-tall">[[_getImageResultsHeaderText(result.resultsList.length, result.nearDuplicates)]]</div>
 
-    <paper-dialog id="errorDialog" class="small" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
+              <paginated-image-gallery
+                blur="[[blur]]"
+                new-tab
+                load-type="Similar Images"
+                image-items="[[result.resultsList]]"
+                total-items="[[result.resultsList.length]]">
+              </paginated-image-gallery>
+            </div>
+          </template>
+        </iron-pages>
+      </template>
+
+      <template is="dom-if" if="[[!_results.length]]">
+        <div class="styled-dialog-text">None</div>
+      </template>
+
+      <div class="styled-dialog-note">
+        <strong>How does it work?</strong>
+        Near-duplicate and similar images are found by looking at features in the input image like hairstyle, physical characteristics, dress, environment, and pose.  Images that are more similar are ranked higher in the results.  To learn more, please visit <a href="http://www.ee.columbia.edu/ln/dvmm/memex/" target="_blank">this page</a>.</div>
+    </styled-dialog>
+
+    <styled-dialog id="errorDialog" modal>
       <div class="layout vertical">
         <div class="layout horizontal">
-          <span class="bold tall flex">The image service is configured incorrectly.  Please contact DIG support immediately.</span>
+          <span class="styled-dialog-bold styled-dialog-tall flex">The image service is configured incorrectly.  Please contact DIG support immediately.</span>
           <paper-icon-button icon="clear" dialog-confirm title="Close"></paper-icon-button>
         </div>
       </div>
-    </paper-dialog>
+    </styled-dialog>
   </template>
 
   <script>

@@ -25,15 +25,14 @@ limitations under the License.
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
 <link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 <link rel="import" href="../../bower_components/paper-button/paper-button.html">
-<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-input/paper-input.html">
 <link rel="import" href="../../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
+<link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
 <link rel="import" href="../../styles/icon-styles.html">
-<link rel="import" href="../../styles/user-dialog-styles.html">
 <link rel="import" href="../search-info-display/search-info-display.html">
 <link rel="import" href="../send-search/send-search.html">
 <link rel="import" href="../behaviors.html">
@@ -43,7 +42,6 @@ limitations under the License.
   <template>
     <style include="iron-flex iron-flex-alignment"></style>
     <style include="icon-styles"></style>
-    <style include="user-dialog-styles"></style>
     <style>
       :host {
         display: inline-block;
@@ -87,6 +85,22 @@ limitations under the License.
       paper-listbox paper-item {
         cursor: pointer;
       }
+
+      .label-top-padded {
+        padding-top: 10px;
+      }
+
+      .label-bottom-padded {
+        padding-bottom: 5px;
+      }
+
+      .nowrap {
+        white-space: nowrap;
+      }
+
+      .pointer:hover {
+        cursor: pointer;
+      }
     </style>
 
     <paper-icon-button
@@ -97,230 +111,217 @@ limitations under the License.
       on-tap="_openSettingsDialog">
     </paper-icon-button>
 
-    <paper-dialog id="settingsDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-      <div class="settings layout vertical">
-        <div class="layout horizontal">
-          <span class="bold tall flex">User Settings</span>
-          <paper-icon-button icon="clear" dialog-confirm title="Close User Settings"></paper-icon-button>
+    <styled-dialog id="settingsDialog" header="User Settings" fill>
+      <div class="layout horizontal">
+        <div class="start-justified flex">
+          <template is="dom-if" if="[[!userLoading]]">
+            <span class="styled-dialog-name styled-dialog-right-space">Logged in as:</span>
+            <span class="styled-dialog-text">[[username]]</span>
+          </template>
+          <template is="dom-if" if="[[userLoading]]">
+            <span class="styled-dialog-text">Loading User Settings...</span>
+          </template>
+        </div>
+        <div class="end-justified">
+          <span class="styled-dialog-name styled-dialog-right-space">DIG Version:</span>
+          <span class="styled-dialog-text">DIG_VERSION</span>
+        </div>
+      </div>
+
+      <div class="styled-dialog-divider"></div>
+
+      <template is="dom-if" if="[[dev]]">
+        <div class="layout horizontal pointer" id="toggleAnnotationsIsi" title="Toggle ISI Annotations" on-tap="_toggleAnnotationsIsi">
+          <iron-icon class="checkbox styled-dialog-right-space" icon$="[[_getCheckboxIconToShow(annotationsIsi)]]"></iron-icon>
+          <span class="styled-dialog-text">ISI Annotations</span>
         </div>
 
-        <div class="divider"></div>
-
-        <div class="layout horizontal">
-          <div class="start-justified flex">
-            <template is="dom-if" if="[[!userLoading]]">
-              <span class="name right-space">Logged in as:</span>
-              <span class="text">[[username]]</span>
-            </template>
-            <template is="dom-if" if="[[userLoading]]">
-              <span class="text">Loading User Settings...</span>
-            </template>
-          </div>
-          <div class="end-justified">
-            <span class="name right-space">DIG Version:</span>
-            <span class="text">DIG_VERSION</span>
-          </div>
+        <div class="layout horizontal pointer" id="toggleAnnotationsDarpa" title="Toggle DARPA Annotations" on-tap="_toggleAnnotationsDarpa">
+          <iron-icon class="checkbox styled-dialog-right-space" icon$="[[_getCheckboxIconToShow(annotationsDarpa)]]"></iron-icon>
+          <span class="styled-dialog-text">DARPA Annotations</span>
         </div>
+      </template>
 
-        <div class="divider"></div>
-
-        <template is="dom-if" if="[[dev]]">
-          <div class="layout horizontal pointer" id="toggleAnnotationsIsi" title="Toggle ISI Annotations" on-tap="_toggleAnnotationsIsi">
-            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsIsi)]]"></iron-icon>
-            <span class="text">ISI Annotations</span>
-          </div>
-
-          <div class="layout horizontal pointer" id="toggleAnnotationsDarpa" title="Toggle DARPA Annotations" on-tap="_toggleAnnotationsDarpa">
-            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsDarpa)]]"></iron-icon>
-            <span class="text">DARPA Annotations</span>
-          </div>
+      <div class="layout horizontal">
+        <template is="dom-if" if="[[!classificationFlagList.length]]">
+          <span class="styled-dialog-name styled-dialog-tall">No Classification Tags</span>
         </template>
+        <template is="dom-if" if="[[classificationFlagList.length]]">
+          <span class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Classification Focus Tag:</span>
+          <paper-dropdown-menu label="Tag" no-label-float>
+            <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{classificationFlag}}">
+              <template is="dom-repeat" items="[[classificationFlagList]]" as="flag">
+                <paper-item id$="[[flag]]" value="[[flag]]">[[flag]]</paper-item>
+              </template>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </template>
+      </div>
 
-        <div class="layout horizontal">
-          <template is="dom-if" if="[[!classificationFlagList.length]]">
-            <span class="name tall">No Classification Tags</span>
-          </template>
-          <template is="dom-if" if="[[classificationFlagList.length]]">
-            <span class="name tall right-space">Classification Focus Tag:</span>
-            <paper-dropdown-menu label="Tag" no-label-float>
-              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{classificationFlag}}">
-                <template is="dom-repeat" items="[[classificationFlagList]]" as="flag">
-                  <paper-item id$="[[flag]]" value="[[flag]]">[[flag]]</paper-item>
-                </template>
-              </paper-listbox>
-            </paper-dropdown-menu>
-          </template>
+      <div class="styled-dialog-divider"></div>
+
+      <template is="dom-if" if="[[userRecordExists]]" restamp="true">
+        <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
+          <iron-icon class="checkbox styled-dialog-right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
+          <span class="styled-dialog-text">Blur Images</span>
         </div>
 
-        <div class="divider"></div>
+        <div class="layout horizontal">
+          <span class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Email Address for Notifications:</span>
+          <paper-input class="styled-dialog-right-space" label="Enter Email Address" value="{{emailAddress}}"
+            no-label-float type="email" auto-validate invalid="{{_isEmailInvalid}}">
+          </paper-input>
+          <button-action class="styled-dialog-button" title="Save Email Address" text="Save" disabled="[[_disableEmailSave(emailAddress, _isEmailInvalid)]]"
+            click-listener="[[_createSaveEmailAddressListener()]]">
+          </button-action>
+        </div>
 
-        <template is="dom-if" if="[[userRecordExists]]" restamp="true">
-          <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
-            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
-            <span class="text">Blur Images</span>
-          </div>
+        <div class="layout horizontal">
+          <span class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Check Searches for New Results:</span>
+          <paper-dropdown-menu label="Interval" no-label-float>
+            <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{notificationFrequency}}">
+              <paper-item value="never">Never</paper-item>
+              <paper-item value="daily">Every Day</paper-item>
+              <paper-item value="weekly">Every Week</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+          <paper-icon-button icon="help" title="Click for More Information" on-tap="_toggleNotificationHelp"></paper-icon-button>
+        </div>
 
-          <div class="layout horizontal">
-            <span class="name tall right-space">Email Address for Notifications:</span>
-            <paper-input class="right-space" label="Enter Email Address" value="{{emailAddress}}"
-              no-label-float type="email" auto-validate invalid="{{_isEmailInvalid}}">
-            </paper-input>
-            <button-action class="inline" title="Save Email Address" text="Save" disabled="[[_disableEmailSave(emailAddress, _isEmailInvalid)]]"
-              click-listener="[[_createSaveEmailAddressListener()]]">
-            </button-action>
-          </div>
+        <iron-collapse id="notificationHelp">
+          <span>DIG can automatically run one or more of your saved searches every day or week and notify you if any of those searches have new results.  Select the interval to run your searches above, then select which searches you want to be checked for new results in your list of saved searches below.</span>
+        </iron-collapse>
 
-          <div class="layout horizontal">
-            <span class="name tall right-space">Check Searches for New Results:</span>
-            <paper-dropdown-menu label="Interval" no-label-float>
-              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{notificationFrequency}}">
-                <paper-item value="never">Never</paper-item>
-                <paper-item value="daily">Every Day</paper-item>
-                <paper-item value="weekly">Every Week</paper-item>
-              </paper-listbox>
-            </paper-dropdown-menu>
-            <paper-icon-button icon="help" title="Click for More Information" on-tap="_toggleNotificationHelp"></paper-icon-button>
-          </div>
+        <div class="styled-dialog-divider"></div>
 
-          <iron-collapse id="notificationHelp">
-            <span>DIG can automatically run one or more of your saved searches every day or week and notify you if any of those searches have new results.  Select the interval to run your searches above, then select which searches you want to be checked for new results in your list of saved searches below.</span>
-          </iron-collapse>
-
-          <div class="divider"></div>
-
-          <div class="layout vertical">
-            <template is="dom-if" if="[[showSearch]]">
-              <div class="name">Saved Searches</div>
-            </template>
-            <template is="dom-if" if="[[!showSearch]]">
-              <div class="name">Saved Searches (Return to Search Page to Run)</div>
-            </template>
-            <template is="dom-repeat" items="[[searches]]" as="search">
-              <div class="layout vertical saved-item">
-                <div class="layout horizontal">
-                  <modal-icon id$="[[_createElementId('expandSavedSearch', index)]]"
-                    title="[[_getModalIconTitle('expandSavedSearch', index)]]"
-                    openable ripple on-tap="_toggleSearchSettings">
-                  </modal-icon>
-                  <paper-icon-button class$="[[_getRunButtonClass(showSearch, search.notificationHasRun)]]" icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <search-info-display
-                    search-name="[[search.name]]"
-                    search-parameters="[[_getSearchParameters(search)]]"
-                    show-new-icon="[[_getShowNewIcon(search)]]">
-                  </search-info-display>
-                </div>
-                <iron-collapse id$="[[_createElementId('savedSearch', index)]]">
-                  <div class="layout horizontal search-settings">
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Created By</div>
-                      <div class="name tall right-space">Created On</div>
-                      <div class="name right-space">
-                        <div class="label-top-padded">Check for</div>
-                        <div class="label-bottom-padded">New Results</div>
-                      </div>
+        <div class="layout vertical">
+          <template is="dom-if" if="[[showSearch]]">
+            <div class="styled-dialog-name">Saved Searches</div>
+          </template>
+          <template is="dom-if" if="[[!showSearch]]">
+            <div class="styled-dialog-name">Saved Searches (Return to Search Page to Run)</div>
+          </template>
+          <template is="dom-repeat" items="[[searches]]" as="search">
+            <div class="layout vertical saved-item">
+              <div class="layout horizontal">
+                <modal-icon id$="[[_createElementId('expandSavedSearch', index)]]"
+                  title="[[_getModalIconTitle('expandSavedSearch', index)]]"
+                  openable ripple on-tap="_toggleSearchSettings">
+                </modal-icon>
+                <paper-icon-button class$="[[_getRunButtonClass(showSearch, search.notificationHasRun)]]" icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                <search-info-display
+                  search-name="[[search.name]]"
+                  search-parameters="[[_getSearchParameters(search)]]"
+                  show-new-icon="[[_getShowNewIcon(search)]]">
+                </search-info-display>
+              </div>
+              <iron-collapse id$="[[_createElementId('savedSearch', index)]]">
+                <div class="layout horizontal search-settings">
+                  <div class="layout vertical styled-dialog-right-space">
+                    <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Created By</div>
+                    <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Created On</div>
+                    <div class="styled-dialog-name styled-dialog-right-space">
+                      <div class="label-top-padded">Check for</div>
+                      <div class="label-bottom-padded">New Results</div>
                     </div>
-                    <div class="layout vertical right-space">
-                      <div class="text tall right-space nowrap">[[search.createdBy]]</div>
-                      <div class="text tall right-space nowrap">[[_getFormattedDate(search.createdAt)]]</div>
-                      <div class="text tall right-space nowrap">
-                      <div class="layout horizontal padded">
-                        <paper-toggle-button class="text tall right-space"
+                  </div>
+                  <div class="layout vertical styled-dialog-right-space">
+                    <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">[[search.createdBy]]</div>
+                    <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">[[_getFormattedDate(search.createdAt)]]</div>
+                    <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">
+                      <div class="layout horizontal styled-dialog-padded">
+                        <paper-toggle-button class="styled-dialog-text styled-dialog-tall styled-dialog-right-space"
                           checked="{{search.sendEmailNotification}}" on-change="_toggleNotificationAlert"
                           disabled="[[_disableNotificationToggle(showSearch, notificationFrequency)]]">
                         </paper-toggle-button>
-                        <span class="text tall">[[_isNotificationOn(notificationFrequency, search.sendEmailNotification)]]</span>
+                        <span class="styled-dialog-text styled-dialog-tall">[[_isNotificationOn(notificationFrequency, search.sendEmailNotification)]]</span>
                       </div>
                     </div>
-                    </div>
-                    <div class="v-divider"></div>
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Send Search to User</div>
-                    </div>
-
-                    <div class="layout vertical right-space">
-                      <send-search
-                        search="[[search]]"
-                        client="[[client]]"
-                        current-user="[[username]]"
-                        user-index="[[userIndex]]"
-                        user-type="[[userType]]"
-                        disable-send="[[!showSearch]]"
-                        send-in-progress="{{sendingSearch}}">
-                      </send-search>
-                    </div>
                   </div>
-                </iron-collapse>
-              </div>
-            </template>
-          </div>
-
-          <div class="divider"></div>
-
-          <div class="layout vertical">
-            <template is="dom-if" if="[[showSearch]]">
-              <div class="name">Received Searches</div>
-            </template>
-            <template is="dom-if" if="[[!showSearch]]">
-              <div class="name">Received Searches (Return to Search Page to Run)</div>
-            </template>
-            <template is="dom-repeat" items="[[receivedSearches]]" as="search">
-              <div class="layout vertical saved-item">
-                <div class="layout horizontal">
-                  <modal-icon id$="[[_createElementId('expandReceivedSearch', index)]]" openable
-                    title="[[_getModalIconTitle('expandReceivedSearch', index)]]"
-                    ripple on-tap="_toggleReceivedSearchSettings">
-                  </modal-icon>
-                  <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                  <search-info-display
-                    search-name="[[search.name]]"
-                    search-parameters="[[_getSearchParameters(search)]]"
-                    show-new-icon="[[_getShowNewIcon(search)]]">
-                  </search-info-display>
+                  <div class="layout vertical styled-dialog-right-space">
+                    <send-search
+                      search="[[search]]"
+                      client="[[client]]"
+                      current-user="[[username]]"
+                      user-index="[[userIndex]]"
+                      user-type="[[userType]]"
+                      disable-send="[[!showSearch]]"
+                      send-in-progress="{{sendingSearch}}">
+                    </send-search>
+                  </div>
                 </div>
-                <iron-collapse id$="[[_createElementId('receivedSearch', index)]]">
-                  <div class="layout horizontal search-settings">
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Created By</div>
-                      <div class="name tall right-space">Created On</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <div class="text tall right-space nowrap">[[search.createdBy]]</div>
-                      <div class="text tall right-space nowrap">[[_getFormattedDate(search.createdAt)]]</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <div class="name tall right-space">Add To Saved Searches</div>
-                      <div class="name tall right-space">Message From User</div>
-                    </div>
-                    <div class="layout vertical right-space">
-                      <button-action class="inline" title="Add this Search to Saved Searches" text="Add"
-                        click-listener="[[_createAddSearchListener(index)]]" disabled="[[!showSearch]]">
-                      </button-action>
-                      <!-- Confirm dialog for saving over an existing search -->
-                      <paper-dialog id="receiveAlert"  class="small" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation">
-                        <div class="layout horizontal">
-                          <span class="bold tall flex">Adding this query will save over your previously saved search of the same name.</span>
-                        </div>
-                        <div class="buttons">
-                          <paper-button dialog-confirm on-tap="_confirmReceivedSearch">OK</paper-button>
-                          <paper-button dialog-dismiss>Cancel</paper-button>
-                        </div>
-                      </paper-dialog>
-                      <div class="text tall right-space">[[search.message]]</div>
-                    </div>
-                  </div>
-                </iron-collapse>
-              </div>
-            </template>
-          </div>
-        </template>
+              </iron-collapse>
+            </div>
+          </template>
+        </div>
 
-        <template is="dom-if" if="[[!userRecordExists]]" restamp="true">
-          Creating user record...
-        </template>
+        <div class="styled-dialog-divider"></div>
+
+        <div class="layout vertical">
+          <template is="dom-if" if="[[showSearch]]">
+            <div class="styled-dialog-name">Received Searches</div>
+          </template>
+          <template is="dom-if" if="[[!showSearch]]">
+            <div class="styled-dialog-name">Received Searches (Return to Search Page to Run)</div>
+          </template>
+          <template is="dom-repeat" items="[[receivedSearches]]" as="search">
+            <div class="layout vertical saved-item">
+              <div class="layout horizontal">
+                <modal-icon id$="[[_createElementId('expandReceivedSearch', index)]]" openable
+                  title="[[_getModalIconTitle('expandReceivedSearch', index)]]"
+                  ripple on-tap="_toggleReceivedSearchSettings">
+                </modal-icon>
+                <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
+                <search-info-display
+                  search-name="[[search.name]]"
+                  search-parameters="[[_getSearchParameters(search)]]"
+                  show-new-icon="[[_getShowNewIcon(search)]]">
+                </search-info-display>
+              </div>
+              <iron-collapse id$="[[_createElementId('receivedSearch', index)]]">
+                <div class="layout horizontal search-settings">
+                  <div class="layout vertical styled-dialog-right-space">
+                    <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Created By</div>
+                    <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Created On</div>
+                  </div>
+                  <div class="layout vertical styled-dialog-right-space">
+                    <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">[[search.createdBy]]</div>
+                    <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">[[_getFormattedDate(search.createdAt)]]</div>
+                  </div>
+                  <div class="layout vertical styled-dialog-right-space">
+                    <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Add To Saved Searches</div>
+                    <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Message From User</div>
+                  </div>
+                  <div class="layout vertical styled-dialog-right-space">
+                    <button-action class="inline" title="Add this Search to Saved Searches" text="Add"
+                      click-listener="[[_createAddSearchListener(index)]]" disabled="[[!showSearch]]">
+                    </button-action>
+                    <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space">[[search.message]]</div>
+                  </div>
+                </div>
+              </iron-collapse>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <template is="dom-if" if="[[!userRecordExists]]" restamp="true">
+        Creating user record...
+      </template>
+    </styled-dialog>
+
+    <!-- Confirm dialog for saving over an existing search -->
+    <styled-dialog id="receiveAlert" modal>
+      <div class="layout horizontal">
+        <span class="styled-dialog-bold styled-dialog-tall flex">Adding this query will save over your previously saved search of the same name.</span>
       </div>
-    </paper-dialog>
+      <div class="buttons">
+        <paper-button dialog-confirm on-tap="_confirmReceivedSearch">OK</paper-button>
+        <paper-button dialog-dismiss>Cancel</paper-button>
+      </div>
+    </styled-dialog>
 
     <!--Updates to user record initiated by user preferences dialog-->
     <elastic-update

@@ -19,9 +19,8 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
-<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../clipboard.html">
 <link rel="import" href="../lodash.html">
@@ -30,16 +29,11 @@ limitations under the License.
 <dom-module id="state-manager">
   <template>
     <style include="iron-flex"></style>
-    <style include="user-dialog-styles"></style>
 
     <style>
-      paper-dialog {
+      styled-dialog {
         /** Needed for IE **/
         min-width: 900px;
-      }
-
-      paper-dialog > div > * {
-        margin: 5px;
       }
     </style>
 
@@ -75,21 +69,12 @@ limitations under the License.
       results="{{_stringifiedStateResults}}">
     </build-and-run-query>
 
-    <paper-dialog modal id="linkDialog" class="small" entry-animation="fade-in-animation" exit-animation="fade-out-animation" on-iron-overlay-opened="_activateClipboard" on-iron-overlay-closed="_deactivateClipboard">
-      <div class="layout vertical">
-        <div class="layout horizontal">
-          <span class="bold tall flex">Page Link</span>
-          <paper-icon-button icon="clear" title="Close" dialog-confirm></paper-icon-button>
-        </div>
-
-        <div class="divider"></div>
-
-        <div class="layout horizontal">
-          <div id="link" class="right-space tall flex">[[_link]]</div>
-          <paper-icon-button id="copyToClipboard" icon="content-copy" title="Copy Link to Clipboard" data-clipboard-target="#link"></paper-icon-button>
-        </div>
+    <styled-dialog id="linkDialog" header="Page Link" on-opened-changed="_toggleClipboard">
+      <div class="layout horizontal">
+        <div id="link" class="styled-dialog-right-space styled-dialog-tall flex">[[_link]]</div>
+        <paper-icon-button id="copyToClipboard" icon="content-copy" title="Copy Link to Clipboard" data-clipboard-target="#link"></paper-icon-button>
       </div>
-    </paper-dialog>
+    </styled-dialog>
   </template>
 
   <script>
@@ -258,13 +243,11 @@ limitations under the License.
         }
       },
 
-      _activateClipboard: function() {
-        this._clipboard = new Clipboard('#copyToClipboard');
-      },
-
-      _deactivateClipboard: function() {
-        // Destroy the clipboard object whenever the dialog is closed in order to avoid console errors.
-        if(this._clipboard) {
+      _toggleClipboard: function(opened) {
+        if(opened) {
+          this._clipboard = new Clipboard('#copyToClipboard');
+        } else if(this._clipboard) {
+          // Destroy the clipboard object whenever the dialog is closed in order to avoid console errors.
           this._clipboard.destroy();
         }
       },
