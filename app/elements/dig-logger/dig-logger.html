@@ -25,7 +25,8 @@ limitations under the License.
       client="[[esClient]]"
       index="[[esIndex]]"
       elastic-type="[[esType]]"
-      body="[[_esLogBody]]">
+      body="[[_esLogBody]]"
+      results="{{_esLogResult}}">
     </elastic-create>
   </template>
 
@@ -37,74 +38,114 @@ limitations under the License.
       is: 'dig-logger',
 
       properties: {
+        data: {
+          type: String
+        },
+
         esClient: {
           type: Object
         },
+
         esIndex: {
           type: String
         },
+
         esType: {
           type: String
         },
-        supertype: {
-          type: String,
-          value: 'supertype'
+
+        logPageView: {
+          type: Boolean,
+          value: false
         },
-        subtype: {
-          type: String,
-          value: 'subtype'
-        },
-        username: {
-          type: String,
-          observer: '_onUsernameChange'
-        },
-        value: {
-          type: String,
-          observer: '_onInputValueChange'
-        },
+
         logger: {
           notify: true,
           type: Object,
           value: function() {
             var self = this;
             return {
-              log: function(supertype, subtype, value) {
-                self.log(self.username, 'event', supertype, subtype, value);
+              log: function(type, data) {
+                self.log(self.username, 'event', type, data);
               }
             };
           }
         },
+
+        type: {
+          type: String
+        },
+
+        username: {
+          type: String,
+        },
+
         _esLogBody: {
           type: Object
         },
+
+        _esLogList: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        _esLogResult: {
+          type: Object
+        }
       },
 
-      log: function(username, googleType, supertype, subtype, value) {
+      observers: [
+        '_logData(username, type, data)',
+        '_logPageView(username)',
+        '_setNextLogBody(_esLogResult)',
+        '_setThisLogBody(_esLogList.splices)'
+      ],
+
+      log: function(username, googleType, type, data) {
         /* jshint ignore:start */
         ga('set', 'dimension1', window.btoa(this.username));
         ga('set', 'userId', window.btoa(this.username));
-        if(supertype && subtype && value) {
-          ga('send', googleType, supertype, subtype, value);
+        if(type) {
+          ga('send', googleType, type, data);
         } else {
-          ga('send', googleType);
+          ga('send', googleType, data);
         }
         /* jshint ignore:end */
 
-        this.set('_esLogBody', {
+        this.push('_esLogList', {
+          version: 'DIG_VERSION',
           user: username,
-          type: (supertype || '') + (supertype && subtype ? '-' : '') + (subtype || ''),
+          type: type || '',
           host: window.location.origin,
           date: new Date(),
-          data: value || ''
+          data: data || ''
         });
       },
 
-      _onInputValueChange: function(value) {
-        this.log(this.username, 'event', this.supertype, this.subtype, value);
+      _logData: function(username, type, data) {
+        this.log(username, 'event', type, data);
       },
 
-      _onUsernameChange: function(username) {
-        this.log(username, 'pageview', 'PageView');
+      _logPageView: function(username) {
+        if(this.logPageView) {
+          this.log(username, 'pageview', 'PageView', window.location.pathname + window.location.search);
+        }
+      },
+
+      _setNextLogBody: function() {
+        if(this._esLogList.length) {
+          this.set('_esLogBody', this._esLogList.shift());
+        } else {
+          this.set('_esLogBody', undefined);
+        }
+      },
+
+      _setThisLogBody: function() {
+        if(!this._esLogBody) {
+          this._setNextLogBody();
+        }
       }
     });
   })();

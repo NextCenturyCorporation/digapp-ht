@@ -1,0 +1,807 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>client-config</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="data/ad-bar-chart-data.js" type="text/javascript"></script>
+  <script src="data/ad-filtered-itinerary-data.js" type="text/javascript"></script>
+  <link rel="import" href="../elements/client-config/client-config.html">
+  <link rel="import" href="../elements/lodash.html">
+</head>
+
+<body>
+<test-fixture id="client-config-fixture">
+  <template>
+    <client-config></client-config>
+  </template>
+</test-fixture>
+
+<script>
+  'use strict';
+  /* globals suite, setup, fixture, test, expect, assert, AD_BAR_CHART_DATA, AD_FILTERED_ITINERARY_DATA */
+  /* jshint -W030 */
+  suite('<client-config> timeline tests for remove detail', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with remove detail transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline.removeDetailFromLocationTimeline).to.be.a('Function');
+    });
+
+    test('results are correct for single removal', function() {
+      var output = clientConfig.config.transforms.timeline.removeDetailFromLocationTimeline('id1', [{
+        locations: [{
+          details: [{
+            name: 'Things',
+            data: [{
+              id: 'id1'
+            }, {
+              id: 'id2'
+            }]
+          }]
+        }]
+      }]);
+
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      expect(output).to.deep.equal([{
+        locations: [{
+          details: [{
+            name: 'Other Things',
+            data: [{
+              id: 'id2'
+            }]
+          }]
+        }]
+      }]);
+    });
+
+    test('results are correct for single removal causing detail removal', function() {
+      var output = clientConfig.config.transforms.timeline.removeDetailFromLocationTimeline('id1', [{
+        locations: [{
+          details: [{
+            name: 'Things',
+            data: [{
+              id: 'id1'
+            }]
+          }]
+        }]
+      }]);
+
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      expect(output).to.deep.equal([{
+        locations: [{
+          details: []
+        }]
+      }]);
+    });
+
+    test('results are correct for multiple removals', function() {
+      var output = clientConfig.config.transforms.timeline.removeDetailFromLocationTimeline('id1', [{
+        locations: [{
+          details: [{
+            name: 'Things1',
+            data: [{
+              id: 'id1'
+            }, {
+              id: 'id2'
+            }]
+          }]
+        }, {
+          details: [{
+            name: 'Things2',
+            data: [{
+              id: 'id1'
+            }, {
+              id: 'id2'
+            }]
+          }, {
+            name: 'Things3',
+            data: [{
+              id: 'id1'
+            }, {
+              id: 'id2'
+            }]
+          }]
+        }]
+      }, {
+        locations: [{
+          details: [{
+            name: 'Things4',
+            data: [{
+              id: 'id1'
+            }, {
+              id: 'id2'
+            }]
+          }]
+        }]
+      }]);
+
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      expect(output).to.deep.equal([{
+        locations: [{
+          details: [{
+            name: 'Other Things1',
+            data: [{
+              id: 'id2'
+            }]
+          }]
+        }, {
+          details: [{
+            name: 'Other Things2',
+            data: [{
+              id: 'id2'
+            }]
+          }, {
+            name: 'Other Things3',
+            data: [{
+              id: 'id2'
+            }]
+          }]
+        }]
+      }, {
+        locations: [{
+          details: [{
+            name: 'Other Things4',
+            data: [{
+              id: 'id2'
+            }]
+          }]
+        }]
+      }]);
+    });
+
+    test('results are correct for unknown item', function() {
+      var output = clientConfig.config.transforms.timeline.removeDetailFromLocationTimeline('id2', [{
+        locations: [{
+          details: [{
+            data: [{
+              id: 'id1'
+            }]
+          }]
+        }]
+      }]);
+
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      expect(output).to.deep.equal([{
+        locations: [{
+          details: [{
+            data: [{
+              id: 'id1'
+            }]
+          }]
+        }]
+      }]);
+    });
+
+    test('results are correct for empty array', function() {
+      var output = clientConfig.config.transforms.timeline.removeDetailFromLocationTimeline('id1', []);
+
+      expect(output).to.exist;
+      expect(output).to.be.an('Array');
+      expect(output).to.deep.equal([]);
+    });
+  });
+
+  suite('<client-config> timeline tests for event drops timeline', function() {
+    var clientConfig;
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var data = {
+      aggregations: {
+        locations: {
+          locations: {
+            buckets: [{
+              key: 'Brooklyn:New York:United States:-73.94958:40.6501',
+              doc_count: 4,
+              dates: {
+                buckets: [{
+                  key: 1444608000000,
+                  doc_count: 1
+                }, {
+                  key: 1444521600000,
+                  doc_count: 2
+                }, {
+                  key: 1444435200000,
+                  doc_count: 1
+                }]
+              }
+            }, {
+              key: 'Mumbai:State of Maharashtra:India:72.88261:19.07283',
+              doc_count: 2,
+              dates: {
+                buckets: [{
+                  key: 1444608000000,
+                  doc_count: 2
+                }]
+              }
+            }]
+          }
+        }
+      }
+    };
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with event drops timeline transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline.eventDropsTimeline).to.be.a('Function');
+    });
+
+    test('event drops timeline function given empty input returns empty output', function() {
+      var output = clientConfig.config.transforms.timeline.eventDropsTimeline({
+        aggregations: {
+          locations: {
+            locations: {
+              buckets: []
+            }
+          }
+        }
+      });
+      expect(output).to.deep.equal({
+        dates: [],
+        locations: []
+      });
+    });
+
+    test('event drops timeline function given aggregations returns correct data', function() {
+      var output = clientConfig.config.transforms.timeline.eventDropsTimeline(data);
+
+      expect(output.locations.length).to.equal(2);
+      expect(output.locations[0].count).to.equal(4);
+      expect(output.locations[0].id).to.equal('Brooklyn:New York:United States:-73.94958:40.6501');
+      expect(output.locations[0].latitude).to.equal('40.6501');
+      expect(output.locations[0].longitude).to.equal('-73.94958');
+      expect(output.locations[0].icon).to.equal('communication:location-on');
+      expect(output.locations[0].link).to.equal('/location.html?id=Brooklyn:New York:United States:-73.94958:40.6501');
+      expect(output.locations[0].name).to.equal('Brooklyn, New York');
+      expect(output.locations[0].styleClass).to.equal('entity-location-font');
+      expect(output.locations[0].text).to.equal('Brooklyn, New York');
+      expect(output.locations[0].textAndCount).to.equal('Brooklyn, New York (4)');
+      expect(output.locations[0].textAndCountry).to.equal('Brooklyn, New York, United States');
+      expect(output.locations[0].type).to.equal('location');
+      expect(output.locations[0].dates).to.be.an('Array');
+      expect(output.locations[0].dates.length).to.equal(3);
+      expect(output.locations[0].dates[0].date).to.be.a('Date');
+      expect(output.locations[0].dates[0].date.getTime()).to.equal(1444435200000);
+      expect(output.locations[0].dates[0].count).to.equal(1);
+      expect(output.locations[0].dates[0].name).to.equal('Brooklyn, New York');
+      expect(output.locations[0].dates[1].date).to.be.a('Date');
+      expect(output.locations[0].dates[1].date.getTime()).to.equal(1444521600000);
+      expect(output.locations[0].dates[1].count).to.equal(2);
+      expect(output.locations[0].dates[1].name).to.equal('Brooklyn, New York');
+      expect(output.locations[0].dates[2].date).to.be.a('Date');
+      expect(output.locations[0].dates[2].date.getTime()).to.equal(1444608000000);
+      expect(output.locations[0].dates[2].count).to.equal(1);
+      expect(output.locations[0].dates[2].name).to.equal('Brooklyn, New York');
+
+      expect(output.locations[1].count).to.equal(2);
+      expect(output.locations[1].id).to.equal('Mumbai:State of Maharashtra:India:72.88261:19.07283');
+      expect(output.locations[1].latitude).to.equal('19.07283');
+      expect(output.locations[1].longitude).to.equal('72.88261');
+      expect(output.locations[1].icon).to.equal('communication:location-on');
+      expect(output.locations[1].link).to.equal('/location.html?id=Mumbai:State of Maharashtra:India:72.88261:19.07283');
+      expect(output.locations[1].name).to.equal('Mumbai, State of Maharashtra');
+      expect(output.locations[1].styleClass).to.equal('entity-location-font');
+      expect(output.locations[1].text).to.equal('Mumbai, State of Maharashtra');
+      expect(output.locations[1].textAndCount).to.equal('Mumbai, State of Maharashtra (2)');
+      expect(output.locations[1].textAndCountry).to.equal('Mumbai, State of Maharashtra, India');
+      expect(output.locations[1].type).to.equal('location');
+      expect(output.locations[1].dates).to.be.an('Array');
+      expect(output.locations[1].dates.length).to.equal(1);
+      expect(output.locations[1].dates[0].date).to.be.a('Date');
+      expect(output.locations[1].dates[0].date.getTime()).to.equal(1444608000000);
+      expect(output.locations[1].dates[0].count).to.equal(2);
+      expect(output.locations[1].dates[0].name).to.equal('Mumbai, State of Maharashtra');
+
+      expect(output.dates).to.deep.equal([1444608000000, 1444521600000, 1444435200000, 1444608000000]);
+    });
+
+    test('event drops timeline function given aggregations and location ID returns correct data', function() {
+      var output = clientConfig.config.transforms.timeline.eventDropsTimeline(data, 'Brooklyn:New York:United States:-73.94958:40.6501');
+
+      expect(output.locations.length).to.equal(1);
+      expect(output.locations[0].count).to.equal(4);
+      expect(output.locations[0].id).to.equal('Brooklyn:New York:United States:-73.94958:40.6501');
+      expect(output.locations[0].latitude).to.equal('40.6501');
+      expect(output.locations[0].longitude).to.equal('-73.94958');
+      expect(output.locations[0].icon).to.equal('communication:location-on');
+      expect(output.locations[0].link).to.equal('/location.html?id=Brooklyn:New York:United States:-73.94958:40.6501');
+      expect(output.locations[0].name).to.equal('Brooklyn, New York');
+      expect(output.locations[0].styleClass).to.equal('entity-location-font');
+      expect(output.locations[0].text).to.equal('Brooklyn, New York');
+      expect(output.locations[0].textAndCount).to.equal('Brooklyn, New York (4)');
+      expect(output.locations[0].textAndCountry).to.equal('Brooklyn, New York, United States');
+      expect(output.locations[0].type).to.equal('location');
+      expect(output.locations[0].dates).to.be.an('Array');
+      expect(output.locations[0].dates.length).to.equal(3);
+      expect(output.locations[0].dates[0].date).to.be.a('Date');
+      expect(output.locations[0].dates[0].date.getTime()).to.equal(1444435200000);
+      expect(output.locations[0].dates[0].count).to.equal(1);
+      expect(output.locations[0].dates[0].name).to.equal('Brooklyn, New York');
+      expect(output.locations[0].dates[1].date).to.be.a('Date');
+      expect(output.locations[0].dates[1].date.getTime()).to.equal(1444521600000);
+      expect(output.locations[0].dates[1].count).to.equal(2);
+      expect(output.locations[0].dates[1].name).to.equal('Brooklyn, New York');
+      expect(output.locations[0].dates[2].date).to.be.a('Date');
+      expect(output.locations[0].dates[2].date.getTime()).to.equal(1444608000000);
+      expect(output.locations[0].dates[2].count).to.equal(1);
+      expect(output.locations[0].dates[2].name).to.equal('Brooklyn, New York');
+
+      expect(output.dates).to.deep.equal([1444608000000, 1444521600000, 1444435200000]);
+    });
+  });
+
+  suite('<client-config> timeline tests for location timeline (bar chart)', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with location timeline transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline.locationTimeline).to.be.a('Function');
+    });
+
+    test('returns array sorted by date', function() {
+      var output = clientConfig.config.transforms.timeline.locationTimeline(AD_BAR_CHART_DATA);
+
+      expect(output.dates).to.deep.equal([{
+        date: 'Oct 20, 2015',
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        subtitle: 'Atlanta, Georgia (1) and 1 more',
+        locations: [{
+          annotate: false,
+          classifications: {
+            database: '',
+            type: 'city',
+            user: ''
+          },
+          confidence: undefined,
+          count: 1,
+          id: 'Atlanta:Georgia:United States:-84.38798:33.749',
+          icon: 'communication:location-on',
+          latitude: '33.749',
+          longitude: '-84.38798',
+          link: '/location.html?id=Atlanta:Georgia:United States:-84.38798:33.749',
+          styleClass: 'entity-location-font',
+          text: 'Atlanta, Georgia',
+          textAndCount: 'Atlanta, Georgia (1)',
+          textAndCountry: 'Atlanta, Georgia, United States',
+          type: 'location',
+          details: [{
+            name: 'Websites',
+            data: [{
+              annotate: false,
+              confidence: undefined,
+              count: 1,
+              id: 'google.com',
+              icon: 'av:web',
+              link: undefined,
+              styleClass: 'entity-webpage-font',
+              text: 'google.com',
+              type: 'webpage'
+            }]
+          }, {
+            name: 'Telephone Numbers',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'phone',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: '+1-1234567890',
+              icon: 'communication:phone',
+              link: '/phone.html?id=+1-1234567890',
+              styleClass: 'entity-phone-font',
+              text: '123-456-7890',
+              type: 'phone'
+            }]
+          }, {
+            name: 'Email Addresses',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'email',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: 'abc123@gmail.com',
+              icon: 'communication:email',
+              link: '/email.html?id=abc123%40gmail.com',
+              styleClass: 'entity-email-font',
+              text: 'abc123@gmail.com',
+              type: 'email'
+            }]
+          }]
+        }, {
+          annotate: false,
+          classifications: {
+            database: '',
+            type: 'city',
+            user: ''
+          },
+          confidence: undefined,
+          count: 1,
+          id: 'Brooklyn:New York:United States:-73.94958:40.6501',
+          icon: 'communication:location-on',
+          latitude: '40.6501',
+          longitude: '-73.94958',
+          link: '/location.html?id=Brooklyn:New York:United States:-73.94958:40.6501',
+          styleClass: 'entity-location-font',
+          text: 'Brooklyn, New York',
+          textAndCount: 'Brooklyn, New York (1)',
+          textAndCountry: 'Brooklyn, New York, United States',
+          type: 'location',
+          details: [{
+            name: 'Websites',
+            data: [{
+              annotate: false,
+              confidence: undefined,
+              count: 1,
+              id: 'yahoo.com',
+              icon: 'av:web',
+              link: undefined,
+              styleClass: 'entity-webpage-font',
+              text: 'yahoo.com',
+              type: 'webpage'
+            }]
+          }, {
+            name: 'Telephone Numbers',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'phone',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: '+1-9876543210',
+              icon: 'communication:phone',
+              link: '/phone.html?id=+1-9876543210',
+              styleClass: 'entity-phone-font',
+              text: '987-654-3210',
+              type: 'phone'
+            }]
+          }, {
+            name: 'Email Addresses',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'email',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: 'xyz123@yahoo.com',
+              icon: 'communication:email',
+              link: '/email.html?id=xyz123%40yahoo.com',
+              styleClass: 'entity-email-font',
+              text: 'xyz123@yahoo.com',
+              type: 'email'
+            }]
+          }]
+        }]
+      }]);
+    });
+
+    test('returns array for dates with no locations', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var output = clientConfig.config.transforms.timeline.locationTimeline({
+        aggregations: {
+          dates: {
+            dates: {
+              buckets: [{
+                doc_count: 10,
+                key: 1445299200000,
+                locations: {
+                  buckets: []
+                }
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      assert.isArray(output.dates);
+      assert.equal(output.dates.length, 1);
+      assert.equal(output.dates[0].subtitle, 'Unknown Location(s) (10)');
+      assert.equal(output.dates[0].date, 'Oct 20, 2015');
+      assert.isArray(output.dates[0].locations);
+      assert.equal(output.dates[0].locations.length, 1);
+      assert.equal(output.dates[0].locations[0].text, 'Unknown Location(s)');
+      assert.equal(output.dates[0].locations[0].count, 10);
+    });
+
+    test('returns empty array for dates with no doc count', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var output = clientConfig.config.transforms.timeline.locationTimeline({
+        aggregations: {
+          dates: {
+            dates: {
+              buckets: [{
+                doc_count: 0,
+                key: 1445299200000,
+                locations: {
+                  buckets: []
+                }
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      assert.isArray(output.dates);
+      assert.equal(output.dates.length, 0);
+    });
+  });
+
+  suite('<client-config> timeline tests for filtered location timeline (itinerary)', function() {
+    var clientConfig;
+
+    setup(function() {
+      clientConfig = fixture('client-config-fixture');
+    });
+
+    test('defines config object with location timeline transform function', function() {
+      expect(clientConfig).to.exist;
+      expect(clientConfig.config).to.be.an('Object');
+      expect(clientConfig.config.transforms).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline).to.be.an('Object');
+      expect(clientConfig.config.transforms.timeline.filteredLocationTimeline).to.be.a('Function');
+    });
+
+    test('returns array sorted by date', function() {
+      var output = clientConfig.config.transforms.timeline.filteredLocationTimeline(AD_FILTERED_ITINERARY_DATA);
+
+      expect(output.dates).to.deep.equal([{
+        date: 'Oct 20, 2015',
+        icon: 'icons:date-range',
+        styleClass: 'entity-date-font',
+        subtitle: 'Atlanta, Georgia (1) and 1 more',
+        locations: [{
+          annotate: false,
+          classifications: {
+            database: '',
+            type: 'city',
+            user: ''
+          },
+          confidence: undefined,
+          count: 1,
+          id: 'Atlanta:Georgia:United States:-84.38798:33.749',
+          icon: 'communication:location-on',
+          latitude: '33.749',
+          longitude: '-84.38798',
+          link: '/location.html?id=Atlanta:Georgia:United States:-84.38798:33.749',
+          styleClass: 'entity-location-font',
+          text: 'Atlanta, Georgia',
+          textAndCount: 'Atlanta, Georgia (1)',
+          textAndCountry: 'Atlanta, Georgia, United States',
+          type: 'location',
+          details: [{
+            name: 'Websites',
+            data: [{
+              annotate: false,
+              confidence: undefined,
+              count: 1,
+              id: 'google.com',
+              icon: 'av:web',
+              link: undefined,
+              styleClass: 'entity-webpage-font',
+              text: 'google.com',
+              type: 'webpage'
+            }]
+          }, {
+            name: 'Telephone Numbers',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'phone',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: '+1-1234567890',
+              icon: 'communication:phone',
+              link: '/phone.html?id=+1-1234567890',
+              styleClass: 'entity-phone-font',
+              text: '123-456-7890',
+              type: 'phone'
+            }]
+          }, {
+            name: 'Email Addresses',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'email',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: 'abc123@gmail.com',
+              icon: 'communication:email',
+              link: '/email.html?id=abc123%40gmail.com',
+              styleClass: 'entity-email-font',
+              text: 'abc123@gmail.com',
+              type: 'email'
+            }]
+          }]
+        }, {
+          annotate: false,
+          classifications: {
+            database: '',
+            type: 'city',
+            user: ''
+          },
+          confidence: undefined,
+          count: 1,
+          id: 'Brooklyn:New York:United States:-73.94958:40.6501',
+          icon: 'communication:location-on',
+          latitude: '40.6501',
+          longitude: '-73.94958',
+          link: '/location.html?id=Brooklyn:New York:United States:-73.94958:40.6501',
+          styleClass: 'entity-location-font',
+          text: 'Brooklyn, New York',
+          textAndCount: 'Brooklyn, New York (1)',
+          textAndCountry: 'Brooklyn, New York, United States',
+          type: 'location',
+          details: [{
+            name: 'Websites',
+            data: [{
+              annotate: false,
+              confidence: undefined,
+              count: 1,
+              id: 'yahoo.com',
+              icon: 'av:web',
+              link: undefined,
+              styleClass: 'entity-webpage-font',
+              text: 'yahoo.com',
+              type: 'webpage'
+            }]
+          }, {
+            name: 'Telephone Numbers',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'phone',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: '+1-9876543210',
+              icon: 'communication:phone',
+              link: '/phone.html?id=+1-9876543210',
+              styleClass: 'entity-phone-font',
+              text: '987-654-3210',
+              type: 'phone'
+            }]
+          }, {
+            name: 'Email Addresses',
+            data: [{
+              annotate: true,
+              classifications: {
+                database: '',
+                type: 'email',
+                user: ''
+              },
+              confidence: undefined,
+              count: 1,
+              id: 'xyz123@yahoo.com',
+              icon: 'communication:email',
+              link: '/email.html?id=xyz123%40yahoo.com',
+              styleClass: 'entity-email-font',
+              text: 'xyz123@yahoo.com',
+              type: 'email'
+            }]
+          }]
+        }]
+      }]);
+    });
+
+    test('returns array for dates with no locations', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var output = clientConfig.config.transforms.timeline.filteredLocationTimeline({
+        aggregations: {
+          filteredDates: {
+            filteredDates: {
+              buckets: [{
+                doc_count: 10,
+                key: 1445299200000,
+                locations: {
+                  buckets: []
+                }
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      assert.isArray(output.dates);
+      assert.equal(output.dates.length, 1);
+      assert.equal(output.dates[0].subtitle, 'Unknown Location(s) (10)');
+      assert.equal(output.dates[0].date, 'Oct 20, 2015');
+      assert.isArray(output.dates[0].locations);
+      assert.equal(output.dates[0].locations.length, 1);
+      assert.equal(output.dates[0].locations[0].text, 'Unknown Location(s)');
+      assert.equal(output.dates[0].locations[0].count, 10);
+    });
+
+    test('returns empty array for dates with no doc count', function() {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var output = clientConfig.config.transforms.timeline.filteredLocationTimeline({
+        aggregations: {
+          filteredDates: {
+            filteredDates: {
+              buckets: [{
+                doc_count: 0,
+                key: 1445299200000,
+                locations: {
+                  buckets: []
+                }
+              }]
+            }
+          }
+        }
+      });
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      assert.isArray(output.dates);
+      assert.equal(output.dates.length, 0);
+    });
+  });
+
+</script>
+</body>
+</html>

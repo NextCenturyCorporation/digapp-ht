@@ -15,6 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/build-and-run-aggregation/build-and-run-aggregation.html">
 <link rel="import" href="../../bower_components/button-link/button-link.html">
 <link rel="import" href="../../bower_components/icon-label/icon-label.html">
 <link rel="import" href="../../bower_components/image-gallery/image-gallery.html">
@@ -31,8 +32,10 @@ limitations under the License.
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
+<link rel="import" href="../../bower_components/paper-styles/color.html">
 <link rel="import" href="../../bower_components/highlighted-text/highlighted-text.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../../styles/confidence-styles.html">
 <link rel="import" href="../../styles/single-item-styles.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../info-cached-webpages/info-cached-webpages.html">
@@ -40,6 +43,7 @@ limitations under the License.
 
 <dom-module id="single-record">
   <template>
+    <style include="confidence-styles"></style>
     <style include="iron-flex iron-flex-alignment iron-flex-factors"></style>
     <style include="single-item-styles"></style>
 
@@ -48,81 +52,48 @@ limitations under the License.
         display: block;
       }
 
-      modal-icon ::content .entity-offer-font {
-        /* Hide the offer icons because users didn't like them. */
-        visibility: hidden;
-      }
-
-      modal-icon ::content paper-icon-button[icon*="icons:expand"] {
-        /* Remove the padding to make the expand icons bigger because they look better that way. */
-        padding: 0;
-      }
-
-      .icon-margin {
-        /* Margin between the header text and the icons. */
-        margin-left: 15px;
-      }
-
-      .descriptor {
-        vertical-align: middle;
-        margin-right: 20px;
-      }
-
-      annotate-record,
-      modal-icon,
-      paper-icon-button {
-        --paper-icon-button: {
-          height: 35px;
-          width: 35px;
-          padding: 5px;
-        };
-      }
-
-      .tiny-icon {
-        --paper-icon-button: {
-          height: 20px;
-          width: 20px;
-          padding: 0;
-        };
-      }
-
-      .single-record-text {
-        min-height: 25px;
-        line-height: 25px;
+      .extraction-list {
+        font-size: 14px;
+        line-height: 20px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: normal;
+        word-break: break-word;
         -webkit-line-clamp: 5;
         -webkit-box-orient: vertical;
       }
 
-      .body button-link ::content paper-button {
-        /* Needed to make the button look nice. */
-        margin-top: 10px;
+      .extraction-list > div {
+        width: 50%;
+      }
+
+      .extraction-name {
+        color: var(--secondary-text-color);
+        line-height: 20px;
+        margin-bottom: 5px;
+      }
+
+      .extraction-item {
+        margin-bottom: 5px;
       }
 
       icon-label {
         display: inline-block;
+        border-radius: 5px;
         margin-right: 5px;
 
         --icon-label-text: {
-          color: var(--secondary-text-color);
+          padding: 0 5px;
+          @apply(--extraction-text);
         };
 
         --icon-label-link-hover: {
-          color: var(--primary-text-color);
+          color: var(--secondary-text-color);
         };
       }
 
-      icon-label.annotations {
-        --icon-label-text: {
-          color: var(--secondary-text-color);
-          @apply(--annotations-list);
-        };
-
-        --icon-label-link-hover: {
-          color: var(--primary-text-color);
-        };
+      .highlight ::content strong {
+        background-color: yellow;
       }
 
       .hide {
@@ -133,201 +104,347 @@ limitations under the License.
         display: inline-block;
       }
 
+      .body .detail {
+        line-height: 20px;
+        margin-bottom: 5px;
+      }
+
+      .body .detail-name {
+        color: var(--secondary-text-color);
+        display: inline-block;
+        line-height: 20px;
+        margin-right: 5px;
+      }
+
+      .body .detail highlighted-text {
+        margin-top: 5px;
+      }
+
+      /* TODO Fix in image-gallery */
+      .body image-gallery ::content > div {
+        @apply(--layout-start-justified);
+      }
+
+      .body button-link {
+        margin-top: 10px;
+      }
+
+      .left-column {
+        margin-right: 10px;
+      }
+
+      iron-image {
+        --iron-image-width: 50px;
+        background-color: transparent;
+        margin: 5px;
+      }
+
+      .opened iron-image,
+      .record:hover iron-image {
+        /* Keep the color of a blank image the same as its background. */
+        background-color: initial;
+      }
+
+      .border {
+        border-radius: 5px;
+        margin-bottom: 10px;
+        padding: 0 5px;
+      }
+
+      .record-rank {
+        background-color:  var(--paper-grey-400);
+      }
+
+      .record-flag {
+        background-color:  var(--paper-red-200);
+        margin-right: 10px;
+      }
+
+      .record-link {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .record-link:hover {
+        color: var(--secondary-text-color);
+      }
+
+      annotate-record,
+      modal-icon,
+      paper-icon-button {
+        --paper-icon-button: {
+          /* Add padding but make the icons the same size as the search navbar icons. */
+          height: 34px;
+          width: 34px;
+          padding: 5px;
+        };
+      }
+
+      modal-icon ::content paper-icon-button[icon*="icons:expand"] {
+        /* Remove the padding to make the expand icons bigger because they look better that way. */
+        padding: 0;
+      }
+
+      modal-icon ::content .entity-offer-font {
+        /* Hide the offer icons because users didn't like them. */
+        visibility: hidden;
+      }
+
+      .tiny-icon {
+        --paper-icon-button: {
+          height: 20px;
+          width: 20px;
+          padding: 0;
+        };
+      }
+
       .yellowgreen {
         color: yellowgreen;
       }
 
-      .entity-page-link {
-        color: var(--primary-text-color);
-        text-decoration: none;
-      }
-
-      .entity-page-link:hover {
-        color: var(--secondary-text-color);
-      }
-
-      .detail-name {
+      classify-ad-buttons {
+        background-color: var(--paper-grey-400);
         line-height: 30px;
-        margin-right: 5px;
+        padding-bottom: 5px;
       }
     </style>
 
-    <paper-material class$="layout horizontal flex head [[_getHeaderStyleClass(open)]]" clickable$="[[showDetails]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleRecord">
+    <build-and-run-aggregation
+      aggregation-field="[[imageAggregationField]]"
+      aggregation-name="[[imageAggregationName]]"
+      query-fields="[[imageQueryField]]"
+      query-values="[[itemId]]"
+      client="[[client]]"
+      index-name="[[imageIndexName]]"
+      index-types="[[imageIndexType]]"
+      filters="[]"
+      transform-function="[[imageTransformFunction]]"
+      results="{{images}}">
+    </build-and-run-aggregation>
 
-      <template is="dom-if" if="[[!modalIconLast]]">
-        <modal-icon
-          icon="[[_getProperty(item, itemIconProperty)]]"
-          icon-style-class="[[_getProperty(item, itemIconStyleClassProperty)]]"
-          show-icon="[[!hovering]]"
-          openable="[[showDetails]]"
-          open="[[open]]">
-        </modal-icon>
-      </template>
+    <paper-material
+      class$="layout horizontal flex head record [[_getResultHeaderStyleClass(details, detailExtractions, images, opened)]]"
+      on-mouseover="_hoverStart"
+      on-mouseout="_hoverEnd"
+      on-tap="toggleDetails">
 
-      <iron-image class$="[[_getBlurStyleClass(blur)]] hide [[_showImageSpace(images)]]" src="[[imageSource]]"></iron-image>
-
-      <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[_getProperty(item, itemNameProperty)]]">
-          <strong>
-            <highlighted-text text="[[_getHeaderText(item, itemHighlightedTextProperty, itemNameProperty)]]"></highlighted-text>
-          </strong>
-        </div>
-
-        <template is="dom-if" if="[[item.locationDescriptor]]">
-          <div class="single-record-text wrap">
-            <div class="layout horizontal descriptor" secondary>
-              <icon-label title="Open [[item.locationDescriptor.text]]"
-                icon="[[item.locationDescriptor.icon]]"
-                icon-style-class="[[item.locationDescriptor.styleClass]]"
-                link="[[item.locationDescriptor.link]]"
-                target="[[_getTarget(newTab)]]"
-                text="[[item.locationDescriptor.text]]">
-              </icon-label>
-            </div>
+      <div class="layout vertical center left-column">
+        <template is="dom-if" if="[[rank]]">
+          <div class="record-rank text border" title$="Search Result Score:  [[rank]]">
+            <strong>[[rank]]</strong>
           </div>
         </template>
+        <iron-image class$="[[smallImageStyleClass]] hide [[_showImageElement(images)]]" src="[[_imageSrc]]"></iron-image>
+      </div>
 
-        <template is="dom-if" if="[[descriptors.length]]">
-          <div class="horizontal layout wrap single-record-text" secondary>
-            <template is="dom-repeat" items="[[descriptors]]" as="descriptor">
-              <div class="layout horizontal descriptor flex-1">
-                <icon-label title="Open [[_getProperty(descriptor, descriptorTextProperty)]]"
-                  icon="[[_getProperty(descriptor, descriptorIconProperty)]]"
-                  icon-style-class="[[_getProperty(descriptor, descriptorIconStyleClassProperty)]]"
-                  link="[[_getProperty(descriptor, descriptorLinkProperty)]]"
-                  target="[[_getTarget(newTab)]]"
-                  text="[[_getProperty(descriptor, descriptorTextProperty)]]">
-                </icon-label>
+      <div class="layout vertical flex">
+        <div class="layout horizontal">
+          <template is="dom-if" if="[[flag]]">
+            <div class="record-flag text border">
+              <strong>[[flag]]</strong>
+            </div>
+          </template>
+          <div class="text" title$="[[text]]">
+            <strong>
+              <highlighted-text tags="[[highlightedTextTags]]" text="[[_getResultHeaderText(text, highlightedText)]]"></highlighted-text>
+            </strong>
+          </div>
+        </div>
+
+        <div class="layout horizontal extraction-list wrap">
+          <template is="dom-repeat" items="[[headerExtractions]]">
+            <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
+              <div class="layout vertical extraction">
+                <strong class="extraction-name">[[_getPropertyAndColon(item, extractionNameProperty)]]</strong>
+                <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
+                  <div class="layout horizontal center extraction-item">
+                    <icon-label class$="[[_getHighlightableLabelStyleClass(extraction, extractionDataHighlightProperty)]]"
+                      title$="Open [[_getProperty(extraction, extractionDataTextProperty)]]"
+                      icon="[[_getProperty(extraction, extractionDataIconProperty)]]"
+                      icon-style-class="[[_getProperty(extraction, extractionDataStyleClassProperty)]]"
+                      link="[[_getProperty(extraction, extractionDataLinkProperty)]]"
+                      target="[[_getTarget(newTab)]]"
+                      text="[[_getProperty(extraction, extractionDataTextProperty)]]">
+                    </icon-label>
+
+                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
+                      <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                      <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                    </template>
+
+                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
+                      <template is="dom-if" if="[[classificationManager]]">
+                        <classify-extraction-buttons
+                          classification-manager="[[classificationManager]]"
+                          classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
+                          entity-id="[[itemId]]"
+                          extraction-id="[[_getProperty(extraction, extractionDataIdProperty)]]">
+                        </classify-extraction-buttons>
+                      </template>
+                    </template>
+
+                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
+                      <template is="dom-if" if="[[annotationManager]]">
+                        <annotate-record class="tiny-icon"
+                          annotation-manager="[[annotationManager]]"
+                          client="[[client]]"
+                          item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                          item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                          noink>
+                        </annotate-record>
+                      </template>
+                    </template>
+                  </div>
+                </template>
               </div>
             </template>
-          </div>
-        </template>
-
-        <template is="dom-if" if="[[hasPhonesOrEmails(item)]]">
-          <div class="horizontal layout wrap single-record-text" secondary>
-            <div class="vertical layout flex-1">
-              <template is="dom-if" if="[[item.phones.length]]">
-                <template is="dom-repeat" items="[[item.phones]]" as="phone">
-                  <div class="layout horizontal descriptor">
-                    <icon-label class="annotations"
-                      title="Open [[phone.text]]"
-                      icon="[[phone.icon]]"
-                      icon-style-class="[[phone.styleClass]]"
-                      link="[[phone.link]]"
-                      target="[[_getTarget(newTab)]]"
-                      text="[[phone.text]]">
-                    </icon-label>
-                    <annotate-record class="layout vertical center-justified tiny-icon"
-                      client="[[client]]"
-                      annotation-manager="[[annotationManager]]"
-                      item="{{phone}}"
-                      item-type="[[_getTypeText(phone, 'true')]]"
-                      noink>
-                    </annotate-record>
-                  </div>
-                </template>
-              </template>
-            </div>
-
-            <div class="vertical layout flex-1">
-              <template is="dom-if" if="[[item.emails.length]]">
-                <template is="dom-repeat" items="[[item.emails]]" as="email">
-                  <div class="layout horizontal descriptor">
-                    <icon-label class="annotations"
-                      title="Open [[email.text]]"
-                      icon="[[email.icon]]"
-                      icon-style-class="[[email.styleClass]]"
-                      link="[[email.link]]"
-                      target="[[_getTarget(newTab)]]"
-                      text="[[email.text]]">
-                    </icon-label>
-                    <annotate-record class="layout vertical center-justified tiny-icon"
-                      client="[[client]]"
-                      annotation-manager="[[annotationManager]]"
-                      item="{{email}}"
-                      item-type="[[_getTypeText(email, 'true')]]"
-                      noink>
-                    </annotate-record>
-                  </div>
-                </template>
-              </template>
-            </div>
-          </div>
-        </template>
-      </div>
-
-      <template is="dom-if" if="[[_hasNotificationDate(notificationQueryDate)]]" restamp="true">
-        <div class="layout vertical center-justified">
-          <iron-icon class$="[[_getNewIconDivClass(descriptors, descriptorTextProperty, descriptorTypeProperty, notificationQueryDate)]] yellowgreen" icon="av:fiber-new"></iron-icon>
+          </template>
         </div>
-      </template>
-
-      <template is="dom-if" if="[[_showAnnotation(item, itemTypeProperty)]]">
-        <annotate-record class="layout vertical center-justified icon-margin"
-          client="[[client]]"
-          annotation-manager="[[annotationManager]]"
-          item="{{item}}"
-          item-type="[[_getTypeText(item, itemTypeProperty, 'true')]]">
-        </annotate-record>
-      </template>
-
-      <div class="layout vertical center-justified">
-        <a class="entity-page-link" href$="[[_getProperty(item, itemLinkProperty)]]" target="[[_getTarget(newTab)]]" title="Open [[_getTypeText(item, itemTypeProperty)]]">
-          <paper-icon-button icon="open-in-new" noink></paper-icon-button>
-        </a>
       </div>
 
-      <template is="dom-if" if="[[modalIconLast]]">
-        <modal-icon
-          icon="[[_getProperty(item, itemIconProperty)]]"
-          icon-style-class="[[_getProperty(item, itemIconStyleClassProperty)]]"
-          show-icon="[[!hovering]]"
-          openable="[[showDetails]]"
-          open="[[open]]">
-        </modal-icon>
-      </template>
+      <div class="layout vertical">
+        <template is="dom-if" if="[[classificationManager]]">
+          <classify-ad-buttons class="border"
+            classification-manager="[[classificationManager]]"
+            classifications="{{classifications}}"
+            entity-id="[[itemId]]">
+          </classify-ad-buttons>
+        </template>
 
+        <div class="layout horizontal end-justified flex">
+          <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
+            <div class="layout vertical center-justified">
+              <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
+            </div>
+          </template>
+
+          <template is="dom-if" if="[[annotationManager]]">
+            <annotate-record class="layout vertical center-justified"
+              client="[[client]]"
+              annotation-manager="[[annotationManager]]"
+              item-id="[[itemId]]"
+              item-type="[[_getTypeText(type)]]">
+            </annotate-record>
+          </template>
+
+          <template is="dom-if" if="[[link]]">
+            <div class="layout vertical center-justified">
+              <a class="record-link" href$="[[link]]" target="[[_getTarget(newTab)]]" title="Open [[_getTypeText(type)]]">
+                <paper-icon-button icon="[[_getLinkIcon(newTab)]]" noink></paper-icon-button>
+              </a>
+            </div>
+          </template>
+
+          <modal-icon
+            icon="[[icon]]"
+            icon-style-class="[[styleClass]]"
+            show-icon="[[!_hovering]]"
+            openable="[[_doesHaveDetails(details, detailExtractions, images)]]"
+            open="[[opened]]">
+          </modal-icon>
+        </div>
+      </div>
     </paper-material>
 
-    <template is="dom-if" if="[[showDetails]]">
-      <iron-collapse id="recordDetail">
-        <div>
-          <paper-material class="body">
-            <template is="dom-repeat" items="[[details]]" as="detail">
-              <div class="text">
-                <div class="layout horizontal">
-                  <strong class="detail-name">[[_cleanCamelCase(detail, detailNameProperty)]]</strong>
-                  <template is="dom-if" if="[[_isCachedWebpage(detail, detailNameProperty)]]">
-                    <info-cached-webpages></info-cached-webpages>
+    <template is="dom-if" if="[[_doesHaveDetails(details, detailExtractions, images)]]">
+      <iron-collapse id="details" opened="{{opened}}">
+        <paper-material class="body">
+          <template is="dom-repeat" items="[[details]]" as="detail">
+            <div class="detail text">
+              <strong class="detail-name">[[_getPropertyAndColon(detail, detailNameProperty)]]</strong>
+              <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
+                <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
+              </template>
+              <template is="dom-if" if="[[!_getProperty(detail, detailLinkProperty)]]">
+                <highlighted-text tags="[[highlightedTextTags]]" text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
+              </template>
+              <template is="dom-if" if="[[_isCachedAdWebpage(detail, detailNameProperty)]]">
+                <info-cached-webpages></info-cached-webpages>
+              </template>
+            </div>
+          </template>
+
+          <div class="layout horizontal extraction-list wrap">
+            <template is="dom-repeat" items="[[detailExtractions]]">
+              <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
+                <div class="layout vertical extraction">
+                  <strong class="extraction-name">[[_getPropertyAndColon(item, extractionNameProperty)]]</strong>
+                  <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
+                    <div class="layout horizontal center extraction-item">
+                      <icon-label class$="[[_getHighlightableLabelStyleClass(extraction, extractionDataHighlightProperty)]]"
+                        title$="Open [[_getProperty(extraction, extractionDataTextProperty)]]"
+                        icon="[[_getProperty(extraction, extractionDataIconProperty)]]"
+                        icon-style-class="[[_getProperty(extraction, extractionDataStyleClassProperty)]]"
+                        link="[[_getProperty(extraction, extractionDataLinkProperty)]]"
+                        target="[[_getTarget(newTab)]]"
+                        text="[[_getProperty(extraction, extractionDataTextProperty)]]">
+                      </icon-label>
+
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
+                        <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                        <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                      </template>
+
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
+                        <template is="dom-if" if="[[classificationManager]]">
+                          <classify-extraction-buttons
+                            classification-manager="[[classificationManager]]"
+                            classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
+                            entity-id="[[itemId]]"
+                            extraction-id="[[_getProperty(extraction, extractionDataIdProperty)]]">
+                          </classify-extraction-buttons>
+                        </template>
+                      </template>
+
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
+                        <template is="dom-if" if="[[annotationManager]]">
+                          <annotate-record class="tiny-icon"
+                            annotation-manager="[[annotationManager]]"
+                            client="[[client]]"
+                            item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                            item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                            noink>
+                          </annotate-record>
+                        </template>
+                      </template>
+                    </div>
                   </template>
                 </div>
-                <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
-                  <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
-                </template>
-                <template is="dom-if" if="[[!_getProperty(detail, detailLinkProperty)]]">
-                  <highlighted-text text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
-                </template>
+              </template>
+            </template>
+
+            <template is="dom-if" if="[[_getImagesExtractionText(images)]]">
+              <div class="layout horizontal extraction">
+                <strong class="extraction-name">[[_getImagesExtractionText(images)]]</strong>
               </div>
             </template>
+          </div>
 
-            <button-link
-              link="[[_getProperty(item, itemLinkProperty)]]"
+          <template is="dom-if" if="[[images]]">
+            <image-gallery
+              images="[[images]]"
+              image-link-property="[[imageLinkProperty]]"
+              image-source-property="[[imageSourceProperty]]"
+              small-image-style-class="[[smallImageStyleClass]]"
+              large-image-style-class="[[largeImageStyleClass]]"
+              new-tab="[[newTab]]">
+            </image-gallery>
+          </template>
+
+          <template is="dom-if" if="[[link]]">
+            <button-link class="layout horizontal"
+              icon="[[_getLinkIcon(newTab)]]"
+              link="[[link]]"
               target="[[_getTarget(newTab)]]"
-              text="open [[_getTypeText(item, itemTypeProperty)]]"
+              text="Open [[_getTypeText(type)]]"
               show>
             </button-link>
-
-            <template is="dom-if" if="[[images]]">
-              <image-gallery
-                images="[[images]]"
-                image-link-property="[[imageLinkProperty]]"
-                image-source-property="[[imageSourceProperty]]"
-                new-tab="[[newTab]]"
-                blur="[[blur]]">
-              </image-gallery>
-            </template>
-          </paper-material>
-        </div>
+          </template>
+        </paper-material>
       </iron-collapse>
     </template>
   </template>
@@ -342,65 +459,145 @@ limitations under the License.
 
       properties: {
         /**
-         * The item represented by this single record.
+         * (Optional)
+         *
+         * The collection of flags mapped to the AI and user classifications for the result.
+         *
+         * @type {Object}
+         * @default {}
          */
-        item: {
+        classifications: {
+          notify: true,
           type: Object,
-          notify: true
+          value: {}
         },
 
         /**
-         * The property for the highlighted text in the item.
+         * (Optional)
+         *
+         * The flag of the result.
+         *
+         * @type {String}
+         * @default ''
          */
-        itemHighlightedTextProperty: {
+        flag: {
           type: String,
-          value: 'highlightedText'
+          value: ''
         },
 
         /**
-         * The property for the icon in the item.
+         * (Optional)
+         *
+         * The highlighted text of the result.  Setting this property causes the "text" property to be ignored.
+         *
+         * @type {String}
+         * @default ''
          */
-        itemIconProperty: {
+        highlightedText: {
           type: String,
-          value: 'icon'
+          value: ''
         },
 
         /**
-         * The property for the icon in the item.
+         * (Optional)
+         *
+         * The icon of the result.
+         *
+         * @type {String}
+         * @default ''
          */
-        itemIconStyleClassProperty: {
+        icon: {
           type: String,
-          value: 'styleClass'
+          value: ''
         },
 
         /**
-         * The property for the link in the item.
+         * (Optional)
+         *
+         * The ID of the result.
+         *
+         * @type {String}
+         * @default ''
          */
-        itemLinkProperty: {
+        itemId: {
           type: String,
-          value: 'link'
+          value: ''
         },
 
         /**
-         * The property for the name in the item.
+         * (Optional)
+         *
+         * The link of the result.
+         *
+         * @type {String}
+         * @default ''
          */
-        itemNameProperty: {
+        link: {
           type: String,
-          value: 'name'
+          value: ''
         },
 
         /**
-         * The property for the type in the item.
+         * (Optional)
+         *
+         * The rank of the result.
+         *
+         * @type {Number}
+         * @default 0
          */
-        itemTypeProperty: {
+        rank: {
+          type: Number,
+          value: 0
+        },
+
+        /**
+         * (Optional)
+         *
+         * The style class of the result icon.
+         *
+         * @type {String}
+         * @default ''
+         */
+        styleClass: {
           type: String,
-          value: 'type'
+          value: ''
         },
 
         /**
-         * The descriptors for the item.
+         * (Optional)
+         *
+         * The text of the result.
+         *
+         * @type {String}
+         * @default ''
          */
-        descriptors: {
+        text: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The type of the result.
+         *
+         * @type {String}
+         * @default ''
+         */
+        type: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The list of extraction objects to show in the result header.
+         *
+         * @type {Array}
+         * @default []
+         */
+        headerExtractions: {
           type: Array,
           value: function() {
             return [];
@@ -408,47 +605,183 @@ limitations under the License.
         },
 
         /**
-         * The property for the icon in the descriptors in the item.
+         * (Optional)
+         *
+         * The list of extraction objects to show in the collapsible details.
+         *
+         * @type {Array}
+         * @default []
          */
-        descriptorIconProperty: {
+        detailExtractions: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * (Optional)
+         *
+         * The data property in the extraction objects with a list of extractions.
+         *
+         * @type {String}
+         * @default 'data'
+         */
+        extractionDataProperty: {
+          type: String,
+          value: 'data'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The annotate property in the data objects from the extraction objects on whether to let the user annotate the extraction.
+         *
+         * @type {String}
+         * @default 'annotate'
+         */
+        extractionDataAnnotateProperty: {
+          type: String,
+          value: 'annotate'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The classifications property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'classifications'
+         */
+        extractionDataClassificationsProperty: {
+          type: String,
+          value: 'classifications'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The confidence property in the data objects from the extraction objects.  Supported confidence values are "high" and "low".
+         *
+         * @type {String}
+         * @default 'confidence'
+         */
+        extractionDataConfidenceProperty: {
+          type: String,
+          value: 'confidence'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The highlight property in the data objects from the extraction objects on whether to highlight the background of the extraction.
+         *
+         * @type {String}
+         * @default 'highlight'
+         */
+        extractionDataHighlightProperty: {
+          type: String,
+          value: 'highlight'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The icon property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'icon'
+         */
+        extractionDataIconProperty: {
           type: String,
           value: 'icon'
         },
 
         /**
-         * The property for the icon style class in the descriptors in the item.
+         * (Optional)
+         *
+         * The ID property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'id'
          */
-        descriptorIconStyleClassProperty: {
+        extractionDataIdProperty: {
           type: String,
-          value: 'styleClass'
+          value: 'id'
         },
 
         /**
-         * The property for the link in the descriptors in the item.
+         * (Optional)
+         *
+         * The link property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'link'
          */
-        descriptorLinkProperty: {
+        extractionDataLinkProperty: {
           type: String,
           value: 'link'
         },
 
         /**
-         * The property for the text in the descriptors in the item.
+         * (Optional)
+         *
+         * The style class property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'styleClass'
          */
-        descriptorTextProperty: {
+        extractionDataStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The text property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'text'
+         */
+        extractionDataTextProperty: {
           type: String,
           value: 'text'
         },
 
         /**
-         * The property for the type in the descriptors in the item.
+         * (Optional)
+         *
+         * The type property in the data objects from the extraction objects.
+         *
+         * @type {String}
+         * @default 'type'
          */
-        descriptorTypeProperty: {
+        extractionDataTypeProperty: {
           type: String,
           value: 'type'
         },
 
         /**
-         * The details for the item.
+         * (Optional)
+         *
+         * The name property in the extraction objects.
+         *
+         * @type {String}
+         * @default 'name'
+         */
+        extractionNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
+         * (Optional)
+         *
+         * The list of detail objects.
+         *
+         * @type {Array}
+         * @default []
          */
         details: {
           type: Array,
@@ -458,7 +791,12 @@ limitations under the License.
         },
 
         /**
-         * The property for the highlighted text in the details in the item.
+         * (Optional)
+         *
+         * The highlighted text property in the detail objects.
+         *
+         * @type {String}
+         * @default 'highlightedText'
          */
         detailHighlightedTextProperty: {
           type: String,
@@ -466,7 +804,12 @@ limitations under the License.
         },
 
         /**
-         * The property for the link in the details in the item.
+         * (Optional)
+         *
+         * The link property in the detail objects.
+         *
+         * @type {String}
+         * @default 'link'
          */
         detailLinkProperty: {
           type: String,
@@ -474,7 +817,12 @@ limitations under the License.
         },
 
         /**
-         * The property for the name in the details in the item.
+         * (Optional)
+         *
+         * The name property in the detail objects.
+         *
+         * @type {String}
+         * @default 'name'
          */
         detailNameProperty: {
           type: String,
@@ -482,7 +830,12 @@ limitations under the License.
         },
 
         /**
-         * The property for the text in the details in the item.
+         * (Optional)
+         *
+         * The text property in the detail objects.
+         *
+         * @type {String}
+         * @default 'text'
          */
         detailTextProperty: {
           type: String,
@@ -490,14 +843,27 @@ limitations under the License.
         },
 
         /**
-         * The images for the item.
+         * (Optional)
+         *
+         * The list of image objects.
+         *
+         * @type {Array}
+         * @default []
          */
         images: {
-          type: Array
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
-         * The property for the link in the images in the item.
+         * (Optional)
+         *
+         * The link property in the image objects.
+         *
+         * @type {String}
+         * @default 'link'
          */
         imageLinkProperty: {
           type: String,
@@ -505,7 +871,12 @@ limitations under the License.
         },
 
         /**
-         * The property for the source in the images in the item.
+         * (Optional)
+         *
+         * The source property in the image objects.
+         *
+         * @type {String}
+         * @default 'source'
          */
         imageSourceProperty: {
           type: String,
@@ -513,40 +884,51 @@ limitations under the License.
         },
 
         /**
-         * an instance of elasticsearch.Client which is connected to
-         * an elasticsearch server
+         * (Optional)
+         *
+         * The style class for all the images in the gallery.
+         *
+         * @type {String}
+         * @default ''
          */
-        client: {
-          type: Object
-        },
-
-        /**
-         * The annotation manager.
-         */
-        annotationManager: {
-          type: Object
-        },
-
-        /**
-         * The source for the iron-image in the record header.
-         */
-        imageSource: {
+        smallImageStyleClass: {
           type: String,
-          value: '',
-          notify: true
+          value: ''
         },
 
         /**
-         * Whether to blur the images.
+         * (Optional)
+         *
+         * The style class for any image in a popup.
+         *
+         * @type {String}
+         * @default ''
          */
-        blur: {
-          type: Boolean,
-          value: true,
-          notify: true
+        largeImageStyleClass: {
+          type: String,
+          value: ''
         },
 
         /**
+         * (Optional)
+         *
+         * The highlighted text tags.  "This is <em>highlighted</em> text."
+         *
+         * @type {String}
+         * @default 'em'
+         */
+        highlightedTextTags: {
+          type: String,
+          value: 'em'
+        },
+
+        /**
+         * (Optional)
+         *
          * Whether to open a link in a new tab.
+         *
+         * @type {Boolean}
+         * @default false
          */
         newTab: {
           type: Boolean,
@@ -554,182 +936,467 @@ limitations under the License.
         },
 
         /**
-         * Whether the details are opened.
+         * (Optional)
+         *
+         * The annotation manager object.
+         *
+         * @type {Object}
          */
-        open: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether details should be shown.
-         */
-        showDetails: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * Whether the user is hovering over the record.
-         */
-        hovering: {
-          type: Boolean,
-          value: false
-        },
-
-        error: {
+        annotationManager: {
           type: Object
         },
 
         /**
-         * Whether a notification query is being viewed and the notification date associated with that query.
+         * (Optional)
+         *
+         * The classification manager object.
+         *
+         * @type {Object}
          */
-        notificationQueryDate: {
-          type: Object,
-          notify: true
+        classificationManager: {
+          type: Object
         },
 
         /**
-         * Where to put modal icon for record (will default to being first on the left)
+         * (Optional)
+         *
+         * The elasticsearch client object for image query.
+         *
+         * @type {Object}
          */
-        modalIconLast: {
+        client: {
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
+         * The annotation field for the image query.
+         *
+         * @type {String}
+         */
+        imageAggregationField: {
+          type: String
+        },
+
+        /**
+         * (Optional)
+         *
+         * The annotation field for the image query.
+         *
+         * @type {String}
+         */
+        imageAggregationName: {
+          type: String
+        },
+
+        /**
+         * (Optional)
+         *
+         * The elasticsearch image index for the image query.
+         *
+         * @type {String}
+         */
+        imageIndexName: {
+          type: String
+        },
+
+        /**
+         * (Optional)
+         *
+         * The elasticsearch image index type for the image query.
+         *
+         * @type {String}
+         */
+        imageIndexType: {
+          type: String
+        },
+
+        /**
+         * (Optional)
+         *
+         * The query field for the image query.
+         *
+         * @type {String}
+         */
+        imageQueryField: {
+          type: String
+        },
+
+        /**
+         * (Optional)
+         *
+         * The transform function for the image query results.
+         *
+         * @type {Object}
+         */
+        imageTransformFunction: {
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether a notification query is being viewed and the notification date associated with that query.
+         *
+         * @type {Date}
+         */
+        notificationQueryDate: {
+          type: Object,
+          value: function() {
+            return null;
+          }
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * Whether the collapsible details are opened.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        opened: {
           type: Boolean,
           value: false
+        },
+
+        /**
+         * Whether the user is hovering over the result.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        _hovering: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * The src of the image in the result header.
+         *
+         * @type {String}
+         * @default ''
+         * @private
+         */
+        _imageSrc: {
+          computed: '_computeImageSrc(images, imageSourceProperty)',
+          type: String,
+          value: ''
         }
       },
 
-      observers: [
-          '_updateImageSrcFromImages(images, imageSourceProperty)',
-          '_updateShowDetails(details)'
-      ],
-
-      hasPhonesOrEmails: function(item) {
-        return (item && ((item.phones && item.phones.length > 0) || (item.emails && item.emails.length > 0)) === true);
-      },
-
-      _getNewIconDivClass: function(descriptors, textProperty, typeProperty, notificationQueryDate) {
-        if(notificationQueryDate) {
-          return _.some(descriptors, function(descriptor) {
-            return descriptor[typeProperty] === 'date' && (new Date(descriptor[textProperty]).getTime() > notificationQueryDate.getTime());
-          }) ? '' : 'hidden';
+      /**
+       * Returns the src for the iron-imgae in the result header using the first image in the list of images.
+       *
+       * @param {Array} images
+       * @param {String} property
+       * @return {String}
+       * @private
+       */
+      _computeImageSrc: function(images, property) {
+        if(images && images.length && property) {
+          return images[0][property];
         }
-        return 'hidden';
+        if(images) {
+          return undefined;
+        }
+        return this._imageSrc;
       },
 
-      _getBlurStyleClass: function(blur) {
-        return (blur ? 'small-blur' : '');
+      /**
+       * Returns whether the result has collapsible details to show.
+       *
+       * @param {Array} details
+       * @param {Array} detailExtractions
+       * @param {Array} images
+       * @return {Boolean}
+       * @private
+       */
+      _doesHaveDetails: function(details, detailExtractions, images) {
+        return !!((details && details.length) || (detailExtractions && detailExtractions.length) || (images && images.length));
       },
 
+      /**
+       * Returns the style class of the confidence icon using the given item and confidence property.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {String}
+       * @private
+       */
+      _getConfidenceStyleClass: function(item, property) {
+        if(item[property] > 99) {
+          return 'full';
+        }
+        if(item[property] > 66) {
+          return 'high';
+        }
+        if(item[property] > 33) {
+          return 'med';
+        }
+        if(item[property] > 0) {
+          return 'low';
+        }
+        return item[property] === 0 ? 'no' : 'hide';
+      },
+
+      /**
+       * Returns the highlighted text or text of the given detail or "None" by default.
+       *
+       * @param {Object} detail
+       * @param {String} highlightedTextProperty
+       * @param {String} textProperty
+       * @return {String}
+       * @private
+       */
       _getDetailText: function(detail, highlightedTextProperty, textProperty) {
         return (detail ? (detail[highlightedTextProperty] || detail[textProperty]) : '') || 'None';
       },
 
-      _getHeaderStyleClass: function(open) {
-        return (open ? 'opened' : 'closed');
+      /**
+       * Returns the style class of the highlightable extraction label using the given item and highlight property.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {String}
+       * @private
+       */
+      _getHighlightableLabelStyleClass: function(item, property) {
+        if(_.isArray(item)) {
+          return item.length && item[0][property] ? 'highlight' : '';
+        }
+        return item[property] ? 'highlight' : '';
       },
 
-      _getHeaderText: function(item, highlightedTextProperty, nameProperty) {
-        return item[highlightedTextProperty] || item[nameProperty];
+      /**
+       * Returns the extraction text for the number of images.
+       *
+       * @param {Array} images
+       * @return {String}
+       * @private
+       */
+      _getImagesExtractionText: function(images) {
+        if(!images || !images.length) {
+          return '';
+        }
+        return images.length + ' Image' + (images.length === 1 ? '' : 's');
       },
 
+      /**
+       * Returns the length of the list in the given item at the given property.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {Number}
+       * @private
+       */
+      _getLength: function(item, property) {
+        return item && item[property] ? item[property].length : undefined;
+      },
+
+      /**
+       * Returns the button link icon.
+       *
+       * @param {Boolean} newTab
+       * @return {String}
+       * @private
+       */
+      _getLinkIcon: function(newTab) {
+        return (newTab ? 'open-in-new' : 'open-in-browser');
+      },
+
+      /**
+       * Returns the list in the given item at the given property (or [] if undefined).
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {Array}
+       * @private
+       */
+      _getList: function(item, property) {
+        return (item ? item[property] : []) || [];
+      },
+
+      /**
+       * Returns the object in the given item at the given property.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {Object}
+       * @private
+       */
+      _getProperty: function(item, property) {
+        return item ? item[property] : undefined;
+      },
+
+      /**
+       * Returns the string in the given item at the given property with a colon at the end of it.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {String}
+       * @private
+       */
+      _getPropertyAndColon: function(item, property) {
+        var output = this._getProperty(item, property);
+        return output ? output + ':' : '';
+      },
+
+      /**
+       * Returns the style class for the result header.
+       *
+       * @param {Array} details
+       * @param {Array} detailExtractions
+       * @param {Array} images
+       * @param {Boolean} open
+       * @return {String}
+       * @private
+       */
+      _getResultHeaderStyleClass: function(details, detailExtractions, images, open) {
+        var pointer = this._doesHaveDetails(details, detailExtractions, images);
+        return (open ? 'opened' : 'closed') + (pointer ? ' pointer' : '');
+      },
+
+      /**
+       * Returns the text for the result header.
+       *
+       * @param {String} text
+       * @param {String} highlightedText
+       * @return {String}
+       * @private
+       */
+      _getResultHeaderText: function(text, highlightedText) {
+        return highlightedText || text;
+      },
+
+      /**
+       * Returns the anchor and button target string.
+       *
+       * @param {Boolean} newTab
+       * @return {String}
+       * @private
+       */
       _getTarget: function(newTab) {
         return (newTab ? '_blank' : '_self');
       },
 
       /**
-       * Returns the text for the given item (and returns long text if specified).
+       * Returns the text for the given type.
+       *
+       * @param {String} type
+       * @return {String}
+       * @private
        */
-      _getTypeText: function(item, typeProperty, longText) {
-        if(!item || !item[typeProperty]) {
-          return '';
-        }
-        if(item[typeProperty] === 'offer') {
+      _getTypeText: function(type) {
+        if(type === 'offer') {
           return 'Ad';
         }
-        if(item[typeProperty] === 'seller') {
-          return 'Email/Phone Cluster';
-        }
-        if(longText && item[typeProperty] === 'email') {
+        if(type === 'email') {
           return 'Email Address';
         }
-        if(longText && item[typeProperty] === 'phone') {
+        if(type === 'phone') {
           return 'Telephone Number';
         }
-        return item[typeProperty].charAt(0).toUpperCase() + item[typeProperty].slice(1);
+        return type.charAt(0).toUpperCase() + type.slice(1);
       },
 
-      _hasNotificationDate: function(date) {
-        return !!date;
+      /**
+       * Returns the text for the type in the given item with the given property.
+       *
+       * @param {String} item
+       * @param {String} property
+       * @return {String}
+       * @private
+       */
+      _getTypeTextWithProperty: function(item, property) {
+        return item && item[property] ? this._getTypeText(item[property]) : '';
       },
 
-      _cleanCamelCase: function(item, property) {
-        return (item[property] || '').replace(/([A-Z])/g, ' $1').replace(/\w\S*/g, function(word) {
-          return word.charAt(0).toUpperCase() + word.substr(1);
-        }) + ':';
+      /**
+       * Ends hovering behavior.
+       *
+       * @event mouseout
+       * @private
+       */
+      _hoverEnd: function() {
+        this._hovering = false;
       },
 
-      _showAnnotation: function(item, typeProperty) {
-        return item && item[typeProperty] !== 'seller';
+      /**
+       * Starts hovering behavior.
+       *
+       * @event mouseover
+       * @private
+       */
+      _hoverStart: function() {
+        this._hovering = true;
       },
 
-      startHover: function() {
-        this.hovering = true;
+      /**
+       * Returns whether the given detail is a cached webpage based on the given property.
+       *
+       * @param {Object} detail
+       * @param {String} property
+       * @return {Boolean}
+       * @private
+       */
+      _isCachedAdWebpage: function(detail, property) {
+        return (detail[property] === 'Cached Ad Webpage');
       },
 
-      endHover: function() {
-        this.hovering = false;
+      /**
+       * Returns whether or not to show the iron-image element in the result header based on whether the list of images is set.
+       *
+       * @param {Array} images
+       * @return {String}
+       * @private
+       */
+      _showImageElement: function(images) {
+        return images ? 'show' : '';
+      },
+
+      /**
+       * Returns whether or not to show the "new" iron-icon element in the result header based on the date and the extractions.
+       *
+       * @param {Array} extractions
+       * @param {String} dataProperty
+       * @param {String} textProperty
+       * @param {String} typeProperty
+       * @param {Date} date
+       * @return {Boolean}
+       * @private
+       */
+      _showNewIconElement: function(extractions, dataProperty, textProperty, typeProperty, date) {
+        var show = false;
+        if(date) {
+          extractions.forEach(function(extraction) {
+            extraction[dataProperty].forEach(function(item) {
+              if(item[typeProperty] === 'date' && (new Date(item[textProperty]).getTime() > date.getTime())) {
+                show = true;
+              }
+            });
+          });
+        }
+        return show;
       },
 
       /**
        * Expands or collapses this record if its item has any details and the event was not triggered by clicking on a button.
        */
-      toggleRecord: function(event) {
-        // Do not open a record with no details.
-        if(this.showDetails) {
+      toggleDetails: function(event) {
+        if(this._doesHaveDetails(this.details, this.detailExtractions, this.images)) {
           var isAnnotation = (event.target.parentElement && event.target.parentElement.classList.contains('annotate-record'));
           var isButton = (event.target.localName === 'paper-button');
-          var isOpenInNewButton = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button' && event.target.parentElement.getAttribute('icon') === 'open-in-new');
+          var isButtonLink = (event.target.parentElement && event.target.parentElement.localName === 'paper-icon-button');
           var isLink = (event.target.localName === 'a' || (event.target.parentElement && event.target.parentElement.localName === 'a'));
           // Do not open the record if the user clicked on a button or link inside the record (including the annotation).
-          if(!isAnnotation && !isButton && !isOpenInNewButton && !isLink) {
-            this.set('open', !this.open);
-            this.$$('#recordDetail').toggle();
+          if(!isAnnotation && !isButton && !isButtonLink && !isLink) {
+            this.$$('#details').toggle();
           }
         }
-      },
-
-      /**
-       * Sets the source for the iron-image in the record header with the first image in the given list if available.
-       */
-      _updateImageSrcFromImages: function(images, property) {
-        if(images && images.length && property) {
-          this.set('imageSource', images[0][property]);
-          this.set('showDetails', true);
-        } else if(images) {
-          this.set('imageSource', undefined);
-        }
-      },
-
-      /**
-       * Sets whether to show details based on the existence of the given details object.
-       */
-      _updateShowDetails: function(details) {
-        this.set('showDetails', (!!details && !!details.length));
-      },
-
-      /**
-       * Whether or not to show the initial iron-image element.
-       */
-      _showImageSpace: function(images) {
-        return images ? 'show' : '';
-      },
-
-      _isCachedWebpage: function(detail, property) {
-        return (detail[property] === 'Cached Webpage');
-      },
-
-      _getProperty: function(item, property) {
-        return item ? item[property] : undefined;
       }
     });
   })();

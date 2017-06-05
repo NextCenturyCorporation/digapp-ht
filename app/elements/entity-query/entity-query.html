@@ -15,9 +15,10 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
-<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/json-combine/json-combine.html">
 
 <dom-module id="entity-query">
   <template>
@@ -29,8 +30,38 @@ limitations under the License.
 
     <elastic-client-query-builder
       type="terms"
-      fields="[[fields]]"
+      fields="[[emailField]]"
       values="[[values]]"
+      ejs-query="{{_emailQuery}}">
+    </elastic-client-query-builder>
+
+    <!-- TODO Add image query to bool query
+    <elastic-client-query-builder
+      type="terms"
+      fields="[[imageField]]"
+      values="[[values]]"
+      ejs-query="{{_imageQuery}}">
+    </elastic-client-query-builder>
+    -->
+
+    <elastic-client-query-builder
+      type="terms"
+      fields="[[offerField]]"
+      values="[[values]]"
+      ejs-query="{{_offerQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-query-builder
+      type="terms"
+      fields="[[phoneField]]"
+      values="[[values]]"
+      ejs-query="{{_phoneQuery}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-query-builder
+      type="bool"
+      bool-function="should"
+      ejs-bool-queries="[[buildArrayIfAllExist(_emailQuery, _offerQuery, _phoneQuery)]]"
       ejs-query="{{_query}}">
     </elastic-client-query-builder>
 
@@ -52,23 +83,33 @@ limitations under the License.
       transform-function="[[_createTotalCountFunction()]]">
     </json-transform>
 
-    <json-transform
-      data-in="[[_results]]"
+    <json-combine
+      data-in1="[[values]]"
+      data-in2="[[_results]]"
       data-out="{{entities}}"
-      transform-function="[[transformFunction]]">
-    </json-transform>
+      combine-function="[[transformFunction]]">
+    </json-combine>
   </template>
 
   <script>
   (function() {
     'use strict';
 
+    /* globals DigBehaviors */
     Polymer({
       is: 'entity-query',
+
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
 
       properties: {
         client: {
           type: Object
+        },
+
+        emailField: {
+          type: String
         },
 
         entities: {
@@ -76,8 +117,8 @@ limitations under the License.
           type: Array
         },
 
-        fields: {
-          type: Array
+        imageField: {
+          type: String
         },
 
         indexName: {
@@ -89,6 +130,10 @@ limitations under the License.
           type: Boolean
         },
 
+        offerField: {
+          type: String
+        },
+
         page: {
           notify: true,
           type: Number
@@ -96,7 +141,12 @@ limitations under the License.
 
         pageSize: {
           notify: true,
-          type: Number
+          type: Number,
+          value: 50
+        },
+
+        phoneField: {
+          type: String
         },
 
         totalCount: {
@@ -110,6 +160,18 @@ limitations under the License.
 
         values: {
           type: Array
+        },
+
+        _emailQuery: {
+          type: Object
+        },
+
+        _offerQuery: {
+          type: Object
+        },
+
+        _phoneQuery: {
+          type: Object
         },
 
         _query: {

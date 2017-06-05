@@ -15,9 +15,10 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../user-preferences/user-preferences.html">
-<link rel="import" href="../user-query/user-query.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="load-user-info">
@@ -28,16 +29,24 @@ limitations under the License.
       }
     </style>
 
-    <user-query id="userQuery"
+    <build-and-run-query id="userQuery"
+      raw
+      fields='"username"'
+      values="[[username]]"
       client="[[client]]"
-      user-index="[[userIndex]]"
-      user-type="[[userType]]"
-      username="[[username]]"
-      user-result="{{_userSearchResult}}">
-    </user-query>
+      index-name="[[userIndex]]"
+      index-types="[[buildArray(userType)]]"
+      aggregations="[]"
+      filters="[]"
+      sort-field="dateCreated"
+      loading="{{_userLoading}}"
+      results="{{_userSearchResult}}">
+    </build-and-run-query>
 
     <!-- User preferences dialog -->
-    <user-preferences show-search="{{showSearch}}"
+    <user-preferences
+      dev="[[dev]]"
+      show-search="{{showSearch}}"
       searches="{{searches}}"
       email-address="{{_emailAddress}}"
       no-email-address="{{_noEmailAddress}}"
@@ -45,11 +54,15 @@ limitations under the License.
       client="[[client]]"
       user-id="[[userId]]"
       username="[[username]]"
-      advanced-search="{{advancedSearch}}"
+      annotations-darpa="{{annotationsDarpa}}"
+      annotations-isi="{{annotationsIsi}}"
       blur-images="{{blurImages}}"
+      classification-flag-list="[[classificationFlagList]]"
+      classification-flag="{{classificationFlag}}"
       search-parameters="{{searchParameters}}"
       user-index="[[userIndex]]"
       user-type="[[userType]]"
+      user-loading="[[_userLoading]]"
       user-record-exists="[[userRecordExists]]"
       notification-frequency="[[_notificationFrequency]]"
       has-notifications="[[_hasNotifications]]"
@@ -73,13 +86,24 @@ limitations under the License.
 
   <script>
   (function() {
-    /* globals _ */
+    /* globals _, DigBehaviors */
     'use strict';
 
     Polymer({
       is: 'load-user-info',
 
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
+
       properties: {
+        /**
+         * Whether dev mode is on.
+         */
+        dev: {
+          type: Boolean
+        },
+
         /**
          * The name of this user.
          */
@@ -129,12 +153,21 @@ limitations under the License.
         },
 
         /**
-         * Whether advanced search is enabled.
+         * Whether to enable DARPA annotations.
          */
-        advancedSearch: {
+        annotationsDarpa: {
+          notify: true,
           type: Boolean,
-          value: false,
-          notify: true
+          value: false
+        },
+
+        /**
+         * Whether to enable ISI annotations (classifications).
+         */
+        annotationsIsi: {
+          notify: true,
+          type: Boolean,
+          value: false
         },
 
         /**
@@ -144,6 +177,25 @@ limitations under the License.
           type: Boolean,
           value: true,
           notify: true
+        },
+
+        /**
+         * The selected classification flag.
+         */
+        classificationFlag: {
+          notify: true,
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The classification flag list.
+         */
+        classificationFlagList: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -192,6 +244,14 @@ limitations under the License.
         _notificationFrequency: {
           type: String,
           notify: true
+        },
+
+        /**
+         * Whether the user query is loading.
+         */
+        _userLoading: {
+          type: Boolean,
+          value: false
         },
 
         /**
@@ -288,14 +348,14 @@ limitations under the License.
           value: function() {
             var self = this;
             return function() {
-              self.$$('#userQuery').runUserQuery();
+              self.$$('#userQuery').runQuery();
             };
           }
         }
       },
 
       observers: [
-        '_createUserRecord(userRecordExists, username, advancedSearch, blurImages)'
+        '_createUserRecord(userRecordExists, username, blurImages)'
       ],
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -313,7 +373,8 @@ limitations under the License.
 
           this._set_userCreateBody({
             username: self.username,
-            advancedSearch: self.advancedSearch,
+            annotationsDarpa: false,
+            annotationsIsi: false,
             blurImages: self.blurImages,
             dateCreated: new Date(),
             notificationFrequency: 'never'
@@ -357,8 +418,12 @@ limitations under the License.
       _populateUserPreferences: function(prefs) {
         var self = this;
 
-        if(prefs.advancedSearch !== undefined) {
-          this.set('advancedSearch', prefs.advancedSearch);
+        if(prefs.annotationsDarpa !== undefined) {
+          this.set('annotationsDarpa', prefs.annotationsDarpa);
+        }
+
+        if(prefs.annotationsIsi !== undefined) {
+          this.set('annotationsIsi', prefs.annotationsIsi);
         }
 
         if(prefs.blurImages !== undefined) {
@@ -375,9 +440,7 @@ limitations under the License.
         }
 
         if(prefs.savedEntities) {
-          this.set('entities', prefs.savedEntities.filter(function(entity) {
-            return (entity.id && entity.id.indexOf('http') === 0);
-          }));
+          this.set('entities', prefs.savedEntities);
         }
 
         if(prefs.savedQueries) {
@@ -393,13 +456,6 @@ limitations under the License.
         if(prefs.receivedQueries) {
           this.set('_receivedSearches', prefs.receivedQueries);
         }
-      },
-
-      /**
-       * Toggles the advanced search property through the user-preferences component so that it updates the database with the new value.
-       */
-      _toggleAdvancedSearch: function() {
-        this.$$('user-preferences')._toggleAdvancedSearch();
       }
     });
   })();

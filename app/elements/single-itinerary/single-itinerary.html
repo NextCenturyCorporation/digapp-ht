@@ -40,7 +40,13 @@ limitations under the License.
         display: block;
       }
 
-      .body .part-name {
+      .head .text.subtitle {
+        font-size: 14px;
+        line-height: 25px;
+        min-height: 25px;
+      }
+
+      .body .item-name {
         margin-left: 6px;
       }
 
@@ -55,50 +61,54 @@ limitations under the License.
       a:hover {
         color: var(--secondary-text-color);
       }
+
+      modal-icon {
+        margin-right: 10px;
+      }
     </style>
 
-    <paper-material class$="layout horizontal flex head [[getHeaderClass(open)]]" clickable on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleItinerary">
+    <paper-material class$="layout horizontal flex head pointer [[_getHeaderClass(open)]]" on-mouseover="startHover" on-mouseout="endHover" on-tap="toggleItinerary">
       <modal-icon
-        icon="[[getProperty(item, iconProperty)]]"
-        icon-style-class="[[getProperty(item, styleClassProperty)]]"
+        icon="[[icon]]"
+        icon-style-class="[[styleClass]]"
         show-icon="[[!hovering]]"
         openable
         open="[[open]]">
       </modal-icon>
 
-      <div class="layout vertical flex center-justified vertical-text">
-        <div class="text" title$="[[getDateText(interval, item, dateProperty)]]"><strong>[[getDateText(interval, item, dateProperty)]]</strong></div>
+      <div class="layout vertical flex center-justified">
+        <div class="text" title$="[[_getDateText(interval, date)]]"><strong>[[_getDateText(interval, date)]]</strong></div>
 
-        <div class="text" title$="[[getProperty(item, subtitleProperty, 'Unknown')]]" secondary>
-          <strong>[[getProperty(item, subtitleProperty, 'Unknown')]]</strong>
+        <div class="text subtitle" title$="[[subtitle]]" secondary>
+          <strong>[[subtitle]]</strong>
         </div>
       </div>
     </paper-material>
 
-    <iron-collapse id="itineraryNotes">
+    <iron-collapse id="itineraryDetails">
       <div>
-        <template is="dom-repeat" items="[[getProperty(item, partsProperty)]]" as="part">
+        <template is="dom-repeat" items="[[items]]">
           <paper-material class="layout vertical flex body">
             <div class="layout horizontal">
-              <iron-icon class$="[[getProperty(part, partStyleClassProperty)]]" icon="[[getProperty(part, partIconProperty)]]" item-icon></iron-icon>
-              <template is="dom-if" if="[[getProperty(part, partLocationLinkProperty)]]">
-                <a href$="[[getProperty(part, partLocationLinkProperty)]]">
-                  <strong class="text part-name">[[getProperty(part, partNameProperty, 'Unknown')]]</strong>
+              <iron-icon class$="[[_getProperty(item, styleClassProperty)]]" icon="[[_getProperty(item, iconProperty)]]" item-icon></iron-icon>
+              <template is="dom-if" if="[[_getProperty(item, linkProperty)]]">
+                <a href$="[[_getProperty(item, linkProperty)]]">
+                  <strong class="text item-name">[[_getProperty(item, nameProperty, 'Unknown')]]</strong>
                 </a>
               </template>
-              <template is="dom-if" if="[[!getProperty(part, partLocationLinkProperty)]]">
-                <strong class="text part-name">[[getProperty(part, partNameProperty, 'Unknown')]]</strong>
+              <template is="dom-if" if="[[!_getProperty(item, linkProperty)]]">
+                <strong class="text item-name">[[_getProperty(item, nameProperty, 'Unknown')]]</strong>
               </template>
             </div>
 
-            <div class="indent"><strong class="text">[[getCount(part, partCountProperty)]]</strong></div>
+            <div class="indent"><strong class="text">[[_getCount(item, countProperty)]]</strong></div>
 
-            <template is="dom-repeat" items="[[getProperty(part, notesProperty)]]" as="note">
-              <div class="indent"><strong class="text">[[getPropertyWithColon(note, noteNameProperty)]]</strong></div>
+            <template is="dom-repeat" items="[[_getProperty(item, detailsProperty)]]" as="detail">
+              <div class="indent"><strong class="text">[[_getPropertyWithColon(detail, detailNameProperty)]]</strong></div>
 
               <icon-label-grid class="indent"
-                icon-style-class-property="[[styleClassProperty]]"
-                data="[[getProperty(note, noteDataProperty)]]">
+                icon-style-class-property="[[detailStyleClassProperty]]"
+                data="[[_getProperty(detail, detailDataProperty)]]">
               </icon-label-grid>
             </template>
           </paper-material>
@@ -114,15 +124,73 @@ limitations under the License.
 
       properties: {
         /**
-         * The property for the date in the item.
+         * The date string.
          */
-        dateProperty: {
+        date: {
           type: String,
-          value: 'date'
+          value: 'Unknown Date'
         },
 
         /**
-         * The property for the icon in the item.
+         * The icon.
+         */
+        icon: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The time interval.
+         */
+        interval: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The style class.
+         */
+        styleClass: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The subtitle.
+         */
+        subtitle: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * The list of items.
+         */
+        items: {
+          type: String,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The property for the count in each item.
+         */
+        countProperty: {
+          type: String,
+          value: 'count'
+        },
+
+        /**
+         * The property for the location link in each item.
+         */
+        linkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the icon in each item.
          */
         iconProperty: {
           type: String,
@@ -130,7 +198,15 @@ limitations under the License.
         },
 
         /**
-         * The property for the style class of the icon in the item.
+         * The property for the name in each item.
+         */
+        nameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
+         * The property for the style class of the icon in each item.
          */
         styleClassProperty: {
           type: String,
@@ -138,100 +214,35 @@ limitations under the License.
         },
 
         /**
-         * The property for the items in the item.
+         * The property for the details in each item.
          */
-        partsProperty: {
+        detailsProperty: {
           type: String,
-          value: 'parts'
+          value: 'details'
         },
 
         /**
-         * The property for the name of each part in the item.
+         * The property for the data of each detail in the details of each item.
          */
-        partNameProperty: {
-          type: String,
-          value: 'name'
-        },
-
-        /**
-         * The property for the location link in the item.
-         */
-        partLocationLinkProperty: {
-          type: String,
-          value: 'link'
-        },
-
-        /**
-         * The property for the icon of each part in the item.
-         */
-        partIconProperty: {
-          type: String,
-          value: 'icon'
-        },
-
-        /**
-         * The property for the style class of the icon of each part in the item.
-         */
-        partStyleClassProperty: {
-          type: String,
-          value: 'styleClass'
-        },
-
-        /**
-         * The property for the count of each part in the item.
-         */
-        partCountProperty: {
-          type: String,
-          value: 'count'
-        },
-
-        /**
-         * The property for the notes of each part in the item.
-         */
-        notesProperty: {
-          type: String,
-          value: 'notes'
-        },
-
-        /**
-         * The property for the name of each note in the notes of each part in the item.
-         */
-        noteNameProperty: {
-          type: String,
-          value: 'name'
-        },
-
-        /**
-         * The property for the data of each note in the notes of each part in the item.
-         */
-        noteDataProperty: {
+        detailDataProperty: {
           type: String,
           value: 'data'
         },
 
         /**
-         * The property for the subtitle in the item.
+         * The property for the name of each detail in the details of each item.
          */
-        subtitleProperty: {
+        detailNameProperty: {
           type: String,
-          value: 'subtitle'
+          value: 'name'
         },
 
         /**
-         * The item to show.
+         * The property for the style class of each detail in the details of each item.
          */
-        item: {
-          type: Object,
-          value: function() {
-            return {};
-          }
-        },
-
-        /**
-         * The time interval for the item.
-         */
-        interval: {
-          type: String
+        detailStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
         },
 
         /**
@@ -251,12 +262,11 @@ limitations under the License.
         }
       },
 
-      getCount: function(part, partCountProperty) {
-        return 'Count: ' + this.getProperty(part, partCountProperty, 'Unknown');
+      _getCount: function(item, countProperty) {
+        return 'Count: ' + this._getProperty(item, countProperty, 'Unknown');
       },
 
-      getDateText: function(interval, item, dateProperty) {
-        var dateString = this.getProperty(item, dateProperty);
+      _getDateText: function(interval, dateString) {
         if(interval === 'week') {
           return 'Week of ' + moment.utc(new Date(dateString)).format('MMM D, YYYY');
         }
@@ -269,16 +279,16 @@ limitations under the License.
         return moment.utc(new Date(dateString)).format('MMM D, YYYY');
       },
 
-      getHeaderClass: function(open) {
+      _getHeaderClass: function(open) {
         return (open ? 'opened' : 'closed');
       },
 
-      getProperty: function(item, property, defaultValue) {
+      _getProperty: function(item, property, defaultValue) {
         return item[property] || defaultValue;
       },
 
-      getPropertyWithColon: function(item, property) {
-        return this.getProperty(item, property) + ':';
+      _getPropertyWithColon: function(item, property) {
+        return this._getProperty(item, property) + ':';
       },
 
       startHover: function() {
@@ -291,7 +301,7 @@ limitations under the License.
 
       toggleItinerary: function() {
         this.set('open', !this.open);
-        this.$$('#itineraryNotes').toggle();
+        this.$$('#itineraryDetails').toggle();
       }
     });
   </script>

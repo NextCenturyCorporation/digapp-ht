@@ -31,7 +31,7 @@ limitations under the License.
 
     <paginated-list
       loading="[[loading]]"
-      load-type="[[_computeLoadType(type)]]"
+      load-type="[[_getLoadType(type)]]"
       items="[[queryResults]]"
       total-items="[[totalResults]]"
       page="{{page}}"
@@ -41,32 +41,51 @@ limitations under the License.
       <template is="dom-repeat" items="[[shownResults]]" initial-count="25">
         <single-record
           class="item-with-border"
-          item="[[item]]"
-          item-highlighted-text-property="[[itemHighlightedTextProperty]]"
-          item-icon-property="[[itemIconProperty]]"
-          item-icon-style-class-property="[[itemIconStyleClassProperty]]"
-          item-link-property="[[itemLinkProperty]]"
-          item-name-property="[[itemNameProperty]]"
-          item-type-property="[[itemTypeProperty]]"
-          descriptors="[[_getList(item, itemDescriptorProperty)]]"
-          descriptor-icon-property="[[descriptorIconProperty]]"
-          descriptor-icon-style-class-property="[[descriptorIconStyleClassProperty]]"
-          descriptor-link-property="[[descriptorLinkProperty]]"
-          descriptor-text-property="[[descriptorTextProperty]]"
-          descriptor-type-property="[[descriptorTypeProperty]]"
-          details="[[_getList(item, itemDetailProperty)]]"
-          detail-highlighted-text-property="[[detailHighlightedTextProperty]]"
-          detail-link-property="[[detailLinkProperty]]"
-          detail-text-property="[[detailTextProperty]]"
-          images="[[_getList(item, itemImageProperty)]]"
-          image-link-property="[[imageLinkProperty]]"
-          image-source-property="[[imageSourceProperty]]"
           client="[[client]]"
           annotation-manager="[[annotationManager]]"
+          classification-manager="[[classificationManager]]"
+          classifications="[[_getObject(item, classificationsProperty)]]"
+          flag="[[_getString(item, flagProperty)]]"
+          highlighted-text="[[_getString(item, highlightedTextProperty)]]"
+          icon="[[_getString(item, iconProperty)]]"
+          item-id="[[_getString(item, idProperty)]]"
+          link="[[_getString(item, linkProperty)]]"
+          rank="[[_getString(item, rankProperty)]]"
+          style-class="[[_getString(item, styleClassProperty)]]"
+          text="[[_getString(item, textProperty)]]"
+          type="[[_getString(item, typeProperty)]]"
+          header-extractions="[[_getList(item, headerExtractionsProperty)]]"
+          detail-extractions="[[_getList(item, detailExtractionsProperty)]]"
+          extraction-data-property="[[extractionDataProperty]]"
+          extraction-data-annotate-property="[[extractionDataAnnotateProperty]]"
+          extraction-data-classifications-property="[[extractionDataClassificationsProperty]]"
+          extraction-data-highlight-property="[[extractionDataHighlightProperty]]"
+          extraction-data-icon-property="[[extractionDataIconProperty]]"
+          extraction-data-id-property="[[extractionDataIdProperty]]"
+          extraction-data-link-property="[[extractionDataLinkProperty]]"
+          extraction-data-style-class-property="[[extractionDataStyleClassProperty]]"
+          extraction-data-text-property="[[extractionDataTextProperty]]"
+          extraction-data-type-property="[[extractionDataTypeProperty]]"
+          extraction-name-property="[[extractionNameProperty]]"
+          details="[[_getList(item, detailsProperty)]]"
+          detail-highlighted-text-property="[[detailHighlightedTextProperty]]"
+          detail-link-property="[[detailLinkProperty]]"
+          detail-name-property="[[detailNameProperty]]"
+          detail-text-property="[[detailTextProperty]]"
+          images="{{item.images}}"
+          on-images-changed="_notifyResultChange"
+          image-aggregation-field="[[imageAggregationField]]"
+          image-aggregation-name="[[imageAggregationName]]"
+          image-index-name="[[imageIndexName]]"
+          image-index-type="[[imageIndexType]]"
+          image-query-field="[[imageQueryField]]"
+          image-transform-function="[[imageTransformFunction]]"
+          image-link-property="[[imageLinkProperty]]"
+          image-source-property="[[imageSourceProperty]]"
+          small-image-style-class="[[smallImageStyleClass]]"
+          large-image-style-class="[[largeImageStyleClass]]"
           new-tab="[[newTab]]"
-          blur="[[blur]]"
-          notification-query-date="[[notificationQueryDate]]"
-          modal-icon-last>
+          notification-query-date="[[notificationQueryDate]]">
         </single-record>
       </template>
     </paginated-list>
@@ -81,105 +100,201 @@ limitations under the License.
 
       properties: {
         /**
-         * The property for the highlighted text in the item.
+         * The record data property for the collection of flags mapped to the AI and user classifications.
          */
-        itemHighlightedTextProperty: {
+        classificationsProperty: {
+          type: String,
+          value: 'classifications'
+        },
+
+        /**
+         * The property for the flag in the record data.
+         */
+        flagProperty: {
+          type: String,
+          value: 'flag'
+        },
+
+        /**
+         * The property for the highlighted text in the record data.
+         */
+        highlightedTextProperty: {
           type: String,
           value: 'highlightedText'
         },
 
         /**
-         * The property for the icon in the item.
+         * The property for the icon in the record data.
          */
-        itemIconProperty: {
+        iconProperty: {
           type: String,
           value: 'icon'
         },
 
         /**
-         * The property for the icon in the item.
+         * The property for the ID in the record data.
          */
-        itemIconStyleClassProperty: {
+        idProperty: {
           type: String,
-          value: 'styleClass'
+          value: 'id'
         },
 
         /**
-         * The property for the link in the item.
+         * The property for the link in the record data.
          */
-        itemLinkProperty: {
-          type: String,
-          value: 'link'
-        },
-
-        /**
-         * The property for the name in the item.
-         */
-        itemNameProperty: {
-          type: String,
-          value: 'name'
-        },
-
-        /**
-         * The property for the type in the item.
-         */
-        itemTypeProperty: {
-          type: String,
-          value: 'type'
-        },
-
-        /**
-         * The property for the list of descriptor objects in the item.
-         */
-        itemDescriptorProperty: {
-          type: String,
-          value: 'descriptors'
-        },
-
-        /**
-         * The property for the icon in the descriptors in the item.
-         */
-        descriptorIconProperty: {
-          type: String,
-          value: 'icon'
-        },
-
-        /**
-         * The property for the icon style class in the descriptors in the item.
-         */
-        descriptorIconStyleClassProperty: {
-          type: String,
-          value: 'styleClass'
-        },
-
-        /**
-         * The property for the link in the descriptors in the item.
-         */
-        descriptorLinkProperty: {
+        linkProperty: {
           type: String,
           value: 'link'
         },
 
         /**
-         * The property for the text in the descriptors in the item.
+         * The property for the rank in the record data.
          */
-        descriptorTextProperty: {
+        rankProperty: {
+          type: String,
+          value: 'rank'
+        },
+
+        /**
+         * The property for the style class in the record data.
+         */
+        styleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the text in the record data.
+         */
+        textProperty: {
           type: String,
           value: 'text'
         },
 
         /**
-         * The property for the type in the descriptors in the item.
+         * The property for the type in the record data.
          */
-        descriptorTypeProperty: {
+        typeProperty: {
           type: String,
           value: 'type'
         },
 
         /**
+         * The property for the list of extraction objects in the record data to show in the header.
+         */
+        headerExtractionsProperty: {
+          type: String,
+          value: 'headerExtractions'
+        },
+
+        /**
+         * The property for the list of extraction objects in the record data to show in the details.
+         */
+        detailExtractionsProperty: {
+          type: String,
+          value: 'detailExtractions'
+        },
+
+        /**
+         * The property for the data of each extraction in the record data.
+         */
+        extractionDataProperty: {
+          type: String,
+          value: 'data'
+        },
+
+        /**
+         * The property for whether to annotate an item in the extraction data.
+         */
+        extractionDataAnnotateProperty: {
+          type: String,
+          value: 'annotate'
+        },
+
+        /**
+         * The property for the classifications of each item in the extraction data.
+         */
+        extractionDataClassificationsProperty: {
+          type: String,
+          value: 'classifications'
+        },
+
+        /**
+         * The property for the confidence of each item in the extraction data.
+         */
+        extractionDataConfidenceProperty: {
+          type: String,
+          value: 'confidence'
+        },
+
+        /**
+         * The property for the highlight status of each item in the extraction data.
+         */
+        extractionDataHighlightProperty: {
+          type: String,
+          value: 'highlight'
+        },
+
+        /**
+         * The property for the icon of each item in the extraction data.
+         */
+        extractionDataIconProperty: {
+          type: String,
+          value: 'icon'
+        },
+
+        /**
+         * The property for the ID of each item in the extraction data.
+         */
+        extractionDataIdProperty: {
+          type: String,
+          value: 'id'
+        },
+
+        /**
+         * The property for the link of each item in the extraction data.
+         */
+        extractionDataLinkProperty: {
+          type: String,
+          value: 'link'
+        },
+
+        /**
+         * The property for the style class of each item in the extraction data.
+         */
+        extractionDataStyleClassProperty: {
+          type: String,
+          value: 'styleClass'
+        },
+
+        /**
+         * The property for the text of each item in the extraction data.
+         */
+        extractionDataTextProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * The property for the type of each item in the extraction data.
+         */
+        extractionDataTypeProperty: {
+          type: String,
+          value: 'type'
+        },
+
+        /**
+         * The property for the name of each extraction in the record data.
+         */
+        extractionNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
          * The property for the list of detail objects in the item.
          */
-        itemDetailProperty: {
+        detailsProperty: {
           type: String,
           value: 'details'
         },
@@ -201,6 +316,14 @@ limitations under the License.
         },
 
         /**
+         * The property for the name in the details in the item.
+         */
+        detailNameProperty: {
+          type: String,
+          value: 'name'
+        },
+
+        /**
          * The property for the text in the details in the item.
          */
         detailTextProperty: {
@@ -211,7 +334,7 @@ limitations under the License.
         /**
          * The property for the list of image objects in the item.
          */
-        itemImageProperty: {
+        imagesProperty: {
           type: String,
           value: 'images'
         },
@@ -230,6 +353,38 @@ limitations under the License.
         imageSourceProperty: {
           type: String,
           value: 'source'
+        },
+
+        smallImageStyleClass: {
+          type: String
+        },
+
+        largeImageStyleClass: {
+          type: String
+        },
+
+        imageAggregationField: {
+          type: String
+        },
+
+        imageAggregationName: {
+          type: String
+        },
+
+        imageIndexName: {
+          type: String
+        },
+
+        imageIndexType: {
+          type: String
+        },
+
+        imageQueryField: {
+          type: String
+        },
+
+        imageTransformFunction: {
+          type: Object
         },
 
         /**
@@ -295,6 +450,13 @@ limitations under the License.
         },
 
         /**
+         * The classification manager.
+         */
+        classificationManager: {
+          type: Object
+        },
+
+        /**
          * Whether to open a link in a new tab.
          */
         newTab: {
@@ -316,18 +478,8 @@ limitations under the License.
          * The title for this list.
          */
         recordsListTitle: {
-          type: String,
-          value: 'No Records',
-          computed: '_computeTitle(type, loading, shownResults.length, totalResults)',
-          notify: true
-        },
-
-        /**
-         * Whether to blur the images.
-         */
-        blur: {
-          type: Boolean,
-          notify: true
+          notify: true,
+          type: String
         },
 
         /**
@@ -337,34 +489,54 @@ limitations under the License.
           type: Object,
           notify: true
         }
-
       },
 
-      _computeLoadType: function(type) {
-        return type + 's';
-      },
+      observers: [
+        '_buildTitle(type)',
+        '_buildTitle(type, loading)',
+        '_buildTitle(type, loading, shownResults.length, totalResults)'
+      ],
 
       /**
        * Returns the title for this list based on the type, loading, shownResults, and totalResults.
        */
-      _computeTitle: function(type, loading, count, total) {
-        if(total) {
+      _buildTitle: function() {
+        if(this.totalResults) {
           // Use regex replace to add commas to count.
-          var totalString = total.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-          if(count && count < total) {
-            var countString = count.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-            return countString + ' of ' + totalString + ' ' + type + (total === 1 ? '' : 's');
+          var totalString = this.totalResults.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+          if(this.shownResults.length && this.shownResults.length < this.totalResults) {
+            var countString = this.shownResults.length.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            this.set('recordsListTitle', countString + ' of ' + totalString + ' ' + this.type + (this.totalResults === 1 ? '' : 's'));
+          } else {
+            this.set('recordsListTitle', totalString + ' ' + this.type + (this.totalResults === 1 ? '' : 's'));
           }
-          return totalString + ' ' + type + (total === 1 ? '' : 's');
+        } else if(this.loading) {
+          this.set('recordsListTitle', 'Loading ' + this.type + 's...');
+        } else {
+          this.set('recordsListTitle', 'No ' + this.type + 's');
         }
-        if(loading) {
-          return 'Loading ' + type + 's...';
-        }
-        return 'No ' + type + 's';
       },
 
       _getList: function(item, property) {
         return (item ? item[property] : undefined) || [];
+      },
+
+      _getLoadType: function(type) {
+        return type + 's';
+      },
+
+      _getObject: function(item, property) {
+        return (item ? item[property] : undefined) || {};
+      },
+
+      _getString: function(item, property) {
+        return (item ? item[property] : undefined) || '';
+      },
+
+      _notifyResultChange: function(event) {
+        if(event.model.index) {
+          this.notifyPath('shownResults.' + event.model.index, this.shownResults[event.model.index]);
+        }
       }
     });
   })();

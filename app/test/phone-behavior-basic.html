@@ -1,0 +1,93 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>phone-behavior</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
+  <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+  <link rel="import" href="../bower_components/polymer/polymer.html">
+  <script src="../behaviors/phone-behavior.js"></script>
+</head>
+
+<body>
+<dom-module id="test-phone-behavior-component">
+  <template>
+  </template>
+  <script>
+    /* globals DigBehaviors, HTMLImports, Polymer */
+    HTMLImports.whenReady(function() {
+      Polymer({
+        is: 'test-phone-behavior-component',
+        behaviors: [DigBehaviors.PhoneBehavior]
+      });
+    });
+  </script>
+</dom-module>
+
+<test-fixture id="phone-behavior-fixture">
+  <template>
+    <test-phone-behavior-component></test-phone-behavior-component>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, setup, fixture, test, expect */
+  /* jshint -W030 */
+  suite('phone-behavior tests', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('phone-behavior-fixture');
+    });
+
+    test('getUnformattedPhones does not change numbers', function() {
+      expect(element.getUnformattedPhones('1234567890')).to.equal('1234567890');
+    });
+
+    test('getUnformattedPhones does trim whitespace', function() {
+      expect(element.getUnformattedPhones(' 1234567890 ')).to.equal('1234567890');
+      expect(element.getUnformattedPhones('\n1234567890\n')).to.equal('1234567890');
+    });
+
+    test('getUnformattedPhones does replace commas or semicolons with newlines', function() {
+      expect(element.getUnformattedPhones('1234567890,8905671234')).to.equal('1234567890\n8905671234');
+      expect(element.getUnformattedPhones('1234567890;8905671234')).to.equal('1234567890\n8905671234');
+    });
+
+    test('getUnformattedPhones does remove punctuation', function() {
+      expect(element.getUnformattedPhones('123-456-7890')).to.equal('1234567890');
+      expect(element.getUnformattedPhones('123.456.7890')).to.equal('1234567890');
+      expect(element.getUnformattedPhones('(123)4567890')).to.equal('1234567890');
+      expect(element.getUnformattedPhones('(123)-456-7890')).to.equal('1234567890');
+    });
+
+    test('getUnformattedPhones does remove letters', function() {
+      expect(element.getUnformattedPhones('phone1234567890')).to.equal('1234567890');
+    });
+
+    test('getUnformattedPhones does not remove country codes', function() {
+      expect(element.getUnformattedPhones('1111-222-333-4444')).to.equal('11112223334444');
+    });
+  });
+</script>
+</body>
+</html>

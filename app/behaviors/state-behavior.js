@@ -22,6 +22,20 @@ var DigBehaviors = DigBehaviors || {};
  * Polymer behavior for state-related utility functions.
  */
 DigBehaviors.StateBehavior = {
+  updateLegacyId: function(id) {
+    if(id.startsWith('http://dig.isi.edu/ht/data/email')) {
+      return decodeURIComponent(id.substring(id.lastIndexOf('/') + 1));
+    }
+    if(id.startsWith('http://dig.isi.edu/ht/data/phone')) {
+      var phone = id.substring(id.lastIndexOf('/') + 1);
+      if(phone.startsWith('1-')) {
+        return phone.substring(2);
+      }
+      return phone;
+    }
+    return id;
+  },
+
   /**
    * Builds and returns the entity state object from the given config object.
    *
@@ -29,76 +43,144 @@ DigBehaviors.StateBehavior = {
    * @return {Object}
    */
   buildEntityState: function(config) {
-    return {
-      email: config.email || [],
-      phone: config.phone || [],
-      publisher: config.publisher || [],
-      location: config.location || [],
-      name: config.name || [],
+    var state = {
       age: config.age || [],
+      dates: config.dates || [],
+      email: config.email || [],
       ethnicity: config.ethnicity || [],
       eyeColor: config.eyeColor || [],
+      gender: config.gender || [],
       hairColor: config.hairColor || [],
       height: config.height || [],
+      image: config.image || [],
+      location: config.location || [],
+      name: config.name || [],
+      phone: config.phone || [],
+      price: config.price || [],
+      publisher: config.publisher || [],
+      review: config.review || [],
+      services: config.services || [],
+      social: config.social || [],
       weight: config.weight || []
     };
+
+    // Fix legacy IDs.
+    var self = this;
+    _.keys(state).forEach(function(type) {
+      state[type] = state[type].map(self.updateLegacyId);
+    });
+
+    return state;
   },
 
   /**
-   * Builds and returns the search state object for the UI from the given config object and annotations filter.
+   * Builds and returns the search state object from the given config object.
    *
    * @param {Object} config
-   * @param {Object} annotationsFilter
    * @return {Object}
    */
-  buildSearchStateForUI: function(config, annotationsFilter) {
-    return {
-      dateCreated: config.dateCreated || {},
-      country: config.country || {},
-      city: config.city || {},
-      phone: config.phone || {},
-      email: config.email || {},
-      website: config.website || {},
-      name: config.name || {},
+  buildSearchState: function(config) {
+    var state = {
       age: config.age || {},
+      city: config.city || {},
+      country: config.country || {},
+      description: config.description || {},
+      email: config.email || {},
       ethnicity: config.ethnicity || {},
       eyeColor: config.eyeColor || {},
+      gender: config.gender || {},
       hairColor: config.hairColor || {},
       height: config.height || {},
-      weight: config.weight || {},
-      hasImage: config.hasImage || {},
       image: config.image || {},
-      annotationsFilter: annotationsFilter ? _.cloneDeep(annotationsFilter) : {},
-      sort: config.sort || '',
-      text: (config.text || config.text === null) ? config.text : ''
+      location: config.location || {},
+      name: config.name || {},
+      phone: config.phone || {},
+      // start and end dates will be keys within postingDate
+      postingDate: config.postingDate || {},
+      price: config.price || {},
+      region: config.region || {},
+      review: config.review || {},
+      services: config.services || {},
+      social: config.social || {},
+      title: config.title || {},
+      website: config.website || {},
+      weight: config.weight || {},
+      sort: config.sort || ''
+    };
+
+    // Fix legacy IDs.
+    var self = this;
+    _.keys(state).forEach(function(type) {
+      if(type !== 'postingDate' && type !== 'sort') {
+        _.keys(state[type]).forEach(function(term) {
+          state[type][term].key = self.updateLegacyId(state[type][term].key);
+        });
+      }
+    });
+
+    // Fix legacy dates.
+    if(_.isEmpty(state.postingDate) && !_.isEmpty(config.dateCreated)) {
+      var start = config.dateCreated['Begin Date'];
+      var end = config.dateCreated['End Date'];
+      state.postingDate = {
+        dateEnd: (end ? {
+          key: 'dateEnd',
+          category: 'To',
+          date: end.date,
+          enabled: end.enabled,
+          text: end.text
+        } : undefined),
+        dateStart: (start ? {
+          key: 'dateStart',
+          category: 'From',
+          date: start.date,
+          enabled: start.enabled,
+          text: start.text
+        } : undefined),
+      };
+    }
+
+    return state;
+  },
+
+  /**
+   * Creates a configuration object for string inputs based on parameters given.
+   *
+   * @param {String} key
+   * @param {String} title
+   * @param {String} aggField
+   * @param {String} queryField
+   * @return {Object}
+   */
+  createSingleSearchField: function(key, title, aggField, queryField) {
+    return {
+      key: key,
+      title: title,
+      aggregationField: aggField,
+      queryField: queryField || aggField,
+      value: ''
     };
   },
 
   /**
-   * Builds and returns the search state object for elasticsearch from the given config object.
+   * Creates a date configuration object based on parameters given.
    *
-   * @param {Object} config
+   * @param {String} key
+   * @param {String} title
+   * @param {String} field
+   * @param {String} prefixLabel
+   * @param {String} dateIdentifier
    * @return {Object}
    */
-  buildSearchStateForES: function(config) {
+  createDateField: function(key, title, field, prefixLabel, dateIdentifier) {
     return {
-      dateCreated: config.dateCreated || {},
-      country: config.country || {},
-      city: config.city || {},
-      phone: config.phone || {},
-      email: config.email || {},
-      website: config.website || {},
-      name: config.name || {},
-      age: config.age || {},
-      ethnicity: config.ethnicity || {},
-      eyeColor: config.eyeColor || {},
-      hairColor: config.hairColor || {},
-      height: config.height || {},
-      weight: config.weight || {},
-      hasImage: config.hasImage || {},
-      image: config.image || {},
-      sort: config.sort || '',
-      text: config.text || ''
+      key: key,
+      title: title,
+      aggregationField: field,
+      queryField: field,
+      value: {},
+      prefixLabel: prefixLabel,
+      dateIdentifier: dateIdentifier
     };
   }
 };

@@ -23,55 +23,59 @@
 
 var imageTransform = (function(_, commonTransforms) {
   return {
-    // expected data is from an elasticsearch
     image: function(data) {
-      var newData = {};
-      if(data && data.hits.hits.length > 0) {
-        newData = data.hits.hits[0]._source;
-        newData.url = _.isArray(newData.url) ? newData.url[0] : newData.url;
-
-        var adultService = {
-          total: newData.isImagePartOf.length,
-          array: []
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        return {
+          id: data.hits.hits[0]._source.identifier,
+          ads: (data.hits.hits[0]._source.isImagePartOf || []).map(function(item) {
+            return item.uri;
+          }).slice(0, 10000),
+          url: data.hits.hits[0]._source.url
         };
-
-        newData.isImagePartOf = _.isArray(newData.isImagePartOf) ? newData.isImagePartOf : [newData.isImagePartOf];
-        newData.isImagePartOf.forEach(function(service) {
-          if(service.mainEntity) {
-            adultService.array.push(service.mainEntity.itemOffered.uri);
-          }
-        });
-
-        newData.adultService = adultService;
       }
-      newData.id = newData.uri;
-      return newData;
+      return {};
     },
 
     images: function(data) {
       var images = [];
-      if(data) {
-        data.hits.hits.forEach(function(hit) {
-          var imageId = _.get(hit._source, 'uri', '');
-          var imageSource = _.get(hit._source, 'url', '');
+      var max = 0;
+
+      if(data && data.aggregations && data.aggregations.image && data.aggregations.image.image && data.aggregations.image.image.buckets) {
+        data.aggregations.image.image.buckets.forEach(function(bucket, index) {
+          /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+          var count = bucket.doc_count;
+          /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
           images.push({
-            id: imageId,
+            count: count,
             icon: commonTransforms.getIronIcon('image'),
-            link: commonTransforms.getLink(imageId, 'image'),
-            source: _.isArray(imageSource) ? imageSource[0] : imageSource,
-            styleClass: commonTransforms.getStyleClass('image')
+            link: commonTransforms.getLink(bucket.key, 'image'),
+            source: bucket.key,
+            styleClass: commonTransforms.getStyleClass('image'),
+            text: 'Image #' + (index + 1)
           });
+          max = Math.max(max, count);
         });
       }
+
+      images.forEach(function(image) {
+        image.max = max;
+      });
+
       return images;
     },
 
-    imageTotal: function(data) {
-      return (data && data.hits) ? data.hits.total : 0;
+    imageTitle: function(totalCount, totalShown) {
+      if(totalCount) {
+        // Use regex replace to add commas to count.
+        var totalCountString = totalCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var totalShownString = totalShown.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return (totalCount === totalShown ? '' : totalShownString + ' of ') + totalCountString + ' Image' + (totalCount === 1 ? '' : 's');
+      }
+      return 'No Images';
     },
 
     externalImageLink: function(id) {
-      return commonTransforms.getLink('http://dig.isi.edu/ht/data/' + id, 'image');
+      return commonTransforms.getLink(id, 'image');
     }
   };
 });

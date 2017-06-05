@@ -19,31 +19,39 @@
 
 var entityTransform = (function(_) {
   return {
-    entities: function(data) {
+    entities: function(ids, results) {
       var entities = [];
+      var entityIds = [];
 
       var addEntity = function(id, name, type) {
+        entityIds.push(id);
         entities.push({
           id: id,
-          name: (_.isArray(name) ? (name.length ? name[0] : '') : name),
+          name: name,
           type: type
         });
       };
 
-      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
-        data.hits.hits.forEach(function(item) {
-          if(item._type === 'email') {
-            addEntity(item._id, item._source.name, item._type);
+      if(ids && ids.length && results && results.hits && results.hits.hits && results.hits.hits.length) {
+        results.hits.hits.forEach(function(item) {
+          if(ids.indexOf(item._id) >= 0 && entityIds.indexOf(item._id) < 0) {
+            addEntity(item._id, _.get(item, '_source.content_extraction.title.text', 'Ad'), 'offer');
           }
-          if(item._type === 'image') {
-            addEntity(item._id, item._source.url, item._type);
-          }
-          if(item._type === 'offer') {
-            addEntity(item._id, item._source.title, item._type);
-          }
-          if(item._type === 'phone') {
-            addEntity(item._id, item._source.name, item._type);
-          }
+          (_.get(item, '_source.knowledge_graph.email', [])).forEach(function(email) {
+            if(ids.indexOf(email.key) >= 0 && entityIds.indexOf(email.key) < 0) {
+              addEntity(email.key, email.value, 'email');
+            }
+          });
+          (_.get(item, '_source.knowledge_graph.image', [])).forEach(function(image) {
+            if(ids.indexOf(image.key) >= 0 && entityIds.indexOf(image.key) < 0) {
+              addEntity(image.key, image.value, 'image');
+            }
+          });
+          (_.get(item, '_source.knowledge_graph.phone', [])).forEach(function(phone) {
+            if(ids.indexOf(phone.key) >= 0 && entityIds.indexOf(phone.key) < 0) {
+              addEntity(phone.key, phone.value, 'phone');
+            }
+          });
         });
       }
 

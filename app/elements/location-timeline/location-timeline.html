@@ -15,10 +15,9 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
-<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
-<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
-<link rel="import" href="../../bower_components/json-transform/json-transform.html">
 <link rel="import" href="../behaviors.html">
 
 <dom-module id="location-timeline">
@@ -64,13 +63,6 @@ limitations under the License.
       ejs-aggregation="{{locationsAggregation}}">
     </elastic-client-aggregation-builder>
 
-    <elastic-client-query-builder
-      type="term"
-      fields="[[queryField]]"
-      values="[[queryValue]]"
-      ejs-query="{{offerQuery}}">
-    </elastic-client-query-builder>
-
     <!-- Use a template to ensure that the datesAggregation is built only once the interval is set. -->
     <template is="dom-if" if="[[interval]]">
       <elastic-client-aggregation-builder
@@ -84,24 +76,22 @@ limitations under the License.
       </elastic-client-aggregation-builder>
     </template>
 
-    <elastic-client-search
+    <build-and-run-query
+      type="terms"
+      fields="[[queryField]]"
+      values="[[queryValue]]"
       client="[[client]]"
-      index="[[index]]"
-      elastic-types='["offer"]'
-      query="[[offerQuery]]"
+      index-name="[[indexName]]"
+      index-types="[[indexTypes]]"
       aggregations="[[buildArray(datesAggregation)]]"
       filters="[[filters]]"
-      results="{{queryResults}}"
-      loading="{{loading}}"
       page-size="[[hitsPerPage]]"
-      last-error="{{error}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[queryResults]]"
-      data-out="{{results}}"
-      transform-function="[[offerTransform]]">
-    </json-transform>
+      transform-config="[[locationId]]"
+      transform-function="[[transformFunction]]"
+      error="{{error}}"
+      loading="{{loading}}"
+      results="{{results}}">
+    </build-and-run-query>
   </template>
 
   <script>
@@ -112,7 +102,9 @@ limitations under the License.
     Polymer({
       is: 'location-timeline',
 
-      behaviors: [DigBehaviors.ArrayBehavior],
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
 
       properties: {
         /**
@@ -209,8 +201,15 @@ limitations under the License.
         /**
          * The elasticsearch index to query.
          */
-        index: {
+        indexName: {
           type: String
+        },
+
+        /**
+         * The elasticsearch index types to query.
+         */
+        indexTypes: {
+          type: Array
         },
 
         /**
@@ -221,9 +220,17 @@ limitations under the License.
         },
 
         /**
-         * The location timeline offer transform function.
+         * The location ID to give to the offer transform function (if any).
          */
-        offerTransform: {
+        locationId: {
+          type: Number,
+          value: null
+        },
+
+        /**
+         * The location timeline transform function.
+         */
+        transformFunction: {
           type: Function
         },
 
@@ -283,20 +290,6 @@ limitations under the License.
          * The dates aggregation for the location timeline query.
          */
         datesAggregation: {
-          type: Object
-        },
-
-        /**
-         * The offer query for the location timeline query.
-         */
-        offerQuery: {
-          type: Object
-        },
-
-        /**
-         * The location timeline query results.
-         */
-        queryResults: {
           type: Object
         },
 

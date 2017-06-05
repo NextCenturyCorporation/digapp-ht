@@ -58,20 +58,26 @@ var all = {
     elasticConfig: process.env.ELASTIC_CONFIG || '{"host": "http://localhost:9200"}',
     elasticIndex: process.env.ELASTIC_INDEX || 'dig-data',
     elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
+    dev: process.env.DEV || '',
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
+    annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
+    classificationUrl: process.env.CLASSIFICATION_URL,
+    classificationEntityUrl: process.env.CLASSIFICATION_URL ? (process.env.CLASSIFICATION_URL + (process.env.CLASSIFICATION_ENTITY_URL || '')) : undefined,
+    classificationExtractionUrl: process.env.CLASSIFICATION_URL ? (process.env.CLASSIFICATION_URL + (process.env.CLASSIFICATION_EXTRACTION_URL || '')) : undefined,
+    classificationFlagUrl: process.env.CLASSIFICATION_URL ? (process.env.CLASSIFICATION_URL + (process.env.CLASSIFICATION_FLAG_URL || '')) : undefined,
     filterStatesIndex: process.env.FILTER_STATES_INDEX || 'dig-filter-states',
     filterStatesType: process.env.FILTER_STATES_TYPE || 'item',
     imageServiceAuth: process.env.IMAGE_SERVICE_AUTH|| '{"user": "", "password":""}',
     imageServiceHost: process.env.IMAGE_SERVICE_HOST|| '{"url":"","base64":""}',
-    annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
     cacheConfig: process.env.CACHE_CONFIG || '{"host": "http://localhost:9200"}',
     cacheIndex: process.env.CACHE_INDEX || 'memex-domains',
     logIndex: process.env.LOG_INDEX || 'dig-logs',
     logType: process.env.LOG_TYPE || 'log',
     userIndex: process.env.USER_INDEX || 'dig-users',
     userType: process.env.USER_TYPE || 'user',
-    downloadImageUrl: process.env.DOWNLOAD_IMAGE_URL || 'downloadImage'
+    downloadImageUrl: process.env.DOWNLOAD_IMAGE_URL || 'downloadImage',
+    queryUrl: process.env.QUERY_URL
 };
 
 // Export the config object based on the NODE_ENV

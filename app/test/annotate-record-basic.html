@@ -42,10 +42,8 @@ limitations under the License.
 
     setup(function(done) {
       element = fixture('annotate-record-fixture');
-      element.item = {
-        id: 'http://offer/ABC123',
-        type: 'offer'
-      };
+      element.itemId = 'http://offer/ABC123';
+      element.itemType = 'ad';
       element.annotationManager = {
         addListener: function() {},
         getAnnotationIndex: function() {
@@ -62,13 +60,24 @@ limitations under the License.
         },
         removeListener: function() {}
       };
-      flush(function() {
-        done();
-      });
+      element._show = true;
+      flush(done);
     });
 
-    test('item defined correctly', function() {
-      assert.deepEqual(element.item, {id: 'http://offer/ABC123', type: 'offer'});
+    test('does show elements if _show is true', function() {
+      assert.isDefined(element.$$('elastic-client-query-builder'));
+      assert.isDefined(element.$$('elastic-client-search'));
+      assert.isDefined(element.$$('paper-icon-button'));
+      assert.isDefined(element.$$('iron-dropdown'));
+      assert.isDefined(element.$$('paper-material'));
+      assert.isDefined(element.$$('paper-icon-item'));
+      assert.isDefined(element.$$('paper-input'));
+      assert.isDefined(element.$$('paper-button'));
+    });
+
+    test('itemId and itemType are defined correctly', function() {
+      assert.equal(element.itemId, 'http://offer/ABC123');
+      assert.equal(element.itemType, 'ad');
     });
 
     test('label equals no answer', function() {
@@ -131,11 +140,11 @@ limitations under the License.
     });
 
     test('getCdrId returns the CDR ID for an offer', function() {
-      assert.equal(element.getCdrId(element.item), 'ABC123');
+      assert.equal(element.getCdrId('http://offer/ABC123', 'ad'), 'ABC123');
     });
 
     test('getCdrId returns an empty string for a non-offer', function() {
-      assert.equal(element.getCdrId({id: 'http://non-offer/DEF456', type: 'non-offer'}), '');
+      assert.equal(element.getCdrId('http://non-offer/DEF456', 'non-offer'), '');
     });
 
     test('getFlagIcon returns fa:flag for very/somewhat/not relevant', function() {
@@ -356,8 +365,9 @@ limitations under the License.
 
     test('setting annotationManager does call annotationManager.addListener', function(done) {
       element.annotationManager = {
-        addListener: function(listener) {
-          assert.isFunction(listener);
+        addListener: function(changeListener, showListener) {
+          assert.isFunction(changeListener);
+          assert.isFunction(showListener);
           done();
         },
         getAnnotationIndex: function() {
@@ -375,25 +385,34 @@ limitations under the License.
       };
     });
 
-    test('_addAnnotationChangeListener does call annotationManager.addListener', function(done) {
-      element.annotationManager.addListener = function(listener) {
-        assert.isFunction(listener);
+    test('_addListenerToAnnotationManager does call annotationManager.addListener', function(done) {
+      element.annotationManager.addListener = function(changeListener, showListener) {
+        assert.isFunction(changeListener);
+        assert.isFunction(showListener);
         done();
       };
 
-      element._addAnnotationChangeListener(element.annotationManager);
+      element._addListenerToAnnotationManager(element.annotationManager);
     });
 
-    test('_createAnnotationChangeListener does return a listener that does set label, justification, and annotationResult.id', function() {
-      var listener = element._createAnnotationChangeListener();
+    test('_createChangeAnnotationListener does return a listener that does set label, justification, and annotationResult.id', function() {
+      var listener = element._createChangeAnnotationListener();
       assert.isFunction(listener);
-      element.item = {
-        id: 'testItemId'
-      };
+      element.itemId = 'testItemId';
       listener('testItemId', 'testLabel', 'testJustification', 'testAnnotationId');
       assert.equal(element.label, 'testLabel');
       assert.equal(element.justification, 'testJustification');
       assert.equal(element.annotationResult.id, 'testAnnotationId');
+    });
+
+    test('_createShowAnnotationListener does return a listener that does set _show', function() {
+      var listener = element._createShowAnnotationListener();
+      assert.isFunction(listener);
+      assert.isTrue(element._show);
+      listener(false);
+      assert.isFalse(element._show);
+      listener(true);
+      assert.isTrue(element._show);
     });
 
     test('paper-icon-button does not have noink attribute', function() {
@@ -406,6 +425,30 @@ limitations under the License.
         assert.isNotNull(element.$$('paper-icon-button').getAttribute('noink'));
         done();
       });
+    });
+  });
+
+  suite('annotate-record no-show tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('annotate-record-fixture');
+      flush(done);
+    });
+
+    test('_show is false by default', function() {
+      assert.isFalse(element._show);
+    });
+
+    test('does not show elements if _show is false', function() {
+      assert.isNull(element.$$('elastic-client-query-builder'));
+      assert.isNull(element.$$('elastic-client-search'));
+      assert.isNull(element.$$('paper-icon-button'));
+      assert.isNull(element.$$('iron-dropdown'));
+      assert.isNull(element.$$('paper-material'));
+      assert.isNull(element.$$('paper-icon-item'));
+      assert.isNull(element.$$('paper-input'));
+      assert.isNull(element.$$('paper-button'));
     });
   });
 </script>

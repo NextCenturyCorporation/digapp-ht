@@ -38,12 +38,18 @@ module.exports = function(app) {
             elasticConfig: JSON.parse(config.elasticConfig),
             elasticIndex: config.elasticIndex,
             elasticTypes: config.elasticTypes,
+            dev: config.dev,
             appVersion: config.appVersion,
             annotationIndex: config.annotationIndex,
             annotationType: config.annotationType,
             annotationRelevant: config.annotationRelevant,
+            annotateOrClassify: config.annotateOrClassify,
             cacheConfig: JSON.parse(config.cacheConfig),
             cacheIndex: config.cacheIndex,
+            classificationUrl: config.classificationUrl,
+            classificationEntityUrl: config.classificationEntityUrl,
+            classificationExtractionUrl: config.classificationExtractionUrl,
+            classificationFlagUrl: config.classificationFlagUrl,
             username: req.headers.user ? req.headers.user : 'mockUser',
             filterStatesIndex: config.filterStatesIndex,
             filterStatesType: config.filterStatesType,
@@ -53,7 +59,8 @@ module.exports = function(app) {
             userType: config.userType,
             imageServiceAuth: config.imageServiceAuth,
             imageServiceHost: config.imageServiceHost,
-            downloadImageUrl: config.downloadImageUrl
+            downloadImageUrl: config.downloadImageUrl,
+            queryUrl: config.queryUrl
         });
     });
 

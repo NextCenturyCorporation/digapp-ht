@@ -15,13 +15,13 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../../bower_components/elastic-update/elastic-update.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-aggregation-builder/elastic-client-aggregation-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-filter-builder/elastic-client-filter-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
-<link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
 
 <dom-module id="annotation-manager">
@@ -84,6 +84,7 @@ limitations under the License.
         index="[[annotationIndex]]"
         elastic-types="[[annotationType]]"
         query="[[_annotationQuery]]"
+        page-size="0"
         aggregations="[[buildArray(_annotationAggregation)]]"
         filters="[[buildArray(_latestFilter, _relevantAnnotationFilter)]]"
         results="{{_relevantAnnotationResults}}">
@@ -101,6 +102,7 @@ limitations under the License.
         index="[[annotationIndex]]"
         elastic-types="[[annotationType]]"
         query="[[_annotationQuery]]"
+        page-size="0"
         aggregations="[[buildArray(_annotationAggregation)]]"
         filters="[[buildArray(_latestFilter, _notRelevantAnnotationFilter)]]"
         results="{{_notRelevantAnnotationResults}}">
@@ -117,9 +119,29 @@ limitations under the License.
     Polymer({
       is: 'annotation-manager',
 
-      behaviors: [DigBehaviors.ArrayBehavior],
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
 
       properties: {
+        /**
+         * Whether dev mode is on.
+         */
+        dev: {
+          observer: '_notifyShowListeners',
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * Whether to show annotations.
+         */
+        show: {
+          observer: '_notifyShowListeners',
+          type: Boolean,
+          value: false
+        },
+
         /**
          * The instance of elasticsearch.Client.
          */
@@ -290,9 +312,15 @@ limitations under the License.
       _buildAnnotationManager: function() {
         var self = this;
         return {
-          addListener: function(listener) {
+          addListener: function(changeListener, showListener) {
             var id = self._nextListenerId++;
-            self._listeners[id] = listener;
+            self._listeners[id] = {
+              change: changeListener,
+              show: showListener
+            };
+            if(showListener) {
+              showListener(!self.dev || self.show);
+            }
             return id;
           },
           createAnnotation: function(uri, cdrId, label, justification) {
@@ -360,14 +388,27 @@ limitations under the License.
       },
 
       /**
-       * Notifies all listeners of the newly created annotation.
+       * Notifies all change listeners of the newly created annotation.
        */
-      _notifyListeners: function(annotationId) {
+      _notifyChangeListeners: function(annotationId) {
         var self = this;
         _.keys(this._listeners).forEach(function(listenerId) {
-          var listener = self._listeners[listenerId];
-          if(listener) {
-            listener(self._createBody.uri, self._createBody.label, self._createBody.justification, annotationId);
+          var changeListener = self._listeners[listenerId].change;
+          if(changeListener) {
+            changeListener(self._createBody.uri, self._createBody.label, self._createBody.justification, annotationId);
+          }
+        });
+      },
+
+      /**
+       * Notifies all show listeners of the changed status.
+       */
+      _notifyShowListeners: function() {
+        var self = this;
+        _.keys(this._listeners).forEach(function(listenerId) {
+          var showListener = self._listeners[listenerId].show;
+          if(showListener) {
+            showListener(!self.dev || self.show);
           }
         });
       },
@@ -384,7 +425,7 @@ limitations under the License.
               self.$$('#notRelevantSearch').search();
             }, 1000);
           }
-          this._notifyListeners(results._id);
+          this._notifyChangeListeners(results._id);
         }
       }
     });

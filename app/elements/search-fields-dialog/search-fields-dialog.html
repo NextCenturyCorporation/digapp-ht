@@ -1,0 +1,449 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/date-picker-display/date-picker-display.html">
+<link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
+<link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
+<link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/paper-button/paper-button.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-input/paper-input.html">
+<link rel="import" href="../../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
+<link rel="import" href="../../styles/user-dialog-styles.html">
+<link rel="import" href="../behaviors.html">
+
+<dom-module id="search-fields-dialog">
+  <template>
+    <style include="iron-flex iron-flex-alignment"></style>
+    <style include="user-dialog-styles"></style>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .search-dialog {
+        max-width: 960px;
+        margin: 0;
+        padding: 30px;
+      }
+
+      .green[active],
+      .green:hover {
+        color: yellowgreen;
+      }
+
+      .search-labels {
+        line-height: 25px;
+        padding-top: 20px;
+        text-align: end;
+      }
+
+      .instructions {
+        padding-top: 0;
+        padding-bottom: 30px;
+      }
+
+      .date {
+        padding-top: 30px;
+      }
+
+      .search-dialog paper-dropdown-menu,
+      .search-dialog paper-input {
+        display: inline-block;
+        --paper-input-container-color: var(--secondary-text-color);
+        --paper-input-container-input-color: var(--dark-primary-color);
+        --paper-input-container-focus-color: var(--dark-primary-color);
+        --paper-input-container: {
+          padding: 0 10px 4px;
+          width: 260px;
+        }
+        --paper-input-container-input: {
+          font-weight: 500;
+        }
+      }
+
+      .search-dialog paper-dropdown-menu {
+        --paper-input-container: {
+          padding: 20px 10px 4px;
+          width: 260px;
+        }
+        --paper-input-container-input: {
+          cursor: pointer;
+        }
+      }
+
+      .search-dialog paper-dropdown-menu paper-listbox {
+        --paper-listbox-background-color: #fff;
+        --paper-listbox: {
+          padding: 0;
+        }
+      }
+
+      .search-dialog paper-dropdown-menu paper-listbox paper-item {
+        --paper-item: {
+          cursor: pointer;
+          padding: 0 20px;
+        }
+      }
+
+      .date-fields-container {
+        padding: 20px 0 0;
+      }
+
+      .date-fields-container > date-picker-display {
+        display: inline-block;
+        margin: 0 10px;
+        padding: 5px 0 9px;
+        width: 260px;
+        --date-select-bg-color: #ffffff;
+        --date-select-text-color: #000000;
+      }
+
+      .search-dialog .search-buttons {
+        padding-top: 20px;
+      }
+
+      @media all and (min-width: 500px) and (max-width: 650px) {
+        .search-options-title {
+          width: 100px;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+
+        .search-fields-selected {
+          padding: 0px 10px 10px 10px;
+        }
+      }
+
+      @media all and (min-width: 0px) and (max-width: 500px) {
+        .search-options-title {
+          display: none;
+        }
+
+        .search-fields-selected {
+          padding: 0px 10px 10px 10px;
+        }
+      }
+    </style>
+    <paper-button class="layout horizontal center bottom green" active="[[opened]]" on-tap="toggleSearchFieldsDialog" title="Click to Enter Search Terms">
+      <iron-icon icon="search" class="bottom" style="margin-right: 5px;"></iron-icon>
+      <span class="search-options-title">Click to Enter Search Terms</span>
+    </paper-button>
+    <!-- search fields dropdown panel -->
+    <paper-dialog
+      class="small"
+      modal
+      opened="{{opened}}"
+      entry-animation="fade-in-animation"
+      exit-animation="fade-out-animation"
+      on-opened-changed="toggleProcessRequest">
+
+      <div class="search-dialog">
+        <div class="layout vertical">
+          <div class="layout horizontal">
+            <div class="name right-space instructions">Instructions:</div>
+            <div class="text">
+              Enter words or phrases as search terms in one or more of the text fields below.
+              Click the Search button or press ENTER when finished.
+              Use commas to separate search terms.
+              Example:  <strong>New York, Washington</strong>
+            </div>
+          </div>
+
+          <div class="layout horizontal">
+            <div class="name date right-space search-labels">Dates:</div>
+            <div class="layout horizontal date-fields-container">
+              <date-picker-display
+                facet-selection="{{dateStartConfig.value}}"
+                key="{{dateStartConfig.key}}"
+                prefix-label="{{dateStartConfig.prefixLabel}}"
+                date-identifier="{{dateStartConfig.dateIdentifier}}"
+                title="{{dateStartConfig.title}}">
+              </date-picker-display>
+              <date-picker-display
+                facet-selection="{{dateEndConfig.value}}"
+                key="{{dateEndConfig.key}}"
+                prefix-label="{{dateEndConfig.prefixLabel}}"
+                date-identifier="{{dateEndConfig.dateIdentifier}}"
+                title="{{dateEndConfig.title}}">
+              </date-picker-display>
+            </div>
+          </div>
+
+          <!-- searchFields -->
+          <template is="dom-repeat" items="[[orderedSearchFieldGroupKeys]]" as="group">
+            <div class="layout horizontal">
+              <div class="name search-labels right-space">[[group]]:</div>
+              <div class="layout horizontal wrap">
+                <template is="dom-repeat" items="[[getGroupProperty(group, dataProperty, searchFields.*)]]">
+                  <paper-input
+                    id$="input_[[item.key]]"
+                    label="[[item.title]]"
+                    value="{{item.value}}"
+                    on-keydown="checkSearchFieldInputKey">
+                  </paper-input>
+                </template>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="horizontal layout center-justified search-buttons">
+          <button-action class="inline" text="Search" on-tap="handleSearch"></button-action>
+          <button-action class="inline" text="Reset" on-tap="resetSearchFields"></button-action>
+          <button-action class="inline" text="Cancel" on-tap="cancelSearch"></button-action>
+        </div>
+      </div>
+    </paper-dialog>
+  </template>
+
+  <script>
+  (function() {
+    /* globals _, DigBehaviors */
+    'use strict';
+
+    Polymer({
+      is: 'search-fields-dialog',
+      behaviors: [DigBehaviors.FilterBehavior, DigBehaviors.PhoneBehavior],
+
+      properties: {
+        searchParameters: {
+          type: Object,
+          notify: true
+        },
+        dateStartConfig: {
+          type: Object,
+          notify: true
+        },
+        dateEndConfig: {
+          type: Object,
+          notify: true
+        },
+        opened: {
+          type: Boolean,
+          notify: true,
+          value: false
+        },
+        processRequest: {
+          type: Boolean,
+          notify: true
+        },
+        userCanceled: {
+          type: Boolean,
+          value: false
+        },
+        dataProperty: {
+          type: String,
+          value: 'data'
+        },
+        titleProperty: {
+          type: String,
+          value: 'title'
+        },
+        searchFields: {
+          type: Object,
+          notify: true
+        },
+        orderedSearchFieldGroupKeys: {
+          type: Array,
+          notify: true
+        }
+      },
+
+      observers: [
+        'toggleProcessRequest(searchParameters.*)'
+      ],
+
+      getGroupProperty: function(group, property) {
+        return this.searchFields[group][property];
+      },
+
+      toggleProcessRequest: function() {
+        this.processRequest = !this.opened && !this.userCanceled;
+        // reset user canceled variable
+        this.userCanceled = false;
+      },
+
+      toggleSearchFieldsDialog: function() {
+        var self = this;
+        // Set or clear the search fields whenever the dialog is opened.
+        if(!this.opened) {
+          this.orderedSearchFieldGroupKeys.forEach(function(group) {
+            var data = self.searchFields[group][self.dataProperty];
+
+            if(data) {
+              data.forEach(function(searchConfig) {
+                self.updateSearchFieldFromParameter(searchConfig);
+              });
+            }
+          });
+
+          this.updateDateFieldFromParameter(this.dateStartConfig, 'dateStartConfig');
+          this.updateDateFieldFromParameter(this.dateEndConfig, 'dateEndConfig');
+        }
+
+        this.opened = !this.opened;
+      },
+
+      updateSearchParameterAndNotify: function(type, term, title, enabled) {
+        this.searchParameters[type][term] = {
+          category: title,
+          enabled: enabled,
+          key: term,
+          text: term
+        };
+
+        this.notifyPath(['searchParameters', type, '*'], {
+          category: title,
+          enabled: enabled,
+          key: term,
+          text: term
+        });
+      },
+
+      updateSearchParameterFromField: function(searchConfig) {
+        var self = this;
+        var terms = searchConfig.value.split(',').map(function(term) {
+          if(searchConfig.key === 'phone') {
+            return DigBehaviors.PhoneBehavior.getUnformattedPhones(term);
+          }
+          return term.trim();
+        });
+
+        _.keys(self.searchParameters[searchConfig.key]).forEach(function(term) {
+          if(self.searchParameters[searchConfig.key][term].enabled && terms.indexOf(term) < 0) {
+            self.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, false);
+          }
+        });
+
+        terms.forEach(function(term) {
+          if(term) {
+            self.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, true);
+          }
+        });
+      },
+
+      updateDateAndNotify: function(key, date, text, category, enabled) {
+        this.searchParameters.postingDate[key] = {
+          key: key,
+          category: category,
+          enabled: enabled,
+          date: date,
+          text: text
+        };
+
+        this.notifyPath(['searchParameters', 'postingDate', key], {
+          key: key,
+          category: category,
+          enabled: enabled,
+          date: date,
+          text: text
+        });
+      },
+
+      updateDateParameterFromField: function(dateConfig) {
+        if(dateConfig.value[dateConfig.key]) {
+          var dateObject = dateConfig.value[dateConfig.key];
+          this.updateDateAndNotify(dateObject.key, dateObject.date, dateObject.text, dateObject.category, dateObject.enabled);
+        } else if(this.searchParameters.postingDate[dateConfig.key]) {
+          this.searchParameters.postingDate[dateConfig.key] = {};
+          this.notifyPath(['searchParameters', 'postingDate', dateConfig.key], {});
+        }
+      },
+
+      updateSearchParametersFromFields: function() {
+        var self = this;
+
+        this.orderedSearchFieldGroupKeys.forEach(function(group) {
+          var data = self.searchFields[group][self.dataProperty];
+
+          if(data) {
+            data.forEach(function(searchConfig) {
+              self.updateSearchParameterFromField(searchConfig);
+            });
+          }
+        });
+
+        this.updateDateParameterFromField(this.dateStartConfig);
+        this.updateDateParameterFromField(this.dateEndConfig);
+      },
+
+      updateSearchFieldFromParameter: function(searchConfig) {
+        var self = this;
+        searchConfig.value = _.keys(this.searchParameters[searchConfig.key]).filter(function(term) {
+          return self.searchParameters[searchConfig.key][term].enabled;
+        }).map(function(term) {
+          return self.searchParameters[searchConfig.key][term].text;
+        }).join(', ');
+
+        this.$$('#input_' + searchConfig.key).value = searchConfig.value;
+      },
+
+      updateDateFieldFromParameter: function(dateConfig, property) {
+        dateConfig.value = {};
+        if(this.searchParameters.postingDate[dateConfig.key]) {
+          dateConfig.value[dateConfig.key] = this.searchParameters.postingDate[dateConfig.key];
+        }
+        this.set([property + '.value'], dateConfig.value);
+      },
+
+      handleSearch: function() {
+        this.updateSearchParametersFromFields();
+
+        if(DigBehaviors.FilterBehavior.areAllFacetsDisabled(this.searchParameters, ['sort'])) {
+          return;
+        }
+
+        this.toggleSearchFieldsDialog();
+      },
+
+      resetSearchFields: function() {
+        var self = this;
+
+        this.orderedSearchFieldGroupKeys.forEach(function(group) {
+          var data = self.searchFields[group][self.dataProperty];
+
+          if(data) {
+            data.forEach(function(searchConfig) {
+              self.$$('#input_' + searchConfig.key).value = '';
+            });
+          }
+        });
+
+        this.dateStartConfig.value = {};
+        this.set('dateStartConfig.value', {});
+        this.dateEndConfig.value = {};
+        this.set('dateEndConfig.value', {});
+      },
+
+      cancelSearch: function() {
+        this.userCanceled = true;
+        this.toggleSearchFieldsDialog();
+      },
+
+      checkSearchFieldInputKey: function(event) {
+        if(event.keyCode === 13) {
+          this.handleSearch();
+        }
+      }
+    });
+  })();
+  </script>
+</dom-module>

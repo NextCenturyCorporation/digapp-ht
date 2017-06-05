@@ -119,6 +119,7 @@ var optimizeHtmlTask = function(src, dest) {
 gulp.task('jslint', function() {
   return gulp.src([
       'app/*.html',
+      'app/behaviors/*.js',
       'app/elements/**/*.html',
       'app/scripts/*.js',
       'app/test/*.html',
@@ -202,7 +203,7 @@ gulp.task('copy', function() {
   // Copy over only the bower_components we need
   // These are things which cannot be vulcanized
   var bower = gulp.src([
-    'app/bower_components/{webcomponentsjs,platinum-sw,sw-toolbox,promise-polyfill,leaflet,leaflet-map,lodash}/**/*'
+    'app/bower_components/{webcomponentsjs,platinum-sw,sw-toolbox,promise-polyfill,leaflet,leaflet-map,lodash,array-behavior}/**/*'
   ]).pipe(gulp.dest(dist('bower_components')));
 
   var scripts = gulp.src([

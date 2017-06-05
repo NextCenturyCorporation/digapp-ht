@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-/* globals DigBehaviors, _ */
+/* globals DigBehaviors */
 /* exported DigBehaviors */
 var DigBehaviors = DigBehaviors || {};
 
@@ -26,13 +26,22 @@ DigBehaviors.TypeBehavior = {
    * Returns the link for the given type and id.
    */
   getPageLink: function(id, type) {
-    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'offer' || type === 'phone' || type === 'provider' || type === 'seller' || type === 'location')) {
+    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'location' || type === 'offer' || type === 'phone')) {
       return undefined;
     }
 
-    var field = type === 'location' ? 'availableAtOrFrom.address.key' : '_id';
+    var linkId = id;
+    if(linkId.startsWith('http://dig.isi.edu/ht/data/')) {
+      linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
+    }
+    if(type === 'email') {
+      linkId = encodeURIComponent(linkId);
+    }
+    if(type === 'image') {
+      return '/' + type + '.html?url=' + linkId;
+    }
 
-    return '/' + type + '.html?value=' + id + '&field=' + field;
+    return '/' + type + '.html?id=' + linkId;
   },
 
   /**
@@ -43,36 +52,40 @@ DigBehaviors.TypeBehavior = {
       case 'cache': return 'icons:cached';
       case 'date': return 'icons:date-range';
       case 'email': return 'communication:email';
-      case 'image': return 'image:photo';
+      case 'image': return 'image:photo-camera';
       case 'location': return 'communication:location-on';
-      case 'money': return 'editor:attach-money';
+      case 'price': return 'editor:monetization-on';
       case 'offer': return 'maps:local-offer';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
-      case 'seller': return 'icons:group-work';
+      case 'review': return 'icons:star';
+      case 'service': return 'icons:work';
+      case 'social': return 'social:public';
       case 'webpage': return 'av:web';
     }
-    return 'icons:polymer';
+    return '';
   },
 
   /**
    * Returns the name for the given type.
    */
-  getTypeName: function(type) {
+  getTypeName: function(type, plural) {
     switch(type) {
-      case 'cache': return 'Cached Webpage';
-      case 'date': return 'Date';
-      case 'email': return 'Email Address';
-      case 'image': return 'Image';
-      case 'location': return 'Location';
-      case 'money': return 'Price';
-      case 'offer': return 'Ad';
-      case 'phone': return 'Telephone Number';
-      case 'provider': return 'Provider';
-      case 'seller': return 'Seller';
-      case 'webpage': return 'Website';
+      case 'cache': return 'Cached Webpage' + (plural ? 's' : '');
+      case 'date': return 'Date' + (plural ? 's' : '');
+      case 'email': return 'Email Address' + (plural ? 'es' : '');
+      case 'image': return 'Image' + (plural ? 's' : '');
+      case 'location': return 'Location' + (plural ? 's' : '');
+      case 'price': return 'Price' + (plural ? 's' : '');
+      case 'offer': return 'Ad' + (plural ? 's' : '');
+      case 'phone': return 'Telephone Number' + (plural ? 's' : '');
+      case 'provider': return 'Provider' + (plural ? 's' : '');
+      case 'review': return 'Review ID' + (plural ? 's' : '');
+      case 'service': return 'Service' + (plural ? 's' : '') + ' Provided';
+      case 'social': return 'Social Media ID' + (plural ? 's' : '');
+      case 'webpage': return 'Website' + (plural ? 's' : '');
     }
-    return 'icons:polymer';
+    return '';
   },
 
   /**

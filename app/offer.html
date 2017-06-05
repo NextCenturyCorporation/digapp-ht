@@ -97,107 +97,78 @@ limitations under the License.
 
     <!-- Offer query -->
 
-    <elastic-client-query-builder
-      type="term"
-      fields="[[params.field]]"
-      values="[[params.value]]"
-      ejs-query="{{offerQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
+    <build-and-run-query
+      fields='"doc_id"'
+      values="[[params.id]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      query="[[offerQuery]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       aggregations="[]"
       filters="[]"
-      results="{{offerResults}}"
-      last-error="{{error}}">
-    </elastic-client-search>
+      page-size="1"
+      properties-ready="{{processRequest}}"
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      transform-function="[[clientConfig.transforms.offer.offer]]"
+      error="{{error}}"
+      loading="{{loading}}"
+      results="{{offer}}">
+    </build-and-run-query>
 
-    <json-transform
-      data-in="[[offerResults]]"
-      data-out="{{offer}}"
-      transform-function="[[clientConfig.transforms.offer.offer]]">
-    </json-transform>
+    <!-- Revisions timeline query -->
 
-    <!-- Webpage revisions query -->
+    <build-and-run-aggregation
+      aggregation-field="knowledge_graph.posting_date.key"
+      aggregation-name="revisions"
+      aggregation-order="_key"
+      aggregation-type="date_histogram"
+      query-fields='"url.raw"'
+      query-values="[[offer.url]]"
+      client="[[esclient]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
+      filters="[]"
+      transform-function="[[clientConfig.transforms.offer.revisions]]"
+      error="{{revisionTimelineError}}"
+      loading="{{revisionTimelineLoading}}"
+      results="{{revisionTimeline}}">
+    </build-and-run-aggregation>
 
-    <elastic-client-aggregation-builder
-      name="revisions"
-      type="date_histogram"
-      count="0"
-      field="dateCreated"
-      interval="week"
-      order="_key"
-      direction="desc"
-      ejs-aggregation="{{webpageRevisionsAggregation}}">
-    </elastic-client-aggregation-builder>
+    <!-- Revisions ad data query -->
+
+    <elastic-client-filter-builder
+      not
+      type="term"
+      field="doc_id"
+      values="[[offer.id]]"
+      ejs-filter="{{notThisAdFilter}}">
+    </elastic-client-filter-builder>
 
     <elastic-client-query-builder
       type="term"
       fields='"url.raw"'
       values="[[offer.url]]"
-      ejs-query="{{webpageRevisionsQuery}}">
+      ejs-query="{{revisionAdDataQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["webpage"]'
-      query="[[webpageRevisionsQuery]]"
-      aggregations="[[webpageRevisionsAggregation]]"
-      filters="[]"
-      results="{{webpageRevisionsResults}}"
-      loading="{{webpageRevisionsLoading}}"
-      last-error="{{webpageRevisionsError}}"
-      source-include='["mentionsPhone", "mentionsEmail"]'>
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[webpageRevisionsResults]]"
-      data-out="{{webpageRevisions}}"
-      transform-function="[[clientConfig.transforms.webpage.webpageRevisions]]">
-    </json-transform>
-
-    <!-- Offer revisions query -->
-
-    <elastic-client-filter-builder
-      not
-      type="term"
-      field="uri"
-      values="[[params.value]]"
-      ejs-filter="{{offerRevisionsFilter}}">
-    </elastic-client-filter-builder>
-
-    <elastic-client-query-builder
-      filtered
-      type="term"
-      fields='"mainEntityOfPage.url.raw"'
-      values="[[offer.url]]"
-      ejs-filter="[[offerRevisionsFilter]]"
-      ejs-query="{{offerRevisionsQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      query="[[offerRevisionsQuery]]"
+      elastic-types='["ads"]'
+      query="[[revisionAdDataQuery]]"
       aggregations="[]"
-      filters="[]"
-      results="{{offersWithSameUrlES}}"
-      result-count="{{offerRevisionCount}}"
-      page="{{revisionsPage}}"
-      page-size="{{revisionsPageSize}}"
-      loading="{{offersWithSameUrlLoading}}"
-      last-error="{{offersWithSameUrlError}}"
-      source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
+      filters="[[buildArray(notThisAdFilter)]]"
+      results="{{revisionAdDataResults}}"
+      result-count="{{revisionAdDataTotalCount}}"
+      page="{{revisionAdDataPage}}"
+      page-size="25"
+      loading="{{revisionAdDataLoading}}"
+      last-error="{{revisionAdDataError}}"
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
-     data-in="[[offersWithSameUrlES]]"
-     data-out="{{offersWithSameUrl}}"
+     data-in="[[revisionAdDataResults]]"
+     data-out="{{revisionAdData}}"
      transform-function="[[clientConfig.transforms.offer.offers]]"
      ></json-transform>
 
@@ -206,33 +177,25 @@ limitations under the License.
     <elastic-client-query-builder
       type="mlt"
       mlt-config='{"minTermFreq":1,"minDocFreq":1,"maxQueryTerms":100,"minimumShouldMatch":"75%"}'
-      fields='["mainEntityOfPage.description", "mainEntityOfPage.name"]'
-      values="[[buildMoreLikeThisValue(offer.name, offer.description)]]"
+      fields='["content_extraction.content_strict.text", "content_extraction.title.text", "knowledge_graph"]'
+      values="[[buildMoreLikeThisValue(offer.title, offer.description)]]"
       ejs-query="{{similarOfferQuery}}">
     </elastic-client-query-builder>
-
-    <elastic-client-filter-builder
-      not
-      type="term"
-      field="_id"
-      values="[[params.value]]"
-      ejs-filter="{{similarOfferFilter}}">
-    </elastic-client-filter-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
+      elastic-types='["ads"]'
       query="[[similarOfferQuery]]"
       aggregations="[]"
-      filters="[[buildArray(similarOfferFilter)]]"
+      filters="[[buildArray(notThisAdFilter)]]"
       results="{{similarOfferResults}}"
-      result-count="{{similarOfferCount}}"
+      result-count="{{similarOfferTotalCount}}"
       page="{{similarOfferPage}}"
-      page-size="{{similarOfferPageSize}}"
+      page-size="25"
       loading="{{similarOfferLoading}}"
       last-error="{{similarOfferError}}"
-      source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
@@ -241,17 +204,28 @@ limitations under the License.
       transform-function="[[clientConfig.transforms.offer.offers]]">
     </json-transform>
 
+    <dig-logger log-page-view
+      es-client="[[esclient]]"
+      es-index="[[config.logIndex]]"
+      es-type="[[config.logType]]"
+      type="Offer-Open"
+      data="[[params.id]]"
+      username="[[config.username]]">
+    </dig-logger>
+
+    <!-- Logger for Pagination -->
     <dig-logger
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
-      supertype="Offer"
-      subtype="Open"
-      value="[[params.value]]"
+      type="Offer-ShowResultPageNumber"
+      data="[[pageNum]]"
       username="[[config.username]]">
     </dig-logger>
 
     <annotation-manager
+      dev="[[config.dev]]"
+      show="[[annotationsDarpa]]"
       client="[[esclient]]"
       annotation-index="[[config.annotationIndex]]"
       annotation-type="[[config.annotationType]]"
@@ -261,24 +235,35 @@ limitations under the License.
       annotation-manager="{{annotationManager}}">
     </annotation-manager>
 
+    <classification-manager
+      dev="[[config.dev]]"
+      show="[[annotationsIsi]]"
+      entity-url="[[config.classificationEntityUrl]]"
+      extraction-url="[[config.classificationExtractionUrl]]"
+      flag-url="[[config.classificationFlagUrl]]"
+      flag="[[classificationFlag]]"
+      flag-list="{{classificationFlagList}}"
+      classification-manager="{{classificationManager}}">
+    </classification-manager>
+
     <!-- Main Content -->
     <div class="entity">
       <paper-header-panel class="flex" mode="waterfall-tall">
 
         <!-- Entity header -->
-        <section class="paper-header layout horizontal">
+        <div class="paper-header layout horizontal">
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
             <iron-icon class="iron-icon-huge entity-offer-font" icon="maps:local-offer"></iron-icon>
-            <section>
+            <div class="page-name">
               <div class="paper-font-headline">
-                Ad: <span>[[offer.name]]</span>
+                Ad: <span>[[offer.title]]</span>
               </div>
               <div class="paper-font-subhead">
-                Posted on <strong>[[offer.date]]</strong> on <strong>[[offer.publisher]]</strong>
+                Posted on <strong>[[offer.date.text]]</strong> on <strong>[[offer.domain]]</strong>
               </div>
-            </section>
+            </div>
           </div>
 
           <state-manager id="stateManager"
@@ -290,12 +275,14 @@ limitations under the License.
             process-request="{{processRequest}}">
           </state-manager>
 
-          <annotate-record client="[[esclient]]"
-            annotation-manager="[[annotationManager]]"
-            item="{{offer}}"
-            item-type="ad"
-            current-user="[[config.username]]">
-          </annotate-record>
+          <template is="dom-if" if="[[annotationManager]]">
+            <annotate-record client="[[esclient]]"
+              annotation-manager="[[annotationManager]]"
+              item-id="[[params.id]]"
+              item-type="ad"
+              current-user="[[config.username]]">
+            </annotate-record>
+          </template>
 
           <save-entity id="saveEntity"
             client="[[esclient]]"
@@ -303,7 +290,7 @@ limitations under the License.
             user-type="[[config.userType]]"
             user-id="[[userId]]"
             entity-id="[[offer.id]]"
-            entity-name="[[offer.name]]"
+            entity-name="[[offer.title]]"
             entity-type="offer"
             run-user-query-callback="[[runUserQueryCallback]]"
             save-user-data-callback="{{saveUserDataCallback}}"
@@ -312,11 +299,14 @@ limitations under the License.
           </save-entity>
 
           <load-user-info
+            dev="[[config.dev]]"
             client="[[esclient]]"
-            loading="[[loading]]"
             username="[[config.username]]"
-            advanced-search="{{advancedSearch}}"
+            annotations-darpa="{{annotationsDarpa}}"
+            annotations-isi="{{annotationsIsi}}"
             blur-images="{{blurImages}}"
+            classification-flag-list="[[classificationFlagList]]"
+            classification-flag="{{classificationFlag}}"
             entities="{{userEntities}}"
             user-id="{{userId}}"
             user-index="[[config.userIndex]]"
@@ -330,8 +320,11 @@ limitations under the License.
             annotation-ids="[[annotations.all]]"
             annotation-manager="[[annotationManager]]"
             client="[[esclient]]"
-            id-field="uri"
             index-name="[[config.elasticIndex]]"
+            email-field="knowledge_graph.email.key"
+            image-field="knowledge_graph.image.key"
+            offer-field="doc_id"
+            phone-field="knowledge_graph.phone.key"
             transform-function="[[clientConfig.transforms.entity.entities]]"
             entities="{{userEntities}}"
             user-update-body="{{userUpdateBody}}">
@@ -362,7 +355,7 @@ limitations under the License.
               </paper-icon-item>
             </div>
           </iron-dropdown>
-        </section>
+        </div>
 
         <!-- Entity body -->
         <div class="entity-page">
@@ -372,413 +365,414 @@ limitations under the License.
             <!-- Left pane -->
             <div class="flex layout vertical">
 
-              <!-- What section (item details) -->
-              <paper-material>
-                <section class="what">
-                  <!-- Phone numbers if available -->
-                  <template is="dom-if" if="{{offer.phones.length}}">
-                    <div class="what-section">
-                      <div class="flex">
-                        <div class="desc-header layout horizontal center entity-phone-font">
-                          Telephone Numbers:
-                        </div>
-                        <icon-label-grid
-                          icon-style-class-property="styleClass"
-                          data="[[offer.phones]]">
-                        </icon-label-grid>
-                      </div>
-                    </div>
-                    <hr>
-                  </template>
+              <section-and-map
+                show-copy
+                error="[[locationError]]"
+                icon="communication:location-on"
+                style-class="entity-location-font"
+                text-property="textAndCount"
+                transform-config='{"type":"location","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[offer.locations]]">
 
-                  <!-- Emails if available -->
-                  <template is="dom-if" if="{{offer.emails.length}}">
-                    <div class="what-section">
-                      <div class="flex">
-                        <div class="desc-header emails layout horizontal center entity-email-font">
-                          Email Addresses:
-                        </div>
-                        <icon-label-grid
-                          icon-style-class-property="styleClass"
-                          data="[[offer.emails]]">
-                        </icon-label-grid>
-                      </div>
-                    </div>
-                    <hr>
-                  </template>
+                <detail-subsection
+                  entity-id="[[offer.id]]"
+                  classification-manager="[[classificationManager]]"
+                  icon-style-class-property="styleClass"
+                  extractions="[[offer.locations]]">
+                </detail-subsection>
+              </section-and-map>
 
-                  <!-- Price if available -->
-                  <template is="dom-if" if="{{offer.prices.length}}">
-                    <div class="what-section">
-                      <div class="flex">
-                        <div class="desc-header layout horizontal center entity-money-font">
-                          Price:
-                        </div>
-                        <icon-label-grid class="wide"
-                          icon-style-class-property="styleClass"
-                          data="[[offer.prices]]">
-                        </icon-label-grid>
-                      </div>
-                    </div>
-                    <hr>
-                  </template>
+              <section-and-title
+                icon="icons:account-circle"
+                style-class="entity-provider-font"
+                section-title="Provider Details">
 
-                  <!-- Webpage -->
-                  <div class="what-section">
-                    <div class="layout vertical flex">
-                      <div class="desc-header layout horizontal center entity-webpage-font">
-                        Webpage:
-                      </div>
-                      <icon-label-grid class="wide"
-                        icon-style-class-property="styleClass"
-                        data="[[offer.webpages]]">
-                      </icon-label-grid>
-                      <icon-label-grid class="wide"
-                        icon-style-class-property="styleClass"
-                        data="[[offer.caches]]">
-                      </icon-label-grid>
-                      <info-cached-webpages></info-cached-webpages>
-                    </div>
-                  </div>
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Prices"
+                    header-style-class="entity-price-font"
+                    extractions="[[offer.prices]]">
+                  </detail-subsection>
+
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Services Provided"
+                    header-style-class="entity-service-font"
+                    extractions="[[offer.services]]">
+                  </detail-subsection>
+                </div>
+
+                <hr>
+
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Names"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.names]]">
+                  </detail-subsection>
+
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Genders"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.genders]]">
+                  </detail-subsection>
+                </div>
+
+                <hr>
+
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Ethnicities"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.ethnicities]]">
+                  </detail-subsection>
 
                   <hr>
 
-                  <!-- Description -->
-                  <div class="what-section">
-                    <div class="flex-12">
-                      <div class="desc-header">Description:</div>
-                      <div class="desc-body">[[offer.description]]</div>
-                    </div>
-                  </div>
-                </section>
-              </paper-material>
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Ages"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.ages]]">
+                  </detail-subsection>
+                </div>
 
-              <div class="h-divider"></div>
+                <hr>
 
-              <paper-material>
-                <section class="photos">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                    <div class="paper-font-title">[[imageDisplayTitle]]</div>
-                  </div>
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Eye Colors"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.eyeColors]]">
+                  </detail-subsection>
 
-                  <template is="dom-if" if="[[imageError]]">
-                    <elastic-error error="[[imageError]]" message="{{imageErrorMessage}}"></elastic-error>
-                    <div>[[imageErrorMessage]]</div>
-                  </template>
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Hair Colors"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.hairColors]]">
+                  </detail-subsection>
+                </div>
 
-                  <image-query-and-display
-                    image-query-field="isImagePartOf.mainEntity.uri"
-                    image-query-values="[[offer.id]]"
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    index-types='["image"]'
-                    image-transform="[[clientConfig.transforms.image.images]]"
-                    image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                    image-results="{{imageResults}}"
-                    image-display-title="{{imageDisplayTitle}}"
-                    error="{{imageError}}"
-                    blur="[[blurImages]]"
-                    image-query-source-include='["url", "uri"]'>
-                  </image-query-and-display>
-                </section>
-              </paper-material>
+                <hr>
 
-              <!-- Provider Section -->
-              <template is="dom-if" if="{{offer.person.id}}">
-                <div class="h-divider"></div>
-                <paper-material>
-                  <section class="who">
-                    <div class="title paper-font-title">Provider</div>
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Heights"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.heights]]">
+                  </detail-subsection>
 
-                    <!-- Single person detail layout -->
-                    <single-record
-                      client="[[esclient]]"
-                      annotation-manager="[[annotationManager]]"
-                      item="{{offer.person}}"
-                      current-user="[[config.username]]"
-                      blur="[[blurImages]]"
-                      images="null">
-                    </single-record>
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Weights"
+                    header-style-class="entity-provider-font"
+                    extractions="[[offer.weights]]">
+                  </detail-subsection>
+                </div>
+              </section-and-title>
 
-                    <div class="layout horizontal provider-details">
-                      <div class="flex">
-                        <div class="desc-header">Name:</div>
-                        <template is="dom-repeat" items="[[offer.person.names]]" as="name">
-                          <div class="desc-body">[[name]]</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.names.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
+              <section-and-title
+                icon="image:photo"
+                style-class="entity-image-font"
+                transform-config="[[loadedImages.length]]"
+                transform-function="[[clientConfig.transforms.image.imageTitle]]"
+                data="[[images]]">
 
-                      <div class="flex">
-                        <div class="desc-header">Age:</div>
-                        <template is="dom-repeat" items="[[offer.person.ages]]" as="age">
-                          <div class="desc-body">[[age]]</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.ages.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
-
-                      <div class="flex">
-                        <div class="desc-header">Ethnicity:</div>
-                        <template is="dom-repeat" items="[[offer.person.ethnicities]]" as="ethnicity">
-                          <div class="desc-body">[[ethnicity]]</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.ethnicities.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
-
-                      <div class="flex">
-                        <div class="desc-header">Hair Color:</div>
-                        <template is="dom-repeat" items="[[offer.person.hairColors]]" as="hairColor">
-                          <div class="desc-body">[[hairColor]]</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.hairColors.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
-                    </div>
-
-                    <div class="layout horizontal provider-details">
-                      <div class="flex">
-                        <div class="desc-header">Eye Color:</div>
-                        <template is="dom-repeat" items="[[offer.person.eyeColors]]" as="eyeColor">
-                          <div class="desc-body">[[eyeColor]]</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.eyeColors.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
-
-                      <div class="flex">
-                        <div class="desc-header">Height:</div>
-                        <template is="dom-repeat" items="[[offer.person.heights]]" as="height">
-                          <div class="desc-body">[[height]] cm</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.heights.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
-
-                      <div class="flex">
-                        <div class="desc-header">Weight:</div>
-                        <template is="dom-repeat" items="[[offer.person.weights]]" as="weight">
-                          <div class="desc-body">[[weight]] kg</div>
-                        </template>
-                        <template is="dom-if" if="[[!offer.person.weights.length]]">
-                          <div class="desc-body">--</div>
-                        </template>
-                      </div>
-
-                      <!-- Add a 4th column to the bottom row so it matches the top row. -->
-                      <div class="flex"></div>
-                    </div>
-                  </section>
-                </paper-material>
-              </template>
+                <image-query-and-display
+                  aggregation-field="url.raw"
+                  aggregation-name="image"
+                  client="[[esclient]]"
+                  filter-list="[]"
+                  header-counts-name="Ads"
+                  header-entity-name="This Ad"
+                  image-id-property="source"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["images"]'
+                  query-fields='"isImagePartOf.uri"'
+                  query-values="[[params.id]]"
+                  transform-config="{}"
+                  transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  images="{{images}}"
+                  loaded-images="{{loadedImages}}"
+                  selected="{{filterCollection.image}}">
+                </image-query-and-display>
+              </section-and-title>
 
               <!-- Revisions Timeline -->
-              <template is="dom-if" if="[[webpageRevisions.length]]">
-                <div class="h-divider"></div>
+              <template is="dom-if" if="[[revisionTimeline.length]]">
+                <section-and-title
+                  error="[[revisionTimelineError]]"
+                  icon="icons:timeline"
+                  section-title="Revisions Bar Timeline">
 
-                <paper-material>
-                  <section class="when">
-                    <template is="dom-if" if="[[!webpageRevisions.length]]">
-                      <div class="title layout horizontal start center">
-                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                        <div class="paper-font-title">No Revisions</div>
-                      </div>
+                  <template is="dom-if" if="[[!revisionAdDataLoading]]">
+                    <template is="dom-if" if="[[!revisionTimelineLoading]]">
+                      <template is="dom-if" if="[[!revisionTimeline.length]]">
+                        <div>No Revisions or Dates</div>
+                      </template>
                     </template>
-
-                    <template is="dom-if" if="[[webpageRevisions.length]]">
-                      <div class="title layout horizontal start center">
-                        <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                        <div class="paper-font-title">[[revisionsChartTitle]]</div>
-                      </div>
-                    </template>
-
-                    <template is="dom-if" if="[[webpageRevisionsError]]">
-                      <elastic-error error="[[webpageRevisionsError]]" message="{{webpageRevisionsErrorMessage}}"></elastic-error>
-                      <div>[[webpageRevisionsErrorMessage]]</div>
-                    </template>
-
-                    <zoomable-bar-chart timeline
-                      bar-property="date"
-                      stack-property="list"
-                      data="[[webpageRevisions]]"
-                      default-label="Revisions"
-                      height="300"
-                      source="Revisions"
-                      chart-title="{{revisionsChartTitle}}"
-                      loading="[[webpageRevisionsLoading]]">
-                    </zoomable-bar-chart>
-                  </section>
-                </paper-material>
-              </template>
-
-              <div class="h-divider"></div>
-
-              <!-- All Revisions - Offers -->
-              <paper-material>
-                <section>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                    <div class="layout horizontal flex">
-                      <div class="paper-font-title">[[revisionsListTitle]]</div>
-
-                      <info-revisions></info-revisions>
-                    </div>
-
-                    <export-button
-                      client="[[esclient]]"
-                      data="[[shownRevisions]]"
-                      download-image-url="[[config.downloadImageUrl]]"
-                      filter-list="[]"
-                      index-name="[[config.elasticIndex]]"
-                      index-type='["webpage"]'
-                      query="[[offerRevisionsQuery]]"
-                      size="[[offerRevisionCount]]"
-                      sort-field="validFrom"
-                      sort-order="desc"
-                      csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
-                      pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
-                      query-transform-function="[[clientConfig.transforms.webpage.webpageRevisions]]">
-                    </export-button>
-                  </div>
-
-                  <template is="dom-if" if="[[offersWithSameUrlError]]">
-                    <elastic-error error="[[offersWithSameUrlError]]" message="{{offersWithSameUrlErrorMessage}}"></elastic-error>
-                    <div>[[offersWithSameUrlErrorMessage]]</div>
                   </template>
 
-                  <records-list
+                  <template is="dom-if" if="[[revisionAdDataLoading]]">
+                    <loading-spinner show type="Revisions"></loading-spinner>
+                  </template>
+
+                  <zoomable-bar-chart timeline
+                    bar-property="date"
+                    stack-property="list"
+                    data="[[revisionTimeline]]"
+                    default-label="Revisions"
+                    height="300"
+                    source="Revisions"
+                    loading="[[revisionTimelineLoading]]">
+                  </zoomable-bar-chart>
+                </section-and-title>
+              </template>
+
+              <!-- All Revisions - Offers -->
+              <section-container>
+                <section-title
+                  icon="maps:local-offer"
+                  style-class="entity-offer-font"
+                  section-title="[[revisionListTitle]]">
+
+                  <export-button
                     client="[[esclient]]"
-                    annotation-manager="[[annotationManager]]"
-                    query-results="[[offersWithSameUrl.data]]"
-                    total-results="[[offersWithSameUrl.count]]"
-                    shown-results="{{shownRevisions}}"
-                    page="{{revisionsPage}}"
-                    page-size="[[revisionsPageSize]]"
-                    loading="[[offersWithSameUrlLoading]]"
-                    type="Revision"
-                    records-list-title="{{revisionsListTitle}}"
-                    current-user="[[config.username]]"
-                    blur="[[blurImages]]">
-                  </records-list>
-                </section>
-              </paper-material>
+                    data="[[shownRevisions]]"
+                    download-image-url="[[config.downloadImageUrl]]"
+                    filter-list="[]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["ads"]'
+                    query-fields='"url.raw"'
+                    query-values="[[offer.url]]"
+                    size="[[offerRevisionCount]]"
+                    sort-field="fields.posting_date.strict.key"
+                    sort-order="desc"
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                  </export-button>
+                </section-title>
+
+                <template is="dom-if" if="[[revisionAdDataError]]">
+                  <elastic-error error="[[revisionAdDataError]]" message="{{revisionAdDataErrorMessage}}"></elastic-error>
+                  <div>[[revisionAdDataErrorMessage]]</div>
+                </template>
+
+                <info-revisions></info-revisions>
+
+                <records-list
+                  annotation-manager="[[annotationManager]]"
+                  classification-manager="[[classificationManager]]"
+                  client="[[esclient]]"
+                  image-aggregation-field="url.raw"
+                  image-aggregation-name="image"
+                  image-index-name="[[config.elasticIndex]]"
+                  image-index-type="images"
+                  image-query-field="isImagePartOf.uri"
+                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  text-property="title"
+                  query-results="[[revisionAdData]]"
+                  total-results="[[revisionAdDataTotalCount]]"
+                  shown-results="{{shownRevisions}}"
+                  page="{{revisionAdDataPage}}"
+                  page-size="25"
+                  loading="[[revisionAdDataLoading]]"
+                  type="Revision"
+                  records-list-title="{{revisionListTitle}}"
+                  current-user="[[config.username]]">
+                </records-list>
+              </section-container>
             </div>
 
             <!-- Right Pane -->
             <div class="flex layout vertical">
-              <!-- Map section -->
-              <paper-material>
-                <!-- Address -->
-                <section class="where-header flex-none">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <template is="dom-if" if="[[offer.locationDescriptor.link]]">
-                      <a href="[[offer.locationDescriptor.link]]" class="location-link">
-                        <div class="paper-font-title">[[offer.location]]</div>
-                      </a>
-                    </template>
-                    <template is="dom-if" if="[[!offer.locationDescriptor.link]]">
-                      <div class="paper-font-title">[[offer.location]]</div>
-                    </template>
-                  </div>
-                </section>
 
-                <!-- Leaflet map -->
-                <template is="dom-if" if="[[offer.locations.length]]">
-                  <section class="where flex-auto">
-                    <leaflet-wrapper
-                      data="[[offer.locations]]"
-                      cluster-markers>
-                    </leaflet-wrapper>
-                  </section>
+              <section-and-title
+                icon="icons:assignment"
+                style-class="entity-offer-font"
+                section-title="Ad Details">
+
+                <template is="dom-if" if="[[classificationManager]]">
+                  <div class="layout horizontal flex-none">
+                    <classify-ad-buttons style="margin: 5px;"
+                      classification-manager="[[classificationManager]]"
+                      classifications="{{offer.classifications}}"
+                      entity-id="[[offer.id]]">
+                    </classify-ad-buttons>
+                  </div>
+
+                  <hr>
                 </template>
-              </paper-material>
 
-              <template is="dom-if" if="[[dropsResults.data.length]]">
-                <!-- Event drops timeline -->
-                <paper-material>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="editor:bubble-chart"></iron-icon>
-                    <div class="paper-font-title">Location Drops Timeline</div>
-                  </div>
+                <detail-subsection
+                  entity-id="[[offer.id]]"
+                  icon-style-class-property="styleClass"
+                  header="Automated Classifications"
+                  extractions="[]">
+                </detail-subsection>
 
-                  <section class="who flex-auto">
-                    <drops-query-and-timeline
-                      client="[[esclient]]"
-                      index="[[config.elasticIndex]]"
-                      date-hist-name="dates"
-                      date-hist-field="validFrom"
-                      location-agg-name="locations"
-                      location-agg-field="availableAtOrFrom.address.key"
-                      index-types='["offer"]'
-                      query="[[offerQuery]]"
-                      filter-list='[]'
-                      transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
-                    </drops-query-and-timeline>
-                  </section>
-                </paper-material>
-              </template>
+                <hr>
 
-              <div class="h-divider"></div>
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Telephone Numbers"
+                    header-style-class="entity-phone-font"
+                    extractions="[[offer.phones]]">
+                  </detail-subsection>
+
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Email Addresses"
+                    header-style-class="entity-email-font"
+                    extractions="[[offer.emails]]">
+                  </detail-subsection>
+                </div>
+
+                <hr>
+
+                <div class="layout horizontal">
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Social Media IDs"
+                    header-style-class="entity-social-font"
+                    extractions="[[offer.socialIds]]">
+                  </detail-subsection>
+
+                  <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
+                    classification-manager="[[classificationManager]]"
+                    icon-style-class-property="styleClass"
+                    header="Review IDs"
+                    header-style-class="entity-review-font"
+                    extractions="[[offer.reviewIds]]">
+                  </detail-subsection>
+                </div>
+
+                <hr>
+
+                <detail-subsection
+                  entity-id="[[offer.id]]"
+                  icon-style-class-property="styleClass"
+                  header="Webpage"
+                  header-style-class="entity-webpage-font"
+                  extractions="[[offer.webpages]]">
+                </detail-subsection>
+
+                <detail-subsection
+                  entity-id="[[offer.id]]"
+                  icon-style-class-property="styleClass"
+                  extractions="[[offer.caches]]">
+                </detail-subsection>
+
+                <info-cached-webpages></info-cached-webpages>
+
+                <hr>
+
+                <detail-subsection
+                  entity-id="[[offer.id]]"
+                  icon-style-class-property="styleClass"
+                  header="Description"
+                  detail="[[offer.description]]">
+                </detail-subsection>
+              </section-and-title>
 
               <!-- More Ads Like This Ad -->
-              <paper-material>
-                <section>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                    <div class="layout horizontal flex">
-                      <div class="paper-font-title">[[similarOfferTitle]]</div>
+              <section-container>
+                <section-title
+                  icon="maps:local-offer"
+                  style-class="entity-offer-font"
+                  section-title="[[similarOfferTitle]]">
 
-                      <info-similar-offers></info-similar-offers>
-                    </div>
-
-                    <export-button
-                      client="[[esclient]]"
-                      data="[[shownSimilarOffers]]"
-                      download-image-url="[[config.downloadImageUrl]]"
-                      filter-list="[]"
-                      index-name="[[config.elasticIndex]]"
-                      index-type='["webpage"]'
-                      query="[[similarOfferQuery]]"
-                      size="[[similarOfferCount]]"
-                      sort-field="validFrom"
-                      sort-order="desc"
-                      csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
-                      pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
-                      query-transform-function="[[clientConfig.transforms.offer.offersData]]">
-                    </export-button>
-                  </div>
-
-                  <template is="dom-if" if="[[similarOfferError]]">
-                    <elastic-error error="[[similarOfferError]]" message="{{similarOfferErrorMessage}}"></elastic-error>
-                    <div>[[similarOfferErrorMessage]]</div>
-                  </template>
-
-                  <records-list
+                  <export-button
                     client="[[esclient]]"
-                    annotation-manager="[[annotationManager]]"
-                    query-results="[[similarOffers.data]]"
-                    total-results="[[similarOffers.count]]"
-                    shown-results="{{shownSimilarOffers}}"
-                    page="{{similarOfferPage}}"
-                    page-size="[[similarOfferPageSize]]"
-                    loading="[[similarOfferLoading]]"
-                    type="Similar Ad"
-                    records-list-title="{{similarOfferTitle}}"
-                    current-user="[[config.username]]"
-                    blur="[[blurImages]]">
-                  </records-list>
-                </section>
-              </paper-material>
+                    data="[[shownSimilarOffers]]"
+                    download-image-url="[[config.downloadImageUrl]]"
+                    filter-list="[]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["ads"]'
+                    query="[[similarOfferQuery]]"
+                    size="[[similarOfferCount]]"
+                    sort-field="fields.posting_date.strict.key"
+                    sort-order="desc"
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                  </export-button>
+                </section-title>
+
+                <template is="dom-if" if="[[similarOfferError]]">
+                  <elastic-error error="[[similarOfferError]]" message="{{similarOfferErrorMessage}}"></elastic-error>
+                  <div>[[similarOfferErrorMessage]]</div>
+                </template>
+
+                <info-similar-offers></info-similar-offers>
+
+                <records-list
+                  annotation-manager="[[annotationManager]]"
+                  classification-manager="[[classificationManager]]"
+                  client="[[esclient]]"
+                  image-aggregation-field="url.raw"
+                  image-aggregation-name="image"
+                  image-index-name="[[config.elasticIndex]]"
+                  image-index-type="images"
+                  image-query-field="isImagePartOf.uri"
+                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  text-property="title"
+                  query-results="[[similarOffers]]"
+                  total-results="[[similarOfferTotalCount]]"
+                  shown-results="{{shownSimilarOffers}}"
+                  page="{{similarOfferPage}}"
+                  page-size="25"
+                  loading="[[similarOfferLoading]]"
+                  type="Similar Ad"
+                  records-list-title="{{similarOfferTitle}}"
+                  current-user="[[config.username]]">
+                </records-list>
+              </section-container>
             </div>
 
           </div>
@@ -789,7 +783,7 @@ limitations under the License.
 
   <!-- Need to include dependencies here for IE -->
   <script src="bower_components/lodash/dist/lodash.js"></script>
-  <script src="behaviors/array-behavior.js"></script>
+  <script src="bower_components/array-behavior/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
 
   <script>
@@ -799,10 +793,16 @@ limitations under the License.
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
 
+    // Support legacy links.
+    if(!app.params.id && app.params.value) {
+      app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
+    }
+
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
     app.buildMoreLikeThisValue = function(name, desc) {
-      return name + ' ' + desc;
+      // Remove special characters.
+      return (name + ' ' + desc).replace(/[^\w\s]/gi, '');
     };
 
     app.toggleMenu = function() {
@@ -830,6 +830,10 @@ limitations under the License.
 
     app.emailSupport = function() {
       window.open('mailto:dig-support@nextcentury.com');
+    };
+
+    app.getBlurStyleClass = function(blur, large) {
+      return (blur ? (large ? 'large-blur' : 'small-blur') : '');
     };
   })(document);
   </script>

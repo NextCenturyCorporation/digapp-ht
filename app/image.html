@@ -95,19 +95,26 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <!-- Image query -->
+    <!-- Image query is built using either the ID or the URL (whatever is available in the parameters) -->
+    <elastic-client-query-builder
+      type="term"
+      fields='"identifier"'
+      values="[[params.id]]"
+      ejs-query="{{imageQuery}}">
+    </elastic-client-query-builder>
 
     <elastic-client-query-builder
       type="term"
-      fields="[[params.field]]"
-      values="[[params.value]]"
+      fields='"url.raw"'
+      values="[[params.url]]"
       ejs-query="{{imageQuery}}">
     </elastic-client-query-builder>
 
     <elastic-client-search
       client="[[esclient]]"
       index="[[config.elasticIndex]]"
-      elastic-types='["image"]'
+      elastic-types='["images"]'
+      page-size="1"
       query="[[imageQuery]]"
       aggregations="[]"
       filters="[]"
@@ -121,77 +128,135 @@ limitations under the License.
       transform-function="[[clientConfig.transforms.image.image]]">
     </json-transform>
 
-    <!-- Offer query -->
-
-    <elastic-client-query-builder
-      type="term"
-      fields='"mainEntityOfPage.hasImagePart.uri"'
-      values="[[image.uri]]"
-      ejs-query="{{imageOffersQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
+    <build-and-run-query
+      fields='"doc_id"'
+      values="[[image.ads]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["offer"]'
-      page="{{pageNum}}"
-      page-size="{{pageSize}}"
-      query="[[imageOffersQuery]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       aggregations="[]"
       filters="[[filterList]]"
-      sort-field="validFrom"
-      sort-order="desc"
-      results="{{offersResults}}"
-      result-count="{{offersCount}}"
-      loading="{{offersLoading}}"
-      last-error="{{offersError}}"
+      page="{{pageNum}}"
+      page-size="25"
       properties-ready="{{processRequest}}"
-      source-include='["availableAtOrFrom", "mainEntityOfPage", "validFrom"]'>
-    </elastic-client-search>
+      sort-field="knowledge_graph.posting_date.key"
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      transform-function="[[clientConfig.transforms.offer.offers]]"
+      error="{{offersError}}"
+      loading="{{offersLoading}}"
+      results="{{imageOffers}}"
+      total="{{imageOffersTotalCount}}">
+    </build-and-run-query>
 
-    <json-transform
-      data-in="[[offersResults]]"
-      data-out="{{imageOffers}}"
-      transform-function="[[clientConfig.transforms.offer.offers]]">
-    </json-transform>
-
-    <!-- Location timeline for bar chart and itinerary -->
+    <!-- Location timeline for bar chart - will ignore its own date filter (which is done by
+         naming the date aggregation 'dates', the same name as the date filter) -->
 
     <location-timeline
       location-aggregation-name="locations"
-      location-aggregation-field="availableAtOrFrom.address.key"
+      location-aggregation-field="knowledge_graph.city.key"
       date-aggregation-name="dates"
-      date-aggregation-field="validFrom"
+      date-aggregation-field="knowledge_graph.posting_date.key"
       email-aggregation-name="emails"
-      email-aggregation-field="mainEntityOfPage.mentionsEmail"
+      email-aggregation-field="knowledge_graph.email.key"
       phone-aggregation-name="phones"
-      phone-aggregation-field="mainEntityOfPage.mentionsPhone"
+      phone-aggregation-field="knowledge_graph.phone.key"
       publisher-aggregation-name="publishers"
-      publisher-aggregation-field="mainEntityOfPage.publisher.name.raw"
-      query-field="mainEntityOfPage.hasImagePart.uri"
-      query-value="[[image.uri]]"
+      publisher-aggregation-field="tld.raw"
+      query-field="doc_id"
+      query-value="[[image.ads]]"
       client="[[esclient]]"
-      index="[[config.elasticIndex]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
       filters="[[filterList]]"
-      offer-transform="[[clientConfig.transforms.offer.locationTimeline]]"
-      count="[[imageOffers.count]]"
+      transform-function="[[clientConfig.transforms.timeline.locationTimeline]]"
+      count="[[imageOffersTotalCount]]"
       interval="{{locationTimelineInterval}}"
       results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
       error="{{locationTimelineError}}">
     </location-timeline>
 
+    <!-- Location timeline for itinerary (will use filters set by bar chart) -->
+
+    <location-timeline
+      location-aggregation-name="locations"
+      location-aggregation-field="fields.city.strict.key"
+      date-aggregation-name="filteredDates"
+      date-aggregation-field="fields.posting_date.strict.key"
+      email-aggregation-name="emails"
+      email-aggregation-field="fields.email.strict.key"
+      phone-aggregation-name="phones"
+      phone-aggregation-field="fields.phone.strict.key"
+      publisher-aggregation-name="publishers"
+      publisher-aggregation-field="tld.raw"
+      query-field="doc_id"
+      query-value="[[image.ads]]"
+      client="[[esclient]]"
+      index-name="[[config.elasticIndex]]"
+      index-types='["ads"]'
+      filters="[[filterList]]"
+      transform-function="[[clientConfig.transforms.timeline.filteredLocationTimeline]]"
+      count="[[imageOffersTotalCount]]"
+      interval="{{locationTimelineInterval}}"
+      results="{{filteredTimelineData}}"
+      loading="{{loadingFilteredTimeline}}"
+      error="{{filteredTimelineError}}">
+    </location-timeline>
+
+    <!-- Logger for Page View -->
+    <dig-logger log-page-view
+      es-client="[[esclient]]"
+      es-index="[[config.logIndex]]"
+      es-type="[[config.logType]]"
+      type="Image-Open"
+      data="[[image.id]]"
+      username="[[config.username]]">
+    </dig-logger>
+
+    <!-- Logger for Filters -->
     <dig-logger
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
-      supertype="Image"
-      subtype="Open"
-      value="[[params.value]]"
+      type="Image-ChangeFilter"
+      data="[[logMessage]]"
       username="[[config.username]]">
     </dig-logger>
 
+    <!-- Logger for Pagination -->
+    <dig-logger
+      es-client="[[esclient]]"
+      es-index="[[config.logIndex]]"
+      es-type="[[config.logType]]"
+      type="Image-ShowResultPageNumber"
+      data="[[pageNum]]"
+      username="[[config.username]]">
+    </dig-logger>
+
+    <create-log-message
+      age-selected="[[filterCollection.age]]"
+      email-selected="[[filterCollection.email]]"
+      ethnicity-selected="[[filterCollection.ethnicity]]"
+      eye-selected="[[filterCollection.eyeColor]]"
+      gender-selected="[[filterCollection.gender]]"
+      hair-selected="[[filterCollection.hairColor]]"
+      height-selected="[[filterCollection.height]]"
+      image-selected="[[filterCollection.image]]"
+      location-selected="[[filterCollection.location]]"
+      name-selected="[[filterCollection.name]]"
+      phone-selected="[[filterCollection.phone]]"
+      price-selected="[[filterCollection.price]]"
+      review-selected="[[filterCollection.review]]"
+      services-selected="[[filterCollection.services]]"
+      social-selected="[[filterCollection.social]]"
+      website-selected="[[filterCollection.publisher]]"
+      weight-selected="[[filterCollection.weight]]"
+      log-message="{{logMessage}}">
+    </create-log-message>
+
     <annotation-manager
+      dev="[[config.dev]]"
+      show="[[annotationsDarpa]]"
       client="[[esclient]]"
       annotation-index="[[config.annotationIndex]]"
       annotation-type="[[config.annotationType]]"
@@ -201,33 +266,46 @@ limitations under the License.
       annotation-manager="{{annotationManager}}">
     </annotation-manager>
 
+    <classification-manager
+      dev="[[config.dev]]"
+      show="[[annotationsIsi]]"
+      entity-url="[[config.classificationEntityUrl]]"
+      extraction-url="[[config.classificationExtractionUrl]]"
+      flag-url="[[config.classificationFlagUrl]]"
+      flag="[[classificationFlag]]"
+      flag-list="{{classificationFlagList}}"
+      classification-manager="{{classificationManager}}">
+    </classification-manager>
+
     <!-- Main Content -->
     <div class="entity">
 
       <paper-header-panel class="flex" mode="waterfall-tall">
 
         <!-- Entity header -->
-        <section class="paper-header layout horizontal">
+        <div class="paper-header layout horizontal">
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
             <iron-icon class="iron-icon-huge entity-image-font" icon="image:image"></iron-icon>
-            <section>
+            <div class="page-name">
               <div class="paper-font-headline">
                 Image
               </div>
-              <template is="dom-if" if="[[imageOffers.count]]">
+              <template is="dom-if" if="[[imageOffersTotalCount]]">
                 <div class="paper-font-subhead">
-                  [[imageOffers.count]] Total Ads
+                  [[imageOffersTotalCount]] Total Ads
                 </div>
               </template>
-            </section>
+            </div>
           </div>
 
-          <entity-filter-builder
-            filter-collection="{{filterCollection}}"
-            filter-list="{{filterList}}">
-          </entity-filter-builder>
+          <filters-builder
+            callback="[[filtersBuilderCallback]]"
+            config="[[filtersBuilderConfig]]"
+            data="[[filterCollection]]"
+            filters="{{filterList}}">
+          </filters-builder>
 
           <state-manager id="stateManager"
             client="[[esclient]]"
@@ -238,19 +316,21 @@ limitations under the License.
             process-request="{{processRequest}}">
           </state-manager>
 
-          <annotate-record client="[[esclient]]"
-            annotation-manager="[[annotationManager]]"
-            item="{{image}}"
-            item-type="image"
-            current-user="[[config.username]]">
-          </annotate-record>
+          <template is="dom-if" if="[[annotationManager]]">
+            <annotate-record client="[[esclient]]"
+              annotation-manager="[[annotationManager]]"
+              item-id="[[image.id]]"
+              item-type="image"
+              current-user="[[config.username]]">
+            </annotate-record>
+          </template>
 
           <save-entity id="saveEntity"
             client="[[esclient]]"
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
             user-id="[[userId]]"
-            entity-id="[[image.uri]]"
+            entity-id="[[image.id]]"
             entity-name="[[image.url]]"
             entity-type="image"
             run-user-query-callback="[[runUserQueryCallback]]"
@@ -260,11 +340,15 @@ limitations under the License.
           </save-entity>
 
           <load-user-info
+            dev="[[config.dev]]"
             client="[[esclient]]"
             loading="[[loading]]"
             username="[[config.username]]"
-            advanced-search="{{advancedSearch}}"
+            annotations-darpa="{{annotationsDarpa}}"
+            annotations-isi="{{annotationsIsi}}"
             blur-images="{{blurImages}}"
+            classification-flag-list="[[classificationFlagList]]"
+            classification-flag="{{classificationFlag}}"
             entities="{{userEntities}}"
             user-id="{{userId}}"
             user-index="[[config.userIndex]]"
@@ -278,8 +362,11 @@ limitations under the License.
             annotation-ids="[[annotations.all]]"
             annotation-manager="[[annotationManager]]"
             client="[[esclient]]"
-            id-field="uri"
             index-name="[[config.elasticIndex]]"
+            email-field="knowledge_graph.email.key"
+            image-field="knowledge_graph.image.key"
+            offer-field="doc_id"
+            phone-field="knowledge_graph.phone.key"
             transform-function="[[clientConfig.transforms.entity.entities]]"
             entities="{{userEntities}}"
             user-update-body="{{userUpdateBody}}">
@@ -310,7 +397,7 @@ limitations under the License.
               </paper-icon-item>
             </div>
           </iron-dropdown>
-        </section>
+        </div>
 
         <!-- Entity body -->
         <div class="entity-page">
@@ -320,387 +407,396 @@ limitations under the License.
             <!-- Left Pane -->
             <div class="flex layout vertical">
 
-              <!-- Timeline - Offers between date1 and date2 with Zoomable Barchart-->
+              <section-and-map
+                show-copy
+                icon="communication:location-on"
+                style-class="entity-location-font"
+                text-property="textAndCount"
+                transform-config='{"type":"location","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[locationData]]">
 
-              <paper-material>
-                <section class="when">
-                  <iron-image id="mainImage" src="{{image.url}}" class$="big-image-style [[getBlurClass(blurImages)]]"></iron-image>
-                </section>
-              </paper-material>
+                <aggregation-query-and-display
+                  class="location-list"
+                  aggregation-name="location"
+                  aggregation-field="knowledge_graph.city.key"
+                  selected="{{filterCollection.location}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('location')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{locationData}}"
+                  header="{{locationHeader}}"
+                  header-data-name="Location"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-map>
 
-              <div class="h-divider"></div>
-              <paper-material>
-                <section class="when">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <div class="paper-font-title">[[barChartTitle]]</div>
-                  </div>
+              <section-and-title
+                show-copy
+                copy-type="Telephone Numbers"
+                icon="communication:phone"
+                style-class="entity-phone-font"
+                transform-config='{"type":"phone","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[phoneData]]">
 
-                  <template is="dom-if" if="[[locationTimelineError]]">
-                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
-                    <div>[[locationTimelineErrorMessage]]</div>
-                  </template>
+                <aggregation-query-and-display
+                  aggregation-name="phone"
+                  aggregation-field="knowledge_graph.phone.key"
+                  selected="{{filterCollection.phone}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('phone')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{phoneData}}"
+                  header="{{phoneHeader}}"
+                  header-data-name="Phone"
+                  header-counts-name="Ads"
+                  header-entity-name="This Image"
+                  show-checkboxes
+                  show-double-bar-chart>
+                </aggregation-query-and-display>
 
-                  <zoomable-bar-chart timeline
-                    bar-property="date"
-                    label-property="name"
-                    stack-property="locations"
-                    data="[[timelineData.dates]]"
-                    default-label="Unknown Location(s)"
-                    source="Ads"
-                    interval="[[locationTimelineInterval]]"
-                    chart-title="{{barChartTitle}}"
-                    loading="[[loadingLocationTimeline]]">
-                  </zoomable-bar-chart>
-                </section>
-              </paper-material>
+                <template is="dom-if" if="[[phoneData.length]]">
+                  <info-aggregations entity="this image" type="telephone number"></info-aggregations>
+                </template>
+              </section-and-title>
 
-              <div class="h-divider"></div>
+              <section-and-title
+                show-copy
+                copy-type="Email Addresses"
+                icon="communication:email"
+                style-class="entity-email-font"
+                transform-config='{"type":"email","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[emailData]]">
 
-              <!-- Phones Section -->
-              <paper-material>
-                <section class="who phone-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-phone-font" icon="communication:phone"></iron-icon>
-                    <div class="layout horizontal flex">
-                      <div class="paper-font-title">[[phoneHeader]]</div>
+                <aggregation-query-and-display
+                  aggregation-name="email"
+                  aggregation-field="knowledge_graph.email.key"
+                  selected="{{filterCollection.email}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('email')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{emailData}}"
+                  header="{{emailHeader}}"
+                  header-data-name="Email"
+                  header-counts-name="Ads"
+                  header-entity-name="This Image"
+                  show-checkboxes
+                  show-double-bar-chart>
+                </aggregation-query-and-display>
 
-                      <template is="dom-if" if="[[phones.length]]">
-                        <info-aggregations entity="the current image" type="telephone number"></info-aggregations>
-                      </template>
-                    </div>
-                  </div>
+                <template is="dom-if" if="[[emailData.length]]">
+                  <info-aggregations entity="this image" type="email address"></info-aggregations>
+                </template>
+              </section-and-title>
 
-                  <template is="dom-if" if="[[phoneError]]">
-                    <elastic-error error="[[phoneError]]" message="{{phoneErrorMessage}}"></elastic-error>
-                    <div>[[phoneErrorMessage]]</div>
-                  </template>
+              <section-and-title
+                show-copy
+                copy-type="Websites"
+                icon="av:web"
+                style-class="entity-webpage-font"
+                transform-config='{"type":"webpage","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[publisherData]]">
 
-                  <feature-query-and-display
-                    aggregation-name="phone"
-                    aggregation-field="mainEntityOfPage.mentionsPhone"
-                    selected="{{filterCollection.phone}}"
-                    query="[[imageOffersQuery]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
-                    error="{{phoneError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerPhones]]"
-                    data-property="phone"
-                    data="{{phones}}"
-                    header-property="title"
-                    header="{{phoneHeader}}"
-                    item-type="Phone"
-                    count-type="Ads"
-                    entity-name="This Image"
-                    show-checkboxes
-                    show-other-counts>
-                  </feature-query-and-display>
-                </section>
-              </paper-material>
+                <aggregation-query-and-display
+                  aggregation-name="webpage"
+                  aggregation-field="tld.raw"
+                  selected="{{filterCollection.publisher}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('webpage')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{publisherData}}"
+                  header="{{publisherHeader}}"
+                  header-data-name="Website"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-title>
 
-              <div class="h-divider"></div>
+              <section-and-title
+                show-copy
+                copy-type="Social Media IDs"
+                icon="social:public"
+                style-class="entity-social-font"
+                transform-config='{"type":"social","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[socialData]]">
 
-              <!-- Emails Section -->
-              <paper-material>
-                <section class="who phone-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-email-font" icon="communication:email"></iron-icon>
-                    <div class="layout horizontal flex">
-                      <div class="paper-font-title">[[emailHeader]]</div>
+                <aggregation-query-and-display
+                  aggregation-name="social"
+                  aggregation-field="knowledge_graph.social_media_id.key"
+                  selected="{{filterCollection.social}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('social')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{socialData}}"
+                  header="{{socialHeader}}"
+                  header-data-name="Social Media ID"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-title>
 
-                      <template is="dom-if" if="[[emails.length]]">
-                        <info-aggregations entity="the current image" type="email address"></info-aggregations>
-                      </template>
-                    </div>
-                  </div>
+              <section-and-title
+                show-copy
+                copy-type="Review IDs"
+                icon="icons:star"
+                style-class="entity-review-font"
+                transform-config='{"type":"review","sayOther":false}'
+                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                data="[[reviewData]]">
 
-                  <template is="dom-if" if="[[emailError]]">
-                    <elastic-error error="[[emailError]]" message="{{emailErrorMessage}}"></elastic-error>
-                    <div>[[emailErrorMessage]]</div>
-                  </template>
+                <aggregation-query-and-display
+                  aggregation-name="review"
+                  aggregation-field="fields.review_id.strict.key"
+                  selected="{{filterCollection.review}}"
+                  query-field="identifier"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('review')]]"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  data="{{reviewData}}"
+                  header-data-name="Review ID"
+                  header-counts-name="Ads"
+                  show-checkboxes>
+                </aggregation-query-and-display>
+              </section-and-title>
 
-                  <feature-query-and-display
-                    aggregation-name="email"
-                    aggregation-field="mainEntityOfPage.mentionsEmail"
-                    selected="{{filterCollection.email}}"
-                    query="[[imageOffersQuery]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
-                    error="{{emailError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerEmails]]"
-                    data-property="email"
-                    data="{{emails}}"
-                    header-property="title"
-                    header="{{emailHeader}}"
-                    item-type="Email"
-                    count-type="Ads"
-                    entity-name="This Image"
-                    show-checkboxes
-                    show-other-counts>
-                  </feature-query-and-display>
-                </section>
-              </paper-material>
+              <section-and-title
+                icon="icons:account-circle"
+                style-class="entity-provider-font"
+                section-title="Provider Summary">
 
-              <div class="h-divider"></div>
+                <people-features
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  filter-list="[[filterList]]"
+                  selected-age="{{filterCollection.age}}"
+                  selected-ethnicity="{{filterCollection.ethnicity}}"
+                  selected-eye-color="{{filterCollection.eyeColor}}"
+                  selected-gender="{{filterCollection.gender}}"
+                  selected-hair-color="{{filterCollection.hairColor}}"
+                  selected-height="{{filterCollection.height}}"
+                  selected-name="{{filterCollection.name}}"
+                  selected-price="{{filterCollection.price}}"
+                  selected-services="{{filterCollection.services}}"
+                  selected-weight="{{filterCollection.weight}}"
+                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]">
+                </people-features>
+              </section-and-title>
 
-              <!-- Services -->
-              <paper-material>
-                <section class="who">
+              <section-and-title
+                icon="image:photo-camera"
+                style-class="entity-image-font"
+                transform-config="[[loadedImages.length]]"
+                transform-function="[[clientConfig.transforms.image.imageTitle]]"
+                data="[[images]]">
 
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-provider-font" icon="icons:account-circle"></iron-icon>
-                    <div class="paper-font-title">Summary of Provider Attributes</div>
-                  </div>
+                <image-query-and-display
+                  aggregation-field="url.raw"
+                  aggregation-name="image"
+                  client="[[esclient]]"
+                  filter-list="[]"
+                  header-counts-name="Ads"
+                  header-entity-name="This Image"
+                  image-id-property="source"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["images"]'
+                  query-fields='"similarImageId.similarImageId"'
+                  query-values="[[image.similarImageId.similarImageId]]"
+                  transform-config="{}"
+                  transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  images="{{images}}"
+                  loaded-images="{{loadedImages}}"
+                  selected="{{filterCollection.image}}">
+                </image-query-and-display>
 
-                  <people-features
-                    query-field="mainEntityOfPage.hasImagePart.uri"
-                    query-value="[[image.uri]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    filter-list="[[filterList]]"
-                    selected-name="{{filterCollection.name}}"
-                    selected-age="{{filterCollection.age}}"
-                    selected-ethnicity="{{filterCollection.ethnicity}}"
-                    selected-eye-color="{{filterCollection.eyeColor}}"
-                    selected-hair-color="{{filterCollection.hairColor}}"
-                    selected-height="{{filterCollection.height}}"
-                    selected-weight="{{filterCollection.weight}}"
-                    transforms="[[clientConfig.transforms.offer]]">
-                  </people-features>
-                </section>
-              </paper-material>
+                <template is="dom-if" if="[[images.length]]">
+                  <info-similar-images></info-similar-images>
+                </template>
+              </section-and-title>
 
-              <div class="h-divider"></div>
+              <section-and-title
+                error="[[locationTimelineError]]"
+                icon="icons:timeline"
+                section-title="[[itineraryTitle]]">
 
-              <paper-material>
-                <section class="who publisher-section">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-webpage-font" icon="av:web"></iron-icon>
-                    <div class="paper-font-title">[[publisherHeader]]</div>
-                  </div>
-
-                  <template is="dom-if" if="[[publisherError]]">
-                    <elastic-error error="[[publisherError]]" message="{{publisherErrorMessage}}"></elastic-error>
-                    <div>[[publisherErrorMessage]]</div>
-                  </template>
-
-                  <feature-query-and-display
-                    aggregation-name="publisher"
-                    aggregation-field="mainEntityOfPage.publisher.name"
-                    selected="{{filterCollection.publisher}}"
-                    query="[[imageOffersQuery]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
-                    error="{{publisherError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerPublishers]]"
-                    data-property="publisher"
-                    header-property="title"
-                    header="{{publisherHeader}}"
-                    data-text-property="id"
-                    item-type="Website"
-                    count-type="Ads"
-                    show-checkboxes>
-                  </feature-query-and-display>
-                </section>
-              </paper-material>
-
-              <template is="dom-if" if="[[image.similarImageId]]">
-                <div class="h-divider"></div>
-
-                <paper-material>
-                  <section class="photos">
-                    <div class="title layout horizontal start center">
-                      <iron-icon class="iron-icon-big entity-image-font" icon="image:photo"></iron-icon>
-                      <div class="layout horizontal flex">
-                        <div class="paper-font-title">[[imageDisplayTitle]]</div>
-
-                        <info-similar-images></info-similar-images>
-                      </div>
-                    </div>
-
-                    <template is="dom-if" if="[[similarImageError]]">
-                      <elastic-error error="[[similarImageError]]" message="{{similarImageErrorMessage}}"></elastic-error>
-                      <div>[[similarImageErrorMessage]]</div>
-                    </template>
-
-                    <image-query-and-display
-                      image-query-field="similarImageId.similarImageId"
-                      image-query-values="[[image.similarImageId.similarImageId]]"
-                      client="[[esclient]]"
-                      index="[[config.elasticIndex]]"
-                      index-types='["image"]'
-                      image-transform="[[clientConfig.transforms.image.images]]"
-                      image-total-transform="[[clientConfig.transforms.image.imageTotal]]"
-                      type="Similar Image"
-                      image-display-title="{{imageDisplayTitle}}"
-                      error="{{similarImageError}}"
-                      blur="[[blurImages]]"
-                      image-query-source-include='["url", "uri"]'>
-                    </image-query-and-display>
-                  </section>
-                </paper-material>
-              </template>
-
-              <!-- Itinerary section -->
-              <div class="h-divider"></div>
-              <paper-material>
-                <section class="who">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="icons:timeline"></iron-icon>
-                    <div class="paper-font-title">[[itineraryTitle]]</div>
-                  </div>
-
-                  <template is="dom-if" if="[[locationTimelineError]]">
-                    <elastic-error error="[[locationTimelineError]]" message="{{locationTimelineErrorMessage}}"></elastic-error>
-                    <div>[[locationTimelineErrorMessage]]</div>
-                  </template>
-
-                  <itinerary-list
-                    parts-property="locations"
-                    data="[[timelineData.dates]]"
-                    source="Ads"
-                    interval="[[locationTimelineInterval]]"
-                    itinerary-title="{{itineraryTitle}}"
-                    loading="[[loadingLocationTimeline]]">
-                  </itinerary-list>
-                </section>
-              </paper-material>
+                <itinerary-list
+                  items-property="locations"
+                  item-name-property="text"
+                  data="[[filteredTimelineData.dates]]"
+                  source="Ads"
+                  interval="[[locationTimelineInterval]]"
+                  itinerary-title="{{itineraryTitle}}"
+                  loading="[[loadingFilteredTimeline]]">
+                </itinerary-list>
+              </section-and-title>
 
             </div>
 
             <!-- Right Pane -->
             <div class="flex layout vertical">
 
-              <!-- Map -->
-              <paper-material>
-                <!-- City summary -->
-                <section class="where-header flex-none">
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-location-font" icon="communication:location-on"></iron-icon>
-                    <div class="paper-font-title">[[locationHeader]]</div>
-                  </div>
-                </section>
+              <section-container class="image-section">
+                <iron-image src="[[image.url]]" class$="layout horizontal center-justified [[getBlurStyleClass(blurImages, 'large')]]"></iron-image>
+              </section-container>
 
-                <!-- Leaflet map -->
-                <template is="dom-if" if="[[locationData.length]]">
-                  <section class="where flex-auto">
-                    <leaflet-wrapper
-                      text-property="longName"
-                      data="{{locationData}}"
-                      cluster-markers>
-                    </leaflet-wrapper>
-                  </section>
+              <section-and-title
+                error="[[locationTimelineError]]"
+                icon="editor:insert-chart"
+                section-title="Bar Timeline">
+
+                <template is="dom-if" if="[[!offersLoading]]">
+                  <template is="dom-if" if="[[!loadingLocationTimeline]]">
+                    <template is="dom-if" if="[[!timelineData.dates.length]]">
+                      <div>No Ads and/or Dates</div>
+                    </template>
+                  </template>
                 </template>
 
-                <!-- City summary -->
-                <section class="where-details location-section flex-none">
-                  <template is="dom-if" if="[[locationError]]">
-                    <elastic-error error="[[locationError]]" message="{{locationErrorMessage}}"></elastic-error>
-                    <div>[[locationErrorMessage]]</div>
+                <template is="dom-if" if="[[offersLoading]]">
+                  <loading-spinner show type="Ads"></loading-spinner>
+                </template>
+
+                <zoomable-bar-chart timeline
+                  selected="{{filterCollection.dates}}"
+                  bar-property="date"
+                  label-property="text"
+                  stack-property="locations"
+                  data="[[timelineData.dates]]"
+                  default-bar-name="Unknown Location(s)"
+                  default-label="Unknown Location(s)"
+                  source="Ads"
+                  interval="[[locationTimelineInterval]]"
+                  loading="[[loadingLocationTimeline]]"
+                  display-filter-text>
+                </zoomable-bar-chart>
+              </section-and-title>
+
+              <section-and-title
+                error="[[eventDropsTimelineError]]"
+                icon="editor:bubble-chart"
+                section-title="Drops Timeline">
+
+                <template is="dom-if" if="[[!eventDropsTimelineLoading]]">
+                  <template is="dom-if" if="[[!eventDropsLocations.length]]">
+                    <div>No Ads and/or Locations</div>
                   </template>
+                </template>
 
-                  <feature-query-and-display
-                    aggregation-name="location"
-                    aggregation-field="availableAtOrFrom.address.key"
-                    selected="{{filterCollection.location}}"
-                    query="[[imageOffersQuery]]"
-                    client="[[esclient]]"
-                    index-name="[[config.elasticIndex]]"
-                    index-types='["offer"]'
-                    error="{{locationError}}"
-                    filter-list="[[filterList]]"
-                    feature-transform="[[clientConfig.transforms.offer.offerLocations]]"
-                    data-property="location"
-                    data="{{locationData}}"
-                    header-property="title"
-                    header="{{locationHeader}}"
-                    data-id-property="key"
-                    data-text-property="name"
-                    item-type="Location"
-                    count-type="Ads"
-                    show-checkboxes>
-                  </feature-query-and-display>
-                </section>
-              </paper-material>
+                <drops-query-and-timeline
+                  client="[[esclient]]"
+                  index="[[config.elasticIndex]]"
+                  date-hist-name="dates"
+                  date-hist-field="knowledge_graph.posting_date.key"
+                  item-agg-name="locations"
+                  item-agg-field="knowledge_graph.city.key"
+                  index-types='["ads"]'
+                  query-fields='"doc_id"'
+                  query-values="[[image.ads]]"
+                  filter-list="[[filterList]]"
+                  transform="[[clientConfig.transforms.timeline.eventDropsTimeline]]"
+                  transform-items-property="locations"
+                  error="{{eventDropsTimelineError}}"
+                  loading="{{eventDropsTimelineLoading}}"
+                  items="{{eventDropsLocations}}">
+                </drops-query-and-timeline>
 
-              <div class="h-divider"></div>
-
-              <!-- Event drops timeline -->
-              <paper-material>
-                <section>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big" icon="editor:bubble-chart"></iron-icon>
-                    <div class="paper-font-title">Location Drops Timeline</div>
-                  </div>
-
-                  <drops-query-and-timeline
-                    client="[[esclient]]"
-                    index="[[config.elasticIndex]]"
-                    date-hist-name="dates"
-                    date-hist-field="validFrom"
-                    location-agg-name="locations"
-                    location-agg-field="availableAtOrFrom.address.key"
-                    index-types='["offer"]'
-                    query="[[imageOffersQuery]]"
-                    filter-list="[[filterList]]"
-                    transform="[[clientConfig.transforms.offer.gatherEventDropsTimelineData]]">
-                  </drops-query-and-timeline>
-                </section>
-              </paper-material>
-
-              <div class="h-divider"></div>
+                <template is="dom-if" if="[[eventDropsLocations.length]]">
+                  <info-event-drops type="locations"></info-event-drops>
+                </template>
+              </section-and-title>
 
               <!-- Offers for the image-->
-              <paper-material>
-                <section>
-                  <div class="title layout horizontal start center">
-                    <iron-icon class="iron-icon-big entity-offer-font" icon="maps:local-offer"></iron-icon>
-                    <div class="paper-font-title">[[recordsListTitle]]</div>
+              <section-container>
+                <section-title
+                  icon="maps:local-offer"
+                  style-class="entity-offer-font"
+                  section-title="[[recordsListTitle]]">
 
-                    <export-button
-                      client="[[esclient]]"
-                      data="[[shownOffers]]"
-                      download-image-url="[[config.downloadImageUrl]]"
-                      filter-list="[[filterList]]"
-                      index-name="[[config.elasticIndex]]"
-                      index-type='["webpage"]'
-                      query="[[imageOffersQuery]]"
-                      size="[[offersCount]]"
-                      sort-field="validFrom"
-                      sort-order="desc"
-                      csv-transform-function="[[clientConfig.transforms.offer.createExportDataForCsv]]"
-                      pdf-transform-function="[[clientConfig.transforms.offer.createExportDataForPdf]]"
-                      query-transform-function="[[clientConfig.transforms.offer.offersData]]">
-                    </export-button>
-                  </div>
-
-                  <template is="dom-if" if="[[offersError]]">
-                    <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
-                    <div>[[offersErrorMessage]]</div>
-                  </template>
-
-                  <records-list
+                  <export-button
                     client="[[esclient]]"
-                    annotation-manager="[[annotationManager]]"
-                    query-results="[[imageOffers.data]]"
-                    total-results="{{imageOffers.count}}"
-                    shown-results="{{shownOffers}}"
-                    page="{{pageNum}}"
-                    page-size="[[pageSize]]"
-                    loading="{{offersLoading}}"
-                    type="Ad"
-                    records-list-title="{{recordsListTitle}}"
-                    current-user="[[config.username]]"
-                    blur="[[blurImages]]">
-                  </records-list>
-                </section>
-              </paper-material>
+                    data="[[shownOffers]]"
+                    download-image-url="[[config.downloadImageUrl]]"
+                    filter-list="[[filterList]]"
+                    index-name="[[config.elasticIndex]]"
+                    index-types='["ads"]'
+                    query-fields='"doc_id"'
+                    query-values="[[image.ads]]"
+                    size="[[imageOffersTotalCount]]"
+                    sort-field="fields.posting_date.strict.key"
+                    sort-order="desc"
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                  </export-button>
+                </section-title>
+
+                <template is="dom-if" if="[[offersError]]">
+                  <elastic-error error="[[offersError]]" message="{{offersErrorMessage}}"></elastic-error>
+                  <div>[[offersErrorMessage]]</div>
+                </template>
+
+                <records-list
+                  annotation-manager="[[annotationManager]]"
+                  classification-manager="[[classificationManager]]"
+                  client="[[esclient]]"
+                  image-aggregation-field="url.raw"
+                  image-aggregation-name="image"
+                  image-index-name="[[config.elasticIndex]]"
+                  image-index-type="images"
+                  image-query-field="isImagePartOf.uri"
+                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  text-property="title"
+                  query-results="[[imageOffers]]"
+                  total-results="{{imageOffersTotalCount}}"
+                  shown-results="{{shownOffers}}"
+                  page="{{pageNum}}"
+                  page-size="25"
+                  loading="{{offersLoading}}"
+                  type="Ad"
+                  records-list-title="{{recordsListTitle}}"
+                  current-user="[[config.username]]">
+                </records-list>
+              </section-container>
 
             </div>
 
@@ -713,39 +809,89 @@ limitations under the License.
 
   <!-- Need to include dependencies here for IE -->
   <script src="bower_components/lodash/dist/lodash.js"></script>
-  <script src="behaviors/array-behavior.js"></script>
+  <script src="bower_components/array-behavior/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
+  <script src="behaviors/state-behavior.js"></script>
 
   <script>
   (function(document) {
     /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.filterCollection = {
-      email: [],
-      phone: [],
-      publisher: [],
-      location: [],
-      name: [],
-      age: [],
-      ethnicity: [],
-      eyeColor: [],
-      hairColor: [],
-      height: [],
-      weight: []
-    };
+    app.filterCollection = DigBehaviors.StateBehavior.buildEntityState({});
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+    // Support legacy links.
+    if(!app.params.id && app.params.value) {
+      app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
+    }
 
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.getBlurClass =  function(blur) {
-      return (blur ? 'large-blur' : '');
+    app.image = {};
+
+    app.filtersBuilderCallback = {
+      terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems,
+      dates: DigBehaviors.FilterBehavior.getEntityPageFilterItems
     };
 
-    app.image = {};
+    app.filtersBuilderConfig = {
+      age: {
+        field: 'knowledge_graph.age.key'
+      },
+      dates: {
+        field: 'fields.posting_date.strict.key',
+        type: 'date'
+      },
+      email: {
+        field: 'knowledge_graph.email.key'
+      },
+      ethnicity: {
+        field: 'knowledge_graph.ethnicity.key'
+      },
+      eyeColor: {
+        field: 'knowledge_graph.eye_color.key'
+      },
+      gender: {
+        field: 'knowledge_graph.gender.key'
+      },
+      hairColor: {
+        field: 'knowledge_graph.hair_color.key'
+      },
+      height: {
+        field: 'knowledge_graph.height.key'
+      },
+      location: {
+        field: 'knowledge_graph.city.key'
+      },
+      name: {
+        field: 'knowledge_graph.name.key'
+      },
+      phone: {
+        field: 'knowledge_graph.phone.key'
+      },
+      price: {
+        field: 'knowledge_graph.price.key'
+      },
+      publisher: {
+        field: 'tld.raw'
+      },
+      review: {
+        field: 'fields.review_id.strict.key'
+      },
+      services: {
+        field: 'knowledge_graph.service.key'
+      },
+      social: {
+        field: 'knowledge_graph.social_media_id.key'
+      },
+      weight: {
+        field: 'knowledge_graph.weight.key'
+      }
+    };
 
     app.toggleMenu = function() {
       if(this.$.menuDropdown.style.display === 'none') {
@@ -772,6 +918,27 @@ limitations under the License.
 
     app.emailSupport = function() {
       window.open('mailto:dig-support@nextcentury.com');
+    };
+
+    app.getClipboardText = function(list, isLocation) {
+      return list.map(function(item) {
+        if(isLocation && item.text.indexOf(',') >= 0) {
+          return item.text.substring(0, item.text.indexOf(','));
+        }
+        return item.id;
+      }).join(',');
+    };
+
+    app.createAggregationTransformConfig = function(type, ignoreId) {
+      return {
+        property: type,
+        type: type,
+        ignoreId: ignoreId
+      };
+    };
+
+    app.getBlurStyleClass = function(blur, large) {
+      return (blur ? (large ? 'large-blur' : 'small-blur') : '');
     };
   })(document);
   </script>

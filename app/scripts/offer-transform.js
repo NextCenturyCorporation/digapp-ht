@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-/**
- * transform elastic search offer query to display format.  See data-model.json
- */
-
 /* exported offerTransform */
 /* jshint camelcase:false */
 
-var offerTransform = (function(_, commonTransforms, providerTransforms) {
+var offerTransform = (function(_, commonTransforms) {
 
   /**
    * Returns the list of DIG image objects using the given images from the data.
    */
+  /*
   function getImages(images) {
     return (_.isArray(images) ? images : [images]).map(function(image) {
       return {
@@ -37,144 +34,330 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
       };
     });
   }
+  */
 
-  /**
-   * Returns the list of DIG location objects using the given locations (addresses) from the data.
-   */
-  function getLocations(locations) {
-    return (_.isArray(locations) ? locations : [locations]).map(function(location) {
-      var key = _.get(location, 'key');
-      var locality = _.get(location, 'addressLocality');
-      var region = _.get(location, 'addressRegion');
-      var country = _.get(location, 'addressCountry');
-      var latitude = _.get(location, 'geo.latitude');
-      var longitude = _.get(location, 'geo.longitude');
+  function getDateFromRecord(record, path) {
+    var data = _.get(record, path, []);
+    var item = data ? (_.isArray(data) ? (data.length ? data[0] : {}) : data) : {};
+    return {
+      confidence: item.confidence,
+      key: item.value
+    };
+  }
 
-      return {
-        key: key,
-        latitude: latitude,
-        longitude: longitude,
-        icon: commonTransforms.getIronIcon('location'),
-        styleClass: commonTransforms.getStyleClass('location'),
-        text: locality ? (locality + (region ? (', ' + region) : '') + (country ? (', ' + country) : '')) : '',
-        type: 'location'
+  function getSingleStringFromRecord(record, path, property) {
+    var data = _.get(record, path, []);
+
+    if(data && _.isArray(data)) {
+      return data.length ? data.map(function(item) {
+        return item[property];
+      }).join('\n') : undefined;
+    }
+
+    return data ? data[property] : undefined;
+  }
+
+  function annotateType(type) {
+    return type === 'email' || type === 'phone';
+  }
+
+  function getExtractionType(type) {
+    if(type === 'name' || type === 'gender' || type === 'ethnicity' || type === 'age' || type === 'eyeColor' || type === 'hairColor' || type === 'height' || type === 'weight') {
+      return 'provider';
+    }
+    return type;
+  }
+
+  function getIdOfType(key, value, type) {
+    if(type === 'location') {
+      // TODO We should use the key (and ignore the value) once the extractions are improved.
+      return key || value;
+    }
+    if(type === 'social') {
+      return key.indexOf(' ') ? key.substring(key.indexOf(' ') + 1) : key;
+    }
+    return key;
+  }
+
+  function getTextOfType(key, value, type) {
+    if(type === 'date') {
+      return commonTransforms.getDate(value || key) || 'No Date';
+    }
+    if(type === 'email') {
+      return decodeURIComponent(value || key);
+    }
+    if(type === 'phone') {
+      return commonTransforms.getFormattedPhone(value || key);
+    }
+    if(type === 'provider' || type === 'review' || type === 'service' || type === 'social') {
+      return value ? ('' + value).toLowerCase() : ('' + key).toLowerCase();
+    }
+    return value || key;
+  }
+
+  function getExtractionOfType(item, type, confidence) {
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var count = item.doc_count;
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+    var extractionType = getExtractionType(type);
+    var extraction = {
+      annotate: annotateType(type),
+      confidence: confidence,
+      count: count,
+      id: getIdOfType(item.key, item.value, type),
+      icon: commonTransforms.getIronIcon(extractionType),
+      link: commonTransforms.getLink(item.key, extractionType),
+      styleClass: commonTransforms.getStyleClass(extractionType),
+      text: getTextOfType(item.key, item.value, type),
+      type: extractionType
+    };
+    if(type !== 'cache' && type !== 'webpage') {
+      extraction.classifications = {
+        database: '',
+        type: commonTransforms.getDatabaseTypeFromUiType(type),
+        user: ''
       };
-    }).filter(function(location) {
-      return location.latitude && location.longitude && location.text;
+    }
+    if(type === 'location') {
+      var locationData = commonTransforms.getLocationDataFromId(extraction.id);
+      extraction.latitude = locationData.latitude;
+      extraction.longitude = locationData.longitude;
+      extraction.text = locationData.text;
+      extraction.textAndCount = locationData.text + (extraction.count ? (' (' + extraction.count + ')') : '');
+      extraction.textAndCountry = locationData.text + (locationData.country ? (', ' + locationData.country) : '');
+    }
+    if(type === 'height' || type === 'price' || type === 'weight') {
+      var compoundExtractionData = commonTransforms.getExtractionDataFromCompoundId(extraction.id);
+      extraction.id = compoundExtractionData.id;
+      extraction.text = compoundExtractionData.text;
+    }
+    return extraction;
+  }
+
+  function getFilterFunctionOfType(type) {
+    if(type === 'location') {
+      // TODO Filter out the bad locations once the extractions are improved.
+      //return commonTransforms.isGoodLocation;
+    }
+    if(type === 'price') {
+      return function(item) {
+        return item.text !== '-per-min';
+      };
+    }
+    return null;
+  }
+
+  function getExtractionsFromListOfType(extractionList, type) {
+    var extractionData = extractionList.map(function(item) {
+      var confidence = _.isUndefined(item.confidence) ? undefined : (Math.round(Math.min(item.confidence, 1) * 10000.0) / 100.0);
+      return getExtractionOfType(item, type, confidence);
+    });
+    var filterFunction = getFilterFunctionOfType(type);
+    return (filterFunction ? extractionData.filter(filterFunction) : extractionData);
+  }
+
+  function getExtractionsFromRecordOfType(record, path, type) {
+    var data = _.get(record, path, []);
+    return getExtractionsFromListOfType(data, type);
+  }
+
+  function getHighlightedText(record, paths) {
+    var path = _.find(paths, function(path) {
+      return record.highlight && record.highlight[path] && record.highlight[path].length && record.highlight[path][0];
+    });
+    return path ? record.highlight[path][0] : undefined;
+  }
+
+  function getHighlightPathList(item, record, highlightMapping) {
+    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+    var pathList = record.matched_queries;
+    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+    if(pathList && pathList.length && highlightMapping && highlightMapping[item.id]) {
+      return pathList.filter(function(path) {
+        return _.startsWith(path, highlightMapping[item.id]);
+      }).map(function(path) {
+        return path.split(':')[1];
+      });
+    }
+
+    return [];
+  }
+
+  function cleanHighlight(text, type) {
+    // Ignore partial matches for emails and webpages.
+    if((type === 'email' || type === 'webpage') && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
+      return text.toLowerCase();
+    }
+
+    var output = text;
+
+    // Social media usernames are formatted "<website> <username>".
+    // Ignore matches on websites in social media usernames.
+    if(type === 'social') {
+      output = output.indexOf(' ') ? output.substring(output.indexOf(' ') + 1) : output;
+    }
+
+    return output.indexOf('<em>') >= 0 ? output.replace(/<\/?em\>/g, '').toLowerCase() : '';
+  }
+
+  function addHighlight(item, record, highlightMapping) {
+    var pathList = getHighlightPathList(item, record, highlightMapping);
+    if(record.highlight && pathList.length) {
+      item.highlight = pathList.some(function(path) {
+        return (record.highlight[path] || []).some(function(text) {
+          var cleanedHighlight = cleanHighlight(text, item.type);
+          return cleanedHighlight && (('' + item.id).toLowerCase().indexOf(cleanedHighlight) >= 0);
+        });
+      });
+    }
+    return item;
+  }
+
+  function addAllHighlights(data, record, highlightMapping) {
+    return data.map(function(item) {
+      return addHighlight(item, record, highlightMapping);
     });
   }
 
-  /**
-   * Returns the list of DIG mention objects of the given type using the given mentions from the data.
-   */
-  function getMentions(mentions, type) {
-    return (_.isArray(mentions) ? mentions : [mentions]).map(function(uri) {
-      var text = uri.substring(uri.lastIndexOf('/') + 1);
-      if(type === 'phone' && text.indexOf('-') >= 0) {
-        // Remove country code.
-        text = text.substring(text.indexOf('-') + 1);
-      }
-      if(type === 'email') {
-        text = decodeURIComponent(text);
-      }
-      return {
-        id: uri,
-        type: type,
-        text: text,
-        icon: commonTransforms.getIronIcon(type),
-        link: commonTransforms.getLink(uri, type),
-        styleClass: commonTransforms.getStyleClass(type)
-      };
-    });
+  function getClassifications(record, path) {
+    // TODO
+    return {};
   }
 
-  /**
-   * Returns the list of DIG price objects using the given prices from the data.
-   */
-  function getPrices(prices) {
-    return (_.isArray(prices) ? prices : [prices]).map(function(price) {
-      return {
-        type: 'money',
-        text: price.name,
-        icon: commonTransforms.getIronIcon('money'),
-        styleClass: commonTransforms.getStyleClass('money')
-      };
-    }).filter(function(price) {
-      return price.text !== '-per-min';
-    });
-  }
+  function getOfferObject(record, highlightMapping) {
+    var id = _.get(record, '_source.doc_id');
+    var url = _.get(record, '_source.url');
 
-  function getOfferObject(record, mainPath, idPath, datePath, entityPath) {
-    var id = _.get(record, idPath);
-    if(!id) {
+    if(!id || !url) {
       return {};
     }
 
-    var url = _.get(record, mainPath + '.url');
-    var cacheId = id.length && id.lastIndexOf('/') >= 0 ? id.substring(id.lastIndexOf('/') + 1) : '';
+    var rank = _.get(record, '_score');
+    var domain = _.get(record, '_source.tld');
 
     var offer = {
       id: id,
+      url: url,
+      rank: rank ? rank.toFixed(2) : rank,
+      domain: domain || 'No Domain',
       type: 'offer',
-      date: commonTransforms.getDate(_.get(record, datePath)) || 'No Date',
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      url: url,
-      name: _.get(record, mainPath + '.name', 'No Title'),
-      publisher: _.get(record, mainPath + '.publisher.name', 'No Publisher'),
-      description: _.get(record, mainPath + '.description', 'No Description'),
-      phones: getMentions(_.get(record, mainPath + '.mentionsPhone', []), 'phone'),
-      emails: getMentions(_.get(record, mainPath + '.mentionsEmail', []), 'email'),
-      images: getImages(_.get(record, mainPath + '.hasImagePart', [])),
-      person: providerTransforms.personFromRecord(_.get(record, entityPath + '.itemOffered')),
-      prices: getPrices(_.get(record, entityPath + '.priceSpecification', [])),
-      locations: getLocations(_.get(record, entityPath + '.availableAtOrFrom.address', [])),
-      webpages: url ? [{
-        id: _.get(record, mainPath + '.uri'),
-        type: 'webpage',
-        text: url,
-        icon: commonTransforms.getIronIcon('webpage'),
-        link: url,
-        styleClass: commonTransforms.getStyleClass('webpage')
-      }] : [],
-      caches: cacheId ? [{
-        id: cacheId,
-        type: 'cache',
-        text: 'Open Cached Webpage',
-        icon: commonTransforms.getIronIcon('cache'),
-        link: commonTransforms.getLink(cacheId, 'cache'),
-        styleClass: commonTransforms.getStyleClass('cache')
-      }] : [],
-      descriptors: [],
+      classifications: getClassifications(record, ''),
+      title: getSingleStringFromRecord(record, '_source.content_extraction.title', 'text') || 'No Title',
+      description: getSingleStringFromRecord(record, '_source.content_extraction.content_strict', 'text') || 'No Description',
+      locations: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.city', 'location'),
+      phones: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.phone', 'phone'),
+      emails: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.email', 'email'),
+      socialIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.social_media_id', 'social'),
+      reviewIds: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.review_id', 'review'),
+      prices: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.price', 'price'),
+      services: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.service', 'service'),
+      names: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.name', 'name'),
+      genders: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.gender', 'gender'),
+      ethnicities: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.ethnicity', 'ethnicity'),
+      ages: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.age', 'age'),
+      eyeColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.eye_color', 'eyeColor'),
+      hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'hairColor'),
+      heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
+      weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
+      dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
+      publishers: getExtractionsFromListOfType([{
+        key: domain
+      }], 'webpage'),
+      webpages: getExtractionsFromListOfType([{
+        key: url
+      }], 'webpage'),
+      caches: getExtractionsFromListOfType([{
+        key: id,
+        value: 'Open Cached Ad Webpage'
+      }], 'cache'),
+      highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
 
-    offer.name = _.isArray(offer.name) ? offer.name.join(', ') : offer.name;
-    offer.location = offer.locations.length ? offer.locations[0].text : 'No Location';
+    offer.date = offer.dates.length ? offer.dates[0].text : 'Unknown Date';
 
-    var locationKey = offer.locations.length ? offer.locations[0].key : undefined;
-    offer.locationDescriptor = {
-      icon: commonTransforms.getIronIcon('location'),
-      styleClass: commonTransforms.getStyleClass('location'),
-      text: offer.location,
-      link: commonTransforms.getLink(locationKey, 'location'),
-      type: 'location'
-    };
+    // Handle highlighted extractions.
+    if(highlightMapping) {
+      offer.locations = addAllHighlights(offer.locations, record, highlightMapping.location);
+      offer.phones = addAllHighlights(offer.phones, record, highlightMapping.phone);
+      offer.emails = addAllHighlights(offer.emails, record, highlightMapping.email);
+      offer.socialIds = addAllHighlights(offer.socialIds, record, highlightMapping.social);
+      offer.reviewIds = addAllHighlights(offer.reviewIds, record, highlightMapping.review);
+      offer.services = addAllHighlights(offer.services, record, highlightMapping.services);
+      offer.prices = addAllHighlights(offer.prices, record, highlightMapping.price);
+      offer.names = addAllHighlights(offer.names, record, highlightMapping.name);
+      offer.genders = addAllHighlights(offer.genders, record, highlightMapping.gender);
+      offer.ethnicities = addAllHighlights(offer.ethnicities, record, highlightMapping.ethnicity);
+      offer.ages = addAllHighlights(offer.ages, record, highlightMapping.age);
+      offer.eyeColors = addAllHighlights(offer.eyeColors, record, highlightMapping.eyeColor);
+      offer.hairColors = addAllHighlights(offer.hairColors, record, highlightMapping.hairColor);
+      offer.heights = addAllHighlights(offer.heights, record, highlightMapping.height);
+      offer.weights = addAllHighlights(offer.weights, record, highlightMapping.weight);
+      offer.publishers = addAllHighlights(offer.publishers, record, highlightMapping.webpage);
+    }
 
-    offer.descriptors.push({
-      icon: commonTransforms.getIronIcon('date'),
-      styleClass: commonTransforms.getStyleClass('date'),
-      type: 'date',
-      text: offer.date
-    });
-    offer.descriptors.push({
-      icon: commonTransforms.getIronIcon('webpage'),
-      styleClass: commonTransforms.getStyleClass('webpage'),
-      type: 'webpage',
-      text: offer.publisher
-    });
+    // Handle extraction arrays for single-record elements.
+    offer.headerExtractions = [{
+      data: offer.dates
+    }, {
+      data: offer.publishers
+    }, {
+      data: offer.locations,
+      name: 'Locations'
+    }, {
+      data: offer.phones,
+      name: 'Telephone Numbers'
+    }, {
+      data: offer.emails,
+      name: 'Email Addresses'
+    }, {
+      data: offer.socialIds,
+      name: 'Social Media IDs'
+    }, {
+      data: offer.reviewIds,
+      name: 'Review IDs'
+    }, {
+      data: [],
+      name: 'Automated Classifications'
+    }];
 
+    offer.detailExtractions = [{
+      data: offer.prices,
+      name: 'Prices'
+    }, {
+      data: offer.services,
+      name: 'Services Provided'
+    }, {
+      data: offer.names,
+      name: 'Provider Names'
+    }, {
+      data: offer.ethnicities,
+      name: 'Provider Ethnicities'
+    }, {
+      data: offer.ages,
+      name: 'Provider Ages'
+    }, {
+      data: offer.genders,
+      name: 'Provider Genders'
+    }, {
+      data: offer.eyeColors,
+      name: 'Provider Eye Colors'
+    }, {
+      data: offer.hairColors,
+      name: 'Provider Hair Colors'
+    }, {
+      data: offer.heights,
+      name: 'Provider Heights'
+    }, {
+      data: offer.weights,
+      name: 'Provider Weights'
+    }];
+
+    // Handle detail arrays for single-record elements.
     offer.details.push({
       name: 'Url',
       link: url || null,
@@ -182,610 +365,142 @@ var offerTransform = (function(_, commonTransforms, providerTransforms) {
     });
     offer.details.push({
       name: 'Description',
+      highlightedText: getHighlightedText(record, ['content_extraction.content_strict.text']),
       text: offer.description
     });
     offer.details.push({
-      name: 'Cached Webpage',
-      link: cacheId ? commonTransforms.getLink(cacheId, 'cache') : null,
-      text: cacheId ? 'Open' : 'Unavailable'
+      name: 'Cached Ad Webpage',
+      link: id ? commonTransforms.getLink(id, 'cache') : null,
+      text: id ? 'Open' : 'Unavailable'
     });
 
     return offer;
   }
 
-  function offsetDatesInObjects(dateObjects) {
-    var sorted = _.sortBy(dateObjects, [function(o) { return o.date; }]);
-    for(var i = 1; i < sorted.length; i++) {
-      if(sorted[i] === sorted[i - 1]) {
-        sorted[i] = {
-          count: sorted[i].count,
-          date: new Date(sorted[i].date.getTime() + 300)
-        };
-      }
-    }
-
-    return sorted;
-  }
-
-  function createLocationTimelineNotes(bucket) {
-    var notes = [];
-
-    if(bucket.publishers) {
-      notes.push({
-        name: 'Websites',
-        data: _.map(bucket.publishers.buckets, function(publisher) {
-          return {
-            icon: commonTransforms.getIronIcon('webpage'),
-            styleClass: commonTransforms.getStyleClass('webpage'),
-            text: publisher.key,
-            type: 'webpage'
-          };
-        })
-      });
-    }
-
-    if(bucket.phones) {
-      var phones = getMentions(_.map(bucket.phones.buckets, function(phone) {
-        return phone.key;
-      }), 'phone');
-      if(phones.length) {
-        notes.push({
-          name: 'Telephone Numbers',
-          data: phones
-        });
-      }
-    }
-
-    if(bucket.emails) {
-      var emails = getMentions(_.map(bucket.emails.buckets, function(email) {
-        return email.key;
-      }), 'email');
-      if(emails.length) {
-        notes.push({
-          name: 'Email Addresses',
-          data: emails
-        });
-      }
-    }
-
-    return notes;
-  }
-
-  /**
-   * Returns a location timeline represented by a list of objects containing the dates, locations present on each date,
-   * and notes for each location.
-   * [{
-   *     date: 1455657767,
-   *     subtitle: "Mountain View, CA",
-   *     locations: [{
-   *         name: "Mountain View, CA, USA",
-   *         type: "location",
-   *         count: 12,
-   *         notes: [{
-   *             name: "Email Address",
-   *             data: [{
-   *                 id: "http://email/abc@xyz.com",
-   *                 link: "/email.html?value=http://email/abc@xyz.com&field=_id",
-   *                 text: "abc@xyz.com",
-   *                 type: "email"
-   *             }]
-   *         }, {
-   *             name: "Telephone Number",
-   *             data: [{
-   *                 id: "http://phone/1234567890",
-   *                 link: "/phone.html?value=http://phone/1234567890&field=_id",
-   *                 text: "1234567890",
-   *                 type: "phone"
-   *             }, {
-   *                 id: "http://phone/0987654321",
-   *                 link: "/phone.html?value=http://phone/0987654321&field=_id",
-   *                 text: "0987654321",
-   *                 type: "phone"
-   *             }]
-   *         }, {
-   *             name: "Website",
-   *             data: [{
-   *                 text: "google.com",
-   *                 type: "webpage"
-   *             }]
-   *         }]
-   *     }]
-   * }]
-   */
-  function createLocationTimeline(buckets) {
-    var timeline = _.reduce(buckets, function(timeline, bucket) {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      if(bucket.doc_count) {
-        var dateBucket = {
-          date: commonTransforms.getDate(bucket.key),
-          icon: commonTransforms.getIronIcon('date'),
-          styleClass: commonTransforms.getStyleClass('date')
-        };
-
-        var sum = 0;
-        var subtitle = [];
-
-        dateBucket.locations = _.map(bucket.locations.buckets, function(locationBucket) {
-          sum += locationBucket.doc_count;
-          subtitle.push(locationBucket.key.split(':').slice(0, 2).join(', ') + ' (' + locationBucket.doc_count + ')');
-          return {
-            link: commonTransforms.getLink(locationBucket.key, 'location'),
-            name: locationBucket.key.split(':').slice(0, 3).join(', '),
-            icon: commonTransforms.getIronIcon('location'),
-            styleClass: commonTransforms.getStyleClass('location'),
-            type: 'location',
-            count: locationBucket.doc_count,
-            notes: createLocationTimelineNotes(locationBucket)
-          };
-        });
-
-        if(sum < bucket.doc_count) {
-          subtitle.push('Unknown Locations (' + (bucket.doc_count - sum) + ')');
-          dateBucket.locations.push({
-            name: 'Unknown Location(s)',
-            icon: commonTransforms.getIronIcon('location'),
-            styleClass: commonTransforms.getStyleClass('location'),
-            type: 'location',
-            count: bucket.doc_count - sum,
-            notes: []
-          });
-        }
-
-        dateBucket.subtitle = subtitle.length > 3 ? (subtitle.slice(0, 3).join('; ') + '; and ' + (subtitle.length - 3) + ' more') : subtitle.join('; ');
-        timeline.push(dateBucket);
-      }
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-
-      return timeline;
-    }, []);
-
-    // Sort oldest first.
-    timeline.sort(function(a, b) {
-      return new Date(a.date).getTime() - new Date(b.date).getTime();
-    });
-
-    return timeline;
-  }
-
-  /**
-  * Changes the key/value names of buckets given from an aggregation
-  * to names preferred by the user.
-  */
-  function transformBuckets(buckets, keyName, alternateKey) {
-    return _.map(buckets, function(bucket) {
-      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      var obj = {
-        count: bucket.doc_count,
-        styleClass: commonTransforms.getStyleClass('provider')
-      };
-      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      if(alternateKey) {
-        obj[keyName] = bucket[alternateKey];
-      } else {
-        obj[keyName] = bucket.key;
-      }
-      return obj;
-    });
-  }
-
-  function offerSplitLocations(locationBucket) {
-    var locationData = locationBucket.key.split(':');
-    /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-    var location = {
-      key: locationBucket.key,
-      count: locationBucket.doc_count,
-      longitude: locationData[3],
-      latitude: locationData[4],
-      name: locationData[0] + ', ' + locationData[1],
-      longName: locationData[0] + ', ' + locationData[1] + ', ' + locationData[2] + ' (' + locationBucket.doc_count + ')',
-      link: commonTransforms.getLink(locationBucket.key, 'location'),
-      styleClass: commonTransforms.getStyleClass('location')
-    };
-    /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-    return location;
+  function getTitle(size, type, sayOther) {
+    return (size || 'No') + (sayOther ? ' Other ' : ' ') + commonTransforms.getName(type, size !== 1);
   }
 
   return {
-    // expected data is from an elasticsearch
     offer: function(data) {
-      if(data && data.hits.hits.length > 0) {
-        return getOfferObject(data.hits.hits[0], '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        return getOfferObject(data.hits.hits[0]);
       }
       return {};
     },
 
     offers: function(data) {
-      var offers = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          var offer = getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
-          offers.data.push(offer);
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        return data.hits.hits.map(function(record) {
+          return getOfferObject(record);
         });
-        offers.count = data.hits.total;
       }
-      return offers;
+      return [];
     },
 
-    offersData: function(data) {
-      var offers = {data: [], count: 0};
-      if(data && data.hits.hits.length > 0) {
-        _.each(data.hits.hits, function(record) {
-          var offer = getOfferObject(record, '_source.mainEntityOfPage', '_id', '_source.validFrom', '_source');
-          offers.data.push(offer);
+    queryResults: function(data) {
+      if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        return data.hits.hits.map(function(record) {
+          return getOfferObject(record, data.fields);
         });
-        offers.count = data.hits.total;
       }
-      return offers.data;
+      return [];
     },
 
-    offerFromRecordAndPaths: function(record, mainPath, idPath, datePath, entityPath) {
-      return getOfferObject(record, mainPath, idPath, datePath, entityPath);
-    },
-
-    removeDescriptorFromOffers: function(descriptorId, offers) {
-      var filterFunction = function(descriptor) {
-        return descriptor.id !== descriptorId;
+    removeExtractionFromOffers: function(extractionId, offers) {
+      var helperFunction = function(item) {
+        return {
+          data: item.data.filter(function(extraction) {
+            return extraction.id !== extractionId;
+          }),
+          name: item.name
+        };
       };
 
       return offers.map(function(offer) {
-        offer.descriptors = offer.descriptors.filter(filterFunction);
-        offer.emails = offer.emails.filter(filterFunction);
-        offer.phones = offer.phones.filter(filterFunction);
+        offer.headerExtractions = offer.headerExtractions.map(helperFunction);
+        offer.detailExtractions = offer.detailExtractions.map(helperFunction);
         return offer;
       });
     },
 
-    removeNoteFromLocationTimeline: function(noteItemId, oldTimeline) {
-      var newTimeline = oldTimeline.map(function(date) {
-        date.locations = date.locations.map(function(location) {
-          location.notes = location.notes.map(function(note) {
-            var previousLength = note.data.length;
-            note.data = note.data.filter(function(item) {
-              return item.id !== noteItemId;
-            });
-            if(note.data.length < previousLength) {
-              note.name = 'Other ' + note.name;
-            }
-            return note;
-          });
-          // Remove any notes that no longer have any data.
-          location.notes = location.notes.filter(function(note) {
-            return note.data.length;
-          });
-          return location;
+    offerExtractions: function(data, config) {
+      var ignoreId = config ? config.ignoreId : undefined;
+      var property = config ? config.property : undefined;
+      var type = config ? config.type : undefined;
+
+      var extractions = [];
+      var sayOther = false;
+
+      if(data && data.aggregations && data.aggregations[property] && data.aggregations[property][property]) {
+        extractions = getExtractionsFromListOfType(data.aggregations[property][property].buckets || [], type).filter(function(extraction) {
+          var result = ignoreId ? extraction.id !== ignoreId : true;
+          sayOther = sayOther || !result;
+          return result;
         });
-        return date;
+      }
+
+      return extractions;
+    },
+
+    offerExtractionsTitle: function(size, config) {
+      return getTitle(size, config.type, config.sayOther);
+    },
+
+    locationsWithIcons: function(primary, secondary) {
+      if(!primary || !primary.length) {
+        // need to return undefined here so that we wait until all data is ready before displaying points on the map
+        return undefined;
+      }
+
+      var locations = [];
+
+      primary.forEach(function(location) {
+        location.iconId = 'mainLocation';
+        locations.push(location);
       });
 
-      // Sort newest first.
-      newTimeline.sort(function(a, b) {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
-      });
-
-      return newTimeline;
-    },
-
-    locationTimeline: function(data) {
-      return {
-        dates: (data && data.aggregations) ? createLocationTimeline(data.aggregations.dates.dates.buckets) : undefined
-      };
-    },
-
-    gatherEventDropsTimelineData: function(data) {
-      var eventDropsTimelineData = [];
-      var timestamps = [];
-
-      if(data && data.aggregations) {
-        var cityAggs = {};
-
-        data.aggregations.locations.locations.buckets.forEach(function(locationBucket) {
-          var city = locationBucket.key;
-
-          if(!(city in cityAggs)) {
-            cityAggs[city] = [];
-          }
-
-          locationBucket.dates.buckets.forEach(function(dateBucket) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            if(dateBucket.key && dateBucket.doc_count > 0) {
-              cityAggs[city].push({
-                date: new Date(dateBucket.key),
-                count: dateBucket.doc_count
-              });
-              timestamps.push(dateBucket.key);
-            }
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          });
-        });
-
-        _.keys(cityAggs).forEach(function(city) {
-          var nameList = city.split(':');
-          var name = nameList[0] + ', ' + nameList[1];
-          name = name.length < 25 ? name : nameList[0];
-
-          var dateObjects = offsetDatesInObjects(cityAggs[city]).map(function(dateObject) {
-            return {
-              count: dateObject.count,
-              date: dateObject.date,
-              name: name
-            };
-          });
-
-          eventDropsTimelineData.push({
-            name: name,
-            dates: dateObjects
-          });
+      if(secondary) {
+        secondary.forEach(function(location) {
+          locations.push(location);
         });
       }
 
-      return {
-        data: eventDropsTimelineData,
-        timestamps: timestamps
-      };
+      return locations;
     },
 
-    offerPhones: function(data, ignoreId) {
-      var phones = [];
-      var maxCount;
-      var ignoreName;
+    revisions: function(data) {
       if(data && data.aggregations) {
-        data.aggregations.phone.phone.buckets.forEach(function(bucket) {
-          var text = bucket.key.substring(bucket.key.lastIndexOf('/') + 1);
-          if(text.indexOf('-') >= 0) {
-            // Remove country code.
-            text = text.substring(text.indexOf('-') + 1);
-          }
-          if(ignoreId !== bucket.key) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            maxCount = maxCount || bucket.doc_count;
-            phones.push({
-              id: bucket.key,
-              count: bucket.doc_count,
-              link: commonTransforms.getLink(bucket.key, 'phone'),
-              max: maxCount,
-              styleClass: commonTransforms.getStyleClass('phone'),
-              text: text
-            });
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          } else {
-            ignoreName = text;
-          }
-        });
-      }
-      return {
-        title: (phones.length || 'No') + (ignoreName ? ' Other' : '') + ' Telephone Number' + (phones.length === 1 ? '' : 's'),
-        phone: phones
-      };
-    },
-
-    offerEmails: function(data, ignoreId) {
-      var emails = [];
-      var maxCount;
-      var ignoreName;
-      if(data && data.aggregations) {
-        data.aggregations.email.email.buckets.forEach(function(bucket) {
-          var text = decodeURIComponent(bucket.key.substring(bucket.key.lastIndexOf('/') + 1));
-          if(ignoreId !== bucket.key) {
-            /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-            maxCount = maxCount || bucket.doc_count;
-            emails.push({
-              id: bucket.key,
-              count: bucket.doc_count,
-              link: commonTransforms.getLink(bucket.key, 'email'),
-              max: maxCount,
-              styleClass: commonTransforms.getStyleClass('email'),
-              text: text
-            });
-            /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-          } else {
-            ignoreName = text;
-          }
-        });
-      }
-      return {
-        title: (emails.length || 'No') + (ignoreName ? ' Other' : '') + ' Email Address' + (emails.length === 1 ? '' : 'es'),
-        email: emails
-      };
-    },
-
-    peopleFeaturesName: function(data) {
-      return {
-        name: (data && data.aggregations) ? transformBuckets(data.aggregations.name.name.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesAge: function(data) {
-      return {
-        age: (data && data.aggregations) ? transformBuckets(data.aggregations.age.age.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesEthnicity: function(data) {
-      return {
-        ethnicity: (data && data.aggregations) ? transformBuckets(data.aggregations.ethnicity.ethnicity.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesEyeColor: function(data) {
-      return {
-        eyeColor: (data && data.aggregations) ? transformBuckets(data.aggregations.eyeColor.eyeColor.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesHairColor: function(data) {
-      return {
-        hairColor: (data && data.aggregations) ? transformBuckets(data.aggregations.hairColor.hairColor.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesHeight: function(data) {
-      return {
-        height: (data && data.aggregations) ? transformBuckets(data.aggregations.height.height.buckets, 'key') : []
-      };
-    },
-
-    peopleFeaturesWeight: function(data) {
-      return {
-        weight: (data && data.aggregations) ? transformBuckets(data.aggregations.weight.weight.buckets, 'key') : []
-      };
-    },
-
-    offerPublishers: function(data) {
-      var publishers = [];
-      (data && data.aggregations ? data.aggregations.publisher.publisher.buckets : []).forEach(function(publisherBucket) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        publishers.push({
-          id: publisherBucket.key,
-          count: publisherBucket.doc_count,
-          styleClass: commonTransforms.getStyleClass('webpage')
+        var total = data.aggregations.revisions.doc_count;
+        var revisions = _.map(data.aggregations.revisions.revisions.buckets, function(bucket) {
+          return {
+            date: commonTransforms.getDate(bucket.key_as_string),
+            list: [{
+              count: bucket.doc_count,
+              label: 'Revision on ' + commonTransforms.getDate(bucket.key_as_string)
+            }]
+          };
         });
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
-      });
-
-      return {
-        title: (publishers.length || 'No') + ' Website' + (publishers.length === 1 ? '' : 's'),
-        publisher: publishers
-      };
-    },
-
-    offerLocations: function(data) {
-      var locations = [];
-      (data && data.aggregations ? data.aggregations.location.location.buckets : []).forEach(function(locationBucket) {
-        locations.push(offerSplitLocations(locationBucket));
-      });
-
-      return {
-        title: (locations.length || 'No') + ' Location' + (locations.length === 1 ? '' : 's'),
-        location: locations
-      };
-    },
-
-    similarLocations: function(currentLocation, data) {
-      var similarLocations = [];
-      (data && data.aggregations ? data.aggregations.similarLocsAgg.similarLocsAgg.cityAgg.buckets : []).forEach(function(locationBucket) {
-        // omit current location used to display entity page
-        if(locationBucket.key !== currentLocation) {
-          similarLocations.push(offerSplitLocations(locationBucket));
-        }
-      });
-
-      return {
-        similarLocations: similarLocations
-      };
-    },
-
-    locationPageMap: function(currentLocation, data) {
-      if(!currentLocation || !data || !data.aggregations) {
-        return {
-          // need to return undefined here so that we wait until all data is ready before displaying points on the map
-          mapLocations: undefined
-        };
+        return (total < 2 ? [] : revisions);
       }
-
-      var mapLocations = [];
-
-      (data && data.aggregations ? data.aggregations.similarLocsAgg.similarLocsAgg.cityAgg.buckets : []).forEach(function(locationBucket) {
-        if(locationBucket.key === currentLocation.key) {
-          var location = offerSplitLocations(locationBucket);
-          location.iconId = 'mainLocation';
-          mapLocations.push(location);
-        } else {
-          mapLocations.push(offerSplitLocations(locationBucket));
-        }
-      });
-
-      return {
-        mapLocations: mapLocations
-      };
+      return [];
     },
 
-    createExportDataForCsv: function(results) {
-      var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [['ad url', 'dig url', 'title', 'date', 'publisher', 'locations', 'telephone numbers', 'email addresses', 'images', 'description']];
-      results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.text;
-        }).join('; ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join('; ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join('; ');
-        var images = result.images.map(function(image) {
-          return image.source;
-        }).join('; ');
-        var description = result.description.replace(/\s/g, ' ');
-        data.push([result.url, linkPrefix + result.link, result.name, result.date, result.publisher, locations, phones, emails, images, description]);
-      });
-      return data;
+    getExtractionOfType: function(list, type) {
+      return getExtractionOfType(list, type);
     },
 
-    createExportDataForPdf: function(results) {
-      var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [];
-      var nextId = 1;
+    getExtractionsFromListOfType: function(list, type) {
+      return getExtractionsFromListOfType(list, type);
+    },
 
-      results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.text;
-        }).join(', ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join(', ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join(', ');
-
-        var item = {
-          images: result.images.map(function(image) {
-            return {
-              id: 'image' + nextId++,
-              source: encodeURIComponent(image.source.replace('https://s3.amazonaws.com/', '')),
-              text: image.source
-            };
-          }),
-          paragraphs: []
-        };
-
-        item.paragraphs.push({
-          big: true,
-          label: result.name,
-          value: ''
-        });
-        item.paragraphs.push({
-          label: 'Posting Date:  ',
-          value: result.date
-        });
-        item.paragraphs.push({
-          label: 'Location(s):  ',
-          value: locations
-        });
-        item.paragraphs.push({
-          label: 'Telephone Number(s):  ',
-          value: phones
-        });
-        item.paragraphs.push({
-          label: 'Email Address(es):  ',
-          value: emails
-        });
-        item.paragraphs.push({
-          label: 'Description:  ',
-          value: result.description.replace(/\n/g, ' ')
-        });
-        item.paragraphs.push({
-          label: 'URL:  ',
-          value: result.url
-        });
-        item.paragraphs.push({
-          label: 'DIG URL:  ',
-          value: linkPrefix + result.link
-        });
-
-        data.push(item);
-      });
-
-      return data;
+    /**
+     * Returns the formatted telephone number.
+     */
+    formattedTelephoneNumber: function(number) {
+      return commonTransforms.getFormattedPhone(number);
     }
   };
 });

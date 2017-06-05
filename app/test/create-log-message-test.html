@@ -1,0 +1,585 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<!doctype html>
+
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
+  <title>create-log-message</title>
+  <script src="../bower_components/webcomponentsjs/webcomponents-lite.js"></script>
+  <script src="../bower_components/web-component-tester/browser.js"></script>
+  <link rel="import" href="../elements/create-log-message/create-log-message.html">
+</head>
+
+<body>
+<test-fixture id="create-log-message-fixture">
+  <template>
+    <create-log-message>
+    </create-log-message>
+  </template>
+</test-fixture>
+
+<script>
+  /* globals suite, test, assert, setup, fixture, flush */
+  /* jshint -W030 */
+
+  suite('create-log-message tests', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('create-log-message-fixture');
+      flush(function() {
+        done();
+      });
+    });
+
+    test('_getSelectedString() works as expected', function() {
+      assert.equal(element._getSelectedString({}, 'city'), '');
+
+      assert.equal(element._getSelectedString({
+        LA: {
+          category: 'City',
+          enabled: true,
+          key: 'LA',
+          text: 'Los Angeles'
+        }
+      }, 'city'), 'city:["Los Angeles"]');
+
+      assert.equal(element._getSelectedString({
+        LA: {
+          category: 'City',
+          enabled: false,
+          key: 'LA',
+          text: 'Los Angeles'
+        }
+      }, 'city'), '');
+
+      assert.equal(element._getSelectedString({
+        LA: {
+          category: 'City',
+          enabled: true,
+          key: 'LA',
+          text: 'Los Angeles'
+        },
+        NYC: {
+          category: 'City',
+          enabled: true,
+          key: 'NYC',
+          text: 'New York City'
+        }
+      }, 'city'), 'city:["Los Angeles","New York City"]');
+    });
+
+    test('_getSelectedString() will only work for dates with correct parameters', function() {
+      assert.equal(element._getSelectedString({
+        dateStart: {
+          category: 'From',
+          date: '2017-04-03T00:00:00',
+          enabled: true,
+          key: 'dateStart',
+          text: '04/03/2017'
+        }
+      }, 'date_start'), 'date_start:["04/03/2017"]');
+
+      assert.equal(element._getSelectedString({
+        postingDate: {
+          category: 'From',
+          date: '2017-04-03T00:00:00',
+          enabled: true,
+          key: 'dateStart',
+          text: '04/03/2017'
+        }
+      }, 'date_start'), '');
+    });
+
+    test('_createLogMessage() sets logMessage correctly', function() {
+      element.ageSelected = {
+        '30': {
+          category: 'Age',
+          enabled: true,
+          key: '30',
+          text: '30'
+        }
+      };
+      element.citySelected = {
+        LA: {
+          category: 'City',
+          enabled: true,
+          key: 'LA',
+          text: 'Los Angeles'
+        }
+      };
+      element.countrySelected = {
+        US: {
+          category: 'Country',
+          enabled: false,
+          key: 'US',
+          text: 'United States'
+        }
+      };
+
+      element._createLogMessage();
+
+      assert.equal(element.logMessage, '{age:["30"],city:["Los Angeles"]}');
+    });
+
+    test('_createLogMessage() sets logMessage correctly for all properties', function() {
+      element.ageSelected = {
+        '30': {
+          category: 'Age',
+          enabled: true,
+          key: '30',
+          text: '30'
+        }
+      };
+      element.citySelected = {
+        LA: {
+          category: 'City',
+          enabled: true,
+          key: 'LA',
+          text: 'Los Angeles'
+        }
+      };
+      element.countrySelected = {
+        US: {
+          category: 'Country',
+          enabled: true,
+          key: 'US',
+          text: 'United States'
+        }
+      };
+      element.dateStartSelected = {
+        dateStart: {
+          category: 'From',
+          date: '2017-04-03T00:00:00',
+          enabled: true,
+          key: 'dateStart',
+          text: '04/03/2017'
+        },
+        dateEnd: {
+          category: 'To',
+          date: '2017-04-05T00:00:00',
+          enabled: true,
+          key: 'dateEnd',
+          text: '04/05/2017'
+        }
+      };
+      element.dateEndSelected = {
+        dateStart: {
+          category: 'From',
+          date: '2017-04-03T00:00:00',
+          enabled: true,
+          key: 'dateStart',
+          text: '04/03/2017'
+        },
+        dateEnd: {
+          category: 'To',
+          date: '2017-04-05T00:00:00',
+          enabled: true,
+          key: 'dateEnd',
+          text: '04/05/2017'
+        }
+      };
+      element.descriptionSelected = {
+        'some description here': {
+          category: 'Description',
+          enabled: true,
+          key: 'some description here',
+          text: 'some description here'
+        }
+      };
+      element.emailSelected = {
+        'someemail@xyz.com': {
+          category: 'Email',
+          enabled: true,
+          key: 'someemail@xyz.com',
+          text: 'someemail@xyz.com'
+        }
+      };
+      element.ethnicitySelected = {
+        'some key': {
+          category: 'Ethnicity',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.eyeSelected = {
+        'some key': {
+          category: 'Eye Color',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.genderSelected = {
+        'some key': {
+          category: 'Gender',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.hairSelected = {
+        'some key': {
+          category: 'Hair Color',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.heightSelected = {
+        'some key': {
+          category: 'Height',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.imageSelected = {
+        'some key': {
+          category: 'Image',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.locationSelected = {
+        'some key': {
+          category: 'Location',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.nameSelected = {
+        'some key': {
+          category: 'Name',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.phoneSelected = {
+        '1112223333': {
+          category: '1112223333',
+          enabled: true,
+          key: '1112223333',
+          text: '1112223333'
+        }
+      };
+      element.priceSelected = {
+        'some key': {
+          category: 'some key',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.regionSelected = {
+        'some key': {
+          category: 'Region',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.reviewSelected = {
+        'some key': {
+          category: 'some key',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.servicesSelected = {
+        'some key': {
+          category: 'Services',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.socialSelected = {
+        'some key': {
+          category: 'some category',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.titleSelected = {
+        'some key': {
+          category: 'Title',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.websiteSelected = {
+        'some key': {
+          category: 'some category',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.weightSelected = {
+        'some key': {
+          category: 'some category',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+
+      element._createLogMessage();
+
+      assert.equal(element.logMessage, '{age:["30"],city:["Los Angeles"],country:["United States"],' +
+        'date_end:["04/05/2017"],date_start:["04/03/2017"],description:["some description here"],' +
+        'email:["someemail@xyz.com"],ethnicity:["some key"],eye_color:["some key"],gender:["some key"],' +
+        'hair_color:["some key"],height:["some key"],image:["some key"],location:["some key"],' +
+        'name:["some key"],phone:["1112223333"],price:["some key"],state_or_region:["some key"],' +
+        'review:["some key"],services:["some key"],social:["some key"],' +
+        'title:["some key"],website:["some key"],weight:["some key"]}');
+    });
+
+    test('_createLogMessage() as an observer functions correctly', function() {
+      element.ageSelected = {
+        '30': {
+          category: 'Age',
+          enabled: true,
+          key: '30',
+          text: '30'
+        }
+      };
+      element.citySelected = {
+        LA: {
+          category: 'City',
+          enabled: true,
+          key: 'LA',
+          text: 'Los Angeles'
+        }
+      };
+      element.countrySelected = {
+        US: {
+          category: 'Country',
+          enabled: true,
+          key: 'US',
+          text: 'United States'
+        }
+      };
+      element.dateStartSelected = {
+        dateStart: {
+          category: 'From',
+          date: '2017-04-03T00:00:00',
+          enabled: true,
+          key: 'dateStart',
+          text: '04/03/2017'
+        },
+        dateEnd: {
+          category: 'To',
+          date: '2017-04-05T00:00:00',
+          enabled: true,
+          key: 'dateEnd',
+          text: '04/05/2017'
+        }
+      };
+      element.dateEndSelected = {
+        dateStart: {
+          category: 'From',
+          date: '2017-04-03T00:00:00',
+          enabled: true,
+          key: 'dateStart',
+          text: '04/03/2017'
+        },
+        dateEnd: {
+          category: 'To',
+          date: '2017-04-05T00:00:00',
+          enabled: true,
+          key: 'dateEnd',
+          text: '04/05/2017'
+        }
+      };
+      element.descriptionSelected = {
+        'some description here': {
+          category: 'Description',
+          enabled: true,
+          key: 'some description here',
+          text: 'some description here'
+        }
+      };
+      element.emailSelected = {
+        'someemail@xyz.com': {
+          category: 'Email',
+          enabled: true,
+          key: 'someemail@xyz.com',
+          text: 'someemail@xyz.com'
+        }
+      };
+      element.ethnicitySelected = {
+        'some key': {
+          category: 'Ethnicity',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.eyeSelected = {
+        'some key': {
+          category: 'Eye Color',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.genderSelected = {
+        'some key': {
+          category: 'Gender',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.hairSelected = {
+        'some key': {
+          category: 'Hair Color',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.heightSelected = {
+        'some key': {
+          category: 'Height',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.imageSelected = {
+        'some key': {
+          category: 'Image',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.locationSelected = {
+        'some key': {
+          category: 'Location',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.nameSelected = {
+        'some key': {
+          category: 'Name',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.phoneSelected = {
+        '1112223333': {
+          category: '1112223333',
+          enabled: true,
+          key: '1112223333',
+          text: '1112223333'
+        }
+      };
+      element.priceSelected = {
+        'some key': {
+          category: 'some key',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.regionSelected = {
+        'some key': {
+          category: 'Region',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.reviewSelected = {
+        'some key': {
+          category: 'some key',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.servicesSelected = {
+        'some key': {
+          category: 'Services',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.socialSelected = {
+        'some key': {
+          category: 'some category',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.titleSelected = {
+        'some key': {
+          category: 'Title',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.websiteSelected = {
+        'some key': {
+          category: 'some category',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+      element.weightSelected = {
+        'some key': {
+          category: 'some category',
+          enabled: true,
+          key: 'some key',
+          text: 'some key'
+        }
+      };
+
+      flush(function(done) {
+        assert.equal(element.logMessage, '{age:["30"],city:["Los Angeles"],country:["United States"],' +
+        'date_end:["04/05/2017"],date_start:["04/03/2017"],description:["some description here"],' +
+        'email:["someemail@xyz.com"],ethnicity:["some key"],eye_color:["some key"],gender:["some key"],' +
+        'hair_color:["some key"],height:["some key"],image:["some key"],location:["some key"],' +
+        'name:["some key"],phone:["1112223333"],price:["some key"],state_or_region:["some key"],' +
+        'review:["some key"],services:["some key"],social:["some key"],' +
+        'title:["some key"],website:["some key"],weight:["some key"]}');
+        done();
+      });
+    });
+  });
+</script>
+</body>
+</html>

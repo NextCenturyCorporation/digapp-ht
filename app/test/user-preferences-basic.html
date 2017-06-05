@@ -48,12 +48,16 @@ limitations under the License.
     });
 
     test('properties are the correct values', function() {
+      assert.isUndefined(element.dev);
       assert.equal(element.username, 'testUser');
       assert.equal(element.userIndex, 'dig-users');
       assert.equal(element.userType, 'user');
       assert.isTrue(element.showSearch);
-      assert.isFalse(element.advancedSearch);
+      assert.isFalse(element.annotationsDarpa);
+      assert.isFalse(element.annotationsIsi);
       assert.isTrue(element.blurImages);
+      assert.equal(element.classificationFlag, '');
+      assert.deepEqual(element.classificationFlagList, []);
       assert.deepEqual(element.searchParameters, {});
       assert.equal(element.userId, '1');
       assert.isTrue(element.userRecordExists);
@@ -67,10 +71,12 @@ limitations under the License.
       assert.equal(element.sortNewest, '');
       assert.isNull(element.notificationQueryDate);
       assert.isUndefined(element.userUpdateBody);
-      // _updatedUser is set to null within elastic-update component in template
-      assert.isNull(element._updatedUser);
       assert.isUndefined(element._facetsToLoad);
       assert.isUndefined(element._callFromRunSearch);
+    });
+
+    test('_updatedUser is set to null within elastic-update element in template', function() {
+      assert.isNull(element._updatedUser);
     });
 
     test('_getRunButtonClass returns correct class', function() {
@@ -106,10 +112,9 @@ limitations under the License.
     });
 
     test('when userRecordExists and showSearch are true, various user preferences sections are visible', function() {
-      assert.isNotNull(element.$$('div[title="Toggle Advanced Search"]'));
       assert.isNotNull(element.$$('div[title="Toggle Blur Images"]'));
-      //assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
-      //assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
+      assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
+      assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
       assert.isNotNull(element.$$('paper-dropdown-menu[label="Interval"]'));
     });
 
@@ -117,7 +122,6 @@ limitations under the License.
       element.userRecordExists = undefined;
       flush(function() {
         assert.isNull(element.$$('div[title="Toggle Blur Images"]'));
-        assert.isNull(element.$$('div[title="Toggle Advanced Search"]'));
         assert.isNull(element.$$('paper-input[label="Enter Email Address"]'));
         assert.isNull(element.$$('button-action[title="Save Email Address"]'));
         assert.isNull(element.$$('paper-dropdown-menu[label="Interval"]'));
@@ -155,7 +159,6 @@ limitations under the License.
         var search = element.$$('.saved-item');
         assert(search);
         assert.isNotNull(element.$$('div[title="Toggle Blur Images"]'));
-        assert.equal(element.$$('div[title="Toggle Advanced Search"]').style.display, 'none');
         assert.isNotNull(element.$$('paper-input[label="Enter Email Address"]'));
         assert.isNotNull(element.$$('button-action[title="Save Email Address"]'));
         assert.isNotNull(element.$$('paper-dropdown-menu[label="Interval"]'));
@@ -198,18 +201,58 @@ limitations under the License.
       });
     });
 
-    test('_toggleAdvancedSearch toggles advancedSearch', function() {
-      element._toggleAdvancedSearch();
-      assert.isTrue(element.advancedSearch);
-      element._toggleAdvancedSearch();
-      assert.isFalse(element.advancedSearch);
+    test('_toggleAnnotationsDarpa toggles annotationsDarpa', function() {
+      element._toggleAnnotationsDarpa();
+      assert.isTrue(element.annotationsDarpa);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsDarpa: true
+        }
+      });
+
+      element._toggleAnnotationsDarpa();
+      assert.isFalse(element.annotationsDarpa);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsDarpa: false
+        }
+      });
+    });
+
+    test('_toggleAnnotationsIsi toggles annotationsIsi', function() {
+      element._toggleAnnotationsIsi();
+      assert.isTrue(element.annotationsIsi);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsIsi: true
+        }
+      });
+
+      element._toggleAnnotationsIsi();
+      assert.isFalse(element.annotationsIsi);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          annotationsIsi: false
+        }
+      });
     });
 
     test('_toggleBlur toggles blurImages', function() {
       element._toggleBlur();
       assert.isFalse(element.blurImages);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          blurImages: false
+        }
+      });
+
       element._toggleBlur();
       assert.isTrue(element.blurImages);
+      assert.deepEqual(element.userUpdateBody, {
+        doc: {
+          blurImages: true
+        }
+      });
     });
 
     test('#receiveAlert is closed by default', function(done) {
@@ -368,7 +411,7 @@ limitations under the License.
     test('_runSearch sets the search text from the saved search and notification variables (if needed) and closes the settings dialog', function() {
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"text\":\"my search text\"}'
+          searchParameters: '{\"age\":{\"term\":{\"key\":\"21\"}}}'
         },
         notificationHasRun: false,
         lastRunDate: new Date('October 3, 2016')
@@ -390,25 +433,36 @@ limitations under the License.
           savedQueries: element.searches
         }
       });
+
       assert.deepEqual(element.searchParameters, {
-        dateCreated: {},
-        country: {},
+        age: {
+          term: {
+            key: '21'
+          }
+        },
         city: {},
-        phone: {},
+        country: {},
+        description: {},
         email: {},
-        website: {},
-        name: {},
-        age: {},
         ethnicity: {},
         eyeColor: {},
+        gender: {},
         hairColor: {},
         height: {},
-        weight: {},
-        hasImage: {},
         image: {},
-        annotationsFilter: {},
-        sort: '',
-        text: 'my search text'
+        location: {},
+        name: {},
+        phone: {},
+        postingDate: {},
+        price: {},
+        region: {},
+        review: {},
+        services: {},
+        social: {},
+        title: {},
+        website: {},
+        weight: {},
+        sort: ''
       });
       assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
@@ -419,7 +473,7 @@ limitations under the License.
     test('_runSearch sets search variables and closes the settings dialog', function() {
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"text\":\"my search text\"}'
+          searchParameters: '{\"age\":{\"term\":{\"key\":\"21\"}}}'
         },
         notificationHasRun: true,
         lastRunDate: new Date('October 3, 2016')
@@ -442,24 +496,34 @@ limitations under the License.
         }
       });
       assert.deepEqual(element.searchParameters, {
-        dateCreated: {},
-        country: {},
+        age: {
+          term: {
+            key: '21'
+          }
+        },
         city: {},
-        phone: {},
+        country: {},
+        description: {},
         email: {},
-        website: {},
-        name: {},
-        age: {},
         ethnicity: {},
         eyeColor: {},
+        gender: {},
         hairColor: {},
         height: {},
-        weight: {},
-        hasImage: {},
         image: {},
-        annotationsFilter: {},
-        sort: '',
-        text: 'my search text'
+        location: {},
+        name: {},
+        phone: {},
+        postingDate: {},
+        price: {},
+        region: {},
+        review: {},
+        services: {},
+        social: {},
+        title: {},
+        website: {},
+        weight: {},
+        sort: ''
       });
       assert.isFalse(element._callFromRunSearch);
       var settingsDialog = element.$$('#settingsDialog');
@@ -467,10 +531,10 @@ limitations under the License.
       assert.isFalse(settingsDialog.opened);
     });
 
-    test('_runSearch sets all search parameters except annotationsFilter and sort', function() {
+    test('_runSearch sets all search parameters except sort', function() {
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"dateCreated\":{\"value\":\"dateCreated1\"},\"country\":{\"value\":\"country1\"},\"city\":{\"value\":\"city1\"},\"phone\":{\"value\":\"phone1\"},\"email\":{\"value\":\"email1\"},\"website\":{\"value\":\"website1\"},\"name\":{\"value\":\"name1\"},\"age\":{\"value\":\"age1\"},\"ethnicity\":{\"value\":\"ethnicity1\"},\"eyeColor\":{\"value\":\"eyeColor1\"},\"hairColor\":{\"value\":\"hairColor1\"},\"height\":{\"value\":\"height1\"},\"weight\":{\"value\":\"weight1\"},\"hasImage\":{\"value\":\"yes\"},\"image\":{\"value\":\"image1\"},\"annotationsFilter\":{\"filter\":\"myFilter\"},\"sort\":\"mySort\",\"text\":\"my search text\"}'
+          searchParameters: '{\"age\":{\"term\":{\"key\":\"age\"}},\"city\":{\"term\":{\"key\":\"city\"}},\"country\":{\"term\":{\"key\":\"country\"}},\"description\":{\"term\":{\"key\":\"description\"}},\"email\":{\"term\":{\"key\":\"email\"}},\"ethnicity\":{\"term\":{\"key\":\"ethnicity\"}},\"eyeColor\":{\"term\":{\"key\":\"eyeColor\"}},\"gender\":{\"term\":{\"key\":\"gender\"}},\"hairColor\":{\"term\":{\"key\":\"hairColor\"}},\"height\":{\"term\":{\"key\":\"height\"}},\"image\":{\"term\":{\"key\":\"image\"}},\"location\":{\"term\":{\"key\":\"location\"}},\"name\":{\"term\":{\"key\":\"name\"}},\"phone\":{\"term\":{\"key\":\"phone\"}},\"postingDate\":{\"dateEnd\":{\"key\":\"dateEnd\"},\"dateStart\":{\"key\":\"dateStart\"}},\"price\":{\"term\":{\"key\":\"price\"}},\"region\":{\"term\":{\"key\":\"region\"}},\"review\":{\"term\":{\"key\":\"review\"}},\"services\":{\"term\":{\"key\":\"services\"}},\"social\":{\"term\":{\"key\":\"social\"}},\"title\":{\"term\":{\"key\":\"title\"}},\"website\":{\"term\":{\"key\":\"website\"}},\"weight\":{\"term\":{\"key\":\"weight\"}},\"sort\":\"sort\"}'
         }
       }];
 
@@ -483,68 +547,134 @@ limitations under the License.
 
       element._runSearch(mockEvent);
       assert.deepEqual(element.searchParameters, {
-        dateCreated: {
-          value: 'dateCreated1'
-        },
-        country: {
-          value: 'country1'
+        age: {
+          term: {
+            key: 'age'
+          }
         },
         city: {
-          value: 'city1'
+          term: {
+            key: 'city'
+          }
         },
-        phone: {
-          value: 'phone1'
+        country: {
+          term: {
+            key: 'country'
+          }
+        },
+        description: {
+          term: {
+            key: 'description'
+          }
         },
         email: {
-          value: 'email1'
-        },
-        website: {
-          value: 'website1'
-        },
-        name: {
-          value: 'name1'
-        },
-        age: {
-          value: 'age1'
+          term: {
+            key: 'email'
+          }
         },
         ethnicity: {
-          value: 'ethnicity1'
+          term: {
+            key: 'ethnicity'
+          }
         },
         eyeColor: {
-          value: 'eyeColor1'
+          term: {
+            key: 'eyeColor'
+          }
+        },
+        gender: {
+          term: {
+            key: 'gender'
+          }
         },
         hairColor: {
-          value: 'hairColor1'
+          term: {
+            key: 'hairColor'
+          }
         },
         height: {
-          value: 'height1'
-        },
-        weight: {
-          value: 'weight1'
-        },
-        hasImage: {
-          value: 'yes'
+          term: {
+            key: 'height'
+          }
         },
         image: {
-          value: 'image1'
+          term: {
+            key: 'image'
+          }
         },
-        annotationsFilter: {},
-        sort: '',
-        text: 'my search text'
+        location: {
+          term: {
+            key: 'location'
+          }
+        },
+        name: {
+          term: {
+            key: 'name'
+          }
+        },
+        phone: {
+          term: {
+            key: 'phone'
+          }
+        },
+        postingDate: {
+          dateEnd: {
+            key: 'dateEnd'
+          },
+          dateStart: {
+            key: 'dateStart'
+          }
+        },
+        price: {
+          term: {
+            key: 'price'
+          }
+        },
+        region: {
+          term: {
+            key: 'region'
+          }
+        },
+        review: {
+          term: {
+            key: 'review'
+          }
+        },
+        services: {
+          term: {
+            key: 'services'
+          }
+        },
+        social: {
+          term: {
+            key: 'social'
+          }
+        },
+        title: {
+          term: {
+            key: 'title'
+          }
+        },
+        website: {
+          term: {
+            key: 'website'
+          }
+        },
+        weight: {
+          term: {
+            key: 'weight'
+          }
+        },
+        sort: ''
       });
     });
 
-    test('_runSearch sets annotations filter and sort search parameters to correct values', function() {
+    test('_runSearch sets sort search parameters to correct value', function() {
       element.sortNewest = 'sortNewest';
-      element.searchParameters = {
-        annotationsFilter: {
-          filter: 'myNewFilter'
-        }
-      };
 
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"annotationsFilter\":{\"filter\":\"myOldFilter\"},\"sort\":\"mySort\",\"text\":\"my search text\"}'
+          searchParameters: '{\"age\":{\"term\":{\"key\":\"21\"}},\"sort\":\"testSort\"}'
         }
       }];
 
@@ -557,33 +687,41 @@ limitations under the License.
 
       element._runSearch(mockEvent);
       assert.deepEqual(element.searchParameters, {
-        dateCreated: {},
-        country: {},
+        age: {
+          term: {
+            key: '21'
+          }
+        },
         city: {},
-        phone: {},
+        country: {},
+        description: {},
         email: {},
-        website: {},
-        name: {},
-        age: {},
         ethnicity: {},
         eyeColor: {},
+        gender: {},
         hairColor: {},
         height: {},
-        weight: {},
-        hasImage: {},
         image: {},
-        annotationsFilter: {
-          filter: 'myNewFilter'
-        },
-        sort: 'sortNewest',
-        text: 'my search text'
+        location: {},
+        name: {},
+        phone: {},
+        postingDate: {},
+        price: {},
+        region: {},
+        review: {},
+        services: {},
+        social: {},
+        title: {},
+        website: {},
+        weight: {},
+        sort: 'sortNewest'
       });
     });
 
     test('_runReceivedSearch runs a search from the received list', function() {
       element.receivedSearches = [{
         digUIState: {
-          searchParameters: '{\"text\":\"my search text\"}'
+          searchParameters: '{\"age\":{\"term\":{\"key\":\"21\"}}}'
         }
       }];
       var mockEvent = {
@@ -597,24 +735,34 @@ limitations under the License.
       assert.isUndefined(element.receivedSearches[0].lastRunDate);
       assert.isUndefined(element.userUpdateBody);
       assert.deepEqual(element.searchParameters, {
-        dateCreated: {},
-        country: {},
+        age: {
+          term: {
+            key: '21'
+          }
+        },
         city: {},
-        phone: {},
+        country: {},
+        description: {},
         email: {},
-        website: {},
-        name: {},
-        age: {},
         ethnicity: {},
         eyeColor: {},
+        gender: {},
         hairColor: {},
         height: {},
-        weight: {},
-        hasImage: {},
         image: {},
-        annotationsFilter: {},
-        sort: '',
-        text: 'my search text'
+        location: {},
+        name: {},
+        phone: {},
+        postingDate: {},
+        price: {},
+        region: {},
+        review: {},
+        services: {},
+        social: {},
+        title: {},
+        website: {},
+        weight: {},
+        sort: ''
       });
     });
 
@@ -622,7 +770,7 @@ limitations under the License.
       element.hasNotifications = true;
       element.searches = [{
         digUIState: {
-          searchParameters: '{\"text\":\"my search text\"}'
+          searchParameters: '{\"age\":{\"term\":{\"key\":\"21\"}}}'
         },
         notificationHasRun: false,
         lastRunDate: new Date('October 3, 2016')
@@ -837,32 +985,32 @@ limitations under the License.
       }), {});
       assert.deepEqual(element._getSearchParameters({
         digUIState: {
-          searchParameters: '{\"group1\":{}}'
+          searchParameters: '{\"type1\":{}}'
         }
       }), {
-        group1: {}
+        type1: {}
       });
       assert.deepEqual(element._getSearchParameters({
         digUIState: {
-          searchParameters: '{\"group1\":{\"key1\":{}}}'
+          searchParameters: '{\"type1\":{\"term1\":{}}}'
         }
       }), {
-        group1: {
-          key1: {}
+        type1: {
+          term1: {}
         }
       });
       assert.deepEqual(element._getSearchParameters({
         digUIState: {
-          searchParameters: '{\"group1\":{\"key1\":{},\"key2\":123},\"group2\":{\"key3\":\"value\",\"key4\":[\"array\"]}}'
+          searchParameters: '{\"type1\":{\"term1\":{},\"term2\":123},\"type2\":{\"term3\":\"value\",\"term4\":[\"array\"]}}'
         }
       }), {
-        group1: {
-          key1: {},
-          key2: 123
+        type1: {
+          term1: {},
+          term2: 123
         },
-        group2: {
-          key3: 'value',
-          key4: ['array']
+        type2: {
+          term3: 'value',
+          term4: ['array']
         }
       });
     });
@@ -878,6 +1026,57 @@ limitations under the License.
       assert.isTrue(element._getShowNewIcon({
         notificationHasRun: false
       }));
+    });
+
+    test('setting classificationFlagList does set classificationFlag', function() {
+      element.classificationFlagList = ['testFlag1', 'testFlag2'];
+      assert.equal(element.classificationFlag, 'testFlag1');
+    });
+
+    test('does not show classification flag dropdown if classification config is unset', function() {
+      assert.isNull(element.$$('paper-dropdown-menu[label="Tag"]'));
+    });
+
+    test('does show classification flag dropdown if classification config is set', function(done) {
+      element.classificationFlagList = ['testFlag1', 'testFlag2'];
+      flush(function() {
+        assert.isNotNull(element.$$('paper-dropdown-menu[label="Tag"]'));
+        assert.isNotNull(element.$$('paper-item[id="testFlag1"]'));
+        done();
+      });
+    });
+
+    test('selecting an item in the classification flag dropdown does set classificationFlag', function(done) {
+      element.classificationFlagList = ['testFlag1', 'testFlag2'];
+      flush(function() {
+        assert.isNotNull(element.$$('paper-dropdown-menu[label="Tag"]'));
+        assert.isNotNull(element.$$('paper-item[id="testFlag1"]'));
+        assert.isNotNull(element.$$('paper-item[id="testFlag2"]'));
+        element.$$('paper-item[id="testFlag2"]').click();
+        assert.equal(element.classificationFlag, 'testFlag2');
+        done();
+      });
+    });
+
+    test('annotations toggles are not shown if dev is false or undefined', function(done) {
+      assert.isNull(element.$$('#toggleAnnotationsDarpa'));
+      assert.isNull(element.$$('#toggleAnnotationsIsi'));
+
+      element.dev = false;
+      flush(function() {
+        assert.isNull(element.$$('#toggleAnnotationsDarpa'));
+        assert.isNull(element.$$('#toggleAnnotationsIsi'));
+        done();
+      });
+    });
+
+    test('annotations toggles are shown if dev is true', function(done) {
+      element.dev = true;
+      flush(function() {
+        assert.isDefined(element.$$('#toggleAnnotationsDarpa'));
+        assert.isDefined(element.$$('#toggleAnnotationsIsi'));
+        done();
+      });
     });
   });
 </script>

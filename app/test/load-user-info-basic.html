@@ -45,12 +45,16 @@ limitations under the License.
     });
 
     test('properties are the correct values', function() {
+      assert.isUndefined(element.dev);
       assert.equal(element.username, 'testUser');
       assert.equal(element.userIndex, 'dig-users');
       assert.equal(element.userType, 'user');
       assert.isFalse(element.showSearch);
-      assert.isFalse(element.advancedSearch);
+      assert.isFalse(element.annotationsDarpa);
+      assert.isFalse(element.annotationsIsi);
       assert.isTrue(element.blurImages);
+      assert.equal(element.classificationFlag, '');
+      assert.deepEqual(element.classificationFlagList, []);
       assert(!element.facets);
       assert.isUndefined(element.esRequest);
       assert.isUndefined(element.entities);
@@ -62,14 +66,18 @@ limitations under the License.
       assert.isTrue(element._noEmailAddress);
       assert.isUndefined(element._notificationFrequency);
       assert.isUndefined(element._userCreateBody);
-      // _userSearchResult set to null by user-query component in template
-      assert.isNull(element._userSearchResult);
-      // _createdUser set to null by elastic-create component in template
+    });
+
+    test('_userSearchResult is undefined within build-and-run-query element in template', function() {
+      assert.isUndefined(element._userSearchResult);
+    });
+
+    test('_createdUser is set to null within elastic-create element in template', function() {
       assert.isNull(element._createdUser);
     });
 
-    test('does have user-query element', function() {
-      assert(element.$$('user-query'));
+    test('does have build-and-run-query element', function() {
+      assert(element.$$('build-and-run-query'));
     });
 
     test('does have user-preferences element', function() {
@@ -97,7 +105,8 @@ limitations under the License.
 
       assert.isDefined(element._userCreateBody);
       assert.equal(element._userCreateBody.username, element.username);
-      assert.equal(element._userCreateBody.advancedSearch, element.advancedSearch);
+      assert.equal(element._userCreateBody.annotationsDarpa, element.annotationsDarpa);
+      assert.equal(element._userCreateBody.annotationsIsi, element.annotationsIsi);
       assert.equal(element._userCreateBody.blurImages, element.blurImages);
       assert.equal(element._userCreateBody.notificationFrequency, 'never');
       assert.isDefined(element._userCreateBody.dateCreated);
@@ -131,8 +140,9 @@ limitations under the License.
     test('_transformUserSearchResult if user result found', function(done) {
       element.saveUserDataCallback = function() {
         assert.isTrue(element.userRecordExists);
+        assert.isTrue(element.annotationsDarpa);
+        assert.isTrue(element.annotationsIsi);
         assert.isTrue(element.blurImages);
-        assert.isTrue(element.advancedSearch);
         assert.equal(element._emailAddress, 'test@test.com');
         assert.equal(element._notificationFrequency, 'never');
         assert.equal(element.userId, 2);
@@ -145,8 +155,9 @@ limitations under the License.
             _id: 2,
             _source: {
               username: 'mockUser',
+              annotationsDarpa: true,
+              annotationsIsi: true,
               blurImages: true,
-              advancedSearch: true,
               emailAddress: 'test@test.com',
               notificationFrequency: 'never'
             }
@@ -155,22 +166,42 @@ limitations under the License.
       });
     });
 
-    test('_populateUserPreferences sets advancedSearch', function() {
+    test('_populateUserPreferences sets annotationsDarpa to false', function() {
       element._populateUserPreferences({
-        advancedSearch: true
+        annotationsDarpa: false
       });
-      assert.isTrue(element.advancedSearch);
-      element._populateUserPreferences({
-        advancedSearch: false
-      });
-      assert.isFalse(element.advancedSearch);
+      assert.isFalse(element.annotationsDarpa);
     });
 
-    test('_populateUserPreferences sets blurImages', function() {
+    test('_populateUserPreferences sets annotationsDarpa to true', function() {
+      element._populateUserPreferences({
+        annotationsDarpa: true
+      });
+      assert.isTrue(element.annotationsDarpa);
+    });
+
+    test('_populateUserPreferences sets annotationsIsi to false', function() {
+      element._populateUserPreferences({
+        annotationsIsi: false
+      });
+      assert.isFalse(element.annotationsIsi);
+    });
+
+    test('_populateUserPreferences sets annotationsIsi to true', function() {
+      element._populateUserPreferences({
+        annotationsIsi: true
+      });
+      assert.isTrue(element.annotationsIsi);
+    });
+
+    test('_populateUserPreferences sets blurImages to false', function() {
       element._populateUserPreferences({
         blurImages: false
       });
       assert.isFalse(element.blurImages);
+    });
+
+    test('_populateUserPreferences sets blurImages to true', function() {
       element._populateUserPreferences({
         blurImages: true
       });

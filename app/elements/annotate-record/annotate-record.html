@@ -15,6 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/array-behavior/array-behavior.html">
 <link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
 <link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/iron-dropdown/iron-dropdown.html">
@@ -28,7 +29,6 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/paper-styles/paper-styles.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
-<link rel="import" href="../behaviors.html">
 
 <dom-module id="annotate-record">
   <template>
@@ -36,9 +36,6 @@ limitations under the License.
     <style>
       :host {
         display: block;
-      }
-      .annotation-icon {
-        color: #111;
       }
       .annotation-icon[disabled] {
         color: var(--disabled-text-color);
@@ -105,84 +102,88 @@ limitations under the License.
         @apply(--shadow-elevation-8dp);
       }
     </style>
-    <!-- Search for an existing annotation record -->
-    <!-- Don't perform search until annotationTypeAsArray is ready -->
-    <template is="dom-if" if="{{annotationTypeAsArray}}">
-      <elastic-client-query-builder
-        type="term"
-        fields='"uri"'
-        values="[[item.id]]"
-        ejs-query="{{uriQuery}}">
-      </elastic-client-query-builder>
 
-      <elastic-client-query-builder
-        type="term"
-        fields='"user"'
-        values="[[getUsername(annotationManager)]]"
-        ejs-query="{{userQuery}}">
-      </elastic-client-query-builder>
+    <template is="dom-if" if="[[_show]]">
+      <!-- Search for an existing annotation record -->
+      <!-- Don't perform search until annotationTypeAsArray is ready -->
+      <template is="dom-if" if="{{annotationTypeAsArray}}">
+        <elastic-client-query-builder
+          type="term"
+          fields='"uri"'
+          values="[[itemId]]"
+          ejs-query="{{uriQuery}}">
+        </elastic-client-query-builder>
 
-      <elastic-client-query-builder
-        type="bool"
-        ejs-bool-queries="[[buildArrayIfAllExist(uriQuery, userQuery)]]"
-        ejs-query="{{annotationQuery}}">
-      </elastic-client-query-builder>
+        <elastic-client-query-builder
+          type="term"
+          fields='"user"'
+          values="[[getUsername(annotationManager)]]"
+          ejs-query="{{userQuery}}">
+        </elastic-client-query-builder>
 
-      <elastic-client-search
-        client="[[client]]"
-        index="[[getAnnotationIndex(annotationManager)]]"
-        elastic-types="[[annotationTypeAsArray]]"
-        query="[[annotationQuery]]"
-        sort-field="timestamp"
-        sort-order="desc"
-        aggregations="[]"
-        filters="[]"
-        results="{{originalSearchResult}}"
-        last-error="{{error}}">
-      </elastic-client-search>
+        <elastic-client-query-builder
+          type="bool"
+          ejs-bool-queries="[[buildArrayIfAllExist(uriQuery, userQuery)]]"
+          ejs-query="{{annotationQuery}}">
+        </elastic-client-query-builder>
+
+        <elastic-client-search
+          client="[[client]]"
+          index="[[getAnnotationIndex(annotationManager)]]"
+          elastic-types="[[annotationTypeAsArray]]"
+          query="[[annotationQuery]]"
+          page-size="1"
+          sort-field="timestamp"
+          sort-order="desc"
+          aggregations="[]"
+          filters="[]"
+          results="{{originalSearchResult}}"
+          last-error="{{error}}">
+        </elastic-client-search>
+      </template>
+
+      <div class="layout horizontal">
+        <paper-icon-button noink$="[[noink]]" icon="[[getFlagIcon(label)]]"
+          class$="annotation-icon dropdown-trigger [[getAnnotationClass(label)]]"
+          disabled="{{disableButtons}}"
+          title$="[[getAnnotationLabel(label)]] (Click to Open Menu)"
+          on-tap="openDropdownMenu">
+        </paper-icon-button>
+
+        <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top" on-iron-overlay-closed="saveAnnotation" dynamic-align>
+          <paper-material class="dropdown-content" on-tap="stopPropagation">
+            <div class="layout horizontal">
+              <div class="dropdown-title flex">[[getAnnotationTitle(itemType, annotationManager)]]</div>
+              <paper-icon-button icon="close" class="annotation-icon" title="Close Menu" on-tap="closeDropdownMenu"></paper-icon-button>
+            </div>
+
+            <div class="option-row layout horizontal">
+              <paper-icon-item class$="annotation-option [[isSelected(label, veryRelevant)]]" title$="[[getAnnotationLabel(veryRelevant)]]" on-tap="selectVeryRelevant">
+                <iron-icon icon="fa:flag" class="annotation-icon red" item-icon></iron-icon>
+                <paper-item-body>[[getAnnotationLabel(veryRelevant)]]</paper-item-body>
+              </paper-icon-item>
+              <paper-icon-item class$="annotation-option [[isSelected(label, somewhatRelevant)]]" title$="[[getAnnotationLabel(somewhatRelevant)]]" on-tap="selectSomewhatRelevant">
+                <iron-icon icon="fa:flag" class="annotation-icon orange" item-icon></iron-icon>
+                <paper-item-body>[[getAnnotationLabel(somewhatRelevant)]]</paper-item-body>
+              </paper-icon-item>
+              <paper-icon-item class$="annotation-option [[isSelected(label, notRelevant)]]" title$="[[getAnnotationLabel(notRelevant)]]" on-tap="selectNotRelevant">
+                <iron-icon icon="fa:flag" class="annotation-icon grey" item-icon></iron-icon>
+                <paper-item-body>[[getAnnotationLabel(notRelevant)]]</paper-item-body>
+              </paper-icon-item>
+              <paper-icon-item class$="annotation-option [[isSelected(label, noAnswer)]]" title$="[[getAnnotationLabel(noAnswer)]]" on-tap="selectNoAnswer">
+                <iron-icon icon="fa:flag-o" class="annotation-icon" item-icon></iron-icon>
+                <paper-item-body>[[getAnnotationLabel(noAnswer)]]</paper-item-body>
+              </paper-icon-item>
+            </div>
+
+            <div class="layout horizontal">
+              <paper-input class="flex" label="Justification" title="Justification" value="{{justification}}" always-float-label></paper-input>
+              <paper-button class="dropdown-button" title="Save Annotation" on-tap="closeDropdownMenu">Save</paper-button>
+            </div>
+          </paper-material>
+        </iron-dropdown>
+      </div>
     </template>
-
-    <div class="layout horizontal">
-      <paper-icon-button noink$="[[noink]]" icon="[[getFlagIcon(label)]]"
-        class$="annotation-icon dropdown-trigger [[getAnnotationClass(label)]]"
-        disabled="{{disableButtons}}"
-        title$="[[getAnnotationLabel(label)]] (Click to Open Menu)"
-        on-tap="openDropdownMenu">
-      </paper-icon-button>
-
-      <iron-dropdown id="dropdownMenu" focused horizontal-align="right" vertical-align="top" on-iron-overlay-closed="saveAnnotation" dynamic-align>
-        <paper-material class="dropdown-content" on-tap="stopPropagation">
-          <div class="layout horizontal">
-            <div class="dropdown-title flex">[[getAnnotationTitle(itemType, annotationManager)]]</div>
-            <paper-icon-button icon="close" class="annotation-icon" title="Close Menu" on-tap="closeDropdownMenu"></paper-icon-button>
-          </div>
-
-          <div class="option-row layout horizontal">
-            <paper-icon-item class$="annotation-option [[isSelected(label, veryRelevant)]]" title$="[[getAnnotationLabel(veryRelevant)]]" on-tap="selectVeryRelevant">
-              <iron-icon icon="fa:flag" class="annotation-icon red" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(veryRelevant)]]</paper-item-body>
-            </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(label, somewhatRelevant)]]" title$="[[getAnnotationLabel(somewhatRelevant)]]" on-tap="selectSomewhatRelevant">
-              <iron-icon icon="fa:flag" class="annotation-icon orange" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(somewhatRelevant)]]</paper-item-body>
-            </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(label, notRelevant)]]" title$="[[getAnnotationLabel(notRelevant)]]" on-tap="selectNotRelevant">
-              <iron-icon icon="fa:flag" class="annotation-icon grey" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(notRelevant)]]</paper-item-body>
-            </paper-icon-item>
-            <paper-icon-item class$="annotation-option [[isSelected(label, noAnswer)]]" title$="[[getAnnotationLabel(noAnswer)]]" on-tap="selectNoAnswer">
-              <iron-icon icon="fa:flag-o" class="annotation-icon" item-icon></iron-icon>
-              <paper-item-body>[[getAnnotationLabel(noAnswer)]]</paper-item-body>
-            </paper-icon-item>
-          </div>
-
-          <div class="layout horizontal">
-            <paper-input class="flex" label="Justification" title="Justification" value="{{justification}}" always-float-label></paper-input>
-            <paper-button class="dropdown-button" title="Save Annotation" on-tap="closeDropdownMenu">Save</paper-button>
-          </div>
-        </paper-material>
-      </iron-dropdown>
-    </div>
   </template>
   <script>
   (function() {
@@ -192,7 +193,9 @@ limitations under the License.
     Polymer({
       is: 'annotate-record',
 
-      behaviors: [DigBehaviors.ArrayBehavior],
+      behaviors: [
+        DigBehaviors.ArrayBehavior
+      ],
 
       properties: {
         /**
@@ -240,16 +243,15 @@ limitations under the License.
          */
         annotationManager: {
           type: Object,
-          observer: '_addAnnotationChangeListener'
+          observer: '_addListenerToAnnotationManager'
         },
 
         /**
-         * the record to add an associated annotation for,
+         * The ID of the record to add an associated annotation for,
          * based on current user and uri of the record
          */
-        item: {
-          type: Object,
-          notify: true
+        itemId: {
+          type: Number
         },
         /**
          * The type of item being annotated.
@@ -317,6 +319,11 @@ limitations under the License.
         },
         _listenerId: {
           type: Number
+        },
+
+        _show: {
+          type: Boolean,
+          value: false
         }
       },
       detached: function() {
@@ -326,7 +333,7 @@ limitations under the License.
       },
       closeDropdownMenu: function() {
         // The close event will trigger the save of the annotation.
-        this.$.dropdownMenu.close();
+        this.$$('#dropdownMenu').close();
       },
       computeTypeArray: function(annotationManager) {
         return [annotationManager.getAnnotationType()];
@@ -354,9 +361,9 @@ limitations under the License.
         var relevant = annotationManager.getWhyTheAnnotationIsRelevant();
         return 'Is this' + (type ? ' ' + type : '').toLowerCase() + ' relevant' + (relevant ? ' ' + relevant : '') + '?';
       },
-      getCdrId: function(item) {
-        if(item.type === 'offer' && item.id.lastIndexOf('/') >= 0) {
-          return item.id.substring(item.id.lastIndexOf('/') + 1);
+      getCdrId: function(itemId, itemType) {
+        if(itemType.toLowerCase() === 'ad' && itemId.lastIndexOf('/') >= 0) {
+          return itemId.substring(itemId.lastIndexOf('/') + 1);
         }
         return '';
       },
@@ -370,7 +377,7 @@ limitations under the License.
         return (label === value ? 'selected' : '');
       },
       openDropdownMenu: function() {
-        this.$.dropdownMenu.open();
+        this.$$('#dropdownMenu').open();
       },
       saveAnnotation: function() {
         if(!this.annotationResult || this.label !== this.annotationResult.source.label || this.justification !== this.annotationResult.source.justification) {
@@ -383,7 +390,7 @@ limitations under the License.
           this.annotationResult.id = undefined;
           this.annotationResult.source.label = this.label;
           this.annotationResult.source.justification = this.justification;
-          this.annotationManager.createAnnotation(this.item.id, this.getCdrId(this.item), this.label, this.justification);
+          this.annotationManager.createAnnotation(this.itemId, this.getCdrId(this.itemId, this.itemType), this.label, this.justification);
         }
       },
       selectVeryRelevant: function() {
@@ -418,13 +425,15 @@ limitations under the License.
           this.justification = '';
         }
       },
-      _addAnnotationChangeListener: function(annotationManager) {
-        this._listenerId = annotationManager.addListener(this._createAnnotationChangeListener());
+
+      _addListenerToAnnotationManager: function(annotationManager) {
+        this._listenerId = annotationManager.addListener(this._createChangeAnnotationListener(), this._createShowAnnotationListener());
       },
-      _createAnnotationChangeListener: function() {
+
+      _createChangeAnnotationListener: function() {
         var self = this;
         return function(itemId, label, justification, annotationId) {
-          if(self.item.id === itemId) {
+          if(self.itemId === itemId) {
             self.set('label', label);
             self.set('justification', justification);
             if(!self.annotationResult) {
@@ -432,6 +441,13 @@ limitations under the License.
             }
             self.set('annotationResult.id', annotationId);
           }
+        };
+      },
+
+      _createShowAnnotationListener: function() {
+        var self = this;
+        return function(show) {
+          self.set('_show', show);
         };
       }
     });

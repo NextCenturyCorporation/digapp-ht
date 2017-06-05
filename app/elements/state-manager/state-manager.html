@@ -15,9 +15,8 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
-<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
-<link rel="import" href="../../bower_components/elastic-client-search/elastic-client-search.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
@@ -44,22 +43,17 @@ limitations under the License.
       }
     </style>
 
-    <elastic-client-query-builder
-      type="term"
+    <build-and-run-query
+      raw
       fields='"id"'
       values="[[stateId]]"
-      ejs-query="{{_stateIdQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
       client="[[client]]"
-      index="[[stateIndex]]"
-      elastic-types="[]"
-      query="[[_stateIdQuery]]"
+      index-name="[[stateIndex]]"
+      index-types="[]"
       aggregations="[]"
       filters="[]"
       results="{{_stateIdResults}}">
-    </elastic-client-search>
+    </build-and-run-query>
 
     <elastic-create
       client="[[client]]"
@@ -69,22 +63,17 @@ limitations under the License.
       results="{{_creationResults}}">
     </elastic-create>
 
-    <elastic-client-query-builder
-      type="term"
+    <build-and-run-query
+      raw
       fields='"state"'
       values="[[_stringifiedState]]"
-      ejs-query="{{_stringifiedStateQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
       client="[[client]]"
-      index="[[stateIndex]]"
-      elastic-types="[]"
-      query="[[_stringifiedStateQuery]]"
+      index-name="[[stateIndex]]"
+      index-types="[]"
       aggregations="[]"
       filters="[]"
       results="{{_stringifiedStateResults}}">
-    </elastic-client-search>
+    </build-and-run-query>
 
     <paper-dialog modal id="linkDialog" class="small" entry-animation="fade-in-animation" exit-animation="fade-out-animation" on-iron-overlay-opened="_activateClipboard" on-iron-overlay-closed="_deactivateClipboard">
       <div class="layout vertical">
@@ -111,7 +100,10 @@ limitations under the License.
     Polymer({
       is: 'state-manager',
 
-      behaviors: [DigBehaviors.BrowserBehavior, DigBehaviors.StateBehavior],
+      behaviors: [
+        DigBehaviors.BrowserBehavior,
+        DigBehaviors.StateBehavior
+      ],
 
       properties: {
         /**
@@ -202,16 +194,6 @@ limitations under the License.
         },
 
         /**
-         * The ejs query object for the state ID query.
-         *
-         * @type {Object}
-         * @private
-         */
-        _stateIdQuery: {
-          type: Object
-        },
-
-        /**
          * The results from the state ID query.
          *
          * @type {Object}
@@ -230,16 +212,6 @@ limitations under the License.
          */
         _stringifiedState: {
           type: String
-        },
-
-        /**
-         * The ejs query object for the stringified string query.
-         *
-         * @type {Object}
-         * @private
-         */
-        _stringifiedStateQuery: {
-          type: Object
         },
 
         /**
@@ -321,7 +293,7 @@ limitations under the License.
         }
         if(pageType === 'search') {
           // From DigBehaviors.StateBehavior
-          return JSON.stringify(this.buildSearchStateForES(filterCollection));
+          return JSON.stringify(this.buildSearchState(filterCollection));
         }
         return JSON.stringify({});
       },
@@ -337,19 +309,18 @@ limitations under the License.
        * Handles the results from the state ID query:  either creating a new state or the updating the filters using the results.
        */
       _handleStateIdResults: function() {
-        if(this._stateIdQuery === undefined) {
-          return;
-        }
-        if(this._stateIdResults && this._stateIdResults.hits.hits.length) {
-          // If the query was triggered to validate a new ID and that ID is already in use, generate a new ID to trigger another query.
-          if(this._validateId) {
-            this.stateId = this._generateId();
-          } else {
-            this._updateFilterCollection(this._stateIdResults.hits.hits[0]._source.state, this.pageType);
+        if(this._stateIdResults) {
+          if(this._stateIdResults.hits.hits.length) {
+            // If the query was triggered to validate a new ID and that ID is already in use, generate a new ID to trigger another query.
+            if(this._validateId) {
+              this.stateId = this._generateId();
+            } else {
+              this._updateFilterCollection(this._stateIdResults.hits.hits[0]._source.state, this.pageType);
+            }
+          } else if(this._validateId) {
+            this._validateId = false;
+            this._populateCreationBody(this.stateId, this.filterCollection, this.pageType);
           }
-        } else if(this._validateId) {
-          this._validateId = false;
-          this._populateCreationBody(this.stateId, this.filterCollection, this.pageType);
         }
       },
 
@@ -386,10 +357,8 @@ limitations under the License.
           this.set('filterCollection', this.buildEntityState(state));
         }
         if(pageType === 'search') {
-          // Set the text to null rather than an empty string or else the search won't trigger.
-          state.text = state.text || null;
           // From DigBehaviors.StateBehavior
-          this.set('filterCollection', this.buildSearchStateForUI(state));
+          this.set('filterCollection', this.buildSearchState(state));
         }
         this.set('processRequest', true);
       },
@@ -398,16 +367,15 @@ limitations under the License.
        * Updates the state ID using the results from the state ID query or creates a new ID if needed.
        */
       _updateOrCreateId: function() {
-        if(this._stringifiedStateQuery === undefined) {
-          return;
-        }
-        if(this._stringifiedStateResults && this._stringifiedStateResults.hits.hits.length) {
-          // Do not set this.stateId here because that will trigger another query.
-          var stateId = this._stringifiedStateResults.hits.hits[0]._source.id;
-          this._updateUrlAndShowDialog(stateId);
-        } else {
-          this._validateId = true;
-          this.stateId = this._generateId();
+        if(this._stringifiedStateResults) {
+          if(this._stringifiedStateResults.hits.hits.length) {
+            // Do not set this.stateId here because that will trigger another query.
+            var stateId = this._stringifiedStateResults.hits.hits[0]._source.id;
+            this._updateUrlAndShowDialog(stateId);
+          } else {
+            this._validateId = true;
+            this.stateId = this._generateId();
+          }
         }
       },
 

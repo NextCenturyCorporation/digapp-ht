@@ -1,0 +1,222 @@
+<!--
+Copyright 2017 Next Century Corporation
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<link rel="import" href="../../bower_components/polymer/polymer.html">
+<link rel="import" href="../section-and-title/section-and-title.html">
+
+<dom-module id="section-and-map">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+
+      section-and-title {
+        --section-and-title-padding: var(--section-and-map-padding, 20px 0);
+      }
+
+      section-and-title ::content paper-material > div > *:not(leaflet-wrapper) {
+        /* Do not overwrite top or bottom margin! */
+        margin-left: 20px;
+        margin-right: 20px;
+      }
+
+      leaflet-wrapper {
+        margin-bottom: 10px;
+        min-height: 300px;
+        min-width: 200px;
+        position: relative;
+      }
+    </style>
+
+    <section-and-title
+      show-copy="[[showCopy]]"
+      copy-type="Locations"
+      error="[[error]]"
+      icon="[[icon]]"
+      style-class="[[styleClass]]"
+      text-function="[[_getClipboardTextFunction(textProperty)]]"
+      section-title="{{sectionTitle}}"
+      transform-config="[[transformConfig]]"
+      transform-function="[[transformFunction]]"
+      data="[[data]]">
+
+      <template is="dom-if" if="[[data.length]]">
+        <leaflet-wrapper
+          cluster-markers
+          custom-icons="[[mapIcons]]"
+          restamp
+          text-property="[[textProperty]]"
+          data="[[data]]">
+        </leaflet-wrapper>
+      </template>
+
+      <content></content>
+    </section-and-title>
+  </template>
+
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'section-and-map',
+
+      properties: {
+        /**
+         * (Optional)
+         *
+         * The section data to copy.
+         *
+         * @type {Array}
+         */
+        data: {
+          type: Array
+        },
+
+        /**
+         * (Optional)
+         *
+         * The section error.
+         *
+         * @type {Object}
+         */
+        error: {
+          type: Object,
+        },
+
+        /**
+         * (Optional)
+         *
+         * The section icon.
+         *
+         * @type {String}
+         * @default ''
+         */
+        icon: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The custom icons for the map.
+         *
+         * @type {Array}
+         */
+        mapIcons: {
+          type: Array
+        },
+
+        /**
+         * (Optional)
+         *
+         * Whether to show the Copy button.
+         *
+         * @type {Boolean}
+         * @default false
+         */
+        showCopy: {
+          type: Boolean,
+          value: false
+        },
+
+        /**
+         * (Optional)
+         *
+         * The section style class.
+         *
+         * @type {String}
+         * @default ''
+         */
+        styleClass: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The text property of the data.
+         *
+         * @type {String}
+         * @default 'text'
+         */
+        textProperty: {
+          type: String,
+          value: 'text'
+        },
+
+        /**
+         * (Optional|Output)
+         *
+         * The section title.
+         *
+         * @type {String}
+         * @default ''
+         */
+        sectionTitle: {
+          type: String,
+          value: ''
+        },
+
+        /**
+         * (Optional)
+         *
+         * The config passed with the count to the transformFunction.
+         *
+         * @type {Object}
+         * @default {}
+         */
+        transformConfig: {
+          type: Object,
+          value: function() {
+            return {};
+          }
+        },
+
+        /**
+         * (Optional)
+         *
+         * The function to transform the count into the title.
+         *
+         * @type {Function}
+         */
+        transformFunction: {
+          type: Function
+        }
+      },
+
+      /**
+       * Returns the function for creating the clipboard text using an item from the data and the given text property.
+       *
+       * @param {String} property
+       * @return {Function}
+       * @private
+       */
+      _getClipboardTextFunction: function(property) {
+        return function(item) {
+          if(item[property].indexOf(',') >= 0) {
+            return item[property].substring(0, item[property].indexOf(','));
+          }
+          return item[property];
+        };
+      }
+    });
+  })();
+  </script>
+</dom-module>
