@@ -61,13 +61,13 @@ limitations under the License.
           <div class="layout horizontal center">
             <paper-icon-button id="negativeIcon"
               icon="[[_getIcon('negative', _classificationFromDatabase, _classificationFromUser)]]"
-              title="Toggle Negative Flag"
+              title="Toggle Negative Tag"
               on-tap="_toggleNegative">
             </paper-icon-button>
 
             <paper-icon-button id="positiveIcon"
               icon="[[_getIcon('positive', _classificationFromDatabase, _classificationFromUser)]]"
-              title="Toggle Positive Flag"
+              title="Toggle Positive Tag"
               on-tap="_togglePositive">
             </paper-icon-button>
           </div>
@@ -95,7 +95,7 @@ limitations under the License.
           value: {}
         },
 
-        itemId: {
+        entityId: {
           type: String,
           value: ''
         },
@@ -151,7 +151,7 @@ limitations under the License.
 
       _getIcon: function(type, classificationFromDatabase, classificationFromUser) {
         if(!classificationFromDatabase && classificationFromUser === type) {
-          return 'fa:check-circle-o';
+          return type === 'positive' ? 'fa:check-circle-o' : 'fa:times-circle-o';
         }
         if(classificationFromDatabase === type && !classificationFromUser) {
           return 'fa:circle';
@@ -159,10 +159,10 @@ limitations under the License.
         if(classificationFromDatabase && classificationFromUser) {
           // True positive/negative.
           if(classificationFromDatabase === classificationFromUser) {
-            return classificationFromUser === type ? 'fa:check-circle' : 'fa:circle-o';
+            return classificationFromUser === type ? (type === 'positive' ? 'fa:check-circle' : 'fa:times-circle') : 'fa:circle-o';
           }
           // False positive/negative.
-          return classificationFromUser === type ? 'fa:check-circle-o' : 'fa:circle';
+          return classificationFromUser === type ? (type === 'positive' ? 'fa:check-circle-o' : 'fa:times-circle-o') : 'fa:circle';
         }
         return 'fa:circle-o';
       },
@@ -174,20 +174,20 @@ limitations under the License.
       },
 
       _toggleNegative: function() {
-        this.setClassification((this._classificationFromUser === 'negative' ? '' : 'negative'), this._flag, this.itemId);
+        this.setClassification((this._classificationFromUser === 'negative' ? '' : 'negative'), this._flag, this.entityId, 'ad');
       },
 
       _togglePositive: function() {
-        this.setClassification((this._classificationFromUser === 'positive' ? '' : 'positive'), this._flag, this.itemId);
+        this.setClassification((this._classificationFromUser === 'positive' ? '' : 'positive'), this._flag, this.entityId, 'ad');
       },
 
-      setClassification: function(classification, flag, itemId) {
+      setClassification: function(classification, flag, id, type) {
         this.set('classifications.' + flag, {
           database: this.classifications.database || '',
           user: classification
         });
-        if(this.classificationManager && this.classificationManager.setFlagClassification) {
-          this.classificationManager.setFlagClassification(classification, flag, itemId);
+        if(this.classificationManager && this.classificationManager.setEntityClassification) {
+          this.classificationManager.setEntityClassification(classification, flag, id, type);
         }
       }
     });

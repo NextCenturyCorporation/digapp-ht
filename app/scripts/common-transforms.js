@@ -52,6 +52,45 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   }
 
   /**
+   * Returns the extraction database type for the given UI type.
+   */
+  function getDatabaseTypeFromUiType(type) {
+    switch(type) {
+      case 'date': return 'posting_date';
+      case 'eyeColor': return 'eye_color';
+      case 'hairColor': return 'hair_color';
+      case 'image': return '';
+      case 'location': return 'city';
+      case 'postingDate': return 'posting_date';
+      case 'region': return 'state';
+      case 'review': return 'review_id';
+      case 'services': return 'service';
+      case 'social': return 'social_media_id';
+      case 'website': return 'tld';
+    }
+    return type;
+  }
+
+  /**
+   * Returns the extraction UI type for the given database type.
+   */
+  function getUiTypeFromDatabaseType(type) {
+    switch(type) {
+      case 'city': return 'location';
+      case 'country': return 'location';
+      case 'eye_color': return 'eyeColor';
+      case 'hair_color': return 'hairColor';
+      case 'posting_date': return 'date';
+      case 'review_id': return 'review';
+      case 'service': return 'services';
+      case 'state': return 'location';
+      case 'social_media_id': return 'social';
+      case 'tld': return 'website';
+    }
+    return type;
+  }
+
+  /**
    * Returns the text for the given unit.
    */
   function getUnit(unit) {
@@ -174,6 +213,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
   */
   return {
     /**
+     * Returns the extraction database type for the given UI type.
+     */
+    getDatabaseTypeFromUiType: function(type) {
+      return getDatabaseTypeFromUiType(type);
+    },
+
+    /**
      * Returns the string for the given date number/string in UTC format.
      */
     getDate: function(date) {
@@ -229,6 +275,13 @@ var commonTransforms = (function(_, moment, typeBehavior) {
      */
     getStyleClass: function(type) {
       return getStyleClass(type);
+    },
+
+    /**
+     * Returns the extraction UI type for the given database type.
+     */
+    getUiTypeFromDatabaseType: function(type) {
+      return getUiTypeFromDatabaseType(type);
     },
 
     /**

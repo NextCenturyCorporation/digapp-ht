@@ -106,47 +106,59 @@ limitations under the License.
 
         <div class="divider"></div>
 
-        <template is="dom-if" if="{{userRecordExists}}" restamp="true">
-          <div class="layout horizontal">
-            <div class="start-justified flex">
+        <div class="layout horizontal">
+          <div class="start-justified flex">
+            <template is="dom-if" if="[[!userLoading]]">
               <span class="name right-space">Logged in as:</span>
               <span class="text">[[username]]</span>
-            </div>
-            <div class="end-justified">
-              <span class="name right-space">DIG Version:</span>
-              <span class="text">DIG_VERSION</span>
-            </div>
+            </template>
+            <template is="dom-if" if="[[userLoading]]">
+              <span class="text">Loading User Settings...</span>
+            </template>
+          </div>
+          <div class="end-justified">
+            <span class="name right-space">DIG Version:</span>
+            <span class="text">DIG_VERSION</span>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <template is="dom-if" if="[[dev]]">
+          <div class="layout horizontal pointer" id="toggleAnnotationsIsi" title="Toggle ISI Annotations" on-tap="_toggleAnnotationsIsi">
+            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsIsi)]]"></iron-icon>
+            <span class="text">ISI Annotations</span>
           </div>
 
-          <template is="dom-if" if="[[dev]]">
-            <div class="layout horizontal pointer" id="toggleAnnotationsIsi" title="Toggle ISI Annotations" on-tap="_toggleAnnotationsIsi">
-              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsIsi)]]"></iron-icon>
-              <span class="text">ISI Annotations</span>
-            </div>
+          <div class="layout horizontal pointer" id="toggleAnnotationsDarpa" title="Toggle DARPA Annotations" on-tap="_toggleAnnotationsDarpa">
+            <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsDarpa)]]"></iron-icon>
+            <span class="text">DARPA Annotations</span>
+          </div>
+        </template>
 
-            <div class="layout horizontal pointer" id="toggleAnnotationsDarpa" title="Toggle DARPA Annotations" on-tap="_toggleAnnotationsDarpa">
-              <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(annotationsDarpa)]]"></iron-icon>
-              <span class="text">DARPA Annotations</span>
-            </div>
+        <div class="layout horizontal">
+          <template is="dom-if" if="[[!classificationFlagList.length]]">
+            <span class="name tall">No Classification Tags</span>
           </template>
+          <template is="dom-if" if="[[classificationFlagList.length]]">
+            <span class="name tall right-space">Classification Focus Tag:</span>
+            <paper-dropdown-menu label="Tag" no-label-float>
+              <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{classificationFlag}}">
+                <template is="dom-repeat" items="[[classificationFlagList]]" as="flag">
+                  <paper-item id$="[[flag]]" value="[[flag]]">[[flag]]</paper-item>
+                </template>
+              </paper-listbox>
+            </paper-dropdown-menu>
+          </template>
+        </div>
 
+        <div class="divider"></div>
+
+        <template is="dom-if" if="[[userRecordExists]]" restamp="true">
           <div class="layout horizontal pointer" title="Toggle Blur Images" on-tap="_toggleBlur">
             <iron-icon class="checkbox right-space" icon$="[[_getCheckboxIconToShow(blurImages)]]"></iron-icon>
             <span class="text">Blur Images</span>
           </div>
-
-          <template is="dom-if" if="[[_classificationFlagList.length]]">
-            <div class="layout horizontal">
-              <span class="name tall right-space">Classification Focus:</span>
-              <paper-dropdown-menu label="Flag" no-label-float>
-                <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{classificationFlag}}">
-                  <template is="dom-repeat" items="[[_classificationFlagList]]" as="flag">
-                    <paper-item id$="[[flag]]" value="[[flag]]">[[flag]]</paper-item>
-                  </template>
-                </paper-listbox>
-              </paper-dropdown-menu>
-            </div>
-          </template>
 
           <div class="layout horizontal">
             <span class="name tall right-space">Email Address for Notifications:</span>
@@ -304,7 +316,7 @@ limitations under the License.
           </div>
         </template>
 
-        <template is="dom-if" if="{{!userRecordExists}}" restamp="true">
+        <template is="dom-if" if="[[!userRecordExists]]" restamp="true">
           Creating user record...
         </template>
       </div>
@@ -422,20 +434,22 @@ limitations under the License.
         },
 
         /**
-         * The config for the classification flags as a stringified array.
-         */
-        classificationConfig: {
-          type: String,
-          value: '[]'
-        },
-
-        /**
-         * The current classification focus flag.
+         * The selected classification flag.
          */
         classificationFlag: {
           notify: true,
           type: String,
           value: ''
+        },
+
+        /**
+         * The classification flag list.
+         */
+        classificationFlagList: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -452,6 +466,14 @@ limitations under the License.
          */
         userId: {
           type: String
+        },
+
+        /**
+         * Whether the user query is loading.
+         */
+        userLoading: {
+          type: Boolean,
+          value: false
         },
 
         /**
@@ -540,14 +562,6 @@ limitations under the License.
         },
 
         /**
-         * The list of available classification flags.
-         */
-        _classificationFlagList: {
-          computed: '_createClassificationFlagList(classificationConfig)',
-          type: Array
-        },
-
-        /**
          * Index to replace in searches if saving over existing search.
          */
         _saveOverIndex: {
@@ -579,6 +593,7 @@ limitations under the License.
       },
 
       observers: [
+        '_initializeClassificationFlag(classificationFlagList)',
         '_resetNotificationQuery(searchParameters.*)'
       ],
 
@@ -592,15 +607,6 @@ limitations under the License.
 
       _getSettingsButtonText: function(hasNotifications) {
         return hasNotifications ? 'Notifications Pending' : 'Open User Settings';
-      },
-
-      _createClassificationFlagList: function(config) {
-        var list = (config ? JSON.parse(config) : []);
-        if(_.isArray(list) && list.length) {
-          this.set('classificationFlag', list[0]);
-          return list;
-        }
-        return [];
       },
 
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -788,6 +794,15 @@ limitations under the License.
        */
       _getModalIconTitle: function(idPrefix, index) {
         return (this._isOpened(idPrefix, index) ? 'Close' : 'Open') + ' Search Settings';
+      },
+
+      /**
+       * Initializes the classification flag by setting it to the first element in the flag list.
+       */
+      _initializeClassificationFlag: function() {
+        if(this.classificationFlagList.length) {
+          this.set('classificationFlag', this.classificationFlagList[0]);
+        }
       },
 
       /**

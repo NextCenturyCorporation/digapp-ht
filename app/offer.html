@@ -88,13 +88,6 @@ limitations under the License.
       last-response="{{config}}">
     </iron-ajax>
 
-    <iron-ajax
-      auto
-      url="[[config.classificationFlagsUrl]]"
-      handle-as="json"
-      last-response="{{classificationFlags}}">
-    </iron-ajax>
-
     <!--initialize new elastic client connection to server
       esclient can be used throughout the application lifecycle -->
     <elastic-client
@@ -114,7 +107,7 @@ limitations under the License.
       filters="[]"
       page-size="1"
       properties-ready="{{processRequest}}"
-      source-include='["doc_id", "fields", "tld", "url"]'
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
       transform-function="[[clientConfig.transforms.offer.offer]]"
       error="{{error}}"
       loading="{{loading}}"
@@ -170,7 +163,7 @@ limitations under the License.
       page-size="25"
       loading="{{revisionAdDataLoading}}"
       last-error="{{revisionAdDataError}}"
-      source-include='["doc_id", "fields", "tld", "url"]'>
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
@@ -202,7 +195,7 @@ limitations under the License.
       page-size="25"
       loading="{{similarOfferLoading}}"
       last-error="{{similarOfferError}}"
-      source-include='["doc_id", "fields", "tld", "url"]'>
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'>
     </elastic-client-search>
 
     <json-transform
@@ -245,8 +238,11 @@ limitations under the License.
     <classification-manager
       dev="[[config.dev]]"
       show="[[annotationsIsi]]"
-      url="[[config.classificationUrl]]"
+      entity-url="[[config.classificationEntityUrl]]"
+      extraction-url="[[config.classificationExtractionUrl]]"
+      flag-url="[[config.classificationFlagUrl]]"
       flag="[[classificationFlag]]"
+      flag-list="{{classificationFlagList}}"
       classification-manager="{{classificationManager}}">
     </classification-manager>
 
@@ -309,7 +305,7 @@ limitations under the License.
             annotations-darpa="{{annotationsDarpa}}"
             annotations-isi="{{annotationsIsi}}"
             blur-images="{{blurImages}}"
-            classification-config="[[classificationFlags]]"
+            classification-flag-list="[[classificationFlagList]]"
             classification-flag="{{classificationFlag}}"
             entities="{{userEntities}}"
             user-id="{{userId}}"
@@ -380,6 +376,7 @@ limitations under the License.
                 data="[[offer.locations]]">
 
                 <detail-subsection
+                  entity-id="[[offer.id]]"
                   classification-manager="[[classificationManager]]"
                   icon-style-class-property="styleClass"
                   extractions="[[offer.locations]]">
@@ -393,14 +390,16 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Prices"
-                    header-style-class="entity-money-font"
+                    header-style-class="entity-price-font"
                     extractions="[[offer.prices]]">
                   </detail-subsection>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Services Provided"
@@ -413,6 +412,7 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Names"
@@ -421,6 +421,7 @@ limitations under the License.
                   </detail-subsection>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Genders"
@@ -433,6 +434,7 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Ethnicities"
@@ -443,6 +445,7 @@ limitations under the License.
                   <hr>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Ages"
@@ -455,6 +458,7 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Eye Colors"
@@ -463,6 +467,7 @@ limitations under the License.
                   </detail-subsection>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Hair Colors"
@@ -475,6 +480,7 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Heights"
@@ -483,6 +489,7 @@ limitations under the License.
                   </detail-subsection>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Weights"
@@ -571,7 +578,7 @@ limitations under the License.
                     size="[[offerRevisionCount]]"
                     sort-field="fields.posting_date.strict.key"
                     sort-order="desc"
-                    source-include='["doc_id", "fields", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
                     csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
                     pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
                     query-transform-function="[[clientConfig.transforms.offer.offers]]">
@@ -620,16 +627,19 @@ limitations under the License.
                 section-title="Ad Details">
 
                 <template is="dom-if" if="[[classificationManager]]">
-                  <classify-ad-buttons style="margin: 5px;"
-                    classification-manager="[[classificationManager]]"
-                    classifications="{{offer.classifications}}"
-                    item-id="[[offer.id]]">
-                  </classify-ad-buttons>
+                  <div class="layout horizontal flex-none">
+                    <classify-ad-buttons style="margin: 5px;"
+                      classification-manager="[[classificationManager]]"
+                      classifications="{{offer.classifications}}"
+                      entity-id="[[offer.id]]">
+                    </classify-ad-buttons>
+                  </div>
 
                   <hr>
                 </template>
 
                 <detail-subsection
+                  entity-id="[[offer.id]]"
                   icon-style-class-property="styleClass"
                   header="Automated Classifications"
                   extractions="[]">
@@ -639,6 +649,7 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Telephone Numbers"
@@ -647,6 +658,7 @@ limitations under the License.
                   </detail-subsection>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Email Addresses"
@@ -659,6 +671,7 @@ limitations under the License.
 
                 <div class="layout horizontal">
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Social Media IDs"
@@ -667,6 +680,7 @@ limitations under the License.
                   </detail-subsection>
 
                   <detail-subsection class="flex-1"
+                    entity-id="[[offer.id]]"
                     classification-manager="[[classificationManager]]"
                     icon-style-class-property="styleClass"
                     header="Review IDs"
@@ -678,6 +692,7 @@ limitations under the License.
                 <hr>
 
                 <detail-subsection
+                  entity-id="[[offer.id]]"
                   icon-style-class-property="styleClass"
                   header="Webpage"
                   header-style-class="entity-webpage-font"
@@ -685,6 +700,7 @@ limitations under the License.
                 </detail-subsection>
 
                 <detail-subsection
+                  entity-id="[[offer.id]]"
                   icon-style-class-property="styleClass"
                   extractions="[[offer.caches]]">
                 </detail-subsection>
@@ -694,6 +710,7 @@ limitations under the License.
                 <hr>
 
                 <detail-subsection
+                  entity-id="[[offer.id]]"
                   icon-style-class-property="styleClass"
                   header="Description"
                   detail="[[offer.description]]">
@@ -718,7 +735,7 @@ limitations under the License.
                     size="[[similarOfferCount]]"
                     sort-field="fields.posting_date.strict.key"
                     sort-order="desc"
-                    source-include='["doc_id", "fields", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
                     csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
                     pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
                     query-transform-function="[[clientConfig.transforms.offer.offers]]">
@@ -817,8 +834,6 @@ limitations under the License.
     app.getBlurStyleClass = function(blur, large) {
       return (blur ? (large ? 'large-blur' : 'small-blur') : '');
     };
-
-    app.classificationFlags = '["Test Flag 1", "Test Flag 2", "Test Flag 3"]';
   })(document);
   </script>
 </body>

@@ -27,11 +27,18 @@ limitations under the License.
     </style>
 
     <iron-ajax
-      auto="[[_exists(_body)]]"
-      body="[[_body]]"
+      auto
+      url="[[flagUrl]]"
+      handle-as="json"
+      last-response="{{_flagResponse}}">
+    </iron-ajax>
+
+    <iron-ajax
+      auto="[[_exists(_data.body)]]"
+      body="[[_data.body]]"
       content-type="application/json"
-      method="POST"
-      url="[[url]]"
+      method="[[_data.method]]"
+      url="[[_data.url]]"
       last-error="{{error}}"
       last-response="{{_response}}"
       loading="{{loading}}">
@@ -73,13 +80,33 @@ limitations under the License.
           }
         },
 
+        entityUrl: {
+          type: String
+        },
+
         error: {
           notify: true,
           type: Object
         },
 
+        extractionUrl: {
+          type: String
+        },
+
         flag: {
           observer: '_notifyFlagListeners',
+          type: String
+        },
+
+        flagList: {
+          notify: true,
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        flagUrl: {
           type: String
         },
 
@@ -89,11 +116,15 @@ limitations under the License.
           value: false
         },
 
-        url: {
-          type: String
+        _data: {
+          type: Object,
+          value: function() {
+            return {};
+          }
         },
 
-        _body: {
+        _flagResponse: {
+          observer: '_updateFlagList',
           type: Object
         },
 
@@ -131,14 +162,35 @@ limitations under the License.
             }
             return id;
           },
+
           removeListener: function(id) {
             delete self._listeners[id];
           },
-          setExtractionClassification: function(classification, extraction) {
-            // TODO
+
+          setEntityClassification: function(classification, flag, id, type) {
+            if(self.entityUrl) {
+              self.set('_data', {
+                body: !classification ? {} : {
+                  'kg_id': id,
+                  'human_annotation': (classification === 'positive' ? 1 : 0)
+                },
+                method: !classification ? 'DELETE' : 'POST',
+                url: self.entityUrl.replace('ENTITY_ID', id).replace('ENTITY_TYPE', type).replace('FLAG', flag)
+              });
+            }
           },
-          setFlagClassification: function(classification, flag, id) {
-            // TODO
+
+          setExtractionClassification: function(classification, entityId, extractionId, extractionType) {
+            if(self.extractionUrl) {
+              self.set('_data', {
+                body: !classification ? {} : {
+                  'key': extractionId,
+                  'human_annotation': (classification === 'positive' ? 1 : 0)
+                },
+                method: !classification ? 'DELETE' : 'POST',
+                url: self.extractionUrl.replace('ENTITY_ID', entityId).replace('EXTRACTION_ID', extractionId).replace('EXTRACTION_TYPE', extractionType)
+              });
+            }
           }
         };
       },
@@ -165,6 +217,16 @@ limitations under the License.
             showListener(self.dev && self.show);
           }
         });
+      },
+
+      _updateFlagList: function(response) {
+        var list = [];
+        if(response) {
+          _.keys(response).forEach(function(key) {
+            list.push(key);
+          });
+        }
+        this.set('flagList', list);
       }
     });
   })();

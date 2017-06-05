@@ -54,7 +54,7 @@ DigBehaviors.TypeBehavior = {
       case 'email': return 'communication:email';
       case 'image': return 'image:photo-camera';
       case 'location': return 'communication:location-on';
-      case 'money': return 'editor:monetization-on';
+      case 'price': return 'editor:monetization-on';
       case 'offer': return 'maps:local-offer';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
@@ -76,7 +76,7 @@ DigBehaviors.TypeBehavior = {
       case 'email': return 'Email Address' + (plural ? 'es' : '');
       case 'image': return 'Image' + (plural ? 's' : '');
       case 'location': return 'Location' + (plural ? 's' : '');
-      case 'money': return 'Price' + (plural ? 's' : '');
+      case 'price': return 'Price' + (plural ? 's' : '');
       case 'offer': return 'Ad' + (plural ? 's' : '');
       case 'phone': return 'Telephone Number' + (plural ? 's' : '');
       case 'provider': return 'Provider' + (plural ? 's' : '');

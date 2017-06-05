@@ -25,37 +25,6 @@ var searchTransform = (function(_, commonTransforms) {
     return [];
   }
 
-  function getSearchPredicateFromUiType(type) {
-    switch(type) {
-      case 'eyeColor': return 'eye_color';
-      case 'hairColor': return 'hair_color';
-      case 'image': return '';
-      case 'postingDate': return 'posting_date';
-      case 'region': return 'state';
-      case 'review': return 'review_id';
-      case 'services': return 'service';
-      case 'social': return 'social_media_id';
-      case 'website': return 'tld';
-    }
-    return type;
-  }
-
-  function getUiTypeFromSearchPredicate(type) {
-    switch(type) {
-      case 'city': return 'location';
-      case 'country': return 'location';
-      case 'eye_color': return 'eye';
-      case 'hair_color': return 'hair';
-      case 'posting_date': return 'date';
-      case 'review_id': return 'review';
-      case 'service': return 'services';
-      case 'state': return 'location';
-      case 'social_media_id': return 'social';
-      case 'tld': return 'website';
-    }
-    return type;
-  }
-
   function getTemplateFromSearchParameters(searchParameters, optional) {
     var predicates = {};
     var template = {
@@ -66,7 +35,7 @@ var searchTransform = (function(_, commonTransforms) {
 
     if(!_.isEmpty(searchParameters)) {
       _.keys(searchParameters).forEach(function(type) {
-        var predicate = getSearchPredicateFromUiType(type);
+        var predicate = commonTransforms.getDatabaseTypeFromUiType(type);
         _.keys(searchParameters[type]).forEach(function(term) {
           if(searchParameters[type][term].enabled) {
             if(type === 'postingDate') {
@@ -152,7 +121,7 @@ var searchTransform = (function(_, commonTransforms) {
         if(response[0].query && response[0].query.SPARQL && response[0].query.SPARQL.where && response[0].query.SPARQL.where.clauses && response[0].query.SPARQL.where.clauses.length) {
           response[0].query.SPARQL.where.clauses.forEach(function(clause) {
             if(clause.predicate && clause.constraint && clause._id) {
-              var type = getUiTypeFromSearchPredicate(clause.predicate);
+              var type = commonTransforms.getUiTypeFromDatabaseType(clause.predicate);
               fields[type] = fields[type] || {};
               fields[type][clause.constraint] = clause._id;
             }
@@ -170,7 +139,7 @@ var searchTransform = (function(_, commonTransforms) {
     },
 
     facetsQuery: function(searchParameters, config) {
-      var predicate = (config && config.aggregationType ? getSearchPredicateFromUiType(config.aggregationType) : undefined);
+      var predicate = (config && config.aggregationType ? commonTransforms.getDatabaseTypeFromUiType(config.aggregationType) : undefined);
       var template = getTemplateFromSearchParameters(searchParameters, false);
       var groupBy = {
         limit: (config && config.pageSize ? config.pageSize : 0),

@@ -53,8 +53,8 @@ limitations under the License.
     test('default properties are set correctly', function() {
       expect(element.classificationManager).to.not.exist;
       expect(element.classifications).to.deep.equal({});
-      expect(element.itemId).to.equal('');
-      expect(element.itemType).to.equal('');
+      expect(element.entityId).to.equal('');
+      expect(element.extractionId).to.equal('');
       expect(element._classificationFromDatabase).to.equal('');
       expect(element._classificationFromUser).to.equal('');
       expect(element._listenerId).to.equal(-1);
@@ -79,21 +79,21 @@ limitations under the License.
       expect(element._getIcon('negative', 'positive', '')).to.equal('fa:circle-o');
       expect(element._getIcon('positive', 'positive', '')).to.equal('fa:circle');
 
-      expect(element._getIcon('negative', '', 'negative')).to.equal('fa:check-circle-o');
+      expect(element._getIcon('negative', '', 'negative')).to.equal('fa:times-circle-o');
       expect(element._getIcon('positive', '', 'negative')).to.equal('fa:circle-o');
       expect(element._getIcon('negative', '', 'positive')).to.equal('fa:circle-o');
       expect(element._getIcon('positive', '', 'positive')).to.equal('fa:check-circle-o');
 
       // True positive/negative
-      expect(element._getIcon('negative', 'negative', 'negative')).to.equal('fa:check-circle');
+      expect(element._getIcon('negative', 'negative', 'negative')).to.equal('fa:times-circle');
       expect(element._getIcon('positive', 'negative', 'negative')).to.equal('fa:circle-o');
       expect(element._getIcon('negative', 'positive', 'positive')).to.equal('fa:circle-o');
       expect(element._getIcon('positive', 'positive', 'positive')).to.equal('fa:check-circle');
 
       // False positive/negative
       expect(element._getIcon('negative', 'negative', 'positive')).to.equal('fa:circle');
+      expect(element._getIcon('negative', 'positive', 'negative')).to.equal('fa:times-circle-o');
       expect(element._getIcon('positive', 'negative', 'positive')).to.equal('fa:check-circle-o');
-      expect(element._getIcon('negative', 'positive', 'negative')).to.equal('fa:check-circle-o');
       expect(element._getIcon('positive', 'positive', 'negative')).to.equal('fa:circle');
     });
 
@@ -231,20 +231,22 @@ limitations under the License.
     setup(function(done) {
       element = fixture('classify-extraction-buttons-fixture');
       element.classifications = {
-        database: 'positive'
+        database: 'positive',
+        type: 'extractionType'
       };
-      element.itemId = 'itemId';
-      element.itemType = 'itemType';
+      element.entityId = 'entityId';
+      element.extractionId = 'extractionId';
       element._show = true;
       flush(done);
     });
 
     test('all properties are set correctly', function() {
       expect(element.classifications).to.deep.equal({
-        database: 'positive'
+        database: 'positive',
+        type: 'extractionType'
       });
-      expect(element.itemId).to.equal('itemId');
-      expect(element.itemType).to.equal('itemType');
+      expect(element.entityId).to.equal('entityId');
+      expect(element.extractionId).to.equal('extractionId');
       expect(element._classificationFromDatabase).to.equal('positive');
       expect(element._classificationFromUser).to.equal('');
       expect(element._listenerId).to.equal(-1);
@@ -286,7 +288,7 @@ limitations under the License.
       element._classificationFromUser = 'negative';
       flush(function() {
         expect(element.$$('paper-icon-button[id="negativeIcon"]')).to.exist;
-        expect(element.$$('paper-icon-button[id="negativeIcon"]').icon).to.equal('fa:check-circle-o');
+        expect(element.$$('paper-icon-button[id="negativeIcon"]').icon).to.equal('fa:times-circle-o');
         expect(element.$$('paper-icon-button[id="positiveIcon"]')).to.exist;
         expect(element.$$('paper-icon-button[id="positiveIcon"]').icon).to.equal('fa:circle');
         done();
@@ -316,23 +318,25 @@ limitations under the License.
 
     test('setClassification does call classificationManager.setExtractionClassification', function(done) {
       element.classificationManager = {
-        setExtractionClassification: function(classification, itemId, itemType) {
+        setExtractionClassification: function(classification, entityId, extractionId, extractionType) {
           expect(classification).to.equal('testClassification');
-          expect(itemId).to.equal('itemId');
-          expect(itemType).to.equal('itemType');
+          expect(entityId).to.equal('id1');
+          expect(extractionId).to.equal('id2');
+          expect(extractionType).to.equal('type');
           expect(element._classificationFromUser).to.equal('testClassification');
           done();
         }
       };
-      element.setClassification('testClassification', 'itemId', 'itemType');
+      element.setClassification('testClassification', 'id1', 'id2', 'type');
     });
 
     test('_toggleNegative does call classificationManager.setExtractionClassification', function(done) {
       element.classificationManager = {
-        setExtractionClassification: function(classification, itemId, itemType) {
+        setExtractionClassification: function(classification, entityId, extractionId, extractionType) {
           expect(classification).to.equal('negative');
-          expect(itemId).to.equal('itemId');
-          expect(itemType).to.equal('itemType');
+          expect(entityId).to.equal('entityId');
+          expect(extractionId).to.equal('extractionId');
+          expect(extractionType).to.equal('extractionType');
           expect(element._classificationFromUser).to.equal('negative');
           done();
         }
@@ -342,10 +346,11 @@ limitations under the License.
 
     test('_togglePositive does call classificationManager.setExtractionClassification', function(done) {
       element.classificationManager = {
-        setExtractionClassification: function(classification, itemId, itemType) {
+        setExtractionClassification: function(classification, entityId, extractionId, extractionType) {
           expect(classification).to.equal('positive');
-          expect(itemId).to.equal('itemId');
-          expect(itemType).to.equal('itemType');
+          expect(entityId).to.equal('entityId');
+          expect(extractionId).to.equal('extractionId');
+          expect(extractionType).to.equal('extractionType');
           expect(element._classificationFromUser).to.equal('positive');
           done();
         }
@@ -362,8 +367,8 @@ limitations under the License.
       element.classifications = {
         database: 'positive'
       };
-      element.itemId = 'itemId';
-      element.itemType = 'itemType';
+      element.entityId = 'entityId';
+      element.extractionId = 'extractionId';
       flush(done);
     });
 
@@ -371,8 +376,8 @@ limitations under the License.
       expect(element.classifications).to.deep.equal({
         database: 'positive'
       });
-      expect(element.itemId).to.equal('itemId');
-      expect(element.itemType).to.equal('itemType');
+      expect(element.entityId).to.equal('entityId');
+      expect(element.extractionId).to.equal('extractionId');
       expect(element._classificationFromDatabase).to.equal('positive');
       expect(element._classificationFromUser).to.equal('');
       expect(element._listenerId).to.equal(-1);
