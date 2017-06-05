@@ -145,6 +145,7 @@ var searchTransform = (function(_, commonTransforms) {
         limit: (config && config.pageSize ? config.pageSize : 0),
         offset: 0
       };
+      var orderBy;
 
       if(predicate) {
         template.selects.push({
@@ -162,11 +163,20 @@ var searchTransform = (function(_, commonTransforms) {
         groupBy.variables = [{
           variable: '?' + predicate
         }];
+
+        orderBy = {
+          values: [{
+            'function': (config && config.sortOrder === '_term' ? undefined : 'count'),
+            order: (config && config.sortOrder === '_term' ? 'asc' : 'desc'),
+            variable: '?' + predicate
+          }]
+        };
       }
 
       return {
         SPARQL: {
           'group-by': groupBy,
+          'order-by': orderBy,
           select: {
             variables: template.selects
           },

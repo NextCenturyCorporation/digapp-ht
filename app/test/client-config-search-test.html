@@ -918,6 +918,7 @@ limitations under the License.
             limit: 0,
             offset: 0
           },
+          'order-by': undefined,
           select: {
             variables: [],
           },
@@ -947,6 +948,13 @@ limitations under the License.
         limit: 0,
         offset: 0,
         variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
           variable: '?age'
         }]
       });
@@ -1123,6 +1131,46 @@ limitations under the License.
       });
     });
 
+    test('facetsQuery transform function given _term sort order does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({}, {
+        aggregationType: 'age',
+        sortOrder: '_term'
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': undefined,
+          order: 'asc',
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
     test('facetsQuery transform function given search parameters of same type does return correct query', function() {
       var output = clientConfig.config.transforms.search.facetsQuery({
         title: {
@@ -1145,6 +1193,13 @@ limitations under the License.
         limit: 0,
         offset: 0,
         variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
           variable: '?age'
         }]
       });
@@ -1213,6 +1268,13 @@ limitations under the License.
           variable: '?age'
         }]
       });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
+          variable: '?age'
+        }]
+      });
       expect(output.SPARQL.select).to.deep.equal({
         variables: [{
           type: 'simple',
@@ -1235,6 +1297,65 @@ limitations under the License.
         isOptional: false,
         predicate: 'title',
         variable: '?title1'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given search parameter matching aggregation type does return correct query', function() {
+      var output = clientConfig.config.transforms.search.facetsQuery({
+        age: {
+          ageA: {
+            enabled: true,
+            key: 'ageA'
+          }
+        }
+      }, {
+        aggregationType: 'age',
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?age1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'ageA',
+        isOptional: false,
+        predicate: 'age'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age1'
       }, {
         isOptional: false,
         predicate: 'age',
@@ -1272,6 +1393,13 @@ limitations under the License.
         limit: 0,
         offset: 0,
         variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
           variable: '?age'
         }]
       });
@@ -1341,7 +1469,7 @@ limitations under the License.
           }
         }
       }, {
-        aggregationType: 'city'
+        aggregationType: 'age'
       });
 
       expect(output.type).to.equal('Aggregation');
@@ -1350,7 +1478,14 @@ limitations under the License.
         limit: 0,
         offset: 0,
         variables: [{
-          variable: '?city'
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
+          variable: '?age'
         }]
       });
       expect(output.SPARQL.select).to.deep.equal({
@@ -1360,7 +1495,7 @@ limitations under the License.
         }, {
           'function': 'count',
           type: 'function',
-          variable: '?city'
+          variable: '?age'
         }]
       });
       expect(output.SPARQL.where).to.be.an('Object');
@@ -1384,8 +1519,8 @@ limitations under the License.
         variable: '?date1'
       }, {
         isOptional: false,
-        predicate: 'city',
-        variable: '?city'
+        predicate: 'age',
+        variable: '?age'
       }]);
     });
 
@@ -1402,7 +1537,7 @@ limitations under the License.
           }
         }
       }, {
-        aggregationType: 'city'
+        aggregationType: 'age'
       });
 
       expect(output.type).to.equal('Aggregation');
@@ -1411,7 +1546,7 @@ limitations under the License.
         limit: 0,
         offset: 0,
         variables: [{
-          variable: '?city'
+          variable: '?age'
         }]
       });
       expect(output.SPARQL.select).to.deep.equal({
@@ -1421,7 +1556,7 @@ limitations under the License.
         }, {
           'function': 'count',
           type: 'function',
-          variable: '?city'
+          variable: '?age'
         }]
       });
       expect(output.SPARQL.where).to.be.an('Object');
@@ -1441,8 +1576,8 @@ limitations under the License.
         variable: '?date1'
       }, {
         isOptional: false,
-        predicate: 'city',
-        variable: '?city'
+        predicate: 'age',
+        variable: '?age'
       }]);
     });
 
