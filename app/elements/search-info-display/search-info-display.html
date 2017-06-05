@@ -55,7 +55,7 @@ limitations under the License.
 
     <template is="dom-if" if="[[searchName]]">
       <div class="layout horizontal">
-        <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Search Name</div>
+        <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Name</div>
         <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space search-text">[[searchName]]</div>
         <template is="dom-if" if="[[showNewIcon]]" restamp="true">
           <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
@@ -63,35 +63,19 @@ limitations under the License.
       </div>
     </template>
     <div class="layout horizontal">
-      <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Search Text</div>
-      <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space search-text">
-        <template is="dom-if" if="[[searchParameters.text]]">
-          [[searchParameters.text]]
-        </template>
-        <template is="dom-if" if="[[!searchParameters.text]]">
-          None
-        </template>
-      </div>
-    </div>
-    <div class="layout horizontal">
-      <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Facets</div>
-      <template is="dom-if" if="{{_hasNoFacets}}">
-        <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space search-text">None</div>
-      </template>
-      <template is="dom-if" if="{{!_hasNoFacets}}">
-        <div class="layout wrap facets">
-          <template is="dom-repeat" items="[[_getFacetGroups(searchParameters.*)]]" as="facetGroupName">
-            <template is="dom-repeat" items="[[_getFacetGroupKeys(facetGroupName, searchParameters.*)]]" as="key">
-              <template is="dom-if" if="[[_getFacetProperty(facetGroupName, key, 'enabled', searchParameters.*)]]">
-                <breadbox-item
-                  text="[[_getFacetProperty(facetGroupName, key, 'category', searchParameters.*)]]: [[_getFacetProperty(facetGroupName, key, 'text', searchParameters.*)]]"
-                  title$="[[_getFacetProperty(facetGroupName, key, 'category', searchParameters.*)]]: [[_getFacetProperty(facetGroupName, key, 'text', searchParameters.*)]]">
-                </breadbox-item>
-              </template>
+      <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Terms</div>
+      <div class="layout wrap facets">
+        <template is="dom-repeat" items="[[_getParameters(searchParameters.*)]]" as="facetGroupName">
+          <template is="dom-repeat" items="[[_getParameterTerms(facetGroupName, searchParameters.*)]]" as="key">
+            <template is="dom-if" if="[[_getTermProperty(facetGroupName, key, 'enabled', searchParameters.*)]]">
+              <breadbox-item
+                text="[[_getTermProperty(facetGroupName, key, 'category', searchParameters.*)]]: [[_getTermProperty(facetGroupName, key, 'text', searchParameters.*)]]"
+                title$="[[_getTermProperty(facetGroupName, key, 'category', searchParameters.*)]]: [[_getTermProperty(facetGroupName, key, 'text', searchParameters.*)]]">
+              </breadbox-item>
             </template>
           </template>
-        </div>
-      </template>
+        </template>
+      </div>
     </div>
   </template>
 
@@ -103,7 +87,9 @@ limitations under the License.
     Polymer({
       is: 'search-info-display',
 
-      behaviors: [DigBehaviors.FilterBehavior],
+      behaviors: [
+        DigBehaviors.FilterBehavior
+      ],
 
       properties: {
         /**
@@ -130,44 +116,27 @@ limitations under the License.
         showNewIcon: {
           type: Boolean,
           value: false
-        },
-
-        /**
-         * Whether the search has no facets.
-         * @type {Boolean}
-         */
-        _hasNoFacets: {
-          type: Boolean,
-          computed: '_isFacetSelectionEmpty(searchParameters.*)'
         }
-      },
-
-      /**
-       * Computes _hasNoFacets property
-       */
-      _isFacetSelectionEmpty: function() {
-        // From DigBehaviors.FilterBehavior
-        return this.areAllFacetsDisabled(this.searchParameters);
       },
 
       /**
        * Get all the facet selection groups.
        */
-      _getFacetGroups: function() {
+      _getParameters: function() {
         return _.keys(this.searchParameters);
       },
 
       /**
        * Get the selected facets from the facet group.
        */
-      _getFacetGroupKeys: function(facetGroupName) {
+      _getParameterTerms: function(facetGroupName) {
         return _.keys(this.searchParameters[facetGroupName]);
       },
 
       /**
        * Get the property of a selected facet.
        */
-      _getFacetProperty: function(facetGroupName, key, prop) {
+      _getTermProperty: function(facetGroupName, key, prop) {
         return this.searchParameters && this.searchParameters[facetGroupName] && this.searchParameters[facetGroupName][key] ? this.searchParameters[facetGroupName][key][prop] : undefined;
       }
     });
