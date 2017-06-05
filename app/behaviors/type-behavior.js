@@ -31,7 +31,7 @@ DigBehaviors.TypeBehavior = {
     }
 
     var linkId = id;
-    if(linkId.startsWith('http://dig.isi.edu/ht/data/')) {
+    if(linkId.indexOf('http://dig.isi.edu/ht/data/') === 0) {
       linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
     }
     if(type === 'email') {
