@@ -111,7 +111,7 @@ var offerTransform = (function(_, commonTransforms) {
       text: getTextOfType(item.key, item.value, type),
       type: extractionType
     };
-    if(type !== 'cache' && type !== 'webpage') {
+    if(type !== 'cache' && type !== 'website') {
       extraction.classifications = {
         database: '',
         type: commonTransforms.getDatabaseTypeFromUiType(type),
@@ -185,8 +185,8 @@ var offerTransform = (function(_, commonTransforms) {
   }
 
   function cleanHighlight(text, type) {
-    // Ignore partial matches for emails and webpages.
-    if((type === 'email' || type === 'webpage') && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
+    // Ignore partial matches for emails and websites.
+    if((type === 'email' || type === 'website') && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
       return text.toLowerCase();
     }
 
@@ -266,10 +266,10 @@ var offerTransform = (function(_, commonTransforms) {
       dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
       publishers: getExtractionsFromListOfType([{
         key: domain
-      }], 'webpage'),
-      webpages: getExtractionsFromListOfType([{
+      }], 'website'),
+      websites: getExtractionsFromListOfType([{
         key: url
-      }], 'webpage'),
+      }], 'website'),
       caches: getExtractionsFromListOfType([{
         key: id,
         value: 'Open Cached Ad Webpage'
@@ -297,7 +297,7 @@ var offerTransform = (function(_, commonTransforms) {
       offer.hairColors = addAllHighlights(offer.hairColors, record, highlightMapping.hairColor);
       offer.heights = addAllHighlights(offer.heights, record, highlightMapping.height);
       offer.weights = addAllHighlights(offer.weights, record, highlightMapping.weight);
-      offer.publishers = addAllHighlights(offer.publishers, record, highlightMapping.webpage);
+      offer.publishers = addAllHighlights(offer.publishers, record, highlightMapping.website);
     }
 
     // Handle extraction arrays for single-record elements.

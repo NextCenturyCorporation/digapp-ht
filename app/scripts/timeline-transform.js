@@ -37,7 +37,7 @@ var timelineTransform = (function(_, commonTransforms, offerTransform) {
     var details = [];
 
     if(locationBucket.publishers) {
-      var publishers = offerTransform.getExtractionsFromListOfType(locationBucket.publishers.buckets, 'webpage');
+      var publishers = offerTransform.getExtractionsFromListOfType(locationBucket.publishers.buckets, 'website');
       if(publishers.length) {
         details.push({
           name: 'Websites',

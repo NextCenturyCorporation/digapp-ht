@@ -61,7 +61,7 @@ DigBehaviors.TypeBehavior = {
       case 'review': return 'icons:star';
       case 'service': return 'icons:work';
       case 'social': return 'social:public';
-      case 'webpage': return 'av:web';
+      case 'website': return 'av:web';
     }
     return '';
   },
@@ -83,7 +83,7 @@ DigBehaviors.TypeBehavior = {
       case 'review': return 'Review ID' + (plural ? 's' : '');
       case 'service': return 'Service' + (plural ? 's' : '') + ' Provided';
       case 'social': return 'Social Media ID' + (plural ? 's' : '');
-      case 'webpage': return 'Website' + (plural ? 's' : '');
+      case 'website': return 'Website' + (plural ? 's' : '');
     }
     return '';
   },
