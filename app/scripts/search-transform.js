@@ -191,7 +191,8 @@ var searchTransform = (function(_, commonTransforms) {
       };
     },
 
-    cityAggregations: function(response, property) {
+    cityAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
         var city = commonTransforms.getLocationDataFromId(bucket.key).city;
@@ -208,7 +209,8 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    emailAggregations: function(response, property) {
+    emailAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
         var id = ('' + bucket.key).toLowerCase();
@@ -222,7 +224,8 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    filterAggregations: function(response, property) {
+    filterAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
         var id = ('' + bucket.key).toLowerCase();
@@ -235,7 +238,8 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    phoneAggregations: function(response, property) {
+    phoneAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -249,7 +253,8 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    socialMediaAggregations: function(response, property) {
+    socialMediaAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
         var id = ('' + bucket.key).toLowerCase();
@@ -266,7 +271,8 @@ var searchTransform = (function(_, commonTransforms) {
     },
 
     // Heights, prices, weights, etc.
-    compoundExtractionAggregations: function(response, property) {
+    compoundExtractionAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
         var extractionData = commonTransforms.getExtractionDataFromCompoundId(bucket.key);
