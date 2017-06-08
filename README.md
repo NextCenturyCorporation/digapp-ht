@@ -37,18 +37,24 @@ Copy **digapp-ht/server/config/local.env.sample.js** to **digapp-ht/server/confi
 Configuration Option | Description | Default
 ---------------------|-------------|--------
 ELASTIC_CONFIG | The address at which elasticsearch is hosted. | {"host": "http://localhost:9200"}
-ELASTIC_INDEX | The elasticsearch index in which the HT ads (and other data) are located. | dig-data
-ANNOTATION_INDEX | The elasticsearch index in which the user annotations are located. | dig-annotations
-ANNOTATION_TYPE | The elasticsearch index type of the user annotations. | annotation
+ELASTIC_INDEX | The elasticsearch index in which the HT ads (and other data) are located. | "dig-data"
+ANNOTATION_INDEX | The elasticsearch index in which the user annotations are located. | "dig-annotations"
+ANNOTATION_TYPE | The elasticsearch index type of the user annotations. | "annotation"
 ANNOTATION_RELEVANT | The label describing why the user annotations are relevant. | "to a counter-human-trafficking case"
 CACHE_CONFIG | The address at which elasticsearch is hosted in which the cached ads are located. | {"host": "http://localhost:9200"}
 CACHE_INDEX | The elasticsearch index in which the cached HT ads are located. | "memex-domains"
-FILTER_STATES_INDEX | The elasticsearch index in which the filter states are located. | dig-filter-states
-FILTER_STATES_TYPE | The elasticsearch index type of the filter states. | item
+CLASSIFICATION_URL | The endpoint at which the classification service is located.  Only used if DEV is true. |
+CLASSIFICATION_ENTITY_URL | The string added to the CLASSIFICATION_URL to create the endpoint to POST entity classifications.  Only used if DEV is true. |
+CLASSIFICATION_EXTRACTION_URL | The string added to the CLASSIFICATION_URL to create the endpoint to POST extraction classifications.  Only used if DEV is true. |
+CLASSIFICATION_FLAG_URL | The string added to the CLASSIFICATION_URL to create the endpoint to GET classification flags.  Only used if DEV is true. |
+DEV | Whether to enable development mode. | false
+FILTER_STATES_INDEX | The elasticsearch index in which the filter states are located. | "dig-filter-states"
+FILTER_STATES_TYPE | The elasticsearch index type of the filter states. | "item"
 IMAGE_SERVICE_AUTH | The authorization needed to use the similar image REST service. | {"user: "", "password": ""}
 IMAGE_SERVICE_HOST | The address at which the similar image REST services are located.  The "url" is for GET requests sending a specific image URL.  The "base64" is for POST requests sending specific image base64 data.  | {"url": "", "base64": ""}
 LOG_INDEX | The elasticsearch index in which the logs are located. | "dig-logs"
 LOG_TYPE | The elasticsearch index type of the logs. | "log"
+RAW_ES_DATA_URL | The endpoint at which the elasticsearch data can be accessed through links in the UI.  Document _id is added to the end of the string.  UI links are not shown if URL is undefined. |
 USER_INDEX | The elasticsearch index in which the users are located. | "dig-users"
 USER_TYPE | The elasticsearch index type of the users. | "user"
 
