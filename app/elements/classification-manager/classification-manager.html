@@ -30,6 +30,8 @@ limitations under the License.
       auto
       url="[[flagUrl]]"
       handle-as="json"
+      headers="[[_headers]]"
+      with-credentials="[[_exists(auth)]]"
       last-response="{{_flagResponse}}">
     </iron-ajax>
 
@@ -37,6 +39,7 @@ limitations under the License.
       auto="[[_exists(_data.body)]]"
       body="[[_data.body]]"
       content-type="application/json"
+      headers="[[_headers]]"
       method="[[_data.method]]"
       url="[[_data.url]]"
       last-error="{{error}}"
@@ -70,6 +73,10 @@ limitations under the License.
           observer: '_notifyShowListeners',
           type: Boolean,
           value: false
+        },
+
+        auth: {
+          type: String
         },
 
         classificationManager: {
@@ -126,6 +133,14 @@ limitations under the License.
         _flagResponse: {
           observer: '_updateFlagList',
           type: Object
+        },
+
+        _headers: {
+          computed: '_buildHeaders(auth)',
+          type: Object,
+          value: function() {
+            return {};
+          }
         },
 
         _listeners: {
@@ -193,6 +208,16 @@ limitations under the License.
             }
           }
         };
+      },
+
+      _buildHeaders: function(authString) {
+        var authObject = authString ? JSON.parse(authString) : {};
+        if(authObject.user && authObject.password) {
+          return {
+            'Authorization': 'Basic ' + btoa(authObject.user + ':' + authObject.password)
+          };
+        }
+        return {};
       },
 
       _exists: function(object) {

@@ -46,7 +46,7 @@ module.exports = function(app) {
             annotateOrClassify: config.annotateOrClassify,
             cacheConfig: JSON.parse(config.cacheConfig),
             cacheIndex: config.cacheIndex,
-            classificationUrl: config.classificationUrl,
+            classificationAuth: config.classificationAuth,
             classificationEntityUrl: config.classificationEntityUrl,
             classificationExtractionUrl: config.classificationExtractionUrl,
             classificationFlagUrl: config.classificationFlagUrl,
