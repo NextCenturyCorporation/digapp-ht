@@ -17,7 +17,7 @@
 /* exported offerTransform */
 /* jshint camelcase:false */
 
-var offerTransform = (function(_, commonTransforms) {
+var offerTransform = (function(_, serverConfig, commonTransforms) {
 
   /**
    * Returns the list of DIG image objects using the given images from the data.
@@ -235,6 +235,7 @@ var offerTransform = (function(_, commonTransforms) {
 
     var rank = _.get(record, '_score');
     var domain = _.get(record, '_source.tld');
+    var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
     var offer = {
       id: id,
@@ -267,13 +268,6 @@ var offerTransform = (function(_, commonTransforms) {
       publishers: getExtractionsFromListOfType([{
         key: domain
       }], 'website'),
-      websites: getExtractionsFromListOfType([{
-        key: url
-      }], 'website'),
-      caches: getExtractionsFromListOfType([{
-        key: id,
-        value: 'Open Cached Ad Webpage'
-      }], 'cache'),
       highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
@@ -358,10 +352,17 @@ var offerTransform = (function(_, commonTransforms) {
     }];
 
     // Handle detail arrays for single-record elements.
+    if(rawEsDataUrl) {
+      offer.details.push({
+        name: 'Raw ES Ad Content',
+        link: rawEsDataUrl,
+        text: 'Open'
+      });
+    }
     offer.details.push({
       name: 'Url',
-      link: url || null,
-      text: url || 'Unavailable'
+      link: url,
+      text: url
     });
     offer.details.push({
       name: 'Description',
@@ -370,9 +371,19 @@ var offerTransform = (function(_, commonTransforms) {
     });
     offer.details.push({
       name: 'Cached Ad Webpage',
-      link: id ? commonTransforms.getLink(id, 'cache') : null,
-      text: id ? 'Open' : 'Unavailable'
+      link: commonTransforms.getLink(id, 'cache'),
+      text: 'Open'
     });
+
+    // Data to show on the offer (ad) entity page.
+    offer.cache = {
+      link: commonTransforms.getLink(id, 'cache'),
+      text: 'Open Cached Ad Webpage'
+    };
+    offer.raw = !rawEsDataUrl ? undefined : {
+      link: rawEsDataUrl,
+      text: 'Open Raw ES Ad Content'
+    };
 
     return offer;
   }

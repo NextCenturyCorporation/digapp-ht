@@ -60,7 +60,8 @@ module.exports = function(app) {
             imageServiceAuth: config.imageServiceAuth,
             imageServiceHost: config.imageServiceHost,
             downloadImageUrl: config.downloadImageUrl,
-            queryUrl: config.queryUrl
+            queryUrl: config.queryUrl,
+            rawEsDataUrl: config.rawEsDataUrl
         });
     });
 

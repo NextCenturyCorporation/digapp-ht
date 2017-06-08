@@ -74,10 +74,7 @@ limitations under the License.
 <body unresolved class="fullbleed layout vertical">
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
-
-    <!-- exposes clientConfig object which is a container for data
-      transform functions -->
-    <client-config config="{{clientConfig}}"></client-config>
+    <client-config config="[[config]]" transforms="{{transforms}}"></client-config>
 
     <!--get app configuration from server -->
     <iron-ajax
@@ -108,7 +105,7 @@ limitations under the License.
       page-size="1"
       properties-ready="{{processRequest}}"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      transform-function="[[clientConfig.transforms.offer.offer]]"
+      transform-function="[[transforms.offer.offer]]"
       error="{{error}}"
       loading="{{loading}}"
       results="{{offer}}">
@@ -127,7 +124,7 @@ limitations under the License.
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
       filters="[]"
-      transform-function="[[clientConfig.transforms.offer.revisions]]"
+      transform-function="[[transforms.offer.revisions]]"
       error="{{revisionTimelineError}}"
       loading="{{revisionTimelineLoading}}"
       results="{{revisionTimeline}}">
@@ -169,7 +166,7 @@ limitations under the License.
     <json-transform
      data-in="[[revisionAdDataResults]]"
      data-out="{{revisionAdData}}"
-     transform-function="[[clientConfig.transforms.offer.offers]]"
+     transform-function="[[transforms.offer.offers]]"
      ></json-transform>
 
     <!-- More Ads Like This -->
@@ -201,7 +198,7 @@ limitations under the License.
     <json-transform
       data-in="[[similarOfferResults]]"
       data-out="{{similarOffers}}"
-      transform-function="[[clientConfig.transforms.offer.offers]]">
+      transform-function="[[transforms.offer.offers]]">
     </json-transform>
 
     <dig-logger log-page-view
@@ -325,7 +322,7 @@ limitations under the License.
             image-field="knowledge_graph.image.key"
             offer-field="doc_id"
             phone-field="knowledge_graph.phone.key"
-            transform-function="[[clientConfig.transforms.entity.entities]]"
+            transform-function="[[transforms.entity.entities]]"
             entities="{{userEntities}}"
             user-update-body="{{userUpdateBody}}">
           </entity-list-dialog>
@@ -372,7 +369,7 @@ limitations under the License.
                 style-class="entity-location-font"
                 text-property="textAndCount"
                 transform-config='{"type":"location","sayOther":false}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[offer.locations]]">
 
                 <detail-subsection
@@ -503,7 +500,7 @@ limitations under the License.
                 icon="image:photo"
                 style-class="entity-image-font"
                 transform-config="[[loadedImages.length]]"
-                transform-function="[[clientConfig.transforms.image.imageTitle]]"
+                transform-function="[[transforms.image.imageTitle]]"
                 data="[[images]]">
 
                 <image-query-and-display
@@ -519,7 +516,7 @@ limitations under the License.
                   query-fields='"isImagePartOf.uri"'
                   query-values="[[params.id]]"
                   transform-config="{}"
-                  transform-function="[[clientConfig.transforms.image.images]]"
+                  transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   images="{{images}}"
@@ -579,9 +576,9 @@ limitations under the License.
                     sort-field="fields.posting_date.strict.key"
                     sort-order="desc"
                     source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
-                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                    csv-transform-function="[[transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[transforms.offer.offers]]">
                   </export-button>
                 </section-title>
 
@@ -593,6 +590,7 @@ limitations under the License.
                 <info-revisions></info-revisions>
 
                 <records-list
+                  dev="[[config.dev]]"
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
@@ -601,7 +599,7 @@ limitations under the License.
                   image-index-name="[[config.elasticIndex]]"
                   image-index-type="images"
                   image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"
@@ -693,16 +691,24 @@ limitations under the License.
 
                 <detail-subsection
                   entity-id="[[offer.id]]"
-                  icon-style-class-property="styleClass"
+                  link="[[offer.url]]"
                   header="Webpage"
                   header-style-class="entity-website-font"
-                  extractions="[[offer.websites]]">
+                  detail="[[offer.url]]">
                 </detail-subsection>
+
+                <template is="dom-if" if="[[offer.raw]]">
+                  <detail-subsection
+                    entity-id="[[offer.id]]"
+                    link="[[offer.raw.link]]"
+                    detail="[[offer.raw.text]]">
+                  </detail-subsection>
+                </template>
 
                 <detail-subsection
                   entity-id="[[offer.id]]"
-                  icon-style-class-property="styleClass"
-                  extractions="[[offer.caches]]">
+                  link="[[offer.cache.link]]"
+                  detail="[[offer.cache.text]]">
                 </detail-subsection>
 
                 <info-cached-webpages></info-cached-webpages>
@@ -711,7 +717,6 @@ limitations under the License.
 
                 <detail-subsection
                   entity-id="[[offer.id]]"
-                  icon-style-class-property="styleClass"
                   header="Description"
                   detail="[[offer.description]]">
                 </detail-subsection>
@@ -736,9 +741,9 @@ limitations under the License.
                     sort-field="fields.posting_date.strict.key"
                     sort-order="desc"
                     source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
-                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                    csv-transform-function="[[transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[transforms.offer.offers]]">
                   </export-button>
                 </section-title>
 
@@ -750,6 +755,7 @@ limitations under the License.
                 <info-similar-offers></info-similar-offers>
 
                 <records-list
+                  dev="[[config.dev]]"
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
@@ -758,7 +764,7 @@ limitations under the License.
                   image-index-name="[[config.elasticIndex]]"
                   image-index-type="images"
                   image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"

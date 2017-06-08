@@ -77,7 +77,8 @@ var all = {
     userIndex: process.env.USER_INDEX || 'dig-users',
     userType: process.env.USER_TYPE || 'user',
     downloadImageUrl: process.env.DOWNLOAD_IMAGE_URL || 'downloadImage',
-    queryUrl: process.env.QUERY_URL
+    queryUrl: process.env.QUERY_URL,
+    rawEsDataUrl: process.env.RAW_ES_DATA_URL
 };
 
 // Export the config object based on the NODE_ENV
