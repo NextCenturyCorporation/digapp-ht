@@ -50,10 +50,6 @@ limitations under the License.
         padding-bottom: 30px;
       }
 
-      .date {
-        padding-top: 30px;
-      }
-
       .search-dialog paper-dropdown-menu,
       .search-dialog paper-input {
         display: inline-block;
@@ -91,6 +87,10 @@ limitations under the License.
           cursor: pointer;
           padding: 0 20px;
         }
+      }
+
+      .date-fields-title {
+        padding-top: 30px;
       }
 
       .date-fields-container {
@@ -161,47 +161,43 @@ limitations under the License.
           </div>
         </div>
 
-        <div class="layout horizontal">
-          <div class="styled-dialog-name date styled-dialog-right-space search-labels">Dates</div>
-          <div class="layout horizontal date-fields-container">
-            <date-picker-display
-              facet-selection="{{dateStartConfig.value}}"
-              key="{{dateStartConfig.key}}"
-              prefix-label="{{dateStartConfig.prefixLabel}}"
-              date-identifier="{{dateStartConfig.dateIdentifier}}"
-              title="{{dateStartConfig.title}}">
-            </date-picker-display>
-            <date-picker-display
-              facet-selection="{{dateEndConfig.value}}"
-              key="{{dateEndConfig.key}}"
-              prefix-label="{{dateEndConfig.prefixLabel}}"
-              date-identifier="{{dateEndConfig.dateIdentifier}}"
-              title="{{dateEndConfig.title}}">
-            </date-picker-display>
-          </div>
-        </div>
-
-        <!-- searchFields -->
-        <template is="dom-repeat" items="[[orderedSearchFieldGroupKeys]]" as="group">
+        <template is="dom-repeat" items="[[_searchFields]]" as="dialogConfig">
           <div class="layout horizontal">
-            <div class="styled-dialog-name search-labels styled-dialog-right-space">[[group]]</div>
-            <div class="layout horizontal wrap">
-              <template is="dom-repeat" items="[[getGroupProperty(group, dataProperty, searchFields.*)]]">
-                <paper-input
-                  id$="input_[[item.key]]"
-                  label="[[item.title]]"
-                  value="{{item.value}}"
-                  on-keydown="checkSearchFieldInputKey">
-                </paper-input>
-              </template>
-            </div>
+            <template is="dom-if" if="[[_equalsDate(dialogConfig.type)]]">
+              <div class="styled-dialog-name styled-dialog-right-space search-labels date-fields-title">[[dialogConfig.name]]</div>
+              <div class="layout horizontal date-fields-container">
+                <template is="dom-repeat" items="[[dialogConfig.data]]" as="searchConfig">
+                  <date-picker-display
+                    facet-selection="{{searchConfig.value}}"
+                    key="[[searchConfig.key]]"
+                    prefix-label="[[searchConfig.title]]"
+                    date-identifier="[[searchConfig.dateId]]"
+                    title="[[searchConfig.title]]">
+                  </date-picker-display>
+                </template>
+              </div>
+            </template>
+
+            <template is="dom-if" if="[[!_equalsDate(dialogConfig.type)]]">
+              <div class="styled-dialog-name styled-dialog-right-space search-labels">[[dialogConfig.name]]</div>
+              <div class="layout horizontal wrap">
+                <template is="dom-repeat" items="[[dialogConfig.data]]" as="searchConfig">
+                  <paper-input
+                    id$="input_[[searchConfig.key]]"
+                    label="[[searchConfig.title]]"
+                    value="{{searchConfig.value}}"
+                    on-keydown="_checkSearchFieldInputKey">
+                  </paper-input>
+                </template>
+              </div>
+            </template>
           </div>
         </template>
       </div>
 
       <div class="horizontal layout center-justified search-buttons">
         <button-action class="styled-dialog-button" text="Search" on-tap="handleSearch"></button-action>
-        <button-action class="styled-dialog-button" text="Reset" on-tap="resetSearchFields"></button-action>
+        <button-action class="styled-dialog-button" text="Reset" on-tap="resetAllSearchFields"></button-action>
         <button-action class="styled-dialog-button" text="Cancel" on-tap="cancelSearch"></button-action>
       </div>
     </styled-dialog>
@@ -217,46 +213,168 @@ limitations under the License.
       behaviors: [DigBehaviors.FilterBehavior, DigBehaviors.PhoneBehavior],
 
       properties: {
-        searchParameters: {
+        /**
+         * The keys of dates in the searchFieldsConfig mapped to the keys of dates in the searchParameters.
+         *
+         * @type {Object}
+         * @default {}
+         */
+        dateConfig: {
           type: Object,
-          notify: true
+          value: function() {
+            return {};
+          }
         },
-        dateStartConfig: {
-          type: Object,
-          notify: true
-        },
-        dateEndConfig: {
-          type: Object,
-          notify: true
-        },
+
+        /**
+         * Whether the dialog is opened.
+         *
+         * @type {Boolean}
+         * @default false
+         */
         opened: {
-          type: Boolean,
           notify: true,
+          type: Boolean,
           value: false
         },
+
+        /**
+         * Whether to let queries run.
+         *
+         * @type {Boolean}
+         */
         processRequest: {
-          type: Boolean,
-          notify: true
+          notify: true,
+          type: Boolean
         },
+
+        /**
+         * Whether the user canceled the changes.
+         *
+         * @type {Boolean}
+         * @default false
+         */
         userCanceled: {
+          notify: true,
           type: Boolean,
           value: false
         },
+
+        /**
+         * The data property in the searchFieldsConfig.
+         *
+         * @type {String}
+         * @default 'data'
+         */
         dataProperty: {
           type: String,
           value: 'data'
         },
-        titleProperty: {
+
+        /**
+         * The date ID property in the data in the searchFieldsConfig.
+         *
+         * @type {String}
+         * @default 'dateIdentifier'
+         */
+        dataDateIdProperty: {
+          type: String,
+          value: 'dateIdentifier'
+        },
+
+        /**
+         * The key property in the data in the searchFieldsConfig.
+         *
+         * @type {String}
+         * @default 'key'
+         */
+        dataKeyProperty: {
+          type: String,
+          value: 'key'
+        },
+
+        /**
+         * The title property in the data in the searchFieldsConfig.
+         *
+         * @type {String}
+         * @default 'title'
+         */
+        dataTitleProperty: {
           type: String,
           value: 'title'
         },
-        searchFields: {
-          type: Object,
-          notify: true
+
+        /**
+         * The name property in the searchFieldsConfig.
+         *
+         * @type {String}
+         * @default 'name'
+         */
+        nameProperty: {
+          type: String,
+          value: 'name'
         },
-        orderedSearchFieldGroupKeys: {
-          type: Array,
-          notify: true
+
+        /**
+         * The type property in the searchFieldsConfig.
+         *
+         * @type {String}
+         * @default 'type'
+         */
+        typeProperty: {
+          type: String,
+          value: 'type'
+        },
+
+        /**
+         * A list of objects that correspond to groupings of search fields.
+         *
+         * @type {Array}
+         */
+        searchFieldsConfig: {
+          type: Array
+        },
+
+        /**
+         * A function that transforms search parameter data into a search parameter object.
+         *
+         * @type {Object}
+         * @default function(category, enabled, key, text, date) { return { category: category, date: date, enabled: enabled, key: key, text: text }; }
+         */
+        searchParameterTransform: {
+          type: Object,
+          value: function() {
+            return function(category, enabled, key, text, date) {
+              return {
+                category: category,
+                date: date,
+                enabled: enabled,
+                key: key,
+                text: text
+              };
+            };
+          }
+        },
+
+        /**
+         * The search parameters created from the terms entered into the dialog.
+         *
+         * @type {Object}
+         */
+        searchParameters: {
+          notify: true,
+          type: Object
+        },
+
+        /**
+         * The search fields shown in the dialog.
+         *
+         * @type {Array}
+         * @private
+         */
+        _searchFields: {
+          computed: '_createSearchFields(searchFieldsConfig, dataProperty, nameProperty, typeProperty, dataDateIdProperty, dataKeyProperty, dataTitleProperty)',
+          type: Array
         }
       },
 
@@ -264,56 +382,109 @@ limitations under the License.
         'toggleProcessRequest(searchParameters.*)'
       ],
 
-      getGroupProperty: function(group, property) {
-        return this.searchFields[group][property];
-      },
-
+      /**
+       * Toggles whether to let queries run whenever the search parameters change or the dialog is opened or closed.
+       */
       toggleProcessRequest: function() {
         this.processRequest = !this.opened && !this.userCanceled;
         // reset user canceled variable
         this.userCanceled = false;
       },
 
+      /**
+       * Updates the search fields shown in the dialog from the search parameters if opening the dialog, then opens or closes the dialog.
+       */
       toggleSearchFieldsDialog: function() {
         var self = this;
+        var dateKeys = _.keys(this.dateConfig);
+
         // Set or clear the search fields whenever the dialog is opened.
         if(!this.opened) {
-          this.orderedSearchFieldGroupKeys.forEach(function(group) {
-            var data = self.searchFields[group][self.dataProperty];
-
-            if(data) {
-              data.forEach(function(searchConfig) {
-                self.updateSearchFieldFromParameter(searchConfig);
+          this._searchFields.forEach(function(dialogConfig, dialogIndex) {
+            if(dialogConfig.data) {
+              dialogConfig.data.forEach(function(searchConfig, searchIndex) {
+                if(dateKeys.indexOf(searchConfig.key) >= 0) {
+                  self._updateDateFieldFromParameter(searchConfig, ['_searchFields', dialogIndex, 'data', searchIndex, 'value']);
+                } else {
+                  self._updateSearchFieldFromParameter(searchConfig);
+                }
               });
             }
           });
-
-          this.updateDateFieldFromParameter(this.dateStartConfig, 'dateStartConfig');
-          this.updateDateFieldFromParameter(this.dateEndConfig, 'dateEndConfig');
         }
 
         this.opened = !this.opened;
       },
 
-      updateSearchParameterAndNotify: function(type, term, title, enabled) {
-        this.searchParameters[type][term] = {
-          category: title,
-          enabled: enabled,
-          key: term,
-          text: term
-        };
-
-        this.notifyPath(['searchParameters', type, '*'], {
-          category: title,
-          enabled: enabled,
-          key: term,
-          text: term
+      /**
+       * Creates and returns the search fields shown in the dialog.
+       *
+       * @param {Array} config
+       * @param {String} dataProperty
+       * @param {String} nameProperty
+       * @param {String} typeProperty
+       * @param {String} dataDateIdProperty
+       * @param {String} dataKeyProperty
+       * @param {String} dataTitleProperty
+       * @return {Array}
+       * @private
+       */
+      _createSearchFields: function(config, dataProperty, nameProperty, typeProperty, dataDateIdProperty, dataKeyProperty, dataTitleProperty) {
+        var dateKeys = _.keys(this.dateConfig);
+        return config.map(function(dialogConfig) {
+          return {
+            data: dialogConfig[dataProperty].map(function(searchConfig) {
+              var isDate = (dateKeys.indexOf(searchConfig[dataKeyProperty]) >= 0);
+              return {
+                dateId: searchConfig[dataDateIdProperty],
+                key: searchConfig[dataKeyProperty],
+                title: searchConfig[dataTitleProperty],
+                value: isDate ? {} : ''
+              };
+            }),
+            name: dialogConfig[nameProperty],
+            type: dialogConfig[typeProperty]
+          };
         });
       },
 
-      updateSearchParameterFromField: function(searchConfig) {
+      /**
+       * Returns whether the given argument is 'date'.
+       *
+       * @param {String} string
+       * @return {Boolean}
+       * @private
+       */
+      _equalsDate: function(string) {
+        return string === 'date';
+      },
+
+      /**
+       * Updates the searchParameters with a new object and notifies observers.
+       *
+       * @param {String} type
+       * @param {String} term
+       * @param {String} title
+       * @param {Boolean} enabled
+       * @private
+       */
+      _updateSearchParameterAndNotify: function(type, term, title, enabled) {
+        this.searchParameters[type][term] = this.searchParameterTransform(title, enabled, term, term);
+
+        // TODO Do we really need to create a different object?  Do we need to use an object at all?
+        this.notifyPath(['searchParameters', type, '*'], this.searchParameterTransform(title, enabled, term, term));
+      },
+
+      /**
+       * Updates the searchParameters from the given config object by adding or removing search terms.
+       *
+       * @param {Object} searchConfig
+       * @private
+       */
+      _updateSearchParameterFromField: function(searchConfig) {
         var self = this;
         var terms = searchConfig.value.split(',').map(function(term) {
+          // TODO Custom formatting.
           if(searchConfig.key === 'phone') {
             return DigBehaviors.PhoneBehavior.getUnformattedPhones(term);
           }
@@ -321,65 +492,88 @@ limitations under the License.
           return term.replace(/\+|\-|\=|\&|\||\>|\<|\!|\(|\)|\{|\}|\[|\]|\^|\"|\~|\*|\?|\:|\\|\//g, ' ').trim();
         });
 
+        // TODO Don't assume data structure.
         _.keys(self.searchParameters[searchConfig.key]).forEach(function(term) {
+          // Disable deleted terms.
           if(self.searchParameters[searchConfig.key][term].enabled && terms.indexOf(term) < 0) {
-            self.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, false);
+            self._updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, false);
           }
         });
 
         terms.forEach(function(term) {
+          // Add new terms.
           if(term) {
-            self.updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, true);
+            self._updateSearchParameterAndNotify(searchConfig.key, term, searchConfig.title, true);
           }
         });
       },
 
-      updateDateAndNotify: function(key, date, text, category, enabled) {
-        this.searchParameters.postingDate[key] = {
-          key: key,
-          category: category,
-          enabled: enabled,
-          date: date,
-          text: text
-        };
+      /**
+       * Updates the searchParameters with a new date object and notifies observers.
+       *
+       * @param {String} key
+       * @param {Object} date
+       * @param {String} text
+       * @param {String} category
+       * @param {Boolean} enabled
+       * @private
+       */
+      _updateDateParameterAndNotify: function(key, date, text, category, enabled) {
+        var parameterKey = this.dateConfig[key];
 
-        this.notifyPath(['searchParameters', 'postingDate', key], {
-          key: key,
-          category: category,
-          enabled: enabled,
-          date: date,
-          text: text
-        });
+        this.searchParameters[parameterKey][key] = this.searchParameterTransform(category, enabled, key, text, date);
+
+        // TODO Do we really need to create a different object?  Do we need to use an object at all?
+        this.notifyPath(['searchParameters', parameterKey, key], this.searchParameterTransform(category, enabled, key, text, date));
       },
 
-      updateDateParameterFromField: function(dateConfig) {
-        if(dateConfig.value[dateConfig.key]) {
-          var dateObject = dateConfig.value[dateConfig.key];
-          this.updateDateAndNotify(dateObject.key, dateObject.date, dateObject.text, dateObject.category, dateObject.enabled);
-        } else if(this.searchParameters.postingDate[dateConfig.key]) {
-          this.searchParameters.postingDate[dateConfig.key] = {};
-          this.notifyPath(['searchParameters', 'postingDate', dateConfig.key], {});
+      /**
+       * Updates the searchParameters from the given date config object by adding or removing search terms.
+       *
+       * @param {Object} searchConfig
+       * @private
+       */
+      _updateDateParameterFromField: function(searchConfig) {
+        var parameterKey = this.dateConfig[searchConfig.key];
+        // TODO Don't assume data structure.
+        if(!_.isEmpty(searchConfig.value[searchConfig.key])) {
+          var dateObject = searchConfig.value[searchConfig.key];
+          this._updateDateParameterAndNotify(dateObject.key, dateObject.date, dateObject.text, dateObject.category, dateObject.enabled);
+        } else if(this.searchParameters[parameterKey][searchConfig.key]) {
+          this.searchParameters[parameterKey][searchConfig.key] = {};
+          this.notifyPath(['searchParameters', parameterKey, searchConfig.key], {});
         }
       },
 
-      updateSearchParametersFromFields: function() {
+      /**
+       * Updates the searchParameters from the search fields in the dialog by adding or removing search terms.
+       *
+       * @private
+       */
+      _updateSearchParametersFromFields: function() {
         var self = this;
+        var dateKeys = _.keys(this.dateConfig);
 
-        this.orderedSearchFieldGroupKeys.forEach(function(group) {
-          var data = self.searchFields[group][self.dataProperty];
-
-          if(data) {
-            data.forEach(function(searchConfig) {
-              self.updateSearchParameterFromField(searchConfig);
+        this._searchFields.forEach(function(dialogConfig) {
+          if(dialogConfig.data) {
+            dialogConfig.data.forEach(function(searchConfig) {
+              if(dateKeys.indexOf(searchConfig.key) >= 0) {
+                self._updateDateParameterFromField(searchConfig);
+              } else {
+                self._updateSearchParameterFromField(searchConfig);
+              }
             });
           }
         });
-
-        this.updateDateParameterFromField(this.dateStartConfig);
-        this.updateDateParameterFromField(this.dateEndConfig);
       },
 
-      updateSearchFieldFromParameter: function(searchConfig) {
+      /**
+       * Updates the search field input of the given config object from the searchParameters.
+       *
+       * @param {Object} searchConfig
+       * @private
+       */
+      _updateSearchFieldFromParameter: function(searchConfig) {
         var self = this;
         searchConfig.value = _.keys(this.searchParameters[searchConfig.key]).filter(function(term) {
           return self.searchParameters[searchConfig.key][term].enabled;
@@ -390,16 +584,27 @@ limitations under the License.
         this.$$('#input_' + searchConfig.key).value = searchConfig.value;
       },
 
-      updateDateFieldFromParameter: function(dateConfig, property) {
-        dateConfig.value = {};
-        if(this.searchParameters.postingDate[dateConfig.key]) {
-          dateConfig.value[dateConfig.key] = this.searchParameters.postingDate[dateConfig.key];
+      /**
+       * Updates the date input of the given config object from the searchParameters and notifies observers on the given path.
+       *
+       * @param {Object} searchConfig
+       * @param {Array|String} updatePath
+       * @private
+       */
+      _updateDateFieldFromParameter: function(searchConfig, updatePath) {
+        var parameterKey = this.dateConfig[searchConfig.key];
+        searchConfig.value = {};
+        if(this.searchParameters[parameterKey][searchConfig.key]) {
+          searchConfig.value[searchConfig.key] = this.searchParameters[parameterKey][searchConfig.key];
         }
-        this.set([property + '.value'], dateConfig.value);
+        this.set(updatePath, searchConfig.value);
       },
 
+      /**
+       * Updates the searchParameters from the search fields and closes the dialog so that new queries can run.
+       */
       handleSearch: function() {
-        this.updateSearchParametersFromFields();
+        this._updateSearchParametersFromFields();
 
         if(DigBehaviors.FilterBehavior.areAllFacetsDisabled(this.searchParameters, ['sort'])) {
           return;
@@ -408,31 +613,41 @@ limitations under the License.
         this.toggleSearchFieldsDialog();
       },
 
-      resetSearchFields: function() {
+      /**
+       * Clears all of the search fields in the dialog.
+       */
+      resetAllSearchFields: function() {
         var self = this;
+        var dateKeys = _.keys(this.dateConfig);
 
-        this.orderedSearchFieldGroupKeys.forEach(function(group) {
-          var data = self.searchFields[group][self.dataProperty];
-
-          if(data) {
-            data.forEach(function(searchConfig) {
-              self.$$('#input_' + searchConfig.key).value = '';
+        this._searchFields.forEach(function(dialogConfig, dialogIndex) {
+          if(dialogConfig.data) {
+            dialogConfig.data.forEach(function(searchConfig, searchIndex) {
+              if(dateKeys.indexOf(searchConfig.key) >= 0) {
+                self.set(['_searchFields', dialogIndex, 'data', searchIndex, 'value'], {});
+              } else {
+                self.$$('#input_' + searchConfig.key).value = '';
+              }
             });
           }
         });
-
-        this.dateStartConfig.value = {};
-        this.set('dateStartConfig.value', {});
-        this.dateEndConfig.value = {};
-        this.set('dateEndConfig.value', {});
       },
 
+      /**
+       * Cancels the changes to the search fields and closes the dialog.
+       */
       cancelSearch: function() {
         this.userCanceled = true;
         this.toggleSearchFieldsDialog();
       },
 
-      checkSearchFieldInputKey: function(event) {
+      /**
+       * Updates the searchParameters from the search fields and closes the dialog if ENTER was pressed.
+       *
+       * @param {Object} event
+       * @private
+       */
+      _checkSearchFieldInputKey: function(event) {
         if(event.keyCode === 13) {
           this.handleSearch();
         }
