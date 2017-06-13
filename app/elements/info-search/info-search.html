@@ -44,37 +44,16 @@ limitations under the License.
     </div>
 
     <styled-dialog id="dialog" header="[[_header]]">
-      <div class="styled-dialog-bold">Keywords</div>
-      <div class="styled-dialog-text">Each search result must contain <span class="normal-bold">one or more</span> of the entered keywords in its title or content.</div>
-      <template is="dom-if" if="[[advancedSearch]]">
-        <div class="styled-dialog-text">(The keyword preview is disabled in Advanced Search Mode.)</div>
-      </template>
-
-      <template is="dom-if" if="[[!advancedSearch]]">
-        <div class="styled-dialog-text normal-bold">[[_keywords]]</div>
-        <div class="styled-dialog-text">Searches that are not run in Advanced Search Mode ignore all punctuation used in the keywords.</div>
-      </template>
-
-      <div class="styled-dialog-text">Entering additional keywords generates a greater number of results.</div>
-
-      <div></div>
-
-      <div class="styled-dialog-bold">Facets</div>
-      <div class="styled-dialog-text">All search results must contain extractions matching <span class="normal-bold">all</span> of the selected facets.</div>
-      <div class="styled-dialog-text normal-bold">[[_facets]]</div>
-      <div class="styled-dialog-text">Selecting additional facets generates a fewer number of results.</div>
+      <div class="styled-dialog-bold">Search Terms</div>
+      <div class="styled-dialog-text">Each search result must contain <span class="normal-bold">one or more</span> of the entered search terms in either its title or its content.</div>
+      <div class="styled-dialog-text normal-bold">[[_termText]]</div>
+      <div class="styled-dialog-text">Searches ignore all punctuation used in the terms except periods.</div>
+      <div class="styled-dialog-text">Selecting additional search terms generates a greater number of results.</div>
 
       <div></div>
 
       <div class="styled-dialog-bold">Ranking</div>
       <div class="styled-dialog-text">Search results that contain multiple keywords or the same keyword multiple times are ranked higher.</div>
-
-      <template is="dom-if" if="[[advancedSearch]]">
-        <div></div>
-        <div class="styled-dialog-bold">Advanced Search</div>
-        <div class="styled-dialog-text">Searches that are run in Advanced Search Mode have additional rules allowing advanced functionality.</div>
-        <div class="styled-dialog-text">Please see the Search Help under the More Options dropdown menu (in the top-right corner of this page).</div>
-      </template>
     </styled-dialog>
   </template>
 
@@ -87,68 +66,39 @@ limitations under the License.
       is: 'info-search',
 
       properties: {
-        advancedSearch: {
-          type: Boolean
-        },
-
         searchParameters: {
           type: Object
         },
 
-        _facets: {
-          computed: '_computeFacets(searchParameters.*)',
+        _termText: {
+          computed: '_computeTermText(searchParameters.*)',
           type: String
         },
 
         _header: {
           type: String,
           value: 'How are search results found?'
-        },
-
-        _keywords: {
-          computed: '_computeKeywords(searchParameters.*)',
-          type: String
         }
       },
 
       /**
-       * Returns the facet text.
+       * Returns the search term text.
        */
-      _computeFacets: function() {
+      _computeTermText: function() {
         var self = this;
         var facets = [];
 
-        _.keys(this.searchParameters).forEach(function(facet) {
-          if(facet !== 'annotationsFilter' && facet !== 'sort' && facet !== 'text' && !_.isEmpty(self.searchParameters[facet])) {
-            _.keys(self.searchParameters[facet]).every(function(key) {
-              if(self.searchParameters[facet][key].enabled) {
-                facets.push(facet + '=' + self.searchParameters[facet][key].text);
+        _.keys(this.searchParameters).forEach(function(id) {
+          if(!_.isEmpty(self.searchParameters[id])) {
+            _.keys(self.searchParameters[id]).forEach(function(term) {
+              if(self.searchParameters[id][term].enabled) {
+                facets.push(id + '=' + self.searchParameters[id][term].text);
               }
             });
           }
         });
 
-        return facets.length ? facets.join(' AND ') : 'No Selected Facets';
-      },
-
-      /**
-       * Returns the keyword text.
-       */
-      _computeKeywords: function() {
-        if(this.searchParameters && this.searchParameters.text) {
-          var text = this.searchParameters.text;
-          /* jshint ignore:start */
-          text = text.replace(/\+|\-|\=|\&|\||\>|\<|\!|\(|\)|\{|\}|\[|\]|\^|\"|\~|\*|\?|\:|\\|\//g, ' ');
-          /* jshint ignore:end */
-          var keywords = text.split(' ');
-          return keywords.map(function(word, index) {
-            if(!index) {
-              return word;
-            }
-            return (keywords[index - 1] === 'AND' || keywords[index - 1] === 'OR' || word === 'AND' || word === 'OR') ? word : ('OR ' + word);
-          }).join(' ');
-        }
-        return 'No Search Keywords';
+        return facets.length ? facets.join(' OR ') : 'No Search Terms';
       },
 
       /**
