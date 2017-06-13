@@ -19,55 +19,36 @@
 var path = require('path');
 var _ = require('lodash');
 var pjson = require('../../../package.json');
-var elasticTypes = require('../elastic-types.js');
 
-function requiredProcessEnv(name) {
-    if(!process.env[name]) {
-        throw new Error('You must set the ' + name + ' environment variable');
-    }
-    return process.env[name];
-}
-
-// All configurations will extend these options
-// ============================================
-var all = {
+module.exports = {
     env: process.env.NODE_ENV,
 
     // Root path of server
     root: path.normalize(__dirname + '/../../..'),
 
     // Server port
-    port: process.env.PORT || 9000,
+    port: process.env.PORT || (process.env.NODE_ENV === 'production' ? 8080 : 9000),
 
     // Server IP
-    ip: process.env.IP || '0.0.0.0',
-
-    // Should we populate the DB with sample data?
-    seedDB: false,
-
-    // Secret for session, you will want to change this and make it an environment variable
-    secrets: {
-        session: 'digentity-graph-secret'
-    },
-
-    // List of user roles
-    userRoles: ['guest', 'user', 'admin'],
+    ip: process.env.IP || (process.env.NODE_ENV === 'production' ? undefined : '0.0.0.0'),
 
     appVersion: pjson.version,
 
     elasticConfig: process.env.ELASTIC_CONFIG || '{"host": "http://localhost:9200"}',
     elasticIndex: process.env.ELASTIC_INDEX || 'dig-data',
-    elasticTypes: elasticTypes.TYPE_MAP_ARRAY,
+    elasticTypes: process.env.ELASTIC_TYPES,
     dev: process.env.DEV || '',
     annotationIndex: process.env.ANNOTATION_INDEX || 'dig-annotations',
     annotationType: process.env.ANNOTATION_TYPE || 'annotation',
     annotationRelevant: process.env.ANNOTATION_RELEVANT || 'to a counter-human-trafficking case',
-    classificationFlagsUrl: process.env.CLASSIFICATION_URL ? (process.env.CLASSIFICATION_URL + '/projects/ht/tags') : undefined,
-    classificationUrl: process.env.CLASSIFICATION_URL,
+    classificationAuth: process.env.CLASSIFICATION_AUTH || '{"user": "", "password": ""}',
+    classificationEntityUrl: process.env.CLASSIFICATION_ENTITY_URL,
+    classificationExtractionUrl: process.env.CLASSIFICATION_EXTRACTION_URL,
+    classificationFlagUrl: process.env.CLASSIFICATION_FLAG_URL,
     filterStatesIndex: process.env.FILTER_STATES_INDEX || 'dig-filter-states',
     filterStatesType: process.env.FILTER_STATES_TYPE || 'item',
-    imageServiceAuth: process.env.IMAGE_SERVICE_AUTH|| '{"user": "", "password":""}',
-    imageServiceHost: process.env.IMAGE_SERVICE_HOST|| '{"url":"","base64":""}',
+    imageServiceAuth: process.env.IMAGE_SERVICE_AUTH || '{"user": "", "password": ""}',
+    imageServiceHost: process.env.IMAGE_SERVICE_HOST || '{"url": "", "base64": ""}',
     cacheConfig: process.env.CACHE_CONFIG || '{"host": "http://localhost:9200"}',
     cacheIndex: process.env.CACHE_INDEX || 'memex-domains',
     logIndex: process.env.LOG_INDEX || 'dig-logs',
@@ -75,11 +56,6 @@ var all = {
     userIndex: process.env.USER_INDEX || 'dig-users',
     userType: process.env.USER_TYPE || 'user',
     downloadImageUrl: process.env.DOWNLOAD_IMAGE_URL || 'downloadImage',
-    queryUrl: process.env.QUERY_URL
+    queryUrl: process.env.QUERY_URL,
+    rawEsDataUrl: process.env.RAW_ES_DATA_URL
 };
-
-// Export the config object based on the NODE_ENV
-// ==============================================
-module.exports = _.merge(
-    all,
-    require('./' + process.env.NODE_ENV + '.js') || {});

@@ -22,32 +22,10 @@ limitations under the License.
   <meta charset="utf-8">
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="generator" content="Polymer Starter Kit" />
+
   <title>DIG</title>
-  <!-- Place favicon.ico in the `app/` directory -->
 
-  <!-- Chrome for Android theme color -->
-  <meta name="theme-color" content="#2E3AA1">
-
-  <!-- Web Application Manifest -->
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Tile color for Win8 -->
-  <meta name="msapplication-TileColor" content="#3372DF">
-
-  <!-- Add to homescreen for Chrome on Android -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="PSK">
-  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
-
-  <!-- Add to homescreen for Safari on iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
-  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
-
-  <!-- Tile icon for Win8 (144x144) -->
-  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+  <link rel="icon" href="favicon.ico"/>
 
   <!-- build:css styles/main.css -->
   <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
@@ -67,22 +45,14 @@ limitations under the License.
 
   <link rel="import" href="styles/custom-icons.html">
   <link rel="import" href="styles/icon-styles.html">
-  <link rel="import" href="styles/user-dialog-styles.html">
   <style is="custom-style" include="icon-styles"></style>
-  <style is="custom-style" include="user-dialog-styles"></style>
 </head>
 
 <body unresolved class="fullbleed layout vertical">
   <span id="browser-sync-binding"></span>
 
   <template is="dom-bind" id="app">
-    <paper-dialog id="loadDialog" modal entry-animation="fade-in-animation" exit-animation="fade-out-animation" style="border-radius: 5px;">
-      <loading-spinner type="[[loadDialogType]]" show></loading-spinner>
-    </paper-dialog>
-
-    <!-- exposes clientConfig object which is a container for data
-      transform functions -->
-    <client-config config="{{clientConfig}}"></client-config>
+    <client-config config="[[config]]" transforms="{{transforms}}"></client-config>
 
     <!--get app configuration from server -->
     <iron-ajax
@@ -90,13 +60,6 @@ limitations under the License.
       url="/config"
       handle-as="json"
       last-response="{{config}}">
-    </iron-ajax>
-
-    <iron-ajax
-      auto
-      url="[[config.classificationFlagsUrl]]"
-      handle-as="json"
-      last-response="{{classificationFlags}}">
     </iron-ajax>
 
     <!--initialize new elastic client connection to server
@@ -112,18 +75,18 @@ limitations under the License.
       page="{{pageNum}}"
       page-size="25"
       process-request="[[processRequest]]"
-      result-function="[[clientConfig.transforms.search.result]]"
+      result-function="[[transforms.search.adResults]]"
       results="{{searchResults}}"
       total="{{recordsTotalCount}}"
       search-parameters="[[searchParameters]]"
-      search-function="[[clientConfig.transforms.search.search]]"
+      search-function="[[transforms.search.adQuery]]"
       url="[[config.queryUrl]]">
     </query-transformer>
 
     <json-transform
       data-in="{{searchResults}}"
       data-out="{{records}}"
-      transform-function="[[clientConfig.transforms.offer.queryResults]]">
+      transform-function="[[transforms.offer.queryResults]]">
     </json-transform>
 
     <!-- Logger for Page View -->
@@ -201,8 +164,12 @@ limitations under the License.
     <classification-manager
       dev="[[config.dev]]"
       show="[[annotationsIsi]]"
-      url="[[config.classificationUrl]]"
+      auth="[[config.classificationAuth]]"
+      entity-url="[[config.classificationEntityUrl]]"
+      extraction-url="[[config.classificationExtractionUrl]]"
+      flag-url="[[config.classificationFlagUrl]]"
       flag="[[classificationFlag]]"
+      flag-list="{{classificationFlagList}}"
       classification-manager="{{classificationManager}}">
     </classification-manager>
 
@@ -241,7 +208,7 @@ limitations under the License.
           annotations-darpa="{{annotationsDarpa}}"
           annotations-isi="{{annotationsIsi}}"
           blur-images="{{blurImages}}"
-          classification-config="[[classificationFlags]]"
+          classification-flag-list="[[classificationFlagList]]"
           classification-flag="{{classificationFlag}}"
           searches="{{userSearches}}"
           entities="{{userEntities}}"
@@ -290,7 +257,7 @@ limitations under the License.
           blur="[[blurImages]]"
           image-service-auth="[[config.imageServiceAuth]]"
           image-service-host="[[config.imageServiceHost]]"
-          link-function="[[clientConfig.transforms.image.externalImageLink]]">
+          link-function="[[transforms.image.externalImageLink]]">
         </similar-image-search>
 
         <entity-list-dialog id="entityListDialog"
@@ -302,7 +269,7 @@ limitations under the License.
           image-field="[[imageConfig.aggregationField]]"
           offer-field="doc_id"
           phone-field="[[phoneConfig.aggregationField]]"
-          transform-function="[[clientConfig.transforms.entity.entities]]"
+          transform-function="[[transforms.entity.entities]]"
           entities="{{userEntities}}"
           user-update-body="{{userUpdateBody}}">
         </entity-list-dialog>
@@ -438,32 +405,26 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[phoneConfig.key]]"
                 title="[[phoneConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.phone}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.phoneList]]"
-                agg-field="[[phoneConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.phoneAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[emailConfig.key]]"
                 title="[[emailConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.email}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.emailList]]"
-                agg-field="[[emailConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.emailAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -471,64 +432,52 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[socialConfig.key]]"
                 title="[[socialConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.social}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.socialMediaList]]"
-                agg-field="[[socialConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.socialMediaAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[reviewConfig.key]]"
                 title="[[reviewConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.review}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.compoundExtractionList]]"
-                agg-field="[[reviewConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.compoundExtractionAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[cityConfig.key]]"
                 title="[[cityConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.city}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.cityList]]"
-                agg-field="[[cityConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.cityAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[regionConfig.key]]"
                 title="[[regionConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.region}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[regionConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -537,16 +486,13 @@ limitations under the License.
               <!-- TODO Hiding country for now...
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[countryConfig.key]]"
                 title="[[countryConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.country}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[countryConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -555,52 +501,41 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[nameConfig.key]]"
                 title="[[nameConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.name}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[nameConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
               </facet-list>
 
-              <!-- TODO Hiding gender for now...
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[genderConfig.key]]"
                 title="[[genderConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.gender}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[genderConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
               </facet-list>
-              -->
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[ageConfig.key]]"
                 title="[[ageConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.age}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[ageConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -608,16 +543,13 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[ethnicityConfig.key]]"
                 title="[[ethnicityConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.ethnicity}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[ethnicityConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -625,16 +557,13 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[eyeColorConfig.key]]"
                 title="[[eyeColorConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.eyeColor}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[eyeColorConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -642,16 +571,13 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[hairColorConfig.key]]"
                 title="[[hairColorConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.hairColor}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[hairColorConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -659,48 +585,39 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[heightConfig.key]]"
                 title="[[heightConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.height}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.compoundExtractionList]]"
-                agg-field="[[heightConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.compoundExtractionAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[weightConfig.key]]"
                 title="[[weightConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.weight}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.compoundExtractionList]]"
-                agg-field="[[weightConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.compoundExtractionAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[servicesConfig.key]]"
                 title="[[servicesConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.services}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[servicesConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -708,32 +625,26 @@ limitations under the License.
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[priceConfig.key]]"
                 title="[[priceConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.price}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.compoundExtractionList]]"
-                agg-field="[[priceConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.compoundExtractionAggregations]]"
                 target="_blank"
                 process-request="{{processRequest}}">
               </facet-list>
 
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[websiteConfig.key]]"
                 title="[[websiteConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.website}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[websiteConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 process-request="{{processRequest}}">
@@ -742,16 +653,13 @@ limitations under the License.
               <!-- TODO
               <facet-list
                 class="facet"
-                query-builder-config="[[queryBuilderConfig]]"
+                query-url="[[config.queryUrl]]"
                 name="[[imageConfig.key]]"
                 title="[[imageConfig.title]]"
-                client="[[esclient]]"
-                index="[[config.elasticIndex]]"
                 search-parameters="{{searchParameters}}"
                 search-param-subset="{{searchParameters.image}}"
-                index-types="[[getElasticTypes()]]"
-                combine-function="[[clientConfig.transforms.filterAggs.filterList]]"
-                agg-field="[[imageConfig.aggregationField]]"
+                search-function="[[transforms.search.facetsQuery]]"
+                result-function="[[transforms.search.filterAggregations]]"
                 target="_blank"
                 text-property="id"
                 image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -796,13 +704,14 @@ limitations under the License.
               index-types="[[getElasticTypes()]]"
               query="[[ejsQuery]]"
               size="[[resultCount]]"
-              csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-              pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
-              query-transform-function="[[clientConfig.transforms.offer.offers]]">
+              csv-transform-function="[[transforms.export.createExportDataForCsv]]"
+              pdf-transform-function="[[transforms.export.createExportDataForPdf]]"
+              query-transform-function="[[transforms.offer.offers]]">
             </export-button>
           </div>
 
           <records-list id="searchResults"
+            dev="[[config.dev]]"
             annotation-manager="[[annotationManager]]"
             classification-manager="[[classificationManager]]"
             client="[[esclient]]"
@@ -811,7 +720,7 @@ limitations under the License.
             image-index-name="[[config.elasticIndex]]"
             image-index-type="images"
             image-query-field="isImagePartOf.uri"
-            image-transform-function="[[clientConfig.transforms.image.images]]"
+            image-transform-function="[[transforms.image.images]]"
             small-image-style-class="[[getBlurStyleClass(blurImages)]]"
             large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
             new-tab="true"
@@ -1054,16 +963,6 @@ limitations under the License.
         }
       };
 
-      app.toggleLoadDialog = function(event) {
-        if(event.detail.value) {
-          app.loadDialogType = 'PDF';
-          app.$.loadDialog.open();
-        } else {
-          app.$.loadDialog.close();
-          app.loadDialogType = '';
-        }
-      };
-
       app.getToggleAllFacetsText = function() {
         return (app.facetListsExpanded ? 'Collapse' : 'Expand') + ' All';
       };
@@ -1071,8 +970,6 @@ limitations under the License.
       app.getToggleAllFacetsIcon = function() {
         return (app.facetListsExpanded ? 'icons:expand-less' : 'icons:expand-more');
       };
-
-      app.classificationFlags = '["Test Flag 1", "Test Flag 2", "Test Flag 3"]';
 
       // history related functions
 

@@ -20,7 +20,6 @@
 
 'use strict';
 
-var errors = require('./components/errors');
 var config = require('./config/environment');
 var path = require('path');
 var request = require('request');
@@ -35,20 +34,22 @@ module.exports = function(app) {
 
     app.get('/config/?', function(req, res) {
         res.status(200).send({
+            appVersion: config.appVersion,
+            username: req.headers.user ? req.headers.user : 'mockUser',
             elasticConfig: JSON.parse(config.elasticConfig),
             elasticIndex: config.elasticIndex,
             elasticTypes: config.elasticTypes,
             dev: config.dev,
-            appVersion: config.appVersion,
             annotationIndex: config.annotationIndex,
             annotationType: config.annotationType,
             annotationRelevant: config.annotationRelevant,
             annotateOrClassify: config.annotateOrClassify,
             cacheConfig: JSON.parse(config.cacheConfig),
             cacheIndex: config.cacheIndex,
-            classificationFlagsUrl: config.classificationFlagsUrl,
-            classificationUrl: config.classificationUrl,
-            username: req.headers.user ? req.headers.user : 'mockUser',
+            classificationAuth: config.classificationAuth,
+            classificationEntityUrl: config.classificationEntityUrl,
+            classificationExtractionUrl: config.classificationExtractionUrl,
+            classificationFlagUrl: config.classificationFlagUrl,
             filterStatesIndex: config.filterStatesIndex,
             filterStatesType: config.filterStatesType,
             logIndex: config.logIndex,
@@ -58,7 +59,8 @@ module.exports = function(app) {
             imageServiceAuth: config.imageServiceAuth,
             imageServiceHost: config.imageServiceHost,
             downloadImageUrl: config.downloadImageUrl,
-            queryUrl: config.queryUrl
+            queryUrl: config.queryUrl,
+            rawEsDataUrl: config.rawEsDataUrl
         });
     });
 
@@ -74,10 +76,6 @@ module.exports = function(app) {
     app.post('/uploadImage', upload.array('file'), function(req, res) {
         res.status(200).send({mimeType: req.files[0].mimetype, base64: req.files[0].buffer.toString('base64')});
     });
-
-    // All undefined asset or api routes should return a 404
-    app.route('/:url(api|auth|components|app|bower_components|assets)/*')
-    .get(errors[404]);
 
     // All other routes should redirect to the index.html
     app.route('/*').get(function(req, res) {

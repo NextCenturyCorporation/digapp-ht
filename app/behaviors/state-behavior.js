@@ -23,12 +23,12 @@ var DigBehaviors = DigBehaviors || {};
  */
 DigBehaviors.StateBehavior = {
   updateLegacyId: function(id) {
-    if(id.startsWith('http://dig.isi.edu/ht/data/email')) {
+    if(id.indexOf('http://dig.isi.edu/ht/data/email') === 0) {
       return decodeURIComponent(id.substring(id.lastIndexOf('/') + 1));
     }
-    if(id.startsWith('http://dig.isi.edu/ht/data/phone')) {
+    if(id.indexOf('http://dig.isi.edu/ht/data/phone') === 0) {
       var phone = id.substring(id.lastIndexOf('/') + 1);
-      if(phone.startsWith('1-')) {
+      if(phone.indexOf('1-') === 0) {
         return phone.substring(2);
       }
       return phone;

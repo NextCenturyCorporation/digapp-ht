@@ -31,7 +31,7 @@ DigBehaviors.TypeBehavior = {
     }
 
     var linkId = id;
-    if(linkId.startsWith('http://dig.isi.edu/ht/data/')) {
+    if(linkId.indexOf('http://dig.isi.edu/ht/data/') === 0) {
       linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
     }
     if(type === 'email') {
@@ -54,14 +54,14 @@ DigBehaviors.TypeBehavior = {
       case 'email': return 'communication:email';
       case 'image': return 'image:photo-camera';
       case 'location': return 'communication:location-on';
-      case 'money': return 'editor:monetization-on';
+      case 'price': return 'editor:monetization-on';
       case 'offer': return 'maps:local-offer';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
       case 'review': return 'icons:star';
       case 'service': return 'icons:work';
       case 'social': return 'social:public';
-      case 'webpage': return 'av:web';
+      case 'website': return 'av:web';
     }
     return '';
   },
@@ -76,14 +76,14 @@ DigBehaviors.TypeBehavior = {
       case 'email': return 'Email Address' + (plural ? 'es' : '');
       case 'image': return 'Image' + (plural ? 's' : '');
       case 'location': return 'Location' + (plural ? 's' : '');
-      case 'money': return 'Price' + (plural ? 's' : '');
+      case 'price': return 'Price' + (plural ? 's' : '');
       case 'offer': return 'Ad' + (plural ? 's' : '');
       case 'phone': return 'Telephone Number' + (plural ? 's' : '');
       case 'provider': return 'Provider' + (plural ? 's' : '');
       case 'review': return 'Review ID' + (plural ? 's' : '');
       case 'service': return 'Service' + (plural ? 's' : '') + ' Provided';
       case 'social': return 'Social Media ID' + (plural ? 's' : '');
-      case 'webpage': return 'Website' + (plural ? 's' : '');
+      case 'website': return 'Website' + (plural ? 's' : '');
     }
     return '';
   },

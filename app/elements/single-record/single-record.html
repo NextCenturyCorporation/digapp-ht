@@ -35,6 +35,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paper-styles/color.html">
 <link rel="import" href="../../bower_components/highlighted-text/highlighted-text.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
+<link rel="import" href="../../styles/confidence-styles.html">
 <link rel="import" href="../../styles/single-item-styles.html">
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../info-cached-webpages/info-cached-webpages.html">
@@ -42,6 +43,7 @@ limitations under the License.
 
 <dom-module id="single-record">
   <template>
+    <style include="confidence-styles"></style>
     <style include="iron-flex iron-flex-alignment iron-flex-factors"></style>
     <style include="single-item-styles"></style>
 
@@ -73,20 +75,6 @@ limitations under the License.
 
       .extraction-item {
         margin-bottom: 5px;
-      }
-
-      .confidence-icon {
-        --iron-icon-width: 16px;
-        --iron-icon-height: 16px;
-        margin-right: 5px;
-      }
-
-      .high-confidence {
-        color: var(--paper-green-600);
-      }
-
-      .low-confidence {
-        color: var(--paper-orange-600);
       }
 
       icon-label {
@@ -213,6 +201,12 @@ limitations under the License.
       .yellowgreen {
         color: yellowgreen;
       }
+
+      classify-ad-buttons {
+        background-color: var(--paper-grey-400);
+        line-height: 30px;
+        padding-bottom: 5px;
+      }
     </style>
 
     <build-and-run-aggregation
@@ -259,15 +253,9 @@ limitations under the License.
 
         <div class="layout horizontal extraction-list wrap">
           <template is="dom-repeat" items="[[headerExtractions]]">
-            <template is="dom-if" if="[[!_getLength(item, extractionDataProperty)]]">
-              <div class="layout horizontal extraction">
-                <strong class="extraction-name">No [[_getProperty(item, extractionNameProperty)]]</strong>
-              </div>
-            </template>
-
             <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
               <div class="layout vertical extraction">
-                <strong class="extraction-name">[[_getPropertyAndColon(item, extractionNameProperty)]]</strong>
+                <strong class="extraction-name">[[_getProperty(item, extractionNameProperty)]]</strong>
                 <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
                   <div class="layout horizontal center extraction-item">
                     <icon-label class$="[[_getHighlightableLabelStyleClass(extraction, extractionDataHighlightProperty)]]"
@@ -280,30 +268,34 @@ limitations under the License.
                     </icon-label>
 
                     <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
-                      <iron-icon icon="fa:circle"
-                        class$="confidence-icon [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                        title$="[[_getConfidenceText(extraction, extractionDataConfidenceProperty)]]">
-                      </iron-icon>
+                      <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                      <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
                     </template>
 
-                    <template is="dom-if" if="[[classificationManager]]">
-                      <classify-extraction-buttons
-                        classification-manager="[[classificationManager]]"
-                        classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
-                        item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                        item-type="[[_getProperty(extraction, extractionDataTypeProperty)]]">
-                      </classify-extraction-buttons>
-                    </template>
+                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataIdProperty)]]">
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
+                        <template is="dom-if" if="[[classificationManager]]">
+                          <classify-extraction-buttons
+                            classification-manager="[[classificationManager]]"
+                            classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
+                            entity-id="[[itemId]]"
+                            extraction-id="[[_getProperty(extraction, extractionDataIdProperty)]]">
+                          </classify-extraction-buttons>
+                        </template>
+                      </template>
 
-                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
-                      <template is="dom-if" if="[[annotationManager]]">
-                        <annotate-record class="tiny-icon"
-                          annotation-manager="[[annotationManager]]"
-                          client="[[client]]"
-                          item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                          item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
-                          noink>
-                        </annotate-record>
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
+                        <template is="dom-if" if="[[annotationManager]]">
+                          <annotate-record class="tiny-icon"
+                            annotation-manager="[[annotationManager]]"
+                            client="[[client]]"
+                            item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                            item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                            noink>
+                          </annotate-record>
+                        </template>
                       </template>
                     </template>
                   </div>
@@ -312,47 +304,50 @@ limitations under the License.
             </template>
           </template>
         </div>
-
-        <template is="dom-if" if="[[classificationManager]]">
-          <classify-ad-buttons
-            classification-manager="[[classificationManager]]"
-            classifications="{{classifications}}"
-            item-id="[[itemId]]">
-          </classify-ad-buttons>
-        </template>
       </div>
 
-      <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
-        <div class="layout vertical center-justified">
-          <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
+      <div class="layout vertical">
+        <template is="dom-if" if="[[classificationManager]]">
+          <classify-ad-buttons class="border"
+            classification-manager="[[classificationManager]]"
+            classifications="{{classifications}}"
+            entity-id="[[itemId]]">
+          </classify-ad-buttons>
+        </template>
+
+        <div class="layout horizontal end-justified flex">
+          <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
+            <div class="layout vertical center-justified">
+              <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
+            </div>
+          </template>
+
+          <template is="dom-if" if="[[annotationManager]]">
+            <annotate-record class="layout vertical center-justified"
+              client="[[client]]"
+              annotation-manager="[[annotationManager]]"
+              item-id="[[itemId]]"
+              item-type="[[_getTypeText(type)]]">
+            </annotate-record>
+          </template>
+
+          <template is="dom-if" if="[[link]]">
+            <div class="layout vertical center-justified">
+              <a class="record-link" href$="[[link]]" target="[[_getTarget(newTab)]]" title="Open [[_getTypeText(type)]]">
+                <paper-icon-button icon="[[_getLinkIcon(newTab)]]" noink></paper-icon-button>
+              </a>
+            </div>
+          </template>
+
+          <modal-icon
+            icon="[[icon]]"
+            icon-style-class="[[styleClass]]"
+            show-icon="[[!_hovering]]"
+            openable="[[_doesHaveDetails(details, detailExtractions, images)]]"
+            open="[[opened]]">
+          </modal-icon>
         </div>
-      </template>
-
-      <template is="dom-if" if="[[annotationManager]]">
-        <annotate-record class="layout vertical center-justified"
-          client="[[client]]"
-          annotation-manager="[[annotationManager]]"
-          item-id="[[itemId]]"
-          item-type="[[_getTypeText(type)]]">
-        </annotate-record>
-      </template>
-
-      <template is="dom-if" if="[[link]]">
-        <div class="layout vertical center-justified">
-          <a class="record-link" href$="[[link]]" target="[[_getTarget(newTab)]]" title="Open [[_getTypeText(type)]]">
-            <paper-icon-button icon="[[_getLinkIcon(newTab)]]" noink></paper-icon-button>
-          </a>
-        </div>
-      </template>
-
-      <modal-icon
-        icon="[[icon]]"
-        icon-style-class="[[styleClass]]"
-        show-icon="[[!_hovering]]"
-        openable="[[_doesHaveDetails(details, detailExtractions, images)]]"
-        open="[[opened]]">
-      </modal-icon>
-
+      </div>
     </paper-material>
 
     <template is="dom-if" if="[[_doesHaveDetails(details, detailExtractions, images)]]">
@@ -360,7 +355,7 @@ limitations under the License.
         <paper-material class="body">
           <template is="dom-repeat" items="[[details]]" as="detail">
             <div class="detail text">
-              <strong class="detail-name">[[_getPropertyAndColon(detail, detailNameProperty)]]</strong>
+              <strong class="detail-name">[[_getProperty(detail, detailNameProperty)]]</strong>
               <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
                 <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
               </template>
@@ -375,15 +370,9 @@ limitations under the License.
 
           <div class="layout horizontal extraction-list wrap">
             <template is="dom-repeat" items="[[detailExtractions]]">
-              <template is="dom-if" if="[[!_getLength(item, extractionDataProperty)]]">
-                <div class="layout horizontal extraction">
-                  <strong class="extraction-name">No [[_getProperty(item, extractionNameProperty)]]</strong>
-                </div>
-              </template>
-
               <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
                 <div class="layout vertical extraction">
-                  <strong class="extraction-name">[[_getPropertyAndColon(item, extractionNameProperty)]]</strong>
+                  <strong class="extraction-name">[[_getProperty(item, extractionNameProperty)]]</strong>
                   <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
                     <div class="layout horizontal center extraction-item">
                       <icon-label class$="[[_getHighlightableLabelStyleClass(extraction, extractionDataHighlightProperty)]]"
@@ -396,19 +385,21 @@ limitations under the License.
                       </icon-label>
 
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
-                        <iron-icon icon="fa:circle"
-                          class$="confidence-icon [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                          title$="[[_getConfidenceText(extraction, extractionDataConfidenceProperty)]]">
-                        </iron-icon>
+                        <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+                        <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
+                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
                       </template>
 
-                      <template is="dom-if" if="[[classificationManager]]">
-                        <classify-extraction-buttons
-                          classification-manager="[[classificationManager]]"
-                          classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
-                          item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                          item-type="[[_getProperty(extraction, extractionDataTypeProperty)]]">
-                        </classify-extraction-buttons>
+                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
+                        <template is="dom-if" if="[[classificationManager]]">
+                          <classify-extraction-buttons
+                            classification-manager="[[classificationManager]]"
+                            classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
+                            entity-id="[[itemId]]"
+                            extraction-id="[[_getProperty(extraction, extractionDataIdProperty)]]">
+                          </classify-extraction-buttons>
+                        </template>
                       </template>
 
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
@@ -428,9 +419,11 @@ limitations under the License.
               </template>
             </template>
 
-            <div class="layout horizontal extraction">
-              <strong class="extraction-name">[[_getImagesExtractionText(images)]]</strong>
-            </div>
+            <template is="dom-if" if="[[_getImagesExtractionText(images)]]">
+              <div class="layout horizontal extraction">
+                <strong class="extraction-name">[[_getImagesExtractionText(images)]]</strong>
+              </div>
+            </template>
           </div>
 
           <template is="dom-if" if="[[images]]">
@@ -1137,31 +1130,19 @@ limitations under the License.
        * @private
        */
       _getConfidenceStyleClass: function(item, property) {
-        if(item[property] === 'high') {
-          return 'high-confidence';
+        if(item[property] > 99) {
+          return 'full';
         }
-        if(item[property] === 'low') {
-          return 'low-confidence';
+        if(item[property] > 66) {
+          return 'high';
         }
-        return 'hide';
-      },
-
-      /**
-       * Returns the text of the confidence icon using the given item and confidence property.
-       *
-       * @param {Object} item
-       * @param {String} property
-       * @return {String}
-       * @private
-       */
-      _getConfidenceText: function(item, property) {
-        if(item[property] === 'high') {
-          return 'High Confidence Extraction';
+        if(item[property] > 33) {
+          return 'med';
         }
-        if(item[property] === 'low') {
-          return 'Low Confidence Extraction';
+        if(item[property] > 0) {
+          return 'low';
         }
-        return '';
+        return item[property] === 0 ? 'no' : 'hide';
       },
 
       /**
@@ -1201,7 +1182,7 @@ limitations under the License.
        */
       _getImagesExtractionText: function(images) {
         if(!images || !images.length) {
-          return 'No Images';
+          return '';
         }
         return images.length + ' Image' + (images.length === 1 ? '' : 's');
       },
@@ -1251,19 +1232,6 @@ limitations under the License.
        */
       _getProperty: function(item, property) {
         return item ? item[property] : undefined;
-      },
-
-      /**
-       * Returns the string in the given item at the given property with a colon at the end of it.
-       *
-       * @param {Object} item
-       * @param {String} property
-       * @return {String}
-       * @private
-       */
-      _getPropertyAndColon: function(item, property) {
-        var output = this._getProperty(item, property);
-        return output ? output + ':' : '';
       },
 
       /**

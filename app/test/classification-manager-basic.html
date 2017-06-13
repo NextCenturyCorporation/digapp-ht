@@ -49,35 +49,63 @@ limitations under the License.
       expect(element.dev).to.be.false;
       expect(element.loading).to.be.false;
       expect(element.show).to.be.false;
+      expect(element.auth).to.not.exist;
       expect(element.error).to.not.exist;
       expect(element.flag).to.not.exist;
-      expect(element.url).to.not.exist;
-      expect(element._body).to.not.exist;
+      expect(element.flagList).to.deep.equal([]);
+      expect(element._data).to.deep.equal({});
+      expect(element._headers).to.deep.equal({});
       expect(element._listeners).to.deep.equal({});
       expect(element._nextListenerId).to.equal(1);
       expect(element._response).to.not.exist;
     });
 
-    test('does have an iron-ajax element', function(done) {
-      expect(element.$$('iron-ajax')).to.exist;
-      expect(element.$$('iron-ajax').contentType).to.equal('application/json');
-      expect(element.$$('iron-ajax').method).to.equal('POST');
-      expect(element.$$('iron-ajax').body).to.not.exist;
-      expect(element.$$('iron-ajax').lastError).to.not.exist;
-      expect(element.$$('iron-ajax').lastResponse).to.not.exist;
-      expect(element.$$('iron-ajax').loading).to.not.exist;
-      expect(element.$$('iron-ajax').url).to.not.exist;
+    test('does have two iron-ajax elements', function(done) {
+      var ajax = Polymer.dom(element.root).querySelectorAll('iron-ajax');
 
-      element._body = {
-        key: 'value'
+      expect(ajax[0]).to.exist;
+      expect(ajax[0].auto).to.exist;
+      expect(ajax[0].handleAs).to.equal('json');
+      expect(ajax[0].headers).to.deep.equal({});
+      expect(ajax[0].url).to.not.exist;
+
+      expect(ajax[1]).to.exist;
+      expect(ajax[1].contentType).to.equal('application/json');
+      expect(ajax[1].method).to.not.exist;
+      expect(ajax[1].body).to.not.exist;
+      expect(ajax[1].headers).to.deep.equal({});
+      expect(ajax[1].lastError).to.not.exist;
+      expect(ajax[1].lastResponse).to.not.exist;
+      expect(ajax[1].loading).to.not.exist;
+      expect(ajax[1].url).to.not.exist;
+
+      element.auth = '{"user":"myUser","password":"myPassword"}';
+
+      element.flagUrl = 'flagUrl';
+
+      element._data = {
+        body: {
+          key: 'value'
+        },
+        method: 'POST',
+        url: 'url'
       };
-      element.url = 'url';
 
       flush(function() {
-        expect(element.$$('iron-ajax').body).to.deep.equal({
+        expect(ajax[0].headers).to.deep.equal({
+          'Authorization': 'Basic bXlVc2VyOm15UGFzc3dvcmQ='
+        });
+        expect(ajax[0].url).to.equal('flagUrl');
+
+        expect(ajax[1].body).to.deep.equal({
           key: 'value'
         });
-        expect(element.$$('iron-ajax').url).to.equal('url');
+        expect(ajax[1].headers).to.deep.equal({
+          'Authorization': 'Basic bXlVc2VyOm15UGFzc3dvcmQ='
+        });
+        expect(ajax[1].method).to.equal('POST');
+        expect(ajax[1].url).to.equal('url');
+
         done();
       });
     });
@@ -86,8 +114,8 @@ limitations under the License.
       expect(element.classificationManager).to.be.an('Object');
       expect(element.classificationManager.addListener).to.be.a('Function');
       expect(element.classificationManager.removeListener).to.be.a('Function');
+      expect(element.classificationManager.setEntityClassification).to.be.a('Function');
       expect(element.classificationManager.setExtractionClassification).to.be.a('Function');
-      expect(element.classificationManager.setFlagClassification).to.be.a('Function');
     });
 
     test('classificationManager.addListener does work correctly', function(done) {
@@ -187,12 +215,86 @@ limitations under the License.
       expect(element._listeners[2]).to.exist;
     });
 
-    test('classificationManager.setExtractionClassification does work correctly', function() {
-      // TODO
+    test('classificationManager.setEntityClassification does not set _data if entityUrl is undefined', function() {
+      element.classificationManager.setEntityClassification('positive', 'myFlag', 'myId', 'myType');
+      expect(element._data).to.deep.equal({});
     });
 
-    test('classificationManager.setFlagClassification does work correctly', function() {
-      // TODO
+    test('classificationManager.setEntityClassification does set _data correctly if classification is positive', function() {
+      element.entityUrl = 'classification/entity/FLAG/ENTITY_TYPE/ENTITY_ID';
+      element.classificationManager.setEntityClassification('positive', 'myFlag', 'myId', 'myType');
+      expect(element._data).to.deep.equal({
+        body: {
+          'kg_id': 'myId',
+          'human_annotation': 1
+        },
+        method: 'POST',
+        url: 'classification/entity/myFlag/myType/myId'
+      });
+    });
+
+    test('classificationManager.setEntityClassification does set _data correctly if classification is negative', function() {
+      element.entityUrl = 'classification/entity/FLAG/ENTITY_TYPE/ENTITY_ID';
+      element.classificationManager.setEntityClassification('negative', 'myFlag', 'myId', 'myType');
+      expect(element._data).to.deep.equal({
+        body: {
+          'kg_id': 'myId',
+          'human_annotation': 0
+        },
+        method: 'POST',
+        url: 'classification/entity/myFlag/myType/myId'
+      });
+    });
+
+    test('classificationManager.setEntityClassification does set _data correctly if classification is reset', function() {
+      element.entityUrl = 'classification/entity/FLAG/ENTITY_TYPE/ENTITY_ID';
+      element.classificationManager.setEntityClassification('', 'myFlag', 'myId', 'myType');
+      expect(element._data).to.deep.equal({
+        body: {},
+        method: 'DELETE',
+        url: 'classification/entity/myFlag/myType/myId'
+      });
+    });
+
+    test('classificationManager.setExtractionClassification does not set _data if extractionUrl is undefined', function() {
+      element.classificationManager.setExtractionClassification('positive', 'myEntityId', 'myExtractionId', 'myExtractionType');
+      expect(element._data).to.deep.equal({});
+    });
+
+    test('classificationManager.setExtractionClassification does set _data correctly if classification is positive', function() {
+      element.extractionUrl = 'classification/extraction/ENTITY_ID/EXTRACTION_TYPE/EXTRACTION_ID';
+      element.classificationManager.setExtractionClassification('positive', 'myEntityId', 'myExtractionId', 'myExtractionType');
+      expect(element._data).to.deep.equal({
+        body: {
+          'key': 'myExtractionId',
+          'human_annotation': 1
+        },
+        method: 'POST',
+        url: 'classification/extraction/myEntityId/myExtractionType/myExtractionId'
+      });
+    });
+
+    test('classificationManager.setExtractionClassification does set _data correctly if classification is negative', function() {
+      element.extractionUrl = 'classification/extraction/ENTITY_ID/EXTRACTION_TYPE/EXTRACTION_ID';
+      element.classificationManager.setExtractionClassification('negative', 'myEntityId', 'myExtractionId', 'myExtractionType');
+      expect(element._data).to.deep.equal({
+        body: {
+          'key': 'myExtractionId',
+          'human_annotation': 0
+        },
+        method: 'POST',
+        url: 'classification/extraction/myEntityId/myExtractionType/myExtractionId'
+      });
+    });
+
+    test('classificationManager.setExtractionClassification does set _data correctly if classification is reset', function() {
+      element.extractionUrl = 'classification/extraction/ENTITY_ID/EXTRACTION_TYPE/EXTRACTION_ID';
+      element.classificationManager.setExtractionClassification('', 'myEntityId', 'myExtractionId', 'myExtractionType');
+      expect(element._data).to.deep.equal({
+        body: {},
+        method: 'DELETE',
+        url: 'classification/extraction/myEntityId/myExtractionType/myExtractionId'
+      });
     });
 
     test('_notifyFlagListeners is called if flag is set', function(done) {

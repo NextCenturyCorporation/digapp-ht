@@ -22,32 +22,10 @@ limitations under the License.
   <meta charset="utf-8">
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="generator" content="Polymer Starter Kit" />
+
   <title>DIG</title>
-  <!-- Place favicon.ico in the `app/` directory -->
 
-  <!-- Chrome for Android theme color -->
-  <meta name="theme-color" content="#2E3AA1">
-
-  <!-- Web Application Manifest -->
-  <link rel="manifest" href="manifest.json">
-
-  <!-- Tile color for Win8 -->
-  <meta name="msapplication-TileColor" content="#3372DF">
-
-  <!-- Add to homescreen for Chrome on Android -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="application-name" content="PSK">
-  <link rel="icon" sizes="192x192" href="images/touch/chrome-touch-icon-192x192.png">
-
-  <!-- Add to homescreen for Safari on iOS -->
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="Polymer Starter Kit">
-  <link rel="apple-touch-icon" href="images/touch/apple-touch-icon.png">
-
-  <!-- Tile icon for Win8 (144x144) -->
-  <meta name="msapplication-TileImage" content="images/touch/ms-touch-icon-144x144-precomposed.png">
+  <link rel="icon" href="favicon.ico"/>
 
   <!-- build:css styles/main.css -->
   <!-- Must link leaflet css (https://github.com/leaflet-extras/leaflet-map/issues/46) -->
@@ -74,15 +52,12 @@ limitations under the License.
 <body unresolved class="fullbleed layout vertical">
   <span id="browser-sync-binding"></span>
   <template is="dom-bind" id="app">
-
-    <!-- exposes clientConfig object which is a container for data
-      transform functions -->
-    <client-config config="{{clientConfig}}"></client-config>
+    <client-config config="[[config]]" transforms="{{transforms}}"></client-config>
 
     <json-transform
       data-in="[[params.id]]"
       data-out="{{params.name}}"
-      transform-function="[[clientConfig.transforms.offer.formattedTelephoneNumber]]">
+      transform-function="[[transforms.offer.formattedTelephoneNumber]]">
     </json-transform>
 
     <!--get app configuration from server -->
@@ -92,13 +67,6 @@ limitations under the License.
       url="/config"
       handle-as="json"
       last-response="{{config}}">
-    </iron-ajax>
-
-    <iron-ajax
-      auto
-      url="[[config.classificationFlagsUrl]]"
-      handle-as="json"
-      last-response="{{classificationFlags}}">
     </iron-ajax>
 
     <!--initialize new elastic client connection to server
@@ -121,7 +89,7 @@ limitations under the License.
       properties-ready="{{processRequest}}"
       sort-field="knowledge_graph.posting_date.key"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      transform-function="[[clientConfig.transforms.offer.offers]]"
+      transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
       results="{{phoneOffers}}"
@@ -132,7 +100,7 @@ limitations under the License.
       data-in1="[[params.id]]"
       data-in2="[[phoneOffers]]"
       data-out="{{strippedOffers}}"
-      combine-function="[[clientConfig.transforms.offer.removeExtractionFromOffers]]">
+      combine-function="[[transforms.offer.removeExtractionFromOffers]]">
     </json-combine>
 
     <!-- Location timeline for bar chart - will ignore its own date filter (which is done by
@@ -155,7 +123,7 @@ limitations under the License.
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
       filters="[[filterList]]"
-      transform-function="[[clientConfig.transforms.timeline.locationTimeline]]"
+      transform-function="[[transforms.timeline.locationTimeline]]"
       count="[[phoneOffersTotalCount]]"
       interval="{{locationTimelineInterval}}"
       results="{{timelineData}}"
@@ -182,7 +150,7 @@ limitations under the License.
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
       filters="[[filterList]]"
-      transform-function="[[clientConfig.transforms.timeline.filteredLocationTimeline]]"
+      transform-function="[[transforms.timeline.filteredLocationTimeline]]"
       count="[[phoneOffersTotalCount]]"
       interval="{{locationTimelineInterval}}"
       results="{{filteredTimelineData}}"
@@ -194,7 +162,7 @@ limitations under the License.
       data-in1="[[params.id]]"
       data-in2="[[filteredTimelineData.dates]]"
       data-out="{{filteredTimelineData.strippedDates}}"
-      combine-function="[[clientConfig.transforms.timeline.removeDetailFromLocationTimeline]]">
+      combine-function="[[transforms.timeline.removeDetailFromLocationTimeline]]">
     </json-combine>
 
     <!-- Logger for Page View -->
@@ -263,8 +231,12 @@ limitations under the License.
     <classification-manager
       dev="[[config.dev]]"
       show="[[annotationsIsi]]"
-      url="[[config.classificationUrl]]"
+      auth="[[config.classificationAuth]]"
+      entity-url="[[config.classificationEntityUrl]]"
+      extraction-url="[[config.classificationExtractionUrl]]"
+      flag-url="[[config.classificationFlagUrl]]"
       flag="[[classificationFlag]]"
+      flag-list="{{classificationFlagList}}"
       classification-manager="{{classificationManager}}">
     </classification-manager>
 
@@ -338,7 +310,7 @@ limitations under the License.
             annotations-darpa="{{annotationsDarpa}}"
             annotations-isi="{{annotationsIsi}}"
             blur-images="{{blurImages}}"
-            classification-config="[[classificationFlags]]"
+            classification-flag-list="[[classificationFlagList]]"
             classification-flag="{{classificationFlag}}"
             entities="{{userEntities}}"
             user-id="{{userId}}"
@@ -358,7 +330,7 @@ limitations under the License.
             image-field="knowledge_graph.image.key"
             offer-field="doc_id"
             phone-field="knowledge_graph.phone.key"
-            transform-function="[[clientConfig.transforms.entity.entities]]"
+            transform-function="[[transforms.entity.entities]]"
             entities="{{userEntities}}"
             user-update-body="{{userUpdateBody}}">
           </entity-list-dialog>
@@ -404,7 +376,7 @@ limitations under the License.
                 style-class="entity-location-font"
                 text-property="textAndCount"
                 transform-config='{"type":"location","sayOther":false}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[locationData]]">
 
                 <aggregation-query-and-display
@@ -418,7 +390,7 @@ limitations under the License.
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
                   transform-config="[[createAggregationTransformConfig('location')]]"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{locationData}}"
                   header-data-name="Location"
                   header-counts-name="Ads"
@@ -432,7 +404,7 @@ limitations under the License.
                 icon="communication:phone"
                 style-class="entity-phone-font"
                 transform-config='{"type":"phone","sayOther":true}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[phoneData]]">
 
                 <aggregation-query-and-display
@@ -446,7 +418,7 @@ limitations under the License.
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
                   transform-config="[[createAggregationTransformConfig('phone', params.id)]]"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{phoneData}}"
                   header-data-name="Phone"
                   header-counts-name="Ads"
@@ -466,7 +438,7 @@ limitations under the License.
                 icon="communication:email"
                 style-class="entity-email-font"
                 transform-config='{"type":"email","sayOther":false}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[emailData]]">
 
                 <aggregation-query-and-display
@@ -480,7 +452,7 @@ limitations under the License.
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
                   transform-config="[[createAggregationTransformConfig('email')]]"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{emailData}}"
                   header-data-name="Email"
                   header-counts-name="Ads"
@@ -498,13 +470,13 @@ limitations under the License.
                 show-copy
                 copy-type="Websites"
                 icon="av:web"
-                style-class="entity-webpage-font"
-                transform-config='{"type":"webpage","sayOther":false}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                style-class="entity-website-font"
+                transform-config='{"type":"website","sayOther":false}'
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[publisherData]]">
 
                 <aggregation-query-and-display
-                  aggregation-name="webpage"
+                  aggregation-name="website"
                   aggregation-field="tld.raw"
                   selected="{{filterCollection.publisher}}"
                   query-field="knowledge_graph.phone.key"
@@ -513,8 +485,8 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
-                  transform-config="[[createAggregationTransformConfig('webpage')]]"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  transform-config="[[createAggregationTransformConfig('website')]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{publisherData}}"
                   header-data-name="Website"
                   header-counts-name="Ads"
@@ -528,7 +500,7 @@ limitations under the License.
                 icon="social:public"
                 style-class="entity-social-font"
                 transform-config='{"type":"social","sayOther":false}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[socialData]]">
 
                 <aggregation-query-and-display
@@ -542,7 +514,7 @@ limitations under the License.
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
                   transform-config="[[createAggregationTransformConfig('social')]]"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{socialData}}"
                   header-data-name="Social Media ID"
                   header-counts-name="Ads"
@@ -556,7 +528,7 @@ limitations under the License.
                 icon="icons:star"
                 style-class="entity-review-font"
                 transform-config='{"type":"review","sayOther":false}'
-                transform-function="[[clientConfig.transforms.offer.offerExtractionsTitle]]"
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[reviewData]]">
 
                 <aggregation-query-and-display
@@ -570,7 +542,7 @@ limitations under the License.
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
                   transform-config="[[createAggregationTransformConfig('review')]]"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{reviewData}}"
                   header-data-name="Review ID"
                   header-counts-name="Ads"
@@ -599,7 +571,7 @@ limitations under the License.
                   selected-price="{{filterCollection.price}}"
                   selected-services="{{filterCollection.services}}"
                   selected-weight="{{filterCollection.weight}}"
-                  transform-function="[[clientConfig.transforms.offer.offerExtractions]]">
+                  transform-function="[[transforms.offer.offerExtractions]]">
                 </people-features>
               </section-and-title>
 
@@ -607,7 +579,7 @@ limitations under the License.
                 icon="image:photo-camera"
                 style-class="entity-image-font"
                 transform-config="[[loadedImages.length]]"
-                transform-function="[[clientConfig.transforms.image.imageTitle]]"
+                transform-function="[[transforms.image.imageTitle]]"
                 data="[[images]]">
 
                 <image-query-and-display
@@ -623,7 +595,7 @@ limitations under the License.
                   query-fields='"isImagePartOf.mentionsPhone"'
                   query-values="[[params.imageQueryId]]"
                   transform-config="{}"
-                  transform-function="[[clientConfig.transforms.image.images]]"
+                  transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   images="{{images}}"
@@ -661,7 +633,7 @@ limitations under the License.
                 <template is="dom-if" if="[[!offersLoading]]">
                   <template is="dom-if" if="[[!loadingLocationTimeline]]">
                     <template is="dom-if" if="[[!timelineData.dates.length]]">
-                      <div>No Ads or Dates</div>
+                      <div>No Ads and/or Dates</div>
                     </template>
                   </template>
                 </template>
@@ -692,7 +664,7 @@ limitations under the License.
 
                 <template is="dom-if" if="[[!eventDropsTimelineLoading]]">
                   <template is="dom-if" if="[[!eventDropsLocations.length]]">
-                    <div>No Ads or Locations</div>
+                    <div>No Ads, Dates, and/or Locations</div>
                   </template>
                 </template>
 
@@ -707,7 +679,7 @@ limitations under the License.
                   query-fields='"knowledge_graph.phone.key"'
                   query-values="[[params.id]]"
                   filter-list="[[filterList]]"
-                  transform="[[clientConfig.transforms.timeline.eventDropsTimeline]]"
+                  transform="[[transforms.timeline.eventDropsTimeline]]"
                   transform-items-property="locations"
                   error="{{eventDropsTimelineError}}"
                   loading="{{eventDropsTimelineLoading}}"
@@ -738,9 +710,9 @@ limitations under the License.
                     sort-field="knowledge_graph.posting_date.key"
                     sort-order="desc"
                     source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-                    csv-transform-function="[[clientConfig.transforms.export.createExportDataForCsv]]"
-                    pdf-transform-function="[[clientConfig.transforms.export.createExportDataForPdf]]"
-                    query-transform-function="[[clientConfig.transforms.offer.offers]]">
+                    csv-transform-function="[[transforms.export.createExportDataForCsv]]"
+                    pdf-transform-function="[[transforms.export.createExportDataForPdf]]"
+                    query-transform-function="[[transforms.offer.offers]]">
                   </export-button>
                 </section-title>
 
@@ -750,6 +722,7 @@ limitations under the License.
                 </template>
 
                 <records-list
+                  dev="[[config.dev]]"
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
@@ -758,7 +731,7 @@ limitations under the License.
                   image-index-name="[[config.elasticIndex]]"
                   image-index-type="images"
                   image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[clientConfig.transforms.image.images]]"
+                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"
@@ -911,8 +884,6 @@ limitations under the License.
     app.getBlurStyleClass = function(blur, large) {
       return (blur ? (large ? 'large-blur' : 'small-blur') : '');
     };
-
-    app.classificationFlags = '["Test Flag 1", "Test Flag 2", "Test Flag 3"]';
   })(document);
   </script>
 </body>
