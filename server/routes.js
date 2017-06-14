@@ -21,7 +21,6 @@
 'use strict';
 
 var config = require('./config/environment');
-var errors = require('./components/errors');
 
 var csvWriteStream = require('csv-write-stream');
 var fs = require('fs');
@@ -109,9 +108,6 @@ module.exports = function(app) {
     app.post('/uploadImage', upload.array('file'), function(req, res) {
         res.status(200).send({mimeType: req.files[0].mimetype, base64: req.files[0].buffer.toString('base64')});
     });
-
-    // All undefined asset or api routes should return a 404
-    app.route('/:url(api|auth|components|app|bower_components|assets)/*').get(errors[404]);
 
     // All other routes should redirect to the index.html
     app.route('/*').get(function(req, res) {
