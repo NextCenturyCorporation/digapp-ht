@@ -21,6 +21,11 @@
 'use strict';
 
 var config = require('./config/environment');
+var errors = require('./components/errors');
+
+var csvWriteStream = require('csv-write-stream');
+var fs = require('fs');
+
 var path = require('path');
 var request = require('request');
 
@@ -69,6 +74,34 @@ module.exports = function(app) {
       req.pipe(request(link)).pipe(res);
     });
 
+    app.get('/file/:file', function(req, res) {
+      res.download(req.params.file);
+    });
+
+    app.post('/export', function(req, res) {
+      if(req.body && req.body.length > 1) {
+        var filename = req.body[0] + '.csv';
+        var header = req.body[1];
+        var writer = csvWriteStream({
+          headers: header
+        });
+        writer.pipe(fs.createWriteStream(filename));
+        var index = 2;
+        writer.on('data', function() {
+          index++;
+          if(index === req.body.length) {
+            writer.end();
+            res.status(200).set('Cache-Control', 'no-cache').send('/file/' + filename);
+          }
+        });
+        for(var i = 2; i < req.body.length; ++i) {
+          writer.write(req.body[i]);
+        }
+      } else {
+        res.status(200).send();
+      }
+    });
+
     app.post('/upload', upload.array('file'), function(req, res) {
       res.status(200).send(req.files[0].buffer.toString());
     });
@@ -76,6 +109,9 @@ module.exports = function(app) {
     app.post('/uploadImage', upload.array('file'), function(req, res) {
         res.status(200).send({mimeType: req.files[0].mimetype, base64: req.files[0].buffer.toString('base64')});
     });
+
+    // All undefined asset or api routes should return a 404
+    app.route('/:url(api|auth|components|app|bower_components|assets)/*').get(errors[404]);
 
     // All other routes should redirect to the index.html
     app.route('/*').get(function(req, res) {
