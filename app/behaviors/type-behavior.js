@@ -26,7 +26,7 @@ DigBehaviors.TypeBehavior = {
    * Returns the link for the given type and id.
    */
   getPageLink: function(id, type) {
-    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'location' || type === 'offer' || type === 'phone')) {
+    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'location' || type === 'offer' || type === 'phone' || type === 'social' || type === 'review')) {
       return undefined;
     }
 
@@ -34,7 +34,7 @@ DigBehaviors.TypeBehavior = {
     if(linkId.indexOf('http://dig.isi.edu/ht/data/') === 0) {
       linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
     }
-    if(type === 'email') {
+    if(type === 'email' || type === 'social') {
       linkId = encodeURIComponent(linkId);
     }
     if(type === 'image') {

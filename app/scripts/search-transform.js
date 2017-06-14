@@ -270,6 +270,22 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
+    reviewAggregations: function(response, key) {
+      var property = commonTransforms.getDatabaseTypeFromUiType(key);
+      var data = getAggregationDataFromResponse(response, property);
+      return data.map(function(bucket) {
+        var id = ('' + bucket.key).toLowerCase();
+        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+        return {
+          count: bucket.doc_count,
+          id: id.substring(id.indexOf(' ') + 1, id.length),
+          link: commonTransforms.getLink(bucket.key, 'review'),
+          text: id
+        };
+        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      });
+    },
+
     // Heights, prices, weights, etc.
     compoundExtractionAggregations: function(response, key) {
       var property = commonTransforms.getDatabaseTypeFromUiType(key);
