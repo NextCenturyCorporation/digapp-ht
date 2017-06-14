@@ -19,9 +19,11 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
 <link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
+<link rel="import" href="../search-info-display/search-info-display.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../clipboard.html">
 <link rel="import" href="../lodash.html">
@@ -30,7 +32,19 @@ limitations under the License.
 <dom-module id="state-manager">
   <template>
     <style include="iron-flex"></style>
+    <style>
+      :host {
+        display: block;
+      }
 
+      .terms {
+        margin-left: 10px;
+      }
+
+      .nowrap {
+        flex-wrap: nowrap;
+      }
+    </style>
     <build-and-run-query
       raw
       fields='"id"'
@@ -70,20 +84,23 @@ limitations under the License.
       </div>
     </styled-dialog>
 
-    <search-history id="searchHistoryDialog"
-      search-parameters="{{filterCollection}}"
-      search-history="{{searchHistory}}"
-      process-request="{{processRequest}}"
-      has-history="{{hasHistory}}">
-    </search-history>
-
+    <styled-dialog id="searchHistoryDialog" header="View Search History">
+      <template is="dom-repeat" items="[[searchHistory]]">
+        <div class="layout horizontal">
+          <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Searched At</div>
+          <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">[[item.time]]</div>
+          <search-info-display class="flex-1 terms" search-parameters="[[item.searchParameters]]"></search-info-display>
+          <paper-icon-button class="self-end" icon="search" title="Run Search" on-tap="_runSearch"></paper-icon-button>
+        </div>
+      </template>
+    </styled-dialog>
   </template>
 
   <script>
   (function() {
     'use strict';
 
-    /* globals _, Clipboard, DigBehaviors, uuid */
+    /* globals _, moment, Clipboard, DigBehaviors, uuid */
     Polymer({
       is: 'state-manager',
 
@@ -111,6 +128,17 @@ limitations under the License.
         filterCollection: {
           type: Object,
           notify: true
+        },
+
+        /**
+         * The format to use for the dates stored in searchHistory.
+         *
+         * @type {String}
+         * @default 'hh:mm:ss A'
+         */
+        format: {
+          type: String,
+          value: 'hh:mm:ss A'
         },
 
         /**
@@ -279,28 +307,15 @@ limitations under the License.
       },
 
       observers: [
-        '_addToBrowserHistory(filterCollection.*, processRequest, showLinkDialog)',
+        '_addToHistory(filterCollection.*, processRequest, showLinkDialog)',
+        '_checkHistory(searchHistory.*)'
       ],
 
+      /**
+       * Opens the search history dialog.
+       */
       openSearchHistory: function() {
         this.$$('#searchHistoryDialog').open();
-      },
-
-      _addToBrowserHistory: function() {
-        if(this.showLinkDialog || !this.processRequest || this.areAllFacetsDisabled(this.filterCollection, ['sort'])) {
-          return;
-        }
-
-        this.generateLink();
-      },
-
-      _toggleClipboard: function(opened) {
-        if(opened) {
-          this._clipboard = new Clipboard('#copyToClipboard');
-        } else if(this._clipboard) {
-          // Destroy the clipboard object whenever the dialog is closed in order to avoid console errors.
-          this._clipboard.destroy();
-        }
       },
 
       /**
@@ -314,6 +329,78 @@ limitations under the License.
           this.$$('#linkDialog').open();
         } else {
           this._stringifiedState = state;
+        }
+      },
+
+      /**
+       * Runs a search from the searchHistory list using state id link.
+       * When run, that history item is moved to be the first item in the list and dialog is closed.
+       *
+       * @param {Object} event
+       * @private
+       */
+      _runSearch: function(event) {
+        this.splice('searchHistory', event.model.index, 1);
+        this._unshiftSearchHistoryItem(event.model.item.searchParameters, event.model.item.id);
+        this.set('filterCollection', this._copyFilterCollection(event.model.item.searchParameters));
+        history.pushState({state: event.model.item.id, searchHistory: this.searchHistory}, '', '?state=' + event.model.item.id);
+        this.$$('#searchHistoryDialog').close();
+      },
+
+      /**
+       * Returns a copy of filterCollection object passed in.
+       *
+       * @param {Object} filterCollection
+       * @return {Object} copy
+       * @private
+       */
+      _copyFilterCollection: function(filterCollection) {
+        return JSON.parse(JSON.stringify(filterCollection));
+      },
+
+      /**
+       * Place a new search history item at the beginning of the searchHistory list.
+       *
+       * @param {Object} searchParameters
+       * @param {String} stateId
+       * @private
+       */
+      _unshiftSearchHistoryItem: function(searchParameters, stateId) {
+        this.unshift('searchHistory', {
+          searchParameters: this._copyFilterCollection(searchParameters),
+          id: stateId,
+          time: moment(new Date()).format(this.format)
+        });
+      },
+
+      /**
+       * Recalculates value of hasHistory based on current state of searchHistory array.
+       *
+       * @private
+       */
+      _checkHistory: function() {
+        this.hasHistory = this.searchHistory && this.searchHistory.length > 0;
+      },
+
+      /**
+       * If there are filters selected, generate a state id and add history item to searchHistory.
+       *
+       * @private
+       */
+      _addToHistory: function() {
+        if(this.showLinkDialog || !this.processRequest || this.areAllFacetsDisabled(this.filterCollection, ['sort'])) {
+          return;
+        }
+
+        this.generateLink();
+      },
+
+      _toggleClipboard: function(opened) {
+        if(opened) {
+          this._clipboard = new Clipboard('#copyToClipboard');
+        } else if(this._clipboard) {
+          // Destroy the clipboard object whenever the dialog is closed in order to avoid console errors.
+          this._clipboard.destroy();
         }
       },
 
@@ -415,11 +502,13 @@ limitations under the License.
 
       /**
        * Updates the browser URL with the state ID and shows the dialog with the page link (including the state ID).
+       * Adds item to history if applicable.
        */
       _updateUrlAndShowDialog: function(id) {
         // From DigBehaviors.BrowserBehavior
         this._link = this.generateLinkWithStateParameter(window.location, id);
         var params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
         if(params.state && params.state === id) {
           return;
         }
@@ -427,10 +516,12 @@ limitations under the License.
         if(this.showLinkDialog) {
           this.$$('#linkDialog').open();
         } else {
-          // TODO: The searchHistory popup and the browser history aren't yet linked.
-          // Calling addToHistory here directly didn't seem to work very well (timing issues
-          // occurred) -- perhaps the solution is to integrate search-history into this
-          // component, or add the call to addHistory elsewhere.
+          // make sure this searchHistory item is the latest entry in searchHistory
+          if(this.searchHistory.length === 0 || (this.searchHistory.length > 0 &&
+            JSON.stringify(this.filterCollection) !== JSON.stringify(this.searchHistory[0].searchParameters))) {
+            this._unshiftSearchHistoryItem(this.filterCollection, id);
+          }
+          // update URL with stateId
           history.pushState({state: id, searchHistory: this.searchHistory}, '', '?state=' + id);
         }
       }
