@@ -112,10 +112,13 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       type: extractionType
     };
     if(type !== 'cache' && type !== 'website') {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var userClassification = item.human_annotation;
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       extraction.classifications = {
-        database: '',
+        //database: '',
         type: commonTransforms.getDatabaseTypeFromUiType(type),
-        user: ''
+        user: (userClassification === '1' ? 'positive' : (userClassification === '0' ? 'negative' : undefined))
       };
     }
     if(type === 'location') {
@@ -221,8 +224,18 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
   }
 
   function getClassifications(record, path) {
-    // TODO
-    return {};
+    var classifications = _.get(record, path, {});
+    return _.keys(classifications).reduce(function(object, flag) {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var userClassification = classifications[flag].human_annotation;
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      object[flag] = {
+        //database: '',
+        type: 'ad',
+        user: (userClassification === '1' ? 'positive' : (userClassification === '0' ? 'negative' : undefined))
+      };
+      return object;
+    }, {});
   }
 
   function getOfferObject(record, highlightMapping) {
@@ -246,7 +259,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       icon: commonTransforms.getIronIcon('offer'),
       link: commonTransforms.getLink(id, 'offer'),
       styleClass: commonTransforms.getStyleClass('offer'),
-      classifications: getClassifications(record, ''),
+      classifications: getClassifications(record, '_source.knowledge_graph._tags'),
       title: getSingleStringFromRecord(record, '_source.content_extraction.title', 'text') || 'No Title',
       description: getSingleStringFromRecord(record, '_source.content_extraction.content_strict', 'text') || 'No Description',
       locations: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.city', 'location'),
