@@ -84,17 +84,7 @@ The following software licenses apply to the listed third-party dependencies:
 - Copyright (c) 2016 Abdón Rodríguez Davila (@abdonrd)
 - https://github.com/abdonrd/moment-element/blob/master/LICENSE
 
-#### mustache.js
-- Copyright (c) 2009 Chris Wanstrath (Ruby)
-- Copyright (c) 2010-2014 Jan Lehnardt (JavaScript)
-- Copyright (c) 2010-2015 The mustache.js community
-- https://github.com/janl/mustache.js/blob/master/LICENSE
-
 #### node-uuid
 - Copyright (c) 2010-2016 Robert Kieffer and other contributors
 - https://github.com/broofa/node-uuid/blob/master/LICENSE.md
-
-#### page
-- Copyright (c) 2012 TJ Holowaychuk <tj@vision-media.ca>
-- https://github.com/visionmedia/page.js
 

@@ -24,11 +24,8 @@ var browserSync = require('browser-sync');
 var reload = browserSync.reload;
 var merge = require('merge-stream');
 var path = require('path');
-var fs = require('fs');
-var glob = require('glob-all');
 var historyApiFallback = require('connect-history-api-fallback');
 var packageJson = require('./package.json');
-var crypto = require('crypto');
 var ensureFiles = require('./tasks/ensure-files.js');
 var nodemon = require('gulp-nodemon');
 var url = require('url');
@@ -290,6 +287,7 @@ gulp.task('serve', ['lint', 'styles', 'elements', 'nodemon'], function() {
   gulp.watch(['app/styles/**/*.css'], ['styles', reload]);
   gulp.watch(['app/elements/**/*.css'], ['elements', reload]);
   gulp.watch(['app/images/**/*'], reload);
+  gulp.watch(['app/scripts/**/*.js'], reload);
 });
 
 // Build and serve the output from the dist build
