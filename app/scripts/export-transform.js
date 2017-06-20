@@ -20,53 +20,78 @@
 var exportTransform = (function() {
   return {
     createExportDataForCsv: function(results) {
+
       var linkPrefix = window.location.hostname + ':' + window.location.port;
       var data = [[
         'ad url',
         'dig url',
         'title',
         'date',
+        'website',
         'locations',
         'telephone numbers',
         'email addresses',
+        'prices',
+        'names',
+        'ages',
+        'genders',
+        'ethnicities',
+        'eye colors',
+        'hair colors',
+        'heights',
+        'weights',
         'social media ids',
         'review ids',
-        'images',
         'description'
       ]];
+
       results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.textAndCountry;
-        }).join('; ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join('; ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join('; ');
-        var socialIds = result.socialIds.map(function(socialId) {
-          return socialId.text;
-        }).join('; ');
-        var reviewIds = result.reviewIds.map(function(reviewId) {
-          return reviewId.text;
-        }).join('; ');
-        var images = (result.images || []).map(function(image) {
-          return image.source;
-        }).join('; ');
+        var getExtractionTextList = function(extractions, property) {
+          return extractions.map(function(extraction) {
+            return extraction[property || 'text'];
+          }).join('; ');
+        };
+
+        var locations = getExtractionTextList(result.locations);
+        var phones = getExtractionTextList(result.phones);
+        var emails = getExtractionTextList(result.emails);
+        var prices = getExtractionTextList(result.prices);
+        var names = getExtractionTextList(result.names);
+        var ages = getExtractionTextList(result.ages); console.log('ages');
+        var genders = getExtractionTextList(result.genders); console.log('gender');
+        var ethnicities = getExtractionTextList(result.ethnicities); console.log('description');
+        var eyeColors = getExtractionTextList(result.eyeColors); console.log('eye');
+        var hairColors = getExtractionTextList(result.hairColors); console.log('hair');
+        var heights = getExtractionTextList(result.heights); console.log('height');
+        var weights = getExtractionTextList(result.weights); console.log('weight');
+        var socialIds = getExtractionTextList(result.socialIds); console.log('social');
+        var reviewIds = getExtractionTextList(result.reviewIds); console.log('review');
+        var description = result.description.replace(/\s/g, ' '); console.log('description');
+
         data.push([
-          result.url,
-          linkPrefix + result.link,
-          result.title,
-          result.date,
-          locations,
-          phones,
-          emails,
-          socialIds,
-          reviewIds,
-          images,
-          result.description.replace(/\n/g, ' ')
+            result.url,
+            linkPrefix + result.link,
+            result.title,
+            result.date,
+            result.domain,
+            locations,
+            phones,
+            emails,
+            prices,
+            names,
+            ages,
+            genders,
+            ethnicities,
+            eyeColors,
+            hairColors,
+            heights,
+            weights,
+            socialIds,
+            reviewIds,
+            description
         ]);
       });
+
       return data;
     },
 
