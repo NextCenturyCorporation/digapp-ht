@@ -69,9 +69,6 @@ gulp lint
 ```
 
 ## Run Unit Tests
-To successfully run unit tests, you must have a copy of sample data for the elastic search index that this application
-will use.  These are kept in [dig-data](https://github.com/usc-isi-i2/dig-data/tree/master/sample-datasets/dig2app)
-
 ```
 gulp test
 ```

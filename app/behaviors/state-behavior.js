@@ -144,21 +144,20 @@ DigBehaviors.StateBehavior = {
   },
 
   /**
-   * Creates a configuration object for string inputs based on parameters given.
+   * Creates a string configuration object based on parameters given.
    *
    * @param {String} key
    * @param {String} title
-   * @param {String} aggField
+   * @param {String} aggregationField
    * @param {String} queryField
    * @return {Object}
    */
-  createSingleSearchField: function(key, title, aggField, queryField) {
+  createStringField: function(key, title, aggregationField, queryField) {
     return {
       key: key,
       title: title,
-      aggregationField: aggField,
-      queryField: queryField || aggField,
-      value: ''
+      aggregationField: aggregationField,
+      queryField: queryField || aggregationField
     };
   },
 
@@ -168,18 +167,15 @@ DigBehaviors.StateBehavior = {
    * @param {String} key
    * @param {String} title
    * @param {String} field
-   * @param {String} prefixLabel
    * @param {String} dateIdentifier
    * @return {Object}
    */
-  createDateField: function(key, title, field, prefixLabel, dateIdentifier) {
+  createDateField: function(key, title, field, dateIdentifier) {
     return {
       key: key,
       title: title,
       aggregationField: field,
       queryField: field,
-      value: {},
-      prefixLabel: prefixLabel,
       dateIdentifier: dateIdentifier
     };
   }

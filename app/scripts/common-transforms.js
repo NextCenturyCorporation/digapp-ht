@@ -179,10 +179,10 @@ var commonTransforms = (function(_, moment, typeBehavior) {
     var idData = id ? id.split(':') : [];
 
     // TODO We should return an empty object if the ID is formatted incorrectly once the extractions are improved.
-    if(!idData.length) {
+    if(idData.length < 5) {
       return {
         city: id,
-        text: id
+        text: id + ' (Bad Format)'
       };
     }
 
