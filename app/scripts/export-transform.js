@@ -57,16 +57,16 @@ var exportTransform = (function() {
         var emails = getExtractionTextList(result.emails);
         var prices = getExtractionTextList(result.prices);
         var names = getExtractionTextList(result.names);
-        var ages = getExtractionTextList(result.ages); console.log('ages');
-        var genders = getExtractionTextList(result.genders); console.log('gender');
-        var ethnicities = getExtractionTextList(result.ethnicities); console.log('description');
-        var eyeColors = getExtractionTextList(result.eyeColors); console.log('eye');
-        var hairColors = getExtractionTextList(result.hairColors); console.log('hair');
-        var heights = getExtractionTextList(result.heights); console.log('height');
-        var weights = getExtractionTextList(result.weights); console.log('weight');
-        var socialIds = getExtractionTextList(result.socialIds); console.log('social');
-        var reviewIds = getExtractionTextList(result.reviewIds); console.log('review');
-        var description = result.description.replace(/\s/g, ' '); console.log('description');
+        var ages = getExtractionTextList(result.ages);
+        var genders = getExtractionTextList(result.genders);
+        var ethnicities = getExtractionTextList(result.ethnicities);
+        var eyeColors = getExtractionTextList(result.eyeColors);
+        var hairColors = getExtractionTextList(result.hairColors);
+        var heights = getExtractionTextList(result.heights);
+        var weights = getExtractionTextList(result.weights);
+        var socialIds = getExtractionTextList(result.socialIds);
+        var reviewIds = getExtractionTextList(result.reviewIds);
+        var description = result.description.replace(/\s/g, ' ');
 
         data.push([
             result.url,
