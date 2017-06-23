@@ -109,7 +109,8 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       link: commonTransforms.getLink(item.key, extractionType),
       styleClass: commonTransforms.getStyleClass(extractionType),
       text: getTextOfType(item.key, item.value, type),
-      type: extractionType
+      type: extractionType,
+      provenance: item.provenance
     };
     if(type !== 'cache' && type !== 'website') {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */

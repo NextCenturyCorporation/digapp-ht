@@ -3,18 +3,35 @@
 <dom-module id="confidence-marker">
   <template>
     <style include="confidence-styles"></style>
-    
+
     <div class="layout horizontal center extraction-item">
       <template is="dom-if" if$="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
         <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+          title$="[[_getTitle(extraction, extractionDataConfidenceProperty)]]"
+          on-tap="_openContextDialog"></span>
         <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
+          title$="[[_getTitle(extraction, extractionDataConfidenceProperty)]]"
+          on-tap="_openContextDialog"></span>
       </template>
+      <paper-dialog id="contextDialog" modal
+          entry-animation="scale-up-animation"
+          exit-animation="fade-out-animation">
+            <h2>Data Provenance</h2>
+            <template is="dom-repeat" items="[[_getProvenanceList(extraction)]]">
+              <div>
+                [[_getContextMethod(item)]]
+                <br/>
+                [[_getContextID(item)]]
+                <br/>
+                [[_getContextSegment(item)]]
+                <br/>
+              </div>
+            </template>
+            <paper-button dialog-confirm>OK</paper-button>
+      </paper-dialog>
     </div>
   </template>
 
-    
   <script>
   (function() {
     'use strict';
@@ -36,7 +53,7 @@
           value: 'confidence'
         },
       },
-      
+
       /**
        * Returns the object in the given item at the given property.
        *
@@ -47,6 +64,74 @@
        */
       _getProperty: function(item, property) {
         return item ? item[property] : undefined;
+      },
+
+      /**
+       * Returns the provenance list in the given item.
+       *
+       * @param {Object} item
+       * @return {Array}
+       * @private
+       */     
+      _getProvenanceList: function(item) {
+        var out = item['provenance'];
+        return out ? out : undefined;
+      },
+
+      /**
+       * Returns the title based on the given item at the given property.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {String}
+       * @private
+       */
+      _getTitle: function(item, property) {
+        return "Confidence:  " + this._getProperty(item,property) +"%";
+      },
+
+      /**
+       * Opens the provinance context dialog.
+       *
+       * @private
+       */
+      _openContextDialog: function(e) {
+        e.stopPropagation();
+        this.$.contextDialog.toggle();
+      },
+
+      /**
+       * Returns the provinance method based on the given item.
+       *
+       * @param {Object} item
+       * @return {String}
+       * @private
+       */
+      _getContextMethod: function (item) {
+        return "Method: "+item['method'];
+      },
+
+      /**
+       * Returns the provinance document id based on the given item.
+       *
+       * @param {Object} item
+       * @return {String}
+       * @private
+       */
+      _getContextID: function (item) {
+        var source = item['source'];
+        return "Document ID: "+source['document_id'];
+      },
+
+      /**
+       * Returns the provinance segment based on the given item.
+       *
+       * @param {Object} item
+       * @return {String}
+       * @private
+       */
+      _getContextSegment: function (item) {
+        return "Segment: "+item['source']['segment'];
       },
 
       /**
