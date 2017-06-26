@@ -266,9 +266,8 @@ limitations under the License.
 
     test('does have expected elements', function() {
       expect(element.$$('paper-icon-button')).to.exist;
-      // TODO: add styled dialog for search history popup
-      expect(element.$$('styled-dialog')).to.exist;
-      expect(element.$$('styled-dialog').id).to.equal('linkDialog');
+      expect(element.$$('#linkDialog')).to.exist;
+      expect(element.$$('#searchHistoryDialog')).to.exist;
     });
 
     test('openSearchHistory() opens the correct dialog', function(done) {
@@ -478,11 +477,56 @@ limitations under the License.
       expect(element._validateId).to.be.false;
     });
 
-/* 
-    TODO: Need to fix unit tests from former search-history component and add them here.
+    test('_addToHistory() will not call generateLink if showLinkDialog is true', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.pageType = 'search';
+      element._addToHistory();
 
-    test('_addToHistory() adds items correctly', function(done) {
+      flush(function() {
+        expect(linkGenerated).to.be.false;
+        done();
+      });
+    });
 
+    test('_addToHistory() will not call generateLink if processRequest is false', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.pageType = 'search';
+      element.showLinkDialog = false;
+      element._addToHistory();
+
+      flush(function() {
+        expect(linkGenerated).to.be.false;
+        done();
+      });
+    });
+
+    test('_addToHistory() will not call generateLink if filterCollection is empty', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.pageType = 'search';
+      element.showLinkDialog = false;
+      element.processRequest = true;
+      element._addToHistory();
+
+      flush(function() {
+        expect(linkGenerated).to.be.false;
+        done();
+      });
+    });
+
+    test('_addToHistory() calls generateLink when appropriate conditions met', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
       element.pageType = 'search';
       element.filterCollection = {age: {term: {key: '21', enabled: true}}};
       element.processRequest = true;
@@ -490,99 +534,126 @@ limitations under the License.
       element._addToHistory();
 
       flush(function() {
-        expect(element.searchHistory.length).to.equal(1);
-        expect(Object.keys(element.searchHistory[0])).to.deep.equal(['searchParameters', 'time']);
-        expect(element.searchHistory[0].searchParameters).to.deep.equal(element.filterCollection);
-        expect(element.searchHistory[0].time).to.be.a('string');
-       done();
-      });
-    });
-
-
-    test('_addToHistory() works as observer', function(done) {
-      element.set('searchParameters', {age: {term: {key: '21', enabled: true}}});
-      element.processRequest = true;
-
-      flush(function() {
-        assert.equal(element.searchHistory.length, 1);
-        assert.deepEqual(Object.keys(element.searchHistory[0]), ['searchParameters', 'time']);
-        assert.deepEqual(element.searchHistory[0].searchParameters, element.searchParameters);
-        assert.isString(element.searchHistory[0].time);
+        expect(linkGenerated).to.be.true;
         done();
       });
     });
 
-    test('_addToHistory() will not add item if searchParameters are disabled', function() {
-      element.set('searchParameters', {age: {term: {key: '21', enabled: false}}});
+    test('_addToHistory() works as observer', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.pageType = 'search';
+      element.filterCollection = {age: {term: {key: '21', enabled: true}}};
       element.processRequest = true;
-      element._addToHistory();
+      element.showLinkDialog = false;
 
-      assert.equal(element.searchHistory.length, 0);
+      flush(function() {
+        expect(linkGenerated).to.be.true;
+        done();
+      });
     });
 
-    test('_addToHistory() will not add item if processRequest is false', function() {
-      element.set('searchParameters', {age: {term: {key: '21', enabled: true}}});
-      element.processRequest = false;
-      element._addToHistory();
+    test('if state matches existing _stringifiedState, generateLink() opens dialog when showLinkDialog is true', function(done) {
+      expect(element.$$('#linkDialog').opened).to.be.false;
+      element.filterCollection = {age: {term: {key: '21', enabled: true}}};
+      element.pageType = 'search';
+      element._stringifiedState = element._createStringifiedState(element.filterCollection, element.pageType);
+      element.generateLink();
 
-      assert.equal(element.searchHistory.length, 0);
+      flush(function() {
+        expect(element.$$('#linkDialog').opened).to.be.true;
+        done();
+      });
+    });
+
+    test('if state matches existing _stringifiedState but showLinkDialog is false, generateLink() will not open dialog', function(done) {
+      expect(element.$$('#linkDialog').opened).to.be.false;
+      element.filterCollection = {age: {term: {key: '21', enabled: true}}};
+      element.pageType = 'search';
+      element.showLinkDialog = false;
+      element._stringifiedState = element._createStringifiedState(element.filterCollection, element.pageType);
+      element.generateLink();
+
+      flush(function() {
+        expect(element.$$('#linkDialog').opened).to.be.false;
+        done();
+      });
     });
 
     test('_runSearch() sets searchParameters to the value of the clicked search history item, moves items in searchHistory and closes dialog', function() {
       element.$$('#searchHistoryDialog').opened = true;
       element.set('searchHistory', [
-        {searchParameters: 'some param', time: 'string value'},
-        {searchParameters: 'new parameters', time: 'some other time'}
+        {id: 'someString1', searchParameters: {filter: 'some param'}, time: 'string value'},
+        {id: 'someString2', searchParameters: {filter: 'new parameters'}, time: 'some other time'}
       ]);
-      element._runSearch({model: {index: 1, item: {searchParameters: 'new parameters', time: 'some other time'}}});
+      element._runSearch({model: {index: 1, item: {id: 'someString2', searchParameters: {filter: 'new parameters'}, time: 'some other time'}}});
 
-      assert.deepEqual(element.searchParameters, 'new parameters');
-      assert.deepEqual(element.searchHistory.length, 2);
-      assert.deepEqual(element.searchHistory[0].searchParameters, 'new parameters');
-      assert.deepEqual(element.searchHistory[1].searchParameters, 'some param');
-      assert.isFalse(element.$$('#searchHistoryDialog').opened);
+      expect(element.filterCollection).to.deep.equal({filter: 'new parameters'});
+      expect(element.searchHistory.length).to.deep.equal(2);
+      expect(element.searchHistory[0].id).to.deep.equal('someString2');
+      expect(element.searchHistory[0].searchParameters).to.deep.equal({filter: 'new parameters'});
+      expect(element.searchHistory[1].id).to.deep.equal('someString1');
+      expect(element.searchHistory[1].searchParameters).to.deep.equal({filter: 'some param'});
+      expect(element.$$('#searchHistoryDialog').opened).to.be.false;
+      expect(window.location.search).to.deep.equal('?state=someString2');
     });
 
-    test('_copySearchParameters() returns a copy of argument passed in', function() {
-      var searchParams = {text: 'some string here'};
-      var searchParamsCopy = element._copySearchParameters(searchParams);
+    test('_copyFilterCollection() returns a copy of argument passed in', function() {
+      var filterCollection = {text: 'some string here'};
+      var filterCollectionCopy = element._copyFilterCollection(filterCollection);
 
-      assert.notEqual(searchParams, searchParamsCopy);
-      assert.deepEqual(searchParams, searchParamsCopy);
+      expect(filterCollection).to.not.equal(filterCollectionCopy);
+      expect(filterCollection).to.deep.equal(filterCollectionCopy);
     });
 
     test('_unshiftSearchHistoryItem() correctly adds item to the beginning of the searchHistory array', function() {
-      element.set('searchHistory', [{searchParameters: 'some param', time: 'string value'}]);
-      element._unshiftSearchHistoryItem({searchParameters: 'some string here'});
+      element.set('searchHistory', [{id: 'someid', searchParameters: 'some param', time: 'string value'}]);
+      element._unshiftSearchHistoryItem({searchParameters: 'some string here'}, 'newid');
 
-      assert.equal(element.searchHistory.length, 2);
-      assert.deepEqual(Object.keys(element.searchHistory[0]), ['searchParameters', 'time']);
-      assert.deepEqual(element.searchHistory[0].searchParameters, {searchParameters: 'some string here'});
-      assert.isString(element.searchHistory[0].time);
-      assert.deepEqual(element.searchHistory[1], {searchParameters: 'some param', time: 'string value'});
+      expect(element.searchHistory.length).to.deep.equal(2);
+      expect(Object.keys(element.searchHistory[0])).to.deep.equal(['searchParameters', 'id', 'time']);
+      expect(element.searchHistory[0].id).to.deep.equal('newid');
+      expect(element.searchHistory[0].searchParameters).to.deep.equal({searchParameters: 'some string here'});
+      expect(element.searchHistory[0].time).to.be.a('String');
+      expect(element.searchHistory[1]).to.deep.equal({id: 'someid', searchParameters: 'some param', time: 'string value'});
     });
 
     test('_checkHistory() correctly sets hasHistory to true when searchHistory array is populated', function() {
       element.set('searchHistory', [{hasObject: true}]);
       element._checkHistory();
-      assert.isTrue(element.hasHistory);
+      expect(element.hasHistory).to.be.true;
     });
 
     test('_checkHistory() correctly sets hasHistory to false when searchHistory array is empty', function() {
       element.set('searchHistory', []);
       element._checkHistory();
-      assert.isFalse(element.hasHistory);
+      expect(element.hasHistory).to.be.false;
     });
 
     test('_checkHistory() works as observer', function(done) {
       element.set('searchHistory', [{hasObject: true}]);
 
       flush(function() {
-        assert.isTrue(element.hasHistory);
+        expect(element.hasHistory).to.be.true;
         element.set('searchHistory', []);
         done();
       });
-    });*/
+    });
+
+    test('_updateUrlAndShowDialog opens link dialog if showLinkDialog is true', function() {
+      element._updateUrlAndShowDialog('id1');
+      expect(element.$$('#linkDialog').opened).to.be.true;
+    });
+
+    test('_updateUrlAndShowDialog updates current state if showLinkDialog is false', function() {
+      element.showLinkDialog = false;
+      element.filterCollection = {age: {term: {key: '21', enabled: true}}};
+      element._updateUrlAndShowDialog('id1');
+      expect(element.$$('#linkDialog').opened).to.be.false;
+      expect(window.location.search).to.deep.equal('?state=id1');
+    });
   });
 </script>
 </body>
