@@ -278,7 +278,7 @@ var searchTransform = (function(_, commonTransforms) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         return {
           count: bucket.doc_count,
-          id: id.substring(id.indexOf(' ') + 1, id.length),
+          id: commonTransforms.getExtractionDataFromCompoundId(bucket.key).id,
           link: commonTransforms.getLink(bucket.key, 'review'),
           text: id
         };
