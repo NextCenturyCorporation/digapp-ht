@@ -157,7 +157,9 @@ DigBehaviors.StateBehavior = {
       key: key,
       title: title,
       aggregationField: aggregationField,
-      queryField: queryField || aggregationField
+      queryField: queryField || aggregationField,
+      // TODO: pass as parameter once we figure out which fields should have networkExpansion -- setting all fields to true for now
+      useInNetworkSearch: true
     };
   },
 
@@ -178,5 +180,40 @@ DigBehaviors.StateBehavior = {
       queryField: field,
       dateIdentifier: dateIdentifier
     };
+  },
+
+  /**
+   * Builds and returns the network expansion parameters object.
+   *
+   * @return {Object}
+   */
+  buildNetworkParameters: function() {
+    var networkParams = {
+      age: false,
+      city: false,
+      country: false,
+      description: false,
+      email: false,
+      ethnicity: false,
+      eyeColor: false,
+      gender: false,
+      hairColor: false,
+      height: false,
+      image: false,
+      location: false,
+      name: false,
+      phone: false,
+      postingDate: false,
+      price: false,
+      region: false,
+      review: false,
+      services: false,
+      social: false,
+      title: false,
+      website: false,
+      weight: false
+    };
+
+    return networkParams;
   }
 };

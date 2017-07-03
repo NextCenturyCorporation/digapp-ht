@@ -90,9 +90,92 @@ var searchTransform = (function(_, commonTransforms) {
     return template;
   }
 
+  function getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, optional) {
+    var predicates = {};
+    var template = {
+      clauses: [{clauses: [], type: 'Ad', variable: '?ad1'}],
+      filters: [],
+      selects: []
+    };
+
+    if(!_.isEmpty(searchParameters)) {
+      _.keys(searchParameters).forEach(function(type) {
+        var predicate = commonTransforms.getDatabaseTypeFromUiType(type);
+        _.keys(searchParameters[type]).forEach(function(term) {
+          if(searchParameters[type][term].enabled) {
+            if(type === 'postingDate') {
+              // Use a single date variable ('date1').
+              predicates.date = 1;
+
+              if(template.filters.length === 0) {
+                template.filters.push({});
+              }
+
+              if(!template.filters[0].operator) {
+                template.filters[0].operator = 'and';
+              }
+
+              if(!template.filters[0].clauses) {
+                template.filters[0].clauses = [];
+              }
+
+              template.filters[0].clauses.push({
+                constraint: searchParameters[type][term].date,
+                operator: term === 'dateStart' ? '>' : '<',
+                variable: '?date1'
+              });
+            } else if(predicate) {
+
+              template.clauses[0].clauses.push({
+                constraint: searchParameters[type][term].key,
+                isOptional: optional,
+                predicate: predicate
+              });
+
+              if(!networkExpansionParameters[type]) {
+                template.clauses.push({
+                  constraint: searchParameters[type][term].key,
+                  isOptional: optional,
+                  predicate: predicate
+                });
+              } else {
+                predicates[predicate] = (predicates[predicate] || 0) + 1;
+              }
+            }
+          }
+        });
+      });
+
+      template.selects.push({
+        variable: '?ad2'
+      });
+
+      _.keys(predicates).forEach(function(predicate) {
+        for(var i = 1; i <= predicates[predicate]; ++i) {
+          template.clauses.push({
+            isOptional: false,
+            predicate: predicate === 'date' ? 'posting_date' : predicate,
+            variable: '?' + predicate + i
+          });
+
+          template.clauses[0].clauses.push({
+            isOptional: false,
+            predicate: predicate === 'date' ? 'posting_date' : predicate,
+            variable: '?' + predicate + i
+          });
+
+        }
+      });
+    }
+
+    return template;
+  }
+
   return {
-    adQuery: function(searchParameters, config) {
-      var template = getTemplateFromSearchParameters(searchParameters, true);
+    adQuery: function(searchParameters, config, networkExpansionParameters) {
+      var networkExpansionQuery = _.findKey(networkExpansionParameters, function(param) { return param === true; }) ? true : false;
+      var adVariableName = networkExpansionQuery ? '?ad2' : '?ad';
+      var template = networkExpansionQuery ? getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, true) : getTemplateFromSearchParameters(searchParameters, true);
       var groupBy = (!config || !config.page || !config.pageSize) ? undefined : {
         limit: config.pageSize,
         offset: (config.page - 1) * config.pageSize
@@ -108,30 +191,50 @@ var searchTransform = (function(_, commonTransforms) {
             clauses: template.clauses,
             filters: template.filters,
             type: 'Ad',
-            variable: '?ad'
+            variable: adVariableName
           }
         },
         type: 'Point Fact'
       };
     },
 
-    adResults: function(response) {
-      if(response && response.length && response[0].result) {
-        var fields = {};
-        if(response[0].query && response[0].query.SPARQL && response[0].query.SPARQL.where && response[0].query.SPARQL.where.clauses && response[0].query.SPARQL.where.clauses.length) {
-          response[0].query.SPARQL.where.clauses.forEach(function(clause) {
-            if(clause.predicate && clause.constraint && clause._id) {
-              var type = commonTransforms.getUiTypeFromDatabaseType(clause.predicate);
-              fields[type] = fields[type] || {};
-              fields[type][clause.constraint] = clause._id;
-            }
-          });
+    adResults: function(response, config) {
+      var fields = {};
+
+      if(config && config.networkExpansionQuery) {
+        if(response && response.length && response[0].result && response[0].result.length > 1) {
+          if(response[0].query && response[0].query.SPARQL && response[0].query.SPARQL.where && response[0].query.SPARQL.where.clauses && response[0].query.SPARQL.where.clauses.length && response[0].query.SPARQL.where.clauses[0].clauses && response[0].query.SPARQL.where.clauses[0].clauses.length) {
+            response[0].query.SPARQL.where.clauses[0].clauses.forEach(function(clause) {
+              if(clause.predicate && clause.constraint && clause._id) {
+                var type = commonTransforms.getUiTypeFromDatabaseType(clause.predicate);
+                fields[type] = fields[type] || {};
+                fields[type][clause.constraint] = clause._id;
+              }
+            });
+          }
+          return {
+            fields: fields,
+            hits: response[0].result[1].hits || []
+          };
         }
-        return {
-          fields: fields,
-          hits: response[0].result.hits || []
-        };
+      } else {
+        if(response && response.length && response[0].result) {
+          if(response[0].query && response[0].query.SPARQL && response[0].query.SPARQL.where && response[0].query.SPARQL.where.clauses && response[0].query.SPARQL.where.clauses.length) {
+            response[0].query.SPARQL.where.clauses.forEach(function(clause) {
+              if(clause.predicate && clause.constraint && clause._id) {
+                var type = commonTransforms.getUiTypeFromDatabaseType(clause.predicate);
+                fields[type] = fields[type] || {};
+                fields[type][clause.constraint] = clause._id;
+              }
+            });
+          }
+          return {
+            fields: fields,
+            hits: response[0].result.hits || []
+          };
+        }
       }
+
       return {
         fields: {},
         hits: {}
