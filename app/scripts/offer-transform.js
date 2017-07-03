@@ -248,7 +248,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     }
 
     var rank = _.get(record, '_score');
-    var domain = _.isArray(record._source.knowledge_graph.website) && record._source.knowledge_graph.website.length ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
+    var domain = (_.isArray(_.get(record, '_source.knowledge_graph.website')) && _.get(record, '_source.knowledge_graph.website').length > 0) ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
     var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
     var offer = {
