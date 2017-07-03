@@ -248,7 +248,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     }
 
     var rank = _.get(record, '_score');
-    var domain = _.get(record, '_source.tld');
+    var domain = _.isArray(record._source.knowledge_graph.website) && record._source.knowledge_graph.website.length ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
     var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
     var offer = {
@@ -279,9 +279,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
       dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
-      publishers: getExtractionsFromListOfType([{
-        key: domain
-      }], 'website'),
+      publishers: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.website', 'website'),
       highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
