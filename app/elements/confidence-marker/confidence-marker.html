@@ -24,30 +24,50 @@ limitations under the License.
   <template>
     <style include="confidence-styles"></style>
 
+    <style>
+      etk {
+        font-weight: bold;
+        background-color: yellow;
+      }
+      paper-dialog {
+        min-width: 700px;
+      }
+    </style>
+
     <div class="layout horizontal center extraction-item">
       <template is="dom-if" if$="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
         <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
           title$="[[_getTitle(extraction, extractionDataConfidenceProperty)]]"
-          on-tap="_openContextDialog"></span>
+          on-tap="_toggleContextDialog"></span>
         <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
           title$="[[_getTitle(extraction, extractionDataConfidenceProperty)]]"
-          on-tap="_openContextDialog"></span>
+          on-tap="_toggleContextDialog"></span>
       </template>
       <paper-dialog id="contextDialog" modal
-          entry-animation="scale-up-animation"
-          exit-animation="fade-out-animation">
+          exit-animation="fade-out-animation"
+          on-tap="_toggleContextDialog">
             <h2>Data Provenance</h2>
-            <template is="dom-repeat" items="[[_getProvenanceList(extraction)]]">
+            <template is="dom-if" if="[[_getContextID(extraction)]]">
+              <strong>Document Id: </strong>[[_getContextID(extraction)]]
+            </template>
+            <template is="dom-repeat" items="[[_getProperty(extraction,extractionDataProvenanceProperty)]]">
               <div>
-                [[_getContextMethod(item)]]
+                <hr/>
+                <strong>Text: </strong>
+                <template is="dom-repeat" items="[[_getContextTextSplit(item)]]">
+                  <template is="dom-if" if$="[[_hasEtk(item)]]">
+                    <etk>[[_stripEtkTag(item)]]</etk>
+                  </template>
+                  <template is="dom-if" if$="[[!_hasEtk(item)]]">
+                    [[item]]
+                  </template>
+                </template>
                 <br/>
-                [[_getContextID(item)]]
+                <strong>Method: </strong>[[_getProperty(item,extractionMethodProperty)]]
                 <br/>
-                [[_getContextSegment(item)]]
-                <br/>
+                <strong>Segment: </strong>[[_getProperty(item,extractionSegmentProperty)]]
               </div>
             </template>
-            <paper-button dialog-confirm>OK</paper-button>
       </paper-dialog>
     </div>
   </template>
@@ -62,6 +82,7 @@ limitations under the License.
         extraction: {
           type: Object
         },
+
         /**
          * The confidence property in the data objects from the extraction objects.  Supported confidence values are "high" and "low".
          *
@@ -72,30 +93,48 @@ limitations under the License.
           type: String,
           value: 'confidence'
         },
+
+        extractionDataProvenanceProperty: {
+          type: String,
+          value: 'provenance'
+        },
+
+        extractionMethodProperty: {
+          type: String,
+          value: 'method'
+        },
+
+        extractionSegmentProperty: {
+          type: Array,
+          value: function() {
+            return ['source','segment'];
+          }
+        }
       },
 
       /**
        * Returns the object in the given item at the given property.
        *
        * @param {Object} item
-       * @param {String} property
+       * @param {Array} property
        * @return {Object}
        * @private
        */
       _getProperty: function(item, property) {
-        return item ? item[property] : undefined;
-      },
+        var curItem = item;
+        var propertyArray = property;
 
-      /**
-       * Returns the provenance list in the given item.
-       *
-       * @param {Object} item
-       * @return {Array}
-       * @private
-       */
-      _getProvenanceList: function(item) {
-        var out = item.provenance;
-        return out ? out : undefined;
+        if(!Array.isArray(propertyArray)) {
+          propertyArray = [propertyArray];
+        }
+
+        for(var i in propertyArray) {
+          if(curItem) {
+            var field = propertyArray[i];
+            curItem = curItem[field];
+          }
+        }
+        return curItem;
       },
 
       /**
@@ -115,20 +154,9 @@ limitations under the License.
        *
        * @private
        */
-      _openContextDialog: function(e) {
+      _toggleContextDialog: function(e) {
         e.stopPropagation();
         this.$.contextDialog.toggle();
-      },
-
-      /**
-       * Returns the provinance method based on the given item.
-       *
-       * @param {Object} item
-       * @return {String}
-       * @private
-       */
-      _getContextMethod: function(item) {
-        return 'Method: ' + item.method;
       },
 
       /**
@@ -138,21 +166,57 @@ limitations under the License.
        * @return {String}
        * @private
        */
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       _getContextID: function(item) {
-        /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-        return 'Document ID: ' + item.source.document_id;
-        /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+        if(item && item.provenance && item.provenance[0].source && item.provenance[0].source.document_id) {
+          return item.provenance[0].source.document_id;
+        }
+        return undefined;
+      },
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+
+      /**
+       * Returns the provinance text as an array split so that etk tags are seperate from normal text.
+       *
+       * @param {Object} item
+       * @return {Array}
+       * @private
+       */
+      _getContextTextSplit: function(item) {
+        if(item && item.source && item.source.context && item.source.context.text) {
+          var str = item.source.context.text;
+          var strPrep = str.replace(new RegExp('<etk', 'g') , '<splithere><etk').replace(new RegExp('</etk>', 'g') , '</etk><splithere>');
+          var strSplit = strPrep.split('<splithere>');
+          return strSplit;
+        }
+        return ['Context text not included in meta data.'];
       },
 
       /**
-       * Returns the provinance segment based on the given item.
+       * Returns if the text contains etk tags
        *
-       * @param {Object} item
+       * @param {String} raw
+       * @return {Boolean}
+       * @private
+       */
+      _hasEtk: function(raw) {
+        if(raw.indexOf('<etk') >= 0) {
+          return true;
+        }
+        return false;
+      },
+
+      /**
+       * Removes the '<etk>' and '</etk> tags from a string.
+       *
+       * @param {String} raw
        * @return {String}
        * @private
        */
-      _getContextSegment: function(item) {
-        return 'Segment: ' + item.source.segment;
+      _stripEtkTag: function(raw) {
+        var cut = raw.substring(raw.indexOf('>') + 1);
+        cut = cut.substring(0,cut.indexOf('<'));
+        return cut;
       },
 
       /**
