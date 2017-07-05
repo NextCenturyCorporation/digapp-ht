@@ -125,7 +125,6 @@ var searchTransform = (function(_, commonTransforms) {
                 variable: '?date1'
               });
             } else if(predicate) {
-
               template.clauses[0].clauses.push({
                 constraint: searchParameters[type][term].key,
                 isOptional: optional,
@@ -144,6 +143,9 @@ var searchTransform = (function(_, commonTransforms) {
             }
           }
         });
+        if(!predicates[predicate] && networkExpansionParameters[type]) {
+          predicates[predicate] = (predicates[predicate] || 0) + 1;
+        }
       });
 
       template.selects.push({
