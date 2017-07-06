@@ -109,7 +109,8 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       link: commonTransforms.getLink(item.key, extractionType),
       styleClass: commonTransforms.getStyleClass(extractionType),
       text: getTextOfType(item.key, item.value, type),
-      type: extractionType
+      type: extractionType,
+      provenance: item.provenance
     };
     if(type !== 'cache' && type !== 'website') {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -247,7 +248,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     }
 
     var rank = _.get(record, '_score');
-    var domain = _.get(record, '_source.tld');
+    var domain = (_.isArray(_.get(record, '_source.knowledge_graph.website')) && _.get(record, '_source.knowledge_graph.website').length > 0) ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
     var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
     var offer = {
@@ -278,9 +279,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
       dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
-      publishers: getExtractionsFromListOfType([{
-        key: domain
-      }], 'website'),
+      publishers: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.website', 'website'),
       highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
