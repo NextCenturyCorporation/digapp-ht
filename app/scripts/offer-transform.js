@@ -36,14 +36,15 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
   }
   */
 
-  function getDateFromRecord(record, path) {
+  /*
+    function getDateFromRecord(record, path) {
     var data = _.get(record, path, []);
     var item = data ? (_.isArray(data) ? (data.length ? data[0] : {}) : data) : {};
     return {
       confidence: item.confidence,
       key: item.value
     };
-  }
+  }*/
 
   function getSingleStringFromRecord(record, path, property) {
     var data = _.get(record, path, []);
