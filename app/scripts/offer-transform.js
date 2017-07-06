@@ -278,13 +278,13 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'hairColor'),
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
-      dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
+      dates: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.posting_date', 'date'),
       publishers: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.website', 'website'),
       highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
 
-    offer.date = offer.dates.length ? offer.dates[0].text : 'Unknown Date';
+    offer.date = offer.dates.length ? offer.dates[0] : 'Unknown Date';
 
     // Handle highlighted extractions.
     if(highlightMapping) {
