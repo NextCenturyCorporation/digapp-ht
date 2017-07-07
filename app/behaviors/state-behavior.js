@@ -152,14 +152,13 @@ DigBehaviors.StateBehavior = {
    * @param {String} queryField
    * @return {Object}
    */
-  createStringField: function(key, title, aggregationField, queryField) {
+  createStringField: function(key, title, aggregationField, queryField, useInNetworkSearch) {
     return {
       key: key,
       title: title,
       aggregationField: aggregationField,
       queryField: queryField || aggregationField,
-      // TODO: pass as parameter once we figure out which fields should have networkExpansion -- setting all fields to true for now
-      useInNetworkSearch: true
+      useInNetworkSearch: useInNetworkSearch
     };
   },
 
