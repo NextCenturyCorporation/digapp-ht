@@ -33,7 +33,7 @@ limitations under the License.
 
       styled-dialog ::content .fill .inside {
         min-height: 500px;
-        min-width: 600px;
+        min-width: 700px;
       }
 
       .link {
@@ -76,28 +76,24 @@ limitations under the License.
     </template>
 
     <styled-dialog id="dialog" header="Export" fill>
-      <div>
-        <div class="styled-dialog-text">Name of Export File:</div>
-        <paper-input class="flex" label="Enter Export Filename" value="{{filename}}" no-label-float></paper-input>
-      </div>
+      <div class="styled-dialog-text">Name of Export File:</div>
+      <paper-input label="Enter Export Filename" value="{{filename}}" no-label-float></paper-input>
 
-      <div>
-        <div class="styled-dialog-text">Export:</div>
+      <div class="styled-dialog-text">Export:</div>
 
-        <paper-radio-group class="layout vertical" selected="{{_selectedMode}}">
-          <paper-radio-button name="input">The [[data.length]] Currently Shown (PDF or CSV)</paper-radio-button>
-          <paper-radio-button disabled="[[_isBulkExportDisabled(data.length, size)]]" name="query">The Top 10,000 (CSV Only)</paper-radio-button>
-        </paper-radio-group>
-      </div>
+      <paper-radio-group class="layout vertical" selected="{{_selectedMode}}">
+        <paper-radio-button name="input">The [[data.length]] Ads Currently Shown (PDF or CSV)</paper-radio-button>
+        <paper-radio-button disabled="[[_isBulkExportDisabled(data.length, size)]]" name="query">The Top 10,000 Ads Matching Each Keyword (CSV Only)</paper-radio-button>
+      </paper-radio-group>
 
-      <div class="layout horizontal text">
+      <div class="layout horizontal styled-dialog-text">
         <template is="dom-if" if="[[_isBulk(_selectedMode)]]">
-          <span class="link right-space disabled">Export to PDF</span>
+          <span class="link styled-dialog-right-space disabled">Export to PDF</span>
 
-          <span class="right-space">|</span>
+          <span class="styled-dialog-right-space">|</span>
 
           <template is="dom-if" if="[[!_isBulkDataDoneLoading(_keywordArray, _keywordIndex)]]">
-            <span class="link" on-tap="_runBulkDataQueries">Load Data & Export to CSV</span>
+            <span class="link" on-tap="_runBulkDataQueries">Load Data</span>
           </template>
           <template is="dom-if" if="[[_isBulkDataDoneLoading(_keywordArray, _keywordIndex)]]">
             <span class="link" on-tap="_exportBulkDataForCsv">Export to CSV</span>
@@ -105,17 +101,13 @@ limitations under the License.
         </template>
 
         <template is="dom-if" if="[[!_isBulk(_selectedMode)]]">
-          <span class="link right-space" on-tap="_exportDataForPdf">Export to PDF</span>
+          <span class="link styled-dialog-right-space" on-tap="_exportDataForPdf">Export to PDF</span>
 
-          <span class="right-space">|</span>
+          <span class="styled-dialog-right-space">|</span>
 
           <a is="csv-download" class="link" data="[[_dataForCsv]]" download="[[filename]].csv">Export to CSV</a>
         </template>
       </div>
-
-      <template is="dom-if" if="[[!_getLongLoadStyleClass(_selectedMode, data.length)]]">
-        <div class$="styled-dialog-note [[_getLongLoadStyleClass(_selectedMode, data.length)]]">Please note that it may take a minute or longer to export hundreds of results to PDF.</div>
-      </template>
 
       <template is="dom-if" if="[[!_isBulk(_selectedMode)]]">
         <div class="note">Please note that it may take a minute or longer to export hundreds of results to PDF.</div>
@@ -158,12 +150,12 @@ limitations under the License.
 
     <build-and-run-query
       fields="[[queryFields]]"
-      values="[[queryValues]]"
+      values="[[_getKeyword(_keywordArray, _keywordIndex)]]"
       client="[[client]]"
       index-name="[[indexName]]"
       index-types="[[indexTypes]]"
       aggregations="[]"
-      filters="[[searchParameters]]"
+      filters="[[filterList]]"
       page="1"
       page-size="10000"
       properties-ready="[[_run]]"
@@ -171,9 +163,9 @@ limitations under the License.
       sort-order="[[sortOrder]]"
       source-include="[[sourceInclude]]"
       transform-function="[[queryTransformFunction]]"
-      error="{{_error}}"
-      loading="{{_loadingQuery}}"
-      results="{{_bulkData}}"
+      error="{{_queryError}}"
+      loading="{{_queryLoading}}"
+      results="{{_queryResults}}"
       total="{{_resultsTotal}}">
     </build-and-run-query>
 
@@ -228,7 +220,7 @@ limitations under the License.
         },
 
         /**
-         * The data subset to transform and export.
+         * The data to transform and export.
          */
         data: {
           type: Array
@@ -301,7 +293,7 @@ limitations under the License.
         },
 
         /**
-         * The size of all the data (not the subset).
+         * The size of all the data (not the input data).
          */
         size: {
           type: Number
@@ -350,7 +342,7 @@ limitations under the License.
         },
 
         /**
-         * The CSV export data for the data subset (from the element input) for the csv-download component.
+         * The CSV export data for the bulk data (from all the query results).
          */
         _bulkDataForCsv: {
           type: Array,
@@ -366,7 +358,7 @@ limitations under the License.
         },
 
         /**
-         * The CSV export data for the bulk data (from the query results) for the csv-download component.
+         * The CSV export data for the bulk data subset (from one set of query results).
          */
         _bulkDataSubsetForCsv: {
           type: Array,
@@ -477,9 +469,9 @@ limitations under the License.
       },
 
       /**
-       * Creates and returns the pdfMake PDF content for the given data and type.
+       * Creates and returns the pdfMake PDF content for the given data.
        */
-      _createPdfContent: function(data, type) {
+      _createPdfContent: function(data) {
         var doc = {
           content: []
         };
@@ -548,9 +540,9 @@ limitations under the License.
       },
 
       /**
-       * Creates a PDF from the given data and downloads it automatically with pdfMake.
+       * Creates a PDF using the export data and downloads it automatically with pdfMake.
        */
-      _exportDataForPdf: function(data, type) {
+      _exportDataForPdf: function() {
         this.set('loading', true);
         var doc = this._createPdfContent(this._dataForPdf);
         var self = this;
@@ -572,10 +564,6 @@ limitations under the License.
        */
       _getKeyword: function(array, index) {
         return index < array.length ? array[index].value : undefined;
-      },
-
-      _getLongLoadStyleClass: function(mode, length) {
-        return mode === 'bulk' || length < 200 ? 'hide' : '';
       },
 
       /**
@@ -607,7 +595,7 @@ limitations under the License.
       },
 
       /**
-      * Returns whether the given argument is undefined.
+       * Returns whether the given argument is undefined.
        */
       _isNotUndefined: function(argument) {
         return typeof argument !== 'undefined';
@@ -661,16 +649,21 @@ limitations under the License.
         if(!this._keywordArray || !this._queryResults) {
           return;
         }
+
         if(this._keywordIndex === 0) {
           // The first two array elements are the filename and the CSV header.
           this.set('_bulkDataForCsv', [this.filename].concat(data.slice(0, 1)));
         }
+
         // Slice to remove the CSV header from the list.
         this.set('_bulkDataForCsv', this._bulkDataForCsv.concat(data.slice(1)));
+
         // Set the count shown in the dialog.
         this.set('_keywordArray.' + this._keywordIndex + '.count', data.length - 1);
+
         // Start a new query.
         this.set('_keywordIndex', this._keywordIndex + 1);
+
         if(this._isBulkDataDoneLoading(this._keywordArray, this._keywordIndex)) {
           // No more runs needed.
           this.set('_queryReady', false);
