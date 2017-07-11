@@ -76,7 +76,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     var extractionType = getExtractionType(type);
     var extraction = {
       annotate: annotateType(type),
-      confidence: confidence,
+      confidence: _.isUndefined(confidence) ? 100 : confidence,
       count: count,
       id: getIdOfType(item.key, item.value, type),
       icon: commonTransforms.getIronIcon(extractionType),
@@ -127,7 +127,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
   function getExtractionsFromListOfType(extractionList, type) {
     var extractionData = extractionList.map(function(item) {
-      var confidence = _.isUndefined(item.confidence) ? 100.0 : (Math.round(Math.min(item.confidence, 1) * 10000.0) / 100.0);
+      var confidence = _.isUndefined(item.confidence) ? undefined : (Math.round(Math.min(item.confidence, 1) * 10000.0) / 100.0);
       return getExtractionOfType(item, type, confidence);
     });
     var filterFunction = getFilterFunctionOfType(type);
