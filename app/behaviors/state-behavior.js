@@ -152,12 +152,13 @@ DigBehaviors.StateBehavior = {
    * @param {String} queryField
    * @return {Object}
    */
-  createStringField: function(key, title, aggregationField, queryField) {
+  createStringField: function(key, title, aggregationField, queryField, useInNetworkSearch) {
     return {
       key: key,
       title: title,
       aggregationField: aggregationField,
-      queryField: queryField || aggregationField
+      queryField: queryField || aggregationField,
+      useInNetworkSearch: useInNetworkSearch
     };
   },
 
@@ -178,5 +179,40 @@ DigBehaviors.StateBehavior = {
       queryField: field,
       dateIdentifier: dateIdentifier
     };
+  },
+
+  /**
+   * Builds and returns the network expansion parameters object.
+   *
+   * @return {Object}
+   */
+  buildNetworkParameters: function() {
+    var networkParams = {
+      age: false,
+      city: false,
+      country: false,
+      description: false,
+      email: false,
+      ethnicity: false,
+      eyeColor: false,
+      gender: false,
+      hairColor: false,
+      height: false,
+      image: false,
+      location: false,
+      name: false,
+      phone: false,
+      postingDate: false,
+      price: false,
+      region: false,
+      review: false,
+      services: false,
+      social: false,
+      title: false,
+      website: false,
+      weight: false
+    };
+
+    return networkParams;
   }
 };

@@ -36,14 +36,15 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
   }
   */
 
-  function getDateFromRecord(record, path) {
+  /*
+    function getDateFromRecord(record, path) {
     var data = _.get(record, path, []);
     var item = data ? (_.isArray(data) ? (data.length ? data[0] : {}) : data) : {};
     return {
       confidence: item.confidence,
       key: item.value
     };
-  }
+  }*/
 
   function getSingleStringFromRecord(record, path, property) {
     var data = _.get(record, path, []);
@@ -109,7 +110,8 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       link: commonTransforms.getLink(item.key, extractionType),
       styleClass: commonTransforms.getStyleClass(extractionType),
       text: getTextOfType(item.key, item.value, type),
-      type: extractionType
+      type: extractionType,
+      provenance: item.provenance
     };
     if(type !== 'cache' && type !== 'website') {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -247,7 +249,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     }
 
     var rank = _.get(record, '_score');
-    var domain = _.get(record, '_source.tld');
+    var domain = (_.isArray(_.get(record, '_source.knowledge_graph.website')) && _.get(record, '_source.knowledge_graph.website').length > 0) ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
     var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
     var offer = {
@@ -277,15 +279,13 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'hairColor'),
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
-      dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
-      publishers: getExtractionsFromListOfType([{
-        key: domain
-      }], 'website'),
+      dates: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.posting_date', 'date'),
+      publishers: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.website', 'website'),
       highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
 
-    offer.date = offer.dates.length ? offer.dates[0].text : 'Unknown Date';
+    offer.date = offer.dates.length ? offer.dates[0] : 'Unknown Date';
 
     // Handle highlighted extractions.
     if(highlightMapping) {
