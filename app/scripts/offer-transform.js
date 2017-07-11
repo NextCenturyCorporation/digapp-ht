@@ -19,33 +19,6 @@
 
 var offerTransform = (function(_, serverConfig, commonTransforms) {
 
-  /**
-   * Returns the list of DIG image objects using the given images from the data.
-   */
-  /*
-  function getImages(images) {
-    return (_.isArray(images) ? images : [images]).map(function(image) {
-      return {
-        id: image.uri,
-        icon: commonTransforms.getIronIcon('image'),
-        link: commonTransforms.getLink(image.uri, 'image'),
-        source: _.isArray(image.url) ? image.url[0] : image.url,
-        styleClass: commonTransforms.getStyleClass('image')
-      };
-    });
-  }
-  */
-
-  /*
-    function getDateFromRecord(record, path) {
-    var data = _.get(record, path, []);
-    var item = data ? (_.isArray(data) ? (data.length ? data[0] : {}) : data) : {};
-    return {
-      confidence: item.confidence,
-      key: item.value
-    };
-  }*/
-
   function getSingleStringFromRecord(record, path, property) {
     var data = _.get(record, path, []);
 
@@ -154,7 +127,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
   function getExtractionsFromListOfType(extractionList, type) {
     var extractionData = extractionList.map(function(item) {
-      var confidence = _.isUndefined(item.confidence) ? undefined : (Math.round(Math.min(item.confidence, 1) * 10000.0) / 100.0);
+      var confidence = _.isUndefined(item.confidence) ? 100.0 : (Math.round(Math.min(item.confidence, 1) * 10000.0) / 100.0);
       return getExtractionOfType(item, type, confidence);
     });
     var filterFunction = getFilterFunctionOfType(type);
@@ -175,18 +148,32 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
   function getHighlightPathList(item, record, highlightMapping) {
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-    var pathList = record.matched_queries;
+    var pathsFromData = record.matched_queries;
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-    if(pathList && pathList.length && highlightMapping && highlightMapping[item.id]) {
-      return pathList.filter(function(path) {
-        return _.startsWith(path, highlightMapping[item.id]);
-      }).map(function(path) {
-        return path.split(':')[1];
-      });
+    var itemText = item.text.toLowerCase();
+    if(item.type === 'location' && item.id.indexOf(':') >= 0) {
+      itemText = item.id.substring(0, item.id.indexOf(':')).toLowerCase();
+    }
+    if(item.type === 'phone') {
+      itemText = itemText.replace(/-/g, '');
     }
 
-    return [];
+    var pathsToReturn = {};
+
+    itemText.split(' ').concat([itemText]).forEach(function(text) {
+      if(pathsFromData && pathsFromData.length && highlightMapping && highlightMapping[text]) {
+        pathsFromData.filter(function(path) {
+          return _.startsWith(path, highlightMapping[text]);
+        }).map(function(path) {
+          return path.split(':')[1];
+        }).forEach(function(path) {
+          pathsToReturn[path] = true;
+        });
+      }
+    });
+
+    return _.keys(pathsToReturn);
   }
 
   function cleanHighlight(text, type) {
@@ -212,7 +199,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       item.highlight = pathList.some(function(path) {
         return (record.highlight[path] || []).some(function(text) {
           var cleanedHighlight = cleanHighlight(text, item.type);
-          return cleanedHighlight && (('' + item.id).toLowerCase().indexOf(cleanedHighlight) >= 0);
+          return !!cleanedHighlight;
         });
       });
     }
@@ -285,6 +272,12 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       details: []
     };
 
+    // TODO Remove this filter when bad dates are fixed in the data.
+    offer.dates = offer.dates.filter(function(dateObject) {
+      var yearNumber = Number(dateObject.text.substring(dateObject.text.lastIndexOf(' ') + 1));
+      return yearNumber > 2010 && yearNumber < 2018;
+    });
+
     offer.date = offer.dates.length ? offer.dates[0] : 'Unknown Date';
 
     // Handle highlighted extractions.
@@ -309,9 +302,11 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
     // Handle extraction arrays for single-record elements.
     offer.headerExtractions = [{
-      data: offer.dates
+      data: offer.publishers,
+      name: 'Website'
     }, {
-      data: offer.publishers
+      data: offer.dates,
+      name: 'Posting Dates'
     }, {
       data: offer.locations,
       name: 'Locations'
