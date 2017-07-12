@@ -379,13 +379,13 @@ var searchTransform = (function(_, commonTransforms) {
       var property = commonTransforms.getDatabaseTypeFromUiType(key);
       var data = getAggregationDataFromResponse(response, property);
       return data.map(function(bucket) {
-        var id = ('' + bucket.key).toLowerCase();
+        var extractionData = commonTransforms.getExtractionDataFromCompoundId(bucket.key);
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         return {
           count: bucket.doc_count,
-          id: commonTransforms.getExtractionDataFromCompoundId(bucket.key).id,
+          id: extractionData.id,
           link: commonTransforms.getLink(bucket.key, 'review'),
-          text: id
+          text: extractionData.text
         };
         /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
       });
