@@ -148,25 +148,37 @@ limitations under the License.
       </template>
     </styled-dialog>
 
-    <build-and-run-query
+    <elastic-client-query-builder
       type="terms"
       fields='["_all"]'
       values="[[_getKeyword(_keywordArray, _keywordIndex)]]"
+      ejs-query="{{_query}}">
+    </elastic-client-query-builder>
+
+    <elastic-client-search
       client="[[client]]"
-      index-name="[[indexName]]"
-      index-types="[[indexTypes]]"
-      aggregations="[]"
-      filters="[[filterList]]"
+      index="[[indexName]]"
       page="1"
       page-size="10000"
-      properties-ready="[[_queryReady]]"
+      elastic-types="[[indexTypes]]"
+      query="[[_query]]"
+      aggregations="[]"
+      filters="[[filterList]]"
+      sort="[[sort]]"
       sort-field="[[sortField]]"
       sort-order="[[sortOrder]]"
-      transform-function="[[queryTransformFunction]]"
-      error="{{_queryError}}"
+      results="{{_queryResults}}"
       loading="{{_queryLoading}}"
-      results="{{_bulkDataSubset}}">
-    </build-and-run-query>
+      last-error="{{_queryError}}"
+      properties-ready="{{_queryReady}}">
+    </elastic-client-search>
+
+    <json-transform
+      data-in="[[_queryResults]]"
+      data-out="{{_bulkDataSubset}}"
+      transform-function="[[queryTransformFunction]]">
+    </json-transform>
+
 
     <json-transform
       data-in="[[_bulkDataSubset]]"
@@ -440,10 +452,10 @@ limitations under the License.
         '_computeDataForPdf(data.*, pdfTransformFunction)',
         '_resetBulkDataResults(filterList)',
         '_resetBulkDataResults(filterList.*)',
-        '_resetBulkDataResults(searchParameters)',
+        '_resetBulkDataResults(searchParameters.*)',
         '_updateBulkDataFilename(filename)',
         '_updateBulkDataFromSubset(_bulkDataSubsetForCsv)',
-        '_updateKeywordArray(searchParameters)'
+        '_updateKeywordArray(searchParameters.*)'
       ],
 
       /**
@@ -638,7 +650,7 @@ limitations under the License.
        */
       _updateBulkDataFromSubset: function(data) {
         // If the queryResults are null/undefined then the query hasn't finished running yet!
-        if(!this._keywordArray || !this._bulkDataSubset) {
+        if(!this._keywordArray || !this._queryResults) {
           return;
         }
 
@@ -668,7 +680,7 @@ limitations under the License.
        */
       _updateKeywordArray: function(searchParameters) {
         if(searchParameters) {
-          var keywords =[];
+          var keywords = [];
 
           console.log(JSON.stringify(searchParameters));
           this.set('_keywordIndex', 0);
