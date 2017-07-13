@@ -70,6 +70,13 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
+    <template is="dom-if" if="[[config.imageConfig]]">
+      <elastic-client
+        config="[[config.imageConfig]]"
+        client="{{imageClient}}">
+      </elastic-client>
+    </template>
+
     <!-- Image query is built using either the ID or the URL (whatever is available in the parameters) -->
     <elastic-client-query-builder
       type="term"
@@ -86,9 +93,9 @@ limitations under the License.
     </elastic-client-query-builder>
 
     <elastic-client-search
-      client="[[esclient]]"
-      index="[[config.elasticIndex]]"
-      elastic-types='["images"]'
+      client="[[imageClient]]"
+      index="[[config.imageIndex]]"
+      elastic-types="[[config.imageType]]"
       page-size="1"
       query="[[imageQuery]]"
       aggregations="[]"
@@ -104,6 +111,7 @@ limitations under the License.
     </json-transform>
 
     <build-and-run-query
+      type="terms"
       fields='"doc_id"'
       values="[[image.ads]]"
       client="[[esclient]]"
@@ -116,7 +124,6 @@ limitations under the License.
       properties-ready="{{processRequest}}"
       sort-field="knowledge_graph.posting_date.key"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      source-exclude='["knowledge_graph.*.provenance"]'
       transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
@@ -399,8 +406,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.city.key"
                   selected-property="location"
                   selected="{{filterCollection}}"
-                  query-field="identifier"
-                  query-value="[[params.id]]"
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -429,8 +436,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.phone.key"
                   selected-property="phone"
                   selected="{{filterCollection}}"
-                  query-field="identifier"
-                  query-value="[[params.id]]"
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -465,8 +472,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.email.key"
                   selected-property="email"
                   selected="{{filterCollection}}"
-                  query-field="identifier"
-                  query-value="[[params.id]]"
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -501,8 +508,8 @@ limitations under the License.
                   aggregation-field="tld.raw"
                   selected-property="publisher"
                   selected="{{filterCollection}}"
-                  query-field="identifier"
-                  query-value="[[params.id]]"
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -531,8 +538,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.social_media_id.key"
                   selected-property="social"
                   selected="{{filterCollection}}"
-                  query-field="identifier"
-                  query-value="[[params.id]]"
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -561,8 +568,8 @@ limitations under the License.
                   aggregation-field="fields.review_id.key"
                   selected-property="review"
                   selected="{{filterCollection}}"
-                  query-field="identifier"
-                  query-value="[[params.id]]"
+                  query-field="doc_id"
+                  query-value="[[image.ads]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -606,21 +613,21 @@ limitations under the License.
                 icon="image:photo-camera"
                 style-class="entity-light-blue"
                 transform-config="[[loadedImages.length]]"
-                transform-function="[[transforms.image.imageTitle]]"
+                transform-function="[[transforms.image.similarImageTitle]]"
                 data="[[images]]">
 
                 <image-query-and-display
                   aggregation-field="url.raw"
                   aggregation-name="image"
-                  client="[[esclient]]"
+                  client="[[imageClient]]"
                   filter-list="[]"
-                  header-counts-name="Ads"
+                  header-counts-name="Shown"
                   header-entity-name="This Image"
                   image-id-property="source"
-                  index-name="[[config.elasticIndex]]"
-                  index-types='["images"]'
+                  index-name="[[config.imageIndex]]"
+                  index-types="[[config.imageType]]"
                   query-fields='"similarImageId.similarImageId"'
-                  query-values="[[image.similarImageId.similarImageId]]"
+                  query-values="[[image.similarImageId]]"
                   transform-config="{}"
                   transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -766,8 +773,9 @@ limitations under the License.
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
-                  image-index-name="[[config.elasticIndex]]"
-                  image-index-type="images"
+                  image-client="[[imageClient]]"
+                  image-index-name="[[config.imageIndex]]"
+                  image-index-type="[[config.imageType]]"
                   image-query-field="isImagePartOf.uri"
                   image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"

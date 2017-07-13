@@ -32,6 +32,9 @@ limitations under the License.
       paper-dialog {
         min-width: 700px;
       }
+      .confidence {
+        cursor: pointer;
+      }
     </style>
 
     <div class="layout horizontal center extraction-item">
@@ -43,32 +46,32 @@ limitations under the License.
           title$="[[_getTitle(extraction, extractionDataConfidenceProperty)]]"
           on-tap="_toggleContextDialog"></span>
       </template>
-      <paper-dialog id="contextDialog" modal
-          exit-animation="fade-out-animation"
-          on-tap="_toggleContextDialog">
-            <h2>Data Provenance</h2>
-            <template is="dom-if" if="[[_getContextID(extraction)]]">
-              <strong>Document Id: </strong>[[_getContextID(extraction)]]
-            </template>
-            <template is="dom-repeat" items="[[_getProperty(extraction,extractionDataProvenanceProperty)]]">
-              <div>
-                <hr/>
-                <strong>Text: </strong>
-                <template is="dom-repeat" items="[[_getContextTextSplit(item)]]">
-                  <template is="dom-if" if$="[[_hasEtk(item)]]">
-                    <etk>[[_stripEtkTag(item)]]</etk>
-                  </template>
-                  <template is="dom-if" if$="[[!_hasEtk(item)]]">
-                    [[item]]
-                  </template>
+      <styled-dialog id="contextDialog" header="Extraction Data Provenance" on-tap="_toggleContextDialog">
+        <template is="dom-if" if="[[!_getProperty(extraction, extractionDataProvenanceProperty)]]">
+          <div>Unavailable</div>
+        </template>
+        <template is="dom-if" if="[[_getProperty(extraction, extractionDataProvenanceProperty)]]">
+          <div><strong class="styled-dialog-right-space">Document Id:</strong><span>[[_getContextID(extraction, extractionDataProvenanceProperty)]]</span></div>
+        </template>
+        <template is="dom-repeat" items="[[_getProperty(extraction, extractionDataProvenanceProperty)]]">
+          <div class="styled-dialog-divider"></div>
+          <div><strong class="styled-dialog-right-space">Text:</strong></div>
+          <div class="layout horizontal wrap">
+            <template is="dom-repeat" items="[[_getContextTextSplit(item)]]">
+              <span class="styled-dialog-right-space">
+                <template is="dom-if" if$="[[_hasEtk(item)]]">
+                  <etk>[[_stripEtkTag(item)]]</etk>
                 </template>
-                <br/>
-                <strong>Method: </strong>[[_getProperty(item,extractionMethodProperty)]]
-                <br/>
-                <strong>Segment: </strong>[[_getProperty(item,extractionSegmentProperty)]]
-              </div>
+                <template is="dom-if" if$="[[!_hasEtk(item)]]">
+                  [[item]]
+                </template>
+              </span>
             </template>
-      </paper-dialog>
+          </div>
+          <div><strong class="styled-dialog-right-space">Method:</strong><span>[[_getProperty(item, extractionMethodProperty, 'Unavailable')]]</span></div>
+          <div><strong class="styled-dialog-right-space">Segment:</strong><span>[[_getProperty(item, extractionSegmentProperty, 'Unavailable')]]</span></div>
+        </template>
+      </styled-dialog>
     </div>
   </template>
 
@@ -120,7 +123,7 @@ limitations under the License.
        * @return {Object}
        * @private
        */
-      _getProperty: function(item, property) {
+      _getProperty: function(item, property, defaultValue) {
         var curItem = item;
         var propertyArray = property;
 
@@ -134,7 +137,7 @@ limitations under the License.
             curItem = curItem[field];
           }
         }
-        return curItem;
+        return curItem || defaultValue;
       },
 
       /**
@@ -146,37 +149,37 @@ limitations under the License.
        * @private
        */
       _getTitle: function(item, property) {
-        return 'Confidence:  ' + this._getProperty(item,property) + '%';
+        return 'Confidence:  ' + this._getProperty(item,property) + '% (Click to See Provenance)';
       },
 
       /**
-       * Opens the provinance context dialog.
+       * Opens the provenance context dialog.
        *
        * @private
        */
       _toggleContextDialog: function(e) {
         e.stopPropagation();
-        this.$.contextDialog.toggle();
+        this.$.contextDialog.open();
       },
 
       /**
-       * Returns the provinance document id based on the given item.
+       * Returns the provenance document id based on the given item.
        *
        * @param {Object} item
        * @return {String}
        * @private
        */
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-      _getContextID: function(item) {
-        if(item && item.provenance && item.provenance[0].source && item.provenance[0].source.document_id) {
-          return item.provenance[0].source.document_id;
+      _getContextID: function(item, property) {
+        if(item && item[property] && item[property][0] && item[property][0].source && item[property][0].source.document_id) {
+          return item[property][0].source.document_id;
         }
-        return undefined;
+        return 'None';
       },
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
       /**
-       * Returns the provinance text as an array split so that etk tags are seperate from normal text.
+       * Returns the provenance text as an array split so that etk tags are seperate from normal text.
        *
        * @param {Object} item
        * @return {Array}
@@ -189,7 +192,7 @@ limitations under the License.
           var strSplit = strPrep.split('<splithere>');
           return strSplit;
         }
-        return ['Context text not included in meta data.'];
+        return ['Unavailable'];
       },
 
       /**

@@ -210,7 +210,7 @@ var searchTransform = (function(_, commonTransforms) {
               if(clause.predicate && clause.constraint && clause._id) {
                 var type = commonTransforms.getUiTypeFromDatabaseType(clause.predicate);
                 fields[type] = fields[type] || {};
-                fields[type][clause.constraint] = clause._id;
+                fields[type][clause.constraint.toLowerCase()] = clause._id;
               }
             });
           }
