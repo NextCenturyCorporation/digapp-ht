@@ -79,7 +79,7 @@ limitations under the License.
       <div class="styled-dialog-text">Name of Export File:</div>
       <paper-input label="Enter Export Filename" value="{{filename}}" no-label-float></paper-input>
 
-      <div class="styled-dialog-text">Export:</div>
+      <div class="styled-dialog-text">Number to Export:</div>
 
       <paper-radio-group class="layout vertical" selected="{{_selectedMode}}">
         <paper-radio-button name="input">The [[data.length]] Ads Currently Shown (PDF or CSV)</paper-radio-button>
@@ -149,7 +149,8 @@ limitations under the License.
     </styled-dialog>
 
     <build-and-run-query
-      fields="[[queryFields]]"
+      type="terms"
+      fields='["_all"]'
       values="[[_getKeyword(_keywordArray, _keywordIndex)]]"
       client="[[client]]"
       index-name="[[indexName]]"
@@ -158,15 +159,13 @@ limitations under the License.
       filters="[[filterList]]"
       page="1"
       page-size="10000"
-      properties-ready="[[_run]]"
+      properties-ready="[[_queryReady]]"
       sort-field="[[sortField]]"
       sort-order="[[sortOrder]]"
-      source-include="[[sourceInclude]]"
       transform-function="[[queryTransformFunction]]"
       error="{{_queryError}}"
       loading="{{_queryLoading}}"
-      results="{{_queryResults}}"
-      total="{{_resultsTotal}}">
+      results="{{_bulkDataSubset}}">
     </build-and-run-query>
 
     <json-transform
@@ -263,10 +262,10 @@ limitations under the License.
         },
 
         /**
-         * The string of keywords used for the bulk data query.
+         * The searchParameters object used for the bulk data query.
          */
-        keywords: {
-          type: String
+        searchParameters: {
+          type: Object
         },
 
         /**
@@ -425,13 +424,6 @@ limitations under the License.
         },
 
         /**
-         * The elasticsearch bulk data query results.
-         */
-        _queryResults: {
-          type: Object
-        },
-
-        /**
          * The selected mode string (query or input).
          */
         _selectedMode: {
@@ -448,10 +440,10 @@ limitations under the License.
         '_computeDataForPdf(data.*, pdfTransformFunction)',
         '_resetBulkDataResults(filterList)',
         '_resetBulkDataResults(filterList.*)',
-        '_resetBulkDataResults(keywords)',
+        '_resetBulkDataResults(searchParameters)',
         '_updateBulkDataFilename(filename)',
         '_updateBulkDataFromSubset(_bulkDataSubsetForCsv)',
-        '_updateKeywordArray(keywords)'
+        '_updateKeywordArray(searchParameters)'
       ],
 
       /**
@@ -646,7 +638,7 @@ limitations under the License.
        */
       _updateBulkDataFromSubset: function(data) {
         // If the queryResults are null/undefined then the query hasn't finished running yet!
-        if(!this._keywordArray || !this._queryResults) {
+        if(!this._keywordArray || !this._bulkDataSubset) {
           return;
         }
 
@@ -672,16 +664,29 @@ limitations under the License.
       },
 
       /**
-       * Updates the keyword array and index using the given string of keywords.
+       * Updates the keyword array and index using the given searchParameter object.
        */
-      _updateKeywordArray: function(keywords) {
-        if(keywords) {
+      _updateKeywordArray: function(searchParameters) {
+        if(searchParameters) {
+          var keywords =[];
+
+          console.log(JSON.stringify(searchParameters));
           this.set('_keywordIndex', 0);
-          this.set('_keywordArray', keywords.split(' ').map(function(keyword) {
-            return {
-              value: keyword
-            };
-          }));
+        
+          //convert searchParameters object to a keywords array
+          for(var term in searchParameters) {
+            var searchParameter = searchParameters[term];
+
+            console.log(!_.isEmpty(searchParameter));
+            if(!_.isEmpty(searchParameter)) {
+              for(var term in searchParameters) {
+                keywords.push(term);
+              }
+            }
+          }
+
+          console.log(keywords);
+          this.set('_keywordArray', keywords);
         }
       },
 
