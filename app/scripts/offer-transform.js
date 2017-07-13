@@ -86,7 +86,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       type: extractionType,
       provenance: item.provenance
     };
-    if(type !== 'cache' && type !== 'website') {
+    if(type !== 'cache' && type !== 'date' && type !== 'website') {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var userClassification = item.human_annotation;
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -272,13 +272,26 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       details: []
     };
 
-    // TODO Remove this filter when bad dates are fixed in the data.
+    // TODO Remove this filter when dates with bad years are fixed in the data.
     offer.dates = offer.dates.filter(function(dateObject) {
+      if(dateObject.text === 'No Date') {
+        return false;
+      }
       var yearNumber = Number(dateObject.text.substring(dateObject.text.lastIndexOf(' ') + 1));
       return yearNumber > 2010 && yearNumber < 2018;
     });
 
-    offer.date = offer.dates.length ? offer.dates[0] : 'Unknown Date';
+    // TODO Don't reduce date extractions to a date range when bad dates are fixed in the data.
+    if(offer.dates.length > 1) {
+      offer.dates = offer.dates.sort(function(a, b) {
+        return new Date(a.id) - new Date(b.id);
+      });
+      offer.dates = [offer.dates[0], offer.dates[offer.dates.length - 1]];
+      offer.dates[0].text = 'From ' + offer.dates[0].text;
+      offer.dates[1].text = 'To ' + offer.dates[1].text;
+    }
+
+    offer.dateText = offer.dates.length ? (offer.dates.length === 1 ? offer.dates[0].text : offer.dates[0].text + ' ' + offer.dates[1].text) : 'Unknown Date';
 
     // Handle highlighted extractions.
     if(highlightMapping) {
@@ -306,7 +319,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       name: 'Website'
     }, {
       data: offer.dates,
-      name: 'Posting Dates'
+      name: (offer.dates.length === 1 ? 'Post Date' : 'Possible Post Date Range')
     }, {
       data: offer.locations,
       name: 'Locations'
