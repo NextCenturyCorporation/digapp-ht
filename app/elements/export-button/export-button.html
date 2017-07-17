@@ -16,6 +16,9 @@ limitations under the License.
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
+<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
@@ -178,7 +181,6 @@ limitations under the License.
       data-out="{{_bulkDataSubset}}"
       transform-function="[[queryTransformFunction]]">
     </json-transform>
-
 
     <json-transform
       data-in="[[_bulkDataSubset]]"
@@ -436,6 +438,13 @@ limitations under the License.
         },
 
         /**
+         * The elasticsearch bulk data query results.
+         */
+        _queryResults: {
+          type: Object
+        },
+
+        /**
          * The selected mode string (query or input).
          */
         _selectedMode: {
@@ -624,7 +633,7 @@ limitations under the License.
         if(this._keywordArray) {
           var self = this;
           this._keywordArray.forEach(function(value, index) {
-            self.set('_keywordArray', []);
+            self.set('_keywordArray.' + index + '.count', null);
           });
         }
       },
@@ -681,9 +690,8 @@ limitations under the License.
       _updateKeywordArray: function(searchParameters) {
         if(searchParameters) {
           var keywords = [];
-
           this.set('_keywordIndex', 0);
-        
+
           //get the object containing all search field objects
           var searchParameter = searchParameters.base;
 
@@ -692,15 +700,15 @@ limitations under the License.
             var search = searchParameter[searchField];
 
             if(!_.isEmpty(search)) {
-              console.log(search);
-              //update the keyword array 
+              //update the keyword array
               for(var element in search) {
-                console.log(element);
-                keywords.push(element);
+                var obj = {
+                  value: element
+                };
+                keywords.push(obj);
               }
             }
           }
-          
           this.set('_keywordArray', keywords);
         }
       },
