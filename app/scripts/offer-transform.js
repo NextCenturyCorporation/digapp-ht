@@ -272,14 +272,16 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       details: []
     };
 
-    // TODO Remove this filter when dates with bad years are fixed in the data.
+    // TODO Remove this filter when dates with bad months and years are fixed in the data.
     offer.dates = offer.dates.filter(function(dateObject) {
       if(dateObject.text === 'No Date') {
         return false;
       }
       var yearNumber = Number(dateObject.text.substring(dateObject.text.lastIndexOf(' ') + 1));
-      return yearNumber > 2010 && yearNumber < 2018;
+      return yearNumber > 2010 && yearNumber < 2018 && (new Date().getTime() > new Date(dateObject.id).getTime());
     });
+
+    offer.dateText = offer.dates.length ? offer.dates[0].text : 'Unknown Date';
 
     // TODO Don't reduce date extractions to a date range when bad dates are fixed in the data.
     if(offer.dates.length > 1) {
@@ -287,11 +289,10 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
         return new Date(a.id) - new Date(b.id);
       });
       offer.dates = [offer.dates[0], offer.dates[offer.dates.length - 1]];
+      offer.dateText = 'between ' + offer.dates[0].text + ' and ' + offer.dates[1].text;
       offer.dates[0].text = 'From ' + offer.dates[0].text;
       offer.dates[1].text = 'To ' + offer.dates[1].text;
     }
-
-    offer.dateText = offer.dates.length ? (offer.dates.length === 1 ? offer.dates[0].text : offer.dates[0].text + ' ' + offer.dates[1].text) : 'Unknown Date';
 
     // Handle highlighted extractions.
     if(highlightMapping) {
