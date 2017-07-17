@@ -104,7 +104,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       extraction.textAndCount = locationData.text + (extraction.count ? (' (' + extraction.count + ')') : '');
       extraction.textAndCountry = locationData.text + (locationData.country ? (', ' + locationData.country) : '');
     }
-    if(type === 'height' || type === 'price' || type === 'weight') {
+    if(type === 'height' || type === 'price' || type === 'review' || type === 'weight') {
       var compoundExtractionData = commonTransforms.getExtractionDataFromCompoundId(extraction.id);
       extraction.id = compoundExtractionData.id;
       extraction.text = compoundExtractionData.text;
