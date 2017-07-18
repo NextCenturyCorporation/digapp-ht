@@ -19,32 +19,6 @@
 
 var offerTransform = (function(_, serverConfig, commonTransforms) {
 
-  /**
-   * Returns the list of DIG image objects using the given images from the data.
-   */
-  /*
-  function getImages(images) {
-    return (_.isArray(images) ? images : [images]).map(function(image) {
-      return {
-        id: image.uri,
-        icon: commonTransforms.getIronIcon('image'),
-        link: commonTransforms.getLink(image.uri, 'image'),
-        source: _.isArray(image.url) ? image.url[0] : image.url,
-        styleClass: commonTransforms.getStyleClass('image')
-      };
-    });
-  }
-  */
-
-  function getDateFromRecord(record, path) {
-    var data = _.get(record, path, []);
-    var item = data ? (_.isArray(data) ? (data.length ? data[0] : {}) : data) : {};
-    return {
-      confidence: item.confidence,
-      key: item.value
-    };
-  }
-
   function getSingleStringFromRecord(record, path, property) {
     var data = _.get(record, path, []);
 
@@ -102,16 +76,17 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     var extractionType = getExtractionType(type);
     var extraction = {
       annotate: annotateType(type),
-      confidence: confidence,
+      confidence: _.isUndefined(confidence) ? 100 : confidence,
       count: count,
       id: getIdOfType(item.key, item.value, type),
       icon: commonTransforms.getIronIcon(extractionType),
       link: commonTransforms.getLink(item.key, extractionType),
       styleClass: commonTransforms.getStyleClass(extractionType),
       text: getTextOfType(item.key, item.value, type),
-      type: extractionType
+      type: extractionType,
+      provenance: item.provenance
     };
-    if(type !== 'cache' && type !== 'website') {
+    if(type !== 'cache' && type !== 'date' && type !== 'website') {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var userClassification = item.human_annotation;
       /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
@@ -173,18 +148,32 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
   function getHighlightPathList(item, record, highlightMapping) {
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-    var pathList = record.matched_queries;
+    var pathsFromData = record.matched_queries;
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-    if(pathList && pathList.length && highlightMapping && highlightMapping[item.id]) {
-      return pathList.filter(function(path) {
-        return _.startsWith(path, highlightMapping[item.id]);
-      }).map(function(path) {
-        return path.split(':')[1];
-      });
+    var itemText = item.text.toLowerCase();
+    if(item.type === 'location' && item.id.indexOf(':') >= 0) {
+      itemText = item.id.substring(0, item.id.indexOf(':')).toLowerCase();
+    }
+    if(item.type === 'phone') {
+      itemText = itemText.replace(/-/g, '');
     }
 
-    return [];
+    var pathsToReturn = {};
+
+    itemText.split(' ').concat([itemText]).forEach(function(text) {
+      if(pathsFromData && pathsFromData.length && highlightMapping && highlightMapping[text]) {
+        pathsFromData.filter(function(path) {
+          return _.startsWith(path, highlightMapping[text]);
+        }).map(function(path) {
+          return path.split(':')[1];
+        }).forEach(function(path) {
+          pathsToReturn[path] = true;
+        });
+      }
+    });
+
+    return _.keys(pathsToReturn);
   }
 
   function cleanHighlight(text, type) {
@@ -210,7 +199,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       item.highlight = pathList.some(function(path) {
         return (record.highlight[path] || []).some(function(text) {
           var cleanedHighlight = cleanHighlight(text, item.type);
-          return cleanedHighlight && (('' + item.id).toLowerCase().indexOf(cleanedHighlight) >= 0);
+          return !!cleanedHighlight;
         });
       });
     }
@@ -247,7 +236,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     }
 
     var rank = _.get(record, '_score');
-    var domain = _.get(record, '_source.tld');
+    var domain = (_.isArray(_.get(record, '_source.knowledge_graph.website')) && _.get(record, '_source.knowledge_graph.website').length > 0) ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
     var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
     var offer = {
@@ -277,15 +266,32 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       hairColors: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.hair_color', 'hairColor'),
       heights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.height', 'height'),
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
-      dates: getExtractionsFromListOfType([getDateFromRecord(record, '_source.knowledge_graph.posting_date')], 'date'),
-      publishers: getExtractionsFromListOfType([{
-        key: domain
-      }], 'website'),
+      dates: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.posting_date', 'date'),
+      publishers: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.website', 'website'),
       highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
       details: []
     };
 
-    offer.date = offer.dates.length ? offer.dates[0].text : 'Unknown Date';
+    // TODO Remove this filter when dates with bad years are fixed in the data.
+    offer.dates = offer.dates.filter(function(dateObject) {
+      if(dateObject.text === 'No Date') {
+        return false;
+      }
+      var yearNumber = Number(dateObject.text.substring(dateObject.text.lastIndexOf(' ') + 1));
+      return yearNumber > 2010 && yearNumber < 2018;
+    });
+
+    // TODO Don't reduce date extractions to a date range when bad dates are fixed in the data.
+    if(offer.dates.length > 1) {
+      offer.dates = offer.dates.sort(function(a, b) {
+        return new Date(a.id) - new Date(b.id);
+      });
+      offer.dates = [offer.dates[0], offer.dates[offer.dates.length - 1]];
+      offer.dates[0].text = 'From ' + offer.dates[0].text;
+      offer.dates[1].text = 'To ' + offer.dates[1].text;
+    }
+
+    offer.dateText = offer.dates.length ? (offer.dates.length === 1 ? offer.dates[0].text : offer.dates[0].text + ' ' + offer.dates[1].text) : 'Unknown Date';
 
     // Handle highlighted extractions.
     if(highlightMapping) {
@@ -309,9 +315,11 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
     // Handle extraction arrays for single-record elements.
     offer.headerExtractions = [{
-      data: offer.dates
+      data: offer.publishers,
+      name: 'Website'
     }, {
-      data: offer.publishers
+      data: offer.dates,
+      name: (offer.dates.length === 1 ? 'Post Date' : 'Possible Post Date Range')
     }, {
       data: offer.locations,
       name: 'Locations'

@@ -23,7 +23,7 @@ limitations under the License.
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>DIG</title>
+  <title>DIG 3</title>
 
   <link rel="icon" href="favicon.ico"/>
 
@@ -70,6 +70,13 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
+    <template is="dom-if" if="[[config.imageConfig]]">
+      <elastic-client
+        config="[[config.imageConfig]]"
+        client="{{imageClient}}">
+      </elastic-client>
+    </template>
+
     <build-and-run-query
       fields='"knowledge_graph.email.key"'
       values="[[params.id]]"
@@ -83,7 +90,6 @@ limitations under the License.
       properties-ready="{{processRequest}}"
       sort-field="knowledge_graph.posting_date.key"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      source-exclude='["knowledge_graph.*.provenance"]'
       transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
@@ -465,35 +471,6 @@ limitations under the License.
 
               <section-and-title
                 show-copy
-                copy-type="Websites"
-                icon="av:web"
-                style-class="entity-light-green"
-                transform-config='{"type":"website","sayOther":false}'
-                transform-function="[[transforms.offer.offerExtractionsTitle]]"
-                data="[[publisherData]]">
-
-                <aggregation-query-and-display
-                  aggregation-name="website"
-                  aggregation-field="tld.raw"
-                  selected-property="publisher"
-                  selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
-                  query-value="[[params.id]]"
-                  client="[[esclient]]"
-                  index-name="[[config.elasticIndex]]"
-                  index-types='["ads"]'
-                  filter-list="[[filterList]]"
-                  transform-config="[[createAggregationTransformConfig('website')]]"
-                  transform-function="[[transforms.offer.offerExtractions]]"
-                  data="{{publisherData}}"
-                  header-data-name="Website"
-                  header-counts-name="Ads"
-                  show-checkboxes>
-                </aggregation-query-and-display>
-              </section-and-title>
-
-              <section-and-title
-                show-copy
                 copy-type="Social Media IDs"
                 icon="social:public"
                 style-class="entity-red"
@@ -517,7 +494,9 @@ limitations under the License.
                   data="{{socialData}}"
                   header-data-name="Social Media ID"
                   header-counts-name="Ads"
-                  show-checkboxes>
+                  header-entity-name="[[params.id]]"
+                  show-checkboxes
+                  show-double-bar-chart>
                 </aggregation-query-and-display>
               </section-and-title>
 
@@ -545,6 +524,37 @@ limitations under the License.
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{reviewData}}"
                   header-data-name="Review ID"
+                  header-counts-name="Ads"
+                  header-entity-name="[[params.id]]"
+                  show-checkboxes
+                  show-double-bar-chart>
+                </aggregation-query-and-display>
+              </section-and-title>
+
+              <section-and-title
+                show-copy
+                copy-type="Websites"
+                icon="av:web"
+                style-class="entity-light-green"
+                transform-config='{"type":"website","sayOther":false}'
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
+                data="[[publisherData]]">
+
+                <aggregation-query-and-display
+                  aggregation-name="website"
+                  aggregation-field="tld.raw"
+                  selected-property="publisher"
+                  selected="{{filterCollection}}"
+                  query-field="knowledge_graph.email.key"
+                  query-value="[[params.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('website')]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
+                  data="{{publisherData}}"
+                  header-data-name="Website"
                   header-counts-name="Ads"
                   show-checkboxes>
                 </aggregation-query-and-display>
@@ -586,15 +596,15 @@ limitations under the License.
                 <image-query-and-display
                   aggregation-field="url.raw"
                   aggregation-name="image"
-                  client="[[esclient]]"
+                  client="[[imageClient]]"
                   filter-list="[]"
-                  header-counts-name="Ads"
+                  header-counts-name="Shown"
                   header-entity-name="[[params.id]]"
                   image-id-property="source"
-                  index-name="[[config.elasticIndex]]"
-                  index-types='["images"]'
+                  index-name="[[config.imageIndex]]"
+                  index-types="[[config.imageType]]"
                   query-fields='"isImagePartOf.mentionsEmail"'
-                  query-values="[[params.imageQueryId]]"
+                  query-values="[[imageQueryId]]"
                   transform-config="{}"
                   transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -730,8 +740,9 @@ limitations under the License.
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
-                  image-index-name="[[config.elasticIndex]]"
-                  image-index-type="images"
+                  image-client="[[imageClient]]"
+                  image-index-name="[[config.imageIndex]]"
+                  image-index-type="[[config.imageType]]"
                   image-query-field="isImagePartOf.uri"
                   image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -759,7 +770,7 @@ limitations under the License.
   <script src="bower_components/lodash/dist/lodash.js"></script>
   <script src="bower_components/array-behavior/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
-  <script src="behaviors/filter-behavior.js"></script>
+  <script src="bower_components/filter-behavior/filter-behavior.js"></script>
   <script src="behaviors/state-behavior.js"></script>
 
   <script>
@@ -777,7 +788,9 @@ limitations under the License.
     }
 
     app.params.id = decodeURIComponent(app.params.id);
-    app.params.imageQueryId = encodeURIComponent(app.params.id);
+
+    // TODO
+    app.imageQueryId = 'http://dig.isi.edu/ht/data/email/' + encodeURIComponent(app.params.id);
 
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 

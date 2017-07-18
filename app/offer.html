@@ -23,7 +23,7 @@ limitations under the License.
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>DIG</title>
+  <title>DIG 3</title>
 
   <link rel="icon" href="favicon.ico"/>
 
@@ -70,6 +70,13 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
+    <template is="dom-if" if="[[config.imageConfig]]">
+      <elastic-client
+        config="[[config.imageConfig]]"
+        client="{{imageClient}}">
+      </elastic-client>
+    </template>
+
     <!-- Offer query -->
 
     <build-and-run-query
@@ -83,7 +90,6 @@ limitations under the License.
       page-size="1"
       properties-ready="{{processRequest}}"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      source-exclude='["knowledge_graph.*.provenance"]'
       transform-function="[[transforms.offer.offer]]"
       error="{{error}}"
       loading="{{loading}}"
@@ -136,7 +142,6 @@ limitations under the License.
       page="{{revisionAdDataPage}}"
       page-size="25"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      source-exclude='["knowledge_graph.*.provenance"]'
       loading="{{revisionAdDataLoading}}"
       last-error="{{revisionAdDataError}}"
       results="{{revisionAdDataResults}}"
@@ -169,7 +174,6 @@ limitations under the License.
       page="{{similarOfferPage}}"
       page-size="25"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      source-exclude='["knowledge_graph.*.provenance"]'
       loading="{{similarOfferLoading}}"
       last-error="{{similarOfferError}}"
       results="{{similarOfferResults}}"
@@ -240,7 +244,7 @@ limitations under the License.
                 Ad: <span>[[offer.title]]</span>
               </div>
               <div class="paper-font-subhead">
-                Posted on <strong>[[offer.date.text]]</strong> on <strong>[[offer.domain]]</strong>
+                Posted <strong>[[offer.dateText]]</strong> on <strong>[[offer.domain]]</strong>
               </div>
             </div>
           </div>
@@ -488,15 +492,15 @@ limitations under the License.
                 <image-query-and-display
                   aggregation-field="url.raw"
                   aggregation-name="image"
-                  client="[[esclient]]"
+                  client="[[imageClient]]"
                   filter-list="[]"
-                  header-counts-name="Ads"
+                  header-counts-name="Shown"
                   header-entity-name="This Ad"
                   image-id-property="source"
-                  index-name="[[config.elasticIndex]]"
-                  index-types='["images"]'
+                  index-name="[[config.imageIndex]]"
+                  index-types="[[config.imageType]]"
                   query-fields='"isImagePartOf.uri"'
-                  query-values="[[params.id]]"
+                  query-values="[[imageQueryId]]"
                   transform-config="{}"
                   transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -577,8 +581,9 @@ limitations under the License.
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
-                  image-index-name="[[config.elasticIndex]]"
-                  image-index-type="images"
+                  image-client="[[imageClient]]"
+                  image-index-name="[[config.imageIndex]]"
+                  image-index-type="[[config.imageType]]"
                   image-query-field="isImagePartOf.uri"
                   image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -742,8 +747,9 @@ limitations under the License.
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
-                  image-index-name="[[config.elasticIndex]]"
-                  image-index-type="images"
+                  image-client="[[imageClient]]"
+                  image-index-name="[[config.imageIndex]]"
+                  image-index-type="[[config.imageType]]"
                   image-query-field="isImagePartOf.uri"
                   image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -784,6 +790,9 @@ limitations under the License.
     if(!app.params.id && app.params.value) {
       app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
     }
+
+    // TODO
+    app.imageQueryId = 'http://dig.isi.edu/ht/data/webpage/' + app.params.id;
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 

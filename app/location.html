@@ -7,7 +7,7 @@
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>DIG</title>
+  <title>DIG 3</title>
 
   <link rel="icon" href="favicon.ico"/>
 
@@ -54,6 +54,13 @@
       client="{{esclient}}">
     </elastic-client>
 
+    <template is="dom-if" if="[[config.imageConfig]]">
+      <elastic-client
+        config="[[config.imageConfig]]"
+        client="{{imageClient}}">
+      </elastic-client>
+    </template>
+
     <build-and-run-query
       fields='"knowledge_graph.city.key"'
       values="[[location.id]]"
@@ -67,7 +74,6 @@
       properties-ready="{{processRequest}}"
       sort-field="knowledge_graph.posting_date.key"
       source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
-      source-exclude='["knowledge_graph.*.provenance"]'
       transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
@@ -435,40 +441,6 @@
 
               <section-and-title
                 show-copy
-                copy-type="Websites"
-                icon="av:web"
-                style-class="entity-light-green"
-                transform-config='{"type":"website","sayOther":false}'
-                transform-function="[[transforms.offer.offerExtractionsTitle]]"
-                data="[[publisherData]]">
-
-                <template is="dom-if" if="[[publisherData.length]]">
-                  <div class="note">Note:  Showing Only the Top 100 Websites</div>
-                </template>
-
-                <aggregation-query-and-display
-                  aggregation-name="website"
-                  aggregation-field="tld.raw"
-                  aggregation-count="100"
-                  selected-property="publisher"
-                  selected="{{filterCollection}}"
-                  query-field="knowledge_graph.city.key"
-                  query-value="[[location.id]]"
-                  client="[[esclient]]"
-                  index-name="[[config.elasticIndex]]"
-                  index-types='["ads"]'
-                  filter-list="[[filterList]]"
-                  transform-config="[[createAggregationTransformConfig('website')]]"
-                  transform-function="[[transforms.offer.offerExtractions]]"
-                  data="{{publisherData}}"
-                  header-data-name="Website"
-                  header-counts-name="Ads"
-                  show-checkboxes>
-                </aggregation-query-and-display>
-              </section-and-title>
-
-              <section-and-title
-                show-copy
                 copy-type="Social Media IDs"
                 icon="social:public"
                 style-class="entity-red"
@@ -497,7 +469,9 @@
                   data="{{socialData}}"
                   header-data-name="Social Media ID"
                   header-counts-name="Ads"
-                  show-checkboxes>
+                  header-entity-name="[[location.city]]"
+                  show-checkboxes
+                  show-double-bar-chart>
                 </aggregation-query-and-display>
               </section-and-title>
 
@@ -530,6 +504,42 @@
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{reviewData}}"
                   header-data-name="Review ID"
+                  header-counts-name="Ads"
+                  header-entity-name="[[location.city]]"
+                  show-checkboxes
+                  show-double-bar-chart>
+                </aggregation-query-and-display>
+              </section-and-title>
+
+              <section-and-title
+                show-copy
+                copy-type="Websites"
+                icon="av:web"
+                style-class="entity-light-green"
+                transform-config='{"type":"website","sayOther":false}'
+                transform-function="[[transforms.offer.offerExtractionsTitle]]"
+                data="[[publisherData]]">
+
+                <template is="dom-if" if="[[publisherData.length]]">
+                  <div class="note">Note:  Showing Only the Top 100 Websites</div>
+                </template>
+
+                <aggregation-query-and-display
+                  aggregation-name="website"
+                  aggregation-field="tld.raw"
+                  aggregation-count="100"
+                  selected-property="publisher"
+                  selected="{{filterCollection}}"
+                  query-field="knowledge_graph.city.key"
+                  query-value="[[location.id]]"
+                  client="[[esclient]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  filter-list="[[filterList]]"
+                  transform-config="[[createAggregationTransformConfig('website')]]"
+                  transform-function="[[transforms.offer.offerExtractions]]"
+                  data="{{publisherData}}"
+                  header-data-name="Website"
                   header-counts-name="Ads"
                   show-checkboxes>
                 </aggregation-query-and-display>
@@ -690,8 +700,9 @@
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
-                  image-index-name="[[config.elasticIndex]]"
-                  image-index-type="images"
+                  image-client="[[imageClient]]"
+                  image-index-name="[[config.imageIndex]]"
+                  image-index-type="[[config.imageType]]"
                   image-query-field="isImagePartOf.uri"
                   image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
@@ -721,6 +732,7 @@
   <!-- Need to include dependencies here for IE -->
   <script src="bower_components/lodash/dist/lodash.js"></script>
   <script src="bower_components/array-behavior/array-behavior.js"></script>
+  <script src="bower_components/filter-behavior/filter-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
   <script src="behaviors/state-behavior.js"></script>
 

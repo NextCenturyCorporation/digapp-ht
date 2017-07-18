@@ -25,11 +25,17 @@ var imageTransform = (function(_, commonTransforms) {
   return {
     image: function(data) {
       if(data && data.hits && data.hits.hits && data.hits.hits.length) {
+        var imageParts = data.hits.hits[0]._source.isImagePartOf || [];
+        var similarImageId = data.hits.hits[0]._source.similarImageId || {};
         return {
           id: data.hits.hits[0]._source.identifier,
-          ads: (data.hits.hits[0]._source.isImagePartOf || []).map(function(item) {
+          ads: (_.isArray(imageParts) ? imageParts : [imageParts]).map(function(item) {
+            if(item.uri && item.uri.indexOf('http://dig.isi.edu/ht/data/') === 0) {
+              return item.uri.substring(item.uri.lastIndexOf('/') + 1);
+            }
             return item.uri;
           }).slice(0, 10000),
+          similarImageId: (_.isArray(similarImageId) ? similarImageId[0] : similarImageId).similarImageId,
           url: data.hits.hits[0]._source.url
         };
       }
@@ -48,6 +54,7 @@ var imageTransform = (function(_, commonTransforms) {
           images.push({
             count: count,
             icon: commonTransforms.getIronIcon('image'),
+            id: bucket.key,
             link: commonTransforms.getLink(bucket.key, 'image'),
             source: bucket.key,
             styleClass: commonTransforms.getStyleClass('image'),
@@ -72,6 +79,16 @@ var imageTransform = (function(_, commonTransforms) {
         return (totalCount === totalShown ? '' : totalShownString + ' of ') + totalCountString + ' Image' + (totalCount === 1 ? '' : 's');
       }
       return 'No Images';
+    },
+
+    similarImageTitle: function(totalCount, totalShown) {
+      if(totalCount) {
+        // Use regex replace to add commas to count.
+        var totalCountString = totalCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var totalShownString = totalShown.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return (totalCount === totalShown ? '' : totalShownString + ' of ') + totalCountString + ' Similar Image' + (totalCount === 1 ? '' : 's');
+      }
+      return 'No Similar Images';
     },
 
     externalImageLink: function(id) {
