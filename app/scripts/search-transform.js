@@ -18,10 +18,18 @@
 /* jshint camelcase:false */
 
 var searchTransform = (function(_, commonTransforms) {
-  function getAggregationDataFromResponse(response, property) {
-    if(response && response.length && response[0].result && response[0].result.aggregations && response[0].result.aggregations['?' + property]) {
-      return response[0].result.aggregations['?' + property].buckets || [];
+
+  function getAggregationDataFromResponse(response, config) {
+    if(config && config.networkExpansionQuery) {
+      if(response && response.length && response[0].result && response[0].result.length > 1 && response[0].result[1].aggregations && response[0].result[1].aggregations['?' + config.name]) {
+        return response[0].result[1].aggregations['?' + config.name].buckets || [];
+      }
+    } else {
+      if(response && response.length && response[0].result && response[0].result.aggregations && response[0].result.aggregations['?' + config.name]) {
+        return response[0].result.aggregations['?' + config.name].buckets || [];
+      }
     }
+
     return [];
   }
 
@@ -90,6 +98,7 @@ var searchTransform = (function(_, commonTransforms) {
     return template;
   }
 
+  // network expansion queries are structured a bit differently, the main difference being that they have nested clauses
   function getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, optional) {
     var predicates = {};
     var template = {
@@ -125,6 +134,7 @@ var searchTransform = (function(_, commonTransforms) {
                 variable: '?date1'
               });
             } else if(predicate) {
+              // we only want to add exact search terms entered in by the user to the initial query, not the expanded query
               template.clauses[0].clauses.push({
                 constraint: searchParameters[type][term].key,
                 isOptional: optional,
@@ -137,8 +147,6 @@ var searchTransform = (function(_, commonTransforms) {
                   isOptional: optional,
                   predicate: predicate
                 });
-              } else {
-                predicates[predicate] = (predicates[predicate] || 0) + 1;
               }
             }
           }
@@ -148,24 +156,19 @@ var searchTransform = (function(_, commonTransforms) {
         }
       });
 
-      template.selects.push({
-        variable: '?ad2'
-      });
-
       _.keys(predicates).forEach(function(predicate) {
         for(var i = 1; i <= predicates[predicate]; ++i) {
           template.clauses.push({
             isOptional: false,
             predicate: predicate === 'date' ? 'posting_date' : predicate,
-            variable: '?' + predicate + i
+            variable: predicate === 'date' ? '?' + predicate + i : '?' + predicate,
           });
 
           template.clauses[0].clauses.push({
             isOptional: false,
             predicate: predicate === 'date' ? 'posting_date' : predicate,
-            variable: '?' + predicate + i
+            variable: predicate === 'date' ? '?' + predicate + i : '?' + predicate,
           });
-
         }
       });
     }
@@ -187,7 +190,7 @@ var searchTransform = (function(_, commonTransforms) {
         SPARQL: {
           'group-by': groupBy,
           select: {
-            variables: template.selects
+            variables: networkExpansionQuery ? [{variable: '?ad2'}] : template.selects
           },
           where: {
             clauses: template.clauses,
@@ -203,6 +206,7 @@ var searchTransform = (function(_, commonTransforms) {
     adResults: function(response, config) {
       var fields = {};
 
+      // network expansion queries return an array of two result records instead of a single result
       if(config && config.networkExpansionQuery) {
         if(response && response.length && response[0].result && response[0].result.length > 1) {
           if(response[0].query && response[0].query.SPARQL && response[0].query.SPARQL.where && response[0].query.SPARQL.where.clauses && response[0].query.SPARQL.where.clauses.length && response[0].query.SPARQL.where.clauses[0].clauses && response[0].query.SPARQL.where.clauses[0].clauses.length) {
@@ -243,9 +247,10 @@ var searchTransform = (function(_, commonTransforms) {
       };
     },
 
-    facetsQuery: function(searchParameters, config) {
+    facetsQuery: function(searchParameters, config, networkExpansionParameters) {
+      var networkExpansionQuery = _.findKey(networkExpansionParameters, function(param) { return param === true; }) ? true : false;
       var predicate = (config && config.aggregationType ? commonTransforms.getDatabaseTypeFromUiType(config.aggregationType) : undefined);
-      var template = getTemplateFromSearchParameters(searchParameters, false);
+      var template = networkExpansionQuery ? getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, true) : getTemplateFromSearchParameters(searchParameters, false);
       var groupBy = {
         limit: (config && config.pageSize ? config.pageSize : 0),
         offset: 0
@@ -259,11 +264,23 @@ var searchTransform = (function(_, commonTransforms) {
           variable: '?' + predicate
         });
 
-        template.clauses.push({
-          isOptional: false,
-          predicate: predicate,
-          variable: '?' + predicate
-        });
+        if(!networkExpansionQuery || (_.findIndex(template.clauses, function(clause) {
+          return clause.predicate === predicate && clause.variable === '?' + predicate;
+        }) === -1)) {
+          template.clauses.push({
+            isOptional: false,
+            predicate: predicate,
+            variable: '?' + predicate
+          });
+
+          if(template.clauses.length && template.clauses[0].clauses) {
+            template.clauses[0].clauses.push({
+              isOptional: false,
+              predicate: predicate,
+              variable: '?' + predicate
+            });
+          }
+        }
 
         groupBy.variables = [{
           variable: '?' + predicate
@@ -296,9 +313,15 @@ var searchTransform = (function(_, commonTransforms) {
       };
     },
 
-    cityAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    cityAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         var city = commonTransforms.getLocationDataFromId(bucket.key).city;
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -314,9 +337,15 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    emailAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    emailAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         var id = ('' + bucket.key).toLowerCase();
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -329,9 +358,15 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    filterAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    filterAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         var id = ('' + bucket.key).toLowerCase();
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -343,9 +378,15 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    phoneAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    phoneAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
         return {
@@ -358,9 +399,15 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    socialMediaAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    socialMediaAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         var id = ('' + bucket.key).toLowerCase();
 
@@ -375,9 +422,15 @@ var searchTransform = (function(_, commonTransforms) {
       });
     },
 
-    reviewAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    reviewAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         var extractionData = commonTransforms.getExtractionDataFromCompoundId(bucket.key);
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
@@ -392,9 +445,15 @@ var searchTransform = (function(_, commonTransforms) {
     },
 
     // Heights, prices, weights, etc.
-    compoundExtractionAggregations: function(response, key) {
-      var property = commonTransforms.getDatabaseTypeFromUiType(key);
-      var data = getAggregationDataFromResponse(response, property);
+    compoundExtractionAggregations: function(response, config) {
+      if(!config || !config.name) {
+        return [];
+      }
+      var newConfig = {
+        name: commonTransforms.getDatabaseTypeFromUiType(config.name),
+        networkExpansionQuery: config.networkExpansionQuery
+      };
+      var data = getAggregationDataFromResponse(response, newConfig);
       return data.map(function(bucket) {
         var extractionData = commonTransforms.getExtractionDataFromCompoundId(bucket.key);
         /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
