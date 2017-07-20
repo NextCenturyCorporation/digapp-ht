@@ -139,76 +139,91 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     return getExtractionsFromListOfType(data, type);
   }
 
-  function getHighlightedText(record, paths) {
-    var path = _.find(paths, function(path) {
-      return record.highlight && record.highlight[path] && record.highlight[path].length && record.highlight[path][0];
-    });
-    return path ? record.highlight[path][0] : undefined;
+  function getTitleOrDescriptionHighlightText(record, path) {
+    return record.highlight && record.highlight[path] && record.highlight[path].length ? record.highlight[path][0] : undefined;
   }
 
-  function getHighlightPathList(item, record, highlightMapping) {
+  function getHighlightPathList(itemId, itemText, result, type, highlightMapping) {
+    // The highlightMapping property maps search terms to unique IDs.
+    // The result.matched_queries property lists highlights in the format <id>:<path>:<text>
+
     /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
-    var pathsFromData = record.matched_queries;
+    var matchedQueries = result.matched_queries;
     /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
 
-    var itemText = item.text.toLowerCase();
-    if(item.type === 'location' && item.id.indexOf(':') >= 0) {
-      itemText = item.id.substring(0, item.id.indexOf(':')).toLowerCase();
+    var wordsOrPhrases = [];
+    if(type === 'location') {
+      // Add the city name.
+      wordsOrPhrases = [itemId.substring(0, itemId.indexOf(':'))];
+    } else if(type === 'phone') {
+      // Add the phone without punctuation.
+      wordsOrPhrases = [itemText, itemText.replace(/\W/g, '')];
+    } else {
+      // Add the full text and all single words in the text.  Remove all punctuation so we can separate the words.
+      wordsOrPhrases = [itemText].concat(itemText.replace(/\W/g, ' ').split(' '));
     }
-    if(item.type === 'phone') {
-      itemText = itemText.replace(/-/g, '');
+
+    var highlightPaths = {};
+
+    if(matchedQueries && matchedQueries.length && highlightMapping) {
+      wordsOrPhrases.forEach(function(wordOrPhrase) {
+        // If a highlight mapping exists for the word or phrase, check the matched queries.
+        if(highlightMapping[wordOrPhrase]) {
+          return matchedQueries.filter(function(path) {
+            return _.startsWith(path, highlightMapping[wordOrPhrase]);
+          }).map(function(path) {
+            // Return the path in the matched queries.
+            return path.split(':')[1];
+          }).forEach(function(path) {
+            highlightPaths[path] = true;
+          });
+        }
+      });
     }
 
-    var pathsToReturn = {};
-
-    itemText.split(' ').concat([itemText]).forEach(function(text) {
-      if(pathsFromData && pathsFromData.length && highlightMapping && highlightMapping[text]) {
-        pathsFromData.filter(function(path) {
-          return _.startsWith(path, highlightMapping[text]);
-        }).map(function(path) {
-          return path.split(':')[1];
-        }).forEach(function(path) {
-          pathsToReturn[path] = true;
-        });
-      }
-    });
-
-    return _.keys(pathsToReturn);
+    return _.keys(highlightPaths);
   }
 
-  function cleanHighlight(text, type) {
+  function checkHighlightedText(text, type) {
+    // TODO Do we have to hard-code <em> or can we make it a config variable?
     // Ignore partial matches for emails and websites.
     if((type === 'email' || type === 'website') && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
-      return text.toLowerCase();
+      return false;
     }
 
     var output = text;
 
-    // Social media usernames are formatted "<website> <username>".
-    // Ignore matches on websites in social media usernames.
-    if(type === 'social') {
+    // Usernames are formatted "<website> <username>".  Ignore matches on the <website>.
+    if(type === 'username') {
       output = output.indexOf(' ') ? output.substring(output.indexOf(' ') + 1) : output;
     }
 
-    return output.indexOf('<em>') >= 0 ? output.replace(/<\/?em\>/g, '').toLowerCase() : '';
+    // Return whether the given text has both start and end tags.
+    return output.indexOf('<em>') >= 0 && output.indexOf('</em>') >= 0 ? !!(output.replace(/<\/?em\>/g, '')) : false;
   }
 
-  function addHighlight(item, record, highlightMapping) {
-    var pathList = getHighlightPathList(item, record, highlightMapping);
-    if(record.highlight && pathList.length) {
-      item.highlight = pathList.some(function(path) {
-        return (record.highlight[path] || []).some(function(text) {
-          var cleanedHighlight = cleanHighlight(text, item.type);
-          return !!cleanedHighlight;
+  function getHighlightedText(itemId, itemText, result, type, highlightMapping) {
+    // Get the paths from the highlight mapping to explore in the result highlights specifically for the given item.
+    var pathList = getHighlightPathList(('' + itemId).toLowerCase(), ('' + itemText).toLowerCase(), result, type, highlightMapping);
+    var textList = [];
+    if(result.highlight && pathList.length) {
+      // Find the highlighted text in the result highlights using a highlights path.  Use the first because they are all the same.
+      pathList.forEach(function(path) {
+        (result.highlight[path] || []).forEach(function(text) {
+          if(checkHighlightedText(text)) {
+            textList.push(text);
+          }
         });
       });
     }
-    return item;
+    return textList.length ? textList[0] : undefined;
   }
 
-  function addAllHighlights(data, record, highlightMapping) {
+  function getHighlightedExtractionListFromRecord(data, record, highlightMapping) {
     return data.map(function(item) {
-      return addHighlight(item, record, highlightMapping);
+      // The highlight in the extraction object is a boolean (YES or NO).
+      item.highlight = !!(getHighlightedText(item.id, item.text, record, item.type, highlightMapping));
+      return item;
     });
   }
 
@@ -268,7 +283,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       weights: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.weight', 'weight'),
       dates: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.posting_date', 'date'),
       publishers: getExtractionsFromRecordOfType(record, '_source.knowledge_graph.website', 'website'),
-      highlightedText: getHighlightedText(record, ['content_extraction.title.text']),
+      highlightedText: getTitleOrDescriptionHighlightText(record, 'content_extraction.title.text'),
       details: []
     };
 
@@ -296,22 +311,22 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
 
     // Handle highlighted extractions.
     if(highlightMapping) {
-      offer.locations = addAllHighlights(offer.locations, record, highlightMapping.location);
-      offer.phones = addAllHighlights(offer.phones, record, highlightMapping.phone);
-      offer.emails = addAllHighlights(offer.emails, record, highlightMapping.email);
-      offer.socialIds = addAllHighlights(offer.socialIds, record, highlightMapping.social);
-      offer.reviewIds = addAllHighlights(offer.reviewIds, record, highlightMapping.review);
-      offer.services = addAllHighlights(offer.services, record, highlightMapping.services);
-      offer.prices = addAllHighlights(offer.prices, record, highlightMapping.price);
-      offer.names = addAllHighlights(offer.names, record, highlightMapping.name);
-      offer.genders = addAllHighlights(offer.genders, record, highlightMapping.gender);
-      offer.ethnicities = addAllHighlights(offer.ethnicities, record, highlightMapping.ethnicity);
-      offer.ages = addAllHighlights(offer.ages, record, highlightMapping.age);
-      offer.eyeColors = addAllHighlights(offer.eyeColors, record, highlightMapping.eyeColor);
-      offer.hairColors = addAllHighlights(offer.hairColors, record, highlightMapping.hairColor);
-      offer.heights = addAllHighlights(offer.heights, record, highlightMapping.height);
-      offer.weights = addAllHighlights(offer.weights, record, highlightMapping.weight);
-      offer.publishers = addAllHighlights(offer.publishers, record, highlightMapping.website);
+      offer.locations = getHighlightedExtractionListFromRecord(offer.locations, record, highlightMapping.location);
+      offer.phones = getHighlightedExtractionListFromRecord(offer.phones, record, highlightMapping.phone);
+      offer.emails = getHighlightedExtractionListFromRecord(offer.emails, record, highlightMapping.email);
+      offer.socialIds = getHighlightedExtractionListFromRecord(offer.socialIds, record, highlightMapping.social);
+      offer.reviewIds = getHighlightedExtractionListFromRecord(offer.reviewIds, record, highlightMapping.review);
+      offer.services = getHighlightedExtractionListFromRecord(offer.services, record, highlightMapping.services);
+      offer.prices = getHighlightedExtractionListFromRecord(offer.prices, record, highlightMapping.price);
+      offer.names = getHighlightedExtractionListFromRecord(offer.names, record, highlightMapping.name);
+      offer.genders = getHighlightedExtractionListFromRecord(offer.genders, record, highlightMapping.gender);
+      offer.ethnicities = getHighlightedExtractionListFromRecord(offer.ethnicities, record, highlightMapping.ethnicity);
+      offer.ages = getHighlightedExtractionListFromRecord(offer.ages, record, highlightMapping.age);
+      offer.eyeColors = getHighlightedExtractionListFromRecord(offer.eyeColors, record, highlightMapping.eyeColor);
+      offer.hairColors = getHighlightedExtractionListFromRecord(offer.hairColors, record, highlightMapping.hairColor);
+      offer.heights = getHighlightedExtractionListFromRecord(offer.heights, record, highlightMapping.height);
+      offer.weights = getHighlightedExtractionListFromRecord(offer.weights, record, highlightMapping.weight);
+      offer.publishers = getHighlightedExtractionListFromRecord(offer.publishers, record, highlightMapping.website);
     }
 
     // Handle extraction arrays for single-record elements.
@@ -388,7 +403,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     });
     offer.details.push({
       name: 'Description',
-      highlightedText: getHighlightedText(record, ['content_extraction.content_strict.text']),
+      highlightedText: getTitleOrDescriptionHighlightText(record, 'content_extraction.content_strict.text'),
       text: offer.description
     });
     offer.details.push({
