@@ -15,8 +15,7 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
-<link rel="import" href="../../bower_components/elastic-client-query-builder/elastic-client-query-builder.html">
+<link rel="import" href="../../bower_components/query-transformer/query-transformer.html">
 <link rel="import" href="../../bower_components/json-transform/json-transform.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
@@ -150,36 +149,19 @@ limitations under the License.
       </template>
     </styled-dialog>
 
-    <elastic-client-query-builder
-      type="terms"
-      fields='["_all"]'
-      values="[[_getKeyword(_keywordArray, _keywordIndex)]]"
-      ejs-query="{{_query}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[client]]"
-      index="[[indexName]]"
+    <query-transformer
+      error="{{_queryError}}"
+      loading="{{_queryLoading}}"
       page="1"
       page-size="10000"
-      elastic-types="[[indexTypes]]"
-      query="[[_query]]"
-      aggregations="[]"
-      filters="[[filterList]]"
-      sort="[[sort]]"
-      sort-field="[[sortField]]"
-      sort-order="[[sortOrder]]"
-      results="{{_queryResults}}"
-      loading="{{_queryLoading}}"
-      last-error="{{_queryError}}"
-      properties-ready="{{_queryReady}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[_queryResults]]"
-      data-out="{{_bulkDataSubset}}"
-      transform-function="[[queryTransformFunction]]">
-    </json-transform>
+      process-request="[[_queryReady]]"
+      result-function="[[queryTransformFunction]]"
+      results="{{_bulkDataSubset}}"
+      total="{{recordsTotalCount}}"
+      search-parameters="[[searchParameters]]"
+      search-function="[[searchTransformFunction]]"
+      url="[[config.queryUrl]]">
+    </query-transformer>
 
     <json-transform
       data-in="[[_bulkDataSubset]]"
@@ -218,13 +200,6 @@ limitations under the License.
       /* globals pdfMake */
       properties: {
         /**
-         * The elasticsearch client to load bulk export data.
-         */
-        client: {
-          type: Object
-        },
-
-        /**
          * The function to transform the data into CSV export data.
          */
         csvTransformFunction: {
@@ -251,27 +226,6 @@ limitations under the License.
         filename: {
           type: String,
           value: 'data'
-        },
-
-        /**
-         * The bulk data query filters.
-         */
-        filterList: {
-          type: Array
-        },
-
-        /**
-         * The elasticsearch index name to load bulk export data.
-         */
-        indexName: {
-          type: String
-        },
-
-        /**
-         * The elasticsearch index types to load bulk export data.
-         */
-        indexTypes: {
-          type: Array
         },
 
         /**
@@ -305,31 +259,17 @@ limitations under the License.
         },
 
         /**
+         * The function to transform the searchParamters into search data.
+         */
+        searchTransformFunction: {
+          type: Function
+        },
+
+        /**
          * The size of all the data (not the input data).
          */
         size: {
           type: Number
-        },
-
-        /**
-         * The elasticsearch sort to load bulk export data.
-         */
-        sort: {
-          type: Object
-        },
-
-        /**
-         * The elasticsearch sort field to load bulk export data.
-         */
-        sortField: {
-          type: String
-        },
-
-        /**
-         * The elasticsearch sort order to load bulk export data.
-         */
-        sortOrder: {
-          type: String
         },
 
         /**
@@ -407,13 +347,6 @@ limitations under the License.
         },
 
         /**
-         * The elasticsearch bulk data query.
-         */
-        _query: {
-          type: Object
-        },
-
-        /**
          * The elasticsearch bulk data error.
          */
         _queryError: {
@@ -437,13 +370,6 @@ limitations under the License.
         },
 
         /**
-         * The elasticsearch bulk data query results.
-         */
-        _queryResults: {
-          type: Object
-        },
-
-        /**
          * The selected mode string (query or input).
          */
         _selectedMode: {
@@ -458,8 +384,6 @@ limitations under the License.
         '_computeDataForPdf(data.*, pdfTransformFunction)',
         '_computeDataForCsv(data.length, csvTransformFunction)',
         '_computeDataForPdf(data.*, pdfTransformFunction)',
-        '_resetBulkDataResults(filterList)',
-        '_resetBulkDataResults(filterList.*)',
         '_resetBulkDataResults(searchParameters.*)',
         '_updateBulkDataFilename(filename)',
         '_updateBulkDataFromSubset(_bulkDataSubsetForCsv)',
@@ -657,8 +581,8 @@ limitations under the License.
        * Updates the bulk data from the given data subset and then runs either the next bulk data query or the bulk data export call.
        */
       _updateBulkDataFromSubset: function(data) {
-        // If the queryResults are null/undefined then the query hasn't finished running yet!
-        if(!this._keywordArray || !this._queryResults) {
+       
+        if(!this._keywordArray || this._queryLoading) {
           return;
         }
 
