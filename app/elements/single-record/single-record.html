@@ -40,6 +40,7 @@ limitations under the License.
 <link rel="import" href="../annotate-record/annotate-record.html">
 <link rel="import" href="../info-cached-webpages/info-cached-webpages.html">
 <link rel="import" href="../lodash.html">
+<link rel="import" href="../confidence-marker/confidence-marker.html">
 
 <dom-module id="single-record">
   <template>
@@ -129,7 +130,7 @@ limitations under the License.
         margin-top: 10px;
       }
 
-      .left-column {
+      .add-margin-right {
         margin-right: 10px;
       }
 
@@ -185,11 +186,6 @@ limitations under the License.
         padding: 0;
       }
 
-      modal-icon ::content .entity-offer-font {
-        /* Hide the offer icons because users didn't like them. */
-        visibility: hidden;
-      }
-
       .tiny-icon {
         --paper-icon-button: {
           height: 20px;
@@ -207,14 +203,18 @@ limitations under the License.
         line-height: 30px;
         padding-bottom: 5px;
       }
+
+      .add-min-height {
+        min-height: 40px;
+      }
     </style>
 
     <build-and-run-aggregation
       aggregation-field="[[imageAggregationField]]"
       aggregation-name="[[imageAggregationName]]"
       query-fields="[[imageQueryField]]"
-      query-values="[[itemId]]"
-      client="[[client]]"
+      query-values="[[_getImageQueryValue(itemId)]]"
+      client="[[imageClient]]"
       index-name="[[imageIndexName]]"
       index-types="[[imageIndexType]]"
       filters="[]"
@@ -228,7 +228,7 @@ limitations under the License.
       on-mouseout="_hoverEnd"
       on-tap="toggleDetails">
 
-      <div class="layout vertical center left-column">
+      <div class="layout vertical center add-margin-right">
         <template is="dom-if" if="[[rank]]">
           <div class="record-rank text border" title$="Search Result Score:  [[rank]]">
             <strong>[[rank]]</strong>
@@ -237,7 +237,7 @@ limitations under the License.
         <iron-image class$="[[smallImageStyleClass]] hide [[_showImageElement(images)]]" src="[[_imageSrc]]"></iron-image>
       </div>
 
-      <div class="layout vertical flex">
+      <div class="layout vertical flex add-margin-right">
         <div class="layout horizontal">
           <template is="dom-if" if="[[flag]]">
             <div class="record-flag text border">
@@ -267,12 +267,9 @@ limitations under the License.
                       text="[[_getProperty(extraction, extractionDataTextProperty)]]">
                     </icon-label>
 
-                    <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
-                      <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
-                      <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                          title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
-                    </template>
+                    <confidence-marker
+                      extraction$="[[extraction]]">
+                    </confidence-marker>
 
                     <template is="dom-if" if="[[_getProperty(extraction, extractionDataIdProperty)]]">
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
@@ -315,7 +312,7 @@ limitations under the License.
           </classify-ad-buttons>
         </template>
 
-        <div class="layout horizontal end-justified flex">
+        <div class="layout horizontal end-justified flex add-min-height">
           <template is="dom-if" if="[[_showNewIconElement(headerExtractions, extractionDataProperty, extractionDataTextProperty, extractionDataTypeProperty, notificationQueryDate)]]" restamp="true">
             <div class="layout vertical center-justified">
               <iron-icon class="yellowgreen" icon="av:fiber-new"></iron-icon>
@@ -384,12 +381,9 @@ limitations under the License.
                         text="[[_getProperty(extraction, extractionDataTextProperty)]]">
                       </icon-label>
 
-                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataConfidenceProperty)]]">
-                        <span class$="confidence left [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
-                        <span class$="confidence right [[_getConfidenceStyleClass(extraction, extractionDataConfidenceProperty)]]"
-                            title$="Confidence:  [[_getProperty(extraction, extractionDataConfidenceProperty)]]%"></span>
-                      </template>
+                      <confidence-marker
+                        extraction$="[[extraction]]">
+                      </confidence-marker>
 
                       <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
                         <template is="dom-if" if="[[classificationManager]]">
@@ -418,13 +412,13 @@ limitations under the License.
                 </div>
               </template>
             </template>
-
-            <template is="dom-if" if="[[_getImagesExtractionText(images)]]">
-              <div class="layout horizontal extraction">
-                <strong class="extraction-name">[[_getImagesExtractionText(images)]]</strong>
-              </div>
-            </template>
           </div>
+
+          <template is="dom-if" if="[[_getImagesExtractionText(images)]]">
+            <div class="layout horizontal extraction">
+              <strong class="extraction-name">[[_getImagesExtractionText(images)]]</strong>
+            </div>
+          </template>
 
           <template is="dom-if" if="[[images]]">
             <image-gallery
@@ -995,6 +989,17 @@ limitations under the License.
         /**
          * (Optional)
          *
+         * The elasticsearch image client object for the image query.
+         *
+         * @type {String}
+         */
+        imageClient: {
+          type: Object
+        },
+
+        /**
+         * (Optional)
+         *
          * The elasticsearch image index for the image query.
          *
          * @type {String}
@@ -1119,30 +1124,6 @@ limitations under the License.
        */
       _doesHaveDetails: function(details, detailExtractions, images) {
         return !!((details && details.length) || (detailExtractions && detailExtractions.length) || (images && images.length));
-      },
-
-      /**
-       * Returns the style class of the confidence icon using the given item and confidence property.
-       *
-       * @param {Object} item
-       * @param {String} property
-       * @return {String}
-       * @private
-       */
-      _getConfidenceStyleClass: function(item, property) {
-        if(item[property] > 99) {
-          return 'full';
-        }
-        if(item[property] > 66) {
-          return 'high';
-        }
-        if(item[property] > 33) {
-          return 'med';
-        }
-        if(item[property] > 0) {
-          return 'low';
-        }
-        return item[property] === 0 ? 'no' : 'hide';
       },
 
       /**
@@ -1370,6 +1351,10 @@ limitations under the License.
           });
         }
         return show;
+      },
+
+      _getImageQueryValue: function(itemId) {
+        return itemId ? 'http://dig.isi.edu/ht/data/webpage/' + itemId : undefined;
       },
 
       /**

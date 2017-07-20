@@ -66,7 +66,6 @@ var commonTransforms = (function(_, moment, typeBehavior) {
       case 'review': return 'review_id';
       case 'services': return 'service';
       case 'social': return 'social_media_id';
-      case 'website': return 'tld';
     }
     return type;
   }
@@ -85,7 +84,6 @@ var commonTransforms = (function(_, moment, typeBehavior) {
       case 'service': return 'services';
       case 'state': return 'location';
       case 'social_media_id': return 'social';
-      case 'tld': return 'website';
     }
     return type;
   }
@@ -179,10 +177,10 @@ var commonTransforms = (function(_, moment, typeBehavior) {
     var idData = id ? id.split(':') : [];
 
     // TODO We should return an empty object if the ID is formatted incorrectly once the extractions are improved.
-    if(!idData.length) {
+    if(idData.length < 5) {
       return {
         city: id,
-        text: id
+        text: id + ' (Bad Format)'
       };
     }
 

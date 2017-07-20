@@ -26,7 +26,7 @@ DigBehaviors.TypeBehavior = {
    * Returns the link for the given type and id.
    */
   getPageLink: function(id, type) {
-    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'location' || type === 'offer' || type === 'phone')) {
+    if(!id || !type || !(type === 'cache' || type === 'email' || type === 'image' || type === 'location' || type === 'offer' || type === 'phone' || type === 'social' || type === 'review')) {
       return undefined;
     }
 
@@ -34,7 +34,7 @@ DigBehaviors.TypeBehavior = {
     if(linkId.indexOf('http://dig.isi.edu/ht/data/') === 0) {
       linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
     }
-    if(type === 'email') {
+    if(type === 'email' || type === 'social') {
       linkId = encodeURIComponent(linkId);
     }
     if(type === 'image') {
@@ -55,7 +55,7 @@ DigBehaviors.TypeBehavior = {
       case 'image': return 'image:photo-camera';
       case 'location': return 'communication:location-on';
       case 'price': return 'editor:monetization-on';
-      case 'offer': return 'maps:local-offer';
+      case 'offer': return '';
       case 'phone': return 'communication:phone';
       case 'provider': return 'icons:account-circle';
       case 'review': return 'icons:star';
@@ -95,6 +95,20 @@ DigBehaviors.TypeBehavior = {
     if(!type) {
       return '';
     }
-    return 'entity-' + type + '-font';
+    switch(type) {
+      case 'date': return 'entity-deep-purple';
+      case 'email': return 'entity-indigo';
+      case 'image': return 'entity-light-blue';
+      case 'location': return 'entity-orange';
+      case 'offer': return '';
+      case 'phone': return 'entity-purple';
+      case 'price': return 'entity-green';
+      case 'provider': return 'entity-teal';
+      case 'review': return 'entity-yellow';
+      case 'service': return 'entity-brown';
+      case 'social': return 'entity-red';
+      case 'website': return 'entity-light-green';
+    }
+    return 'entity-grey';
   }
 };

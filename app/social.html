@@ -23,7 +23,7 @@ limitations under the License.
   <meta name="description" content="">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
-  <title>DIG 3</title>
+  <title>DIG</title>
 
   <link rel="icon" href="favicon.ico"/>
 
@@ -38,7 +38,7 @@ limitations under the License.
   <!-- endbuild -->
 
   <script src="scripts/google-analytics.js"></script>
-  
+
   <!-- will be replaced with elements/elements.vulcanized.html -->
   <link rel="import" href="elements/elements.html">
   <!-- endreplace-->
@@ -70,15 +70,8 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <template is="dom-if" if="[[config.imageConfig]]">
-      <elastic-client
-        config="[[config.imageConfig]]"
-        client="{{imageClient}}">
-      </elastic-client>
-    </template>
-
     <build-and-run-query
-      fields='"knowledge_graph.email.key"'
+      fields='"knowledge_graph.social_media_id.key"'
       values="[[params.id]]"
       client="[[esclient]]"
       index-name="[[config.elasticIndex]]"
@@ -93,13 +86,13 @@ limitations under the License.
       transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
-      results="{{emailOffers}}"
-      total="{{emailOffersTotalCount}}">
+      results="{{socialOffers}}"
+      total="{{socialOffersTotalCount}}">
     </build-and-run-query>
 
     <json-combine
       data-in1="[[params.id]]"
-      data-in2="[[emailOffers]]"
+      data-in2="[[socialOffers]]"
       data-out="{{strippedOffers}}"
       combine-function="[[transforms.offer.removeExtractionFromOffers]]">
     </json-combine>
@@ -118,14 +111,14 @@ limitations under the License.
       phone-aggregation-field="knowledge_graph.phone.key"
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="tld.raw"
-      query-field="knowledge_graph.email.key"
+      query-field="knowledge_graph.social_media_id.key"
       query-value="[[params.id]]"
       client="[[esclient]]"
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
       filters="[[filterList]]"
       transform-function="[[transforms.timeline.locationTimeline]]"
-      count="[[emailOffersTotalCount]]"
+      count="[[socialOffersTotalCount]]"
       interval="{{locationTimelineInterval}}"
       results="{{timelineData}}"
       loading="{{loadingLocationTimeline}}"
@@ -145,14 +138,14 @@ limitations under the License.
       phone-aggregation-field="knowledge_graph.phone.key"
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="tld.raw"
-      query-field="knowledge_graph.email.key"
+      query-field="knowledge_graph.social_media_id.key"
       query-value="[[params.id]]"
       client="[[esclient]]"
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
       filters="[[filterList]]"
       transform-function="[[transforms.timeline.filteredLocationTimeline]]"
-      count="[[emailOffersTotalCount]]"
+      count="[[socialOffersTotalCount]]"
       interval="{{locationTimelineInterval}}"
       results="{{filteredTimelineData}}"
       loading="{{loadingFilteredTimeline}}"
@@ -166,11 +159,12 @@ limitations under the License.
       combine-function="[[transforms.timeline.removeDetailFromLocationTimeline]]">
     </json-combine>
 
+    <!-- Logger for Page View -->
     <dig-logger log-page-view
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
-      type="Email-Open"
+      type="Social-Open"
       data="[[params.id]]"
       username="[[config.username]]">
     </dig-logger>
@@ -180,7 +174,7 @@ limitations under the License.
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
-      type="Email-ChangeFilter"
+      type="Phone-ChangeFilter"
       data="[[logMessage]]"
       username="[[config.username]]">
     </dig-logger>
@@ -190,7 +184,7 @@ limitations under the License.
       es-client="[[esclient]]"
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
-      type="Email-ShowResultPageNumber"
+      type="Social-ShowResultPageNumber"
       data="[[pageNum]]"
       username="[[config.username]]">
     </dig-logger>
@@ -250,14 +244,14 @@ limitations under the License.
 
           <!-- Entity title -->
           <div class="layout horizontal center flex">
-            <iron-icon class="iron-icon-huge entity-indigo" icon="communication:email"></iron-icon>
+            <iron-icon class="iron-icon-huge entity-red" icon="social:public"></iron-icon>
             <div class="page-name">
               <div class="paper-font-headline">
-                Email: <span>[[params.id]]</span>
+                Social Media: <span>[[params.id]]</span>
               </div>
-              <template is="dom-if" if="[[emailOffersTotalCount]]">
+              <template is="dom-if" if="[[socialOffersTotalCount]]">
                 <div class="paper-font-subhead">
-                  [[emailOffersTotalCount]] Total Ads
+                  [[socialOffersTotalCount]] Total Ads
                 </div>
               </template>
             </div>
@@ -282,8 +276,8 @@ limitations under the License.
           <template is="dom-if" if="[[annotationManager]]">
             <annotate-record client="[[esclient]]"
               annotation-manager="[[annotationManager]]"
-              item-id="{{params.id}}"
-              item-type="email address"
+              item-id="[[params.id]]"
+              item-type="social media id"
               current-user="[[config.username]]">
             </annotate-record>
           </template>
@@ -295,7 +289,7 @@ limitations under the License.
             user-id="[[userId]]"
             entity-id="[[params.id]]"
             entity-name="[[params.id]]"
-            entity-type="email"
+            entity-type="social"
             run-user-query-callback="[[runUserQueryCallback]]"
             save-user-data-callback="{{saveUserDataCallback}}"
             save-disabled="{{saveEntityDisabled}}"
@@ -382,9 +376,9 @@ limitations under the License.
                 <aggregation-query-and-display
                   aggregation-name="location"
                   aggregation-field="knowledge_graph.city.key"
-                  selected-property="location"
+                  selected-properpty="location"
                   selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
@@ -411,9 +405,9 @@ limitations under the License.
                 <aggregation-query-and-display
                   aggregation-name="phone"
                   aggregation-field="knowledge_graph.phone.key"
-                  selected-property="phone"
+                  selected-properpty="phone"
                   selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
@@ -439,22 +433,22 @@ limitations under the License.
                 copy-type="Email Addresses"
                 icon="communication:email"
                 style-class="entity-indigo"
-                transform-config='{"type":"email","sayOther":true}'
+                transform-config='{"type":"email","sayOther":false}'
                 transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[emailData]]">
 
                 <aggregation-query-and-display
                   aggregation-name="email"
                   aggregation-field="knowledge_graph.email.key"
-                  selected-property="email"
+                  selected-properpty="email"
                   selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
-                  transform-config="[[createAggregationTransformConfig('email', params.id)]]"
+                  transform-config="[[createAggregationTransformConfig('email')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{emailData}}"
                   header-data-name="Email"
@@ -474,22 +468,22 @@ limitations under the License.
                 copy-type="Social Media IDs"
                 icon="social:public"
                 style-class="entity-red"
-                transform-config='{"type":"social","sayOther":false}'
+                transform-config='{"type":"social","sayOther":true}'
                 transform-function="[[transforms.offer.offerExtractionsTitle]]"
                 data="[[socialData]]">
 
                 <aggregation-query-and-display
                   aggregation-name="social"
                   aggregation-field="knowledge_graph.social_media_id.key"
-                  selected-property="social"
+                  selected-properpty="social"
                   selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
-                  transform-config="[[createAggregationTransformConfig('social')]]"
+                  transform-config="[[createAggregationTransformConfig('social','params.id')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{socialData}}"
                   header-data-name="Social Media ID"
@@ -512,9 +506,9 @@ limitations under the License.
                 <aggregation-query-and-display
                   aggregation-name="review"
                   aggregation-field="knowledge_graph.review_id.key"
-                  selected-property="review"
+                  selected-properpty="review"
                   selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
@@ -543,9 +537,9 @@ limitations under the License.
                 <aggregation-query-and-display
                   aggregation-name="website"
                   aggregation-field="tld.raw"
-                  selected-property="publisher"
+                  selected-properpty="publisher"
                   selected="{{filterCollection}}"
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
@@ -566,7 +560,7 @@ limitations under the License.
                 section-title="Provider Summary">
 
                 <people-features
-                  query-field="knowledge_graph.email.key"
+                  query-field="knowledge_graph.social_media_id.key"
                   query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
@@ -596,22 +590,22 @@ limitations under the License.
                 <image-query-and-display
                   aggregation-field="url.raw"
                   aggregation-name="image"
-                  client="[[imageClient]]"
+                  client="[[esclient]]"
                   filter-list="[]"
-                  header-counts-name="Shown"
+                  header-counts-name="Ads"
                   header-entity-name="[[params.id]]"
                   image-id-property="source"
-                  index-name="[[config.imageIndex]]"
-                  index-types="[[config.imageType]]"
-                  query-fields='"isImagePartOf.mentionsEmail"'
-                  query-values="[[imageQueryId]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["images"]'
+                  query-fields='"isImagePartOf.mentionsSocial"'
+                  query-values="[[params.imageQueryId]]"
                   transform-config="{}"
                   transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   images="{{images}}"
                   loaded-images="{{loadedImages}}"
-                  selected-property="image"
+                  selected-properpty="image"
                   selected="{{filterCollection}}">
                 </image-query-and-display>
               </section-and-title>
@@ -655,7 +649,7 @@ limitations under the License.
                 </template>
 
                 <zoomable-bar-chart timeline
-                  selected-property="dates"
+                  selected-properpty="dates"
                   selected="{{filterCollection}}"
                   bar-property="date"
                   label-property="text"
@@ -688,7 +682,7 @@ limitations under the License.
                   item-agg-name="locations"
                   item-agg-field="knowledge_graph.city.key"
                   index-types='["ads"]'
-                  query-fields='"knowledge_graph.email.key"'
+                  query-fields='"knowledge_graph.social_media_id.key"'
                   query-values="[[params.id]]"
                   filter-list="[[filterList]]"
                   transform="[[transforms.timeline.eventDropsTimeline]]"
@@ -716,9 +710,9 @@ limitations under the License.
                     filter-list="[[filterList]]"
                     index-name="[[config.elasticIndex]]"
                     index-types='["ads"]'
-                    query-fields='"knowledge_graph.email.key"'
+                    query-fields='"knowledge_graph.social_media_id.key"'
                     query-values="[[params.id]]"
-                    size="[[emailOffersTotalCount]]"
+                    size="[[socialOffersTotalCount]]"
                     sort-field="knowledge_graph.posting_date.key"
                     sort-order="desc"
                     source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
@@ -740,16 +734,15 @@ limitations under the License.
                   client="[[esclient]]"
                   image-aggregation-field="url.raw"
                   image-aggregation-name="image"
-                  image-client="[[imageClient]]"
-                  image-index-name="[[config.imageIndex]]"
-                  image-index-type="[[config.imageType]]"
+                  image-index-name="[[config.elasticIndex]]"
+                  image-index-type="images"
                   image-query-field="isImagePartOf.uri"
                   image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"
                   query-results="[[strippedOffers]]"
-                  total-results="{{emailOffersTotalCount}}"
+                  total-results="{{socialOffersTotalCount}}"
                   shown-results="{{shownOffers}}"
                   page="{{pageNum}}"
                   page-size="25"
@@ -770,7 +763,7 @@ limitations under the License.
   <script src="bower_components/lodash/dist/lodash.js"></script>
   <script src="bower_components/array-behavior/array-behavior.js"></script>
   <script src="behaviors/browser-behavior.js"></script>
-  <script src="bower_components/filter-behavior/filter-behavior.js"></script>
+  <script src="behaviors/filter-behavior.js"></script>
   <script src="behaviors/state-behavior.js"></script>
 
   <script>
@@ -788,15 +781,13 @@ limitations under the License.
     }
 
     app.params.id = decodeURIComponent(app.params.id);
-
-    // TODO
-    app.imageQueryId = 'http://dig.isi.edu/ht/data/email/' + encodeURIComponent(app.params.id);
+    app.params.imageQueryId = encodeURIComponent(app.params.id);
 
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 
-    app.email = {};
+    app.social = {};
 
     app.filtersBuilderCallback = {
       terms: DigBehaviors.FilterBehavior.getEntityPageFilterItems,
