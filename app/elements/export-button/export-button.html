@@ -153,15 +153,21 @@ limitations under the License.
       error="{{_queryError}}"
       loading="{{_queryLoading}}"
       page="1"
-      page-size="10000"
+      page-size="100"
       process-request="[[_queryReady]]"
       result-function="[[queryTransformFunction]]"
-      results="{{_bulkDataSubset}}"
+      results="{{_queryResults}}"
       total="{{recordsTotalCount}}"
       search-parameters="[[searchParameters]]"
       search-function="[[searchTransformFunction]]"
       url="[[queryUrl]]">
     </query-transformer>
+
+    <json-transform
+      data-in="[[_queryResults]]"
+      data-out="{{_bulkDataSubset}}"
+      transform-function="[[offerTransformFunction]]">
+    </json-transform>
 
     <json-transform
       data-in="[[_bulkDataSubset]]"
@@ -242,6 +248,13 @@ limitations under the License.
           notify: true,
           type: Boolean,
           value: false
+        },
+
+        /**
+         * The function to transform the data into offer export data.
+         */
+        offerTransformFunction: {
+          type: Function
         },
 
         /**
@@ -374,6 +387,13 @@ limitations under the License.
         _queryReady: {
           type: Boolean,
           value: false
+        },
+
+        /**
+         * The elasticsearch bulk data query results.
+         */
+        _queryResults: {
+          type: Object
         },
 
         /**
@@ -588,8 +608,8 @@ limitations under the License.
        * Updates the bulk data from the given data subset and then runs either the next bulk data query or the bulk data export call.
        */
       _updateBulkDataFromSubset: function(data) {
-       
-        if(!this._keywordArray || this._queryLoading) {
+        // If the queryResults are null/undefined then the query hasn't finished running yet!
+        if(!this._keywordArray || !this._queryResults) {
           return;
         }
 
