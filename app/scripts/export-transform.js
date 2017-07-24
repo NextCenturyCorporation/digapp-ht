@@ -52,6 +52,7 @@ var exportTransform = (function() {
           }).join('; ');
         };
 
+        var dates = getExtractionTextList(result.dates);
         var locations = getExtractionTextList(result.locations);
         var phones = getExtractionTextList(result.phones);
         var emails = getExtractionTextList(result.emails);
@@ -72,7 +73,7 @@ var exportTransform = (function() {
             result.url,
             linkPrefix + result.link,
             result.title,
-            result.date,
+            dates,
             result.domain,
             locations,
             phones,
