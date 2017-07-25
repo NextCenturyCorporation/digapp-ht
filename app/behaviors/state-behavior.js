@@ -65,9 +65,8 @@ DigBehaviors.StateBehavior = {
     };
 
     // Fix legacy IDs.
-    var self = this;
     _.keys(state).forEach(function(type) {
-      state[type] = state[type].map(self.updateLegacyId);
+      state[type] = state[type].map(DigBehaviors.StateBehavior.updateLegacyId);
     });
 
     return state;
@@ -104,16 +103,14 @@ DigBehaviors.StateBehavior = {
       social: config.social || {},
       title: config.title || {},
       website: config.website || {},
-      weight: config.weight || {},
-      sort: config.sort || ''
+      weight: config.weight || {}
     };
 
     // Fix legacy IDs.
-    var self = this;
     _.keys(state).forEach(function(type) {
       if(type !== 'postingDate' && type !== 'sort') {
         _.keys(state[type]).forEach(function(term) {
-          state[type][term].key = self.updateLegacyId(state[type][term].key);
+          state[type][term].key = DigBehaviors.StateBehavior.updateLegacyId(state[type][term].key);
         });
       }
     });
@@ -214,5 +211,73 @@ DigBehaviors.StateBehavior = {
     };
 
     return networkParams;
+  },
+
+  getCategoryPrettyName: function(category) {
+    switch(category) {
+      case 'age': return 'Age of Provider';
+      case 'city': return 'City';
+      case 'country': return 'Country';
+      case 'description': return 'Description';
+      case 'email': return 'Email Address';
+      case 'ethnicity': return 'Ethnicity of Provider';
+      case 'eyeColor': return 'Eye Color of Provider';
+      case 'gender': return 'Gender of Provider';
+      case 'hairColor': return 'Hair Color of Provider';
+      case 'height': return 'Height of Provider';
+      case 'image': return 'Image';
+      case 'location': return 'Location';
+      case 'name': return 'Name of Provider';
+      case 'phone': return 'Telephone Number';
+      case 'price': return 'Price';
+      case 'region': return 'Region';
+      case 'review': return 'Review ID';
+      case 'services': return 'Services Provided';
+      case 'social': return 'Social Media ID';
+      case 'title': return 'Title';
+      case 'website': return 'Website';
+      case 'weight': return 'Weight of Provider';
+    }
+    return category;
+  },
+
+  buildTermsCollectionFromSearchParameters: function(searchParameters) {
+    return _.keys(searchParameters).reduce(function(outputCollection, category) {
+      if(category === 'postingDate') {
+        if(searchParameters.postingDate.dateStart && searchParameters.postingDate.dateStart.enabled) {
+          outputCollection['Date Start'] = [searchParameters.postingDate.dateStart.text];
+        }
+        if(searchParameters.postingDate.dateEnd && searchParameters.postingDate.dateEnd.enabled) {
+          outputCollection['Date End'] = [searchParameters.postingDate.dateEnd.text];
+        }
+      } else {
+        outputCollection[DigBehaviors.StateBehavior.getCategoryPrettyName(category)] = _.keys(searchParameters[category]).reduce(function(outputList, term) {
+          if(searchParameters[category][term].enabled) {
+            outputList.push(searchParameters[category][term].text);
+          }
+          return outputList;
+        }, []);
+      }
+
+      return outputCollection;
+    }, {});
+  },
+
+  buildTermsCollectionFromFilterCollection: function(filterCollection) {
+    return _.keys(filterCollection).reduce(function(outputCollection, category) {
+      if(category === 'dates') {
+        if(_.isArray(filterCollection.dates) && filterCollection.dates.length === 2) {
+          outputCollection['Date Start'] = [filterCollection.dates[0]];
+          outputCollection['Date End'] = [filterCollection.dates[1]];
+        }
+      } else {
+        // Use the map function to create a new array reference.
+        outputCollection[DigBehaviors.StateBehavior.getCategoryPrettyName(category)] = filterCollection[category].map(function(term) {
+          return term;
+        });
+      }
+
+      return outputCollection;
+    }, {});
   }
 };

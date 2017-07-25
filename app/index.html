@@ -275,16 +275,16 @@ limitations under the License.
         </entity-list-dialog>
 
         <state-manager id="stateManager"
-          page-type="search"
+          build-popup-data-function="[[buildTerms]]"
+          build-state-data-function="[[buildState]]"
           client="[[esclient]]"
           state-index="[[config.filterStatesIndex]]"
           state-type="[[config.filterStatesType]]"
           state-id="[[params.state]]"
-          filter-collection="{{searchParameters}}"
+          collection="{{searchParameters}}"
           process-request="{{processRequest}}"
-          search-history="{{searchHistory}}"
-          has-history="{{hasSearchHistory}}"
-          show-link-dialog="{{showLinkDialog}}">
+          state-history="{{stateHistory}}"
+          has-history="{{hasHistory}}">
         </state-manager>
 
         <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="More Options" on-tap="toggleMenu"></paper-icon-button>
@@ -296,9 +296,9 @@ limitations under the License.
               Save Search
             </paper-icon-item>
 
-            <paper-icon-item disabled="{{!hasSearchHistory}}" title="View Search History" on-tap="openSearchHistoryDialog">
+            <paper-icon-item disabled="[[!hasHistory]]" title="View Search State History" on-tap="openStateHistoryDialog">
               <iron-icon icon="history" item-icon></iron-icon>
-              View Search History
+              View Search State History
             </paper-icon-item>
 
             <paper-icon-item title="Upload or Enter Multiple Telephone Numbers" on-tap="openBatchPhoneSearchDialog">
@@ -767,6 +767,8 @@ limitations under the License.
       DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+      app.buildState = DigBehaviors.StateBehavior.buildSearchState;
+      app.buildTerms = DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters;
       app.createStringField = DigBehaviors.StateBehavior.createStringField;
       app.createDateField = DigBehaviors.StateBehavior.createDateField;
       app.queryBuilderCallback = {
@@ -937,9 +939,9 @@ limitations under the License.
         this.$.entityListDialog.open();
       };
 
-      app.openSearchHistoryDialog = function() {
+      app.openStateHistoryDialog = function() {
         this.$.menuDropdown.close();
-        this.$.stateManager.openSearchHistory();
+        this.$.stateManager.openStateHistory();
       };
 
       app.toggleMenu = function() {
@@ -972,9 +974,7 @@ limitations under the License.
         return {networkExpansionQuery: isNetworkExpansionRequest.value};
       };
 
-      // history related functions
-
-      app.showLinkDialog = false;
+      /************************* START STATE HISTORY *************************/
 
       window.onpopstate = function() {
         // TODO: refreshing for now. Need to address issues with interrupting logging entries -- perhaps a better
@@ -984,11 +984,12 @@ limitations under the License.
       };
 
       window.onload = function() {
-        if(window.history.state && window.history.state.searchHistory) {
-          app.searchHistory = window.history.state.searchHistory;
+        if(window.history.state && window.history.state.stateHistory) {
+          app.stateHistory = window.history.state.stateHistory;
         }
       };
 
+      /************************** END STATE HISTORY **************************/
     })(document);
   </script>
 </body>
