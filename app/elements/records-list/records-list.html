@@ -18,6 +18,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paginated-list/paginated-list.html">
 <link rel="import" href="../single-record/single-record.html">
 <link rel="import" href="../../styles/list-styles.html">
+<link rel="import" href="../../scripts/cache-transform.js">
 
 <dom-module id="records-list">
   <template>
@@ -28,6 +29,21 @@ limitations under the License.
         height: 100%;
       }
     </style>
+
+    <client-config config="[[config]]" transforms="{{transforms}}"></client-config>
+
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}">
+    </iron-ajax>
+
+    <elastic-client
+      config="[[config.cacheConfig]]"
+      client="{{esClient}}">
+    </elastic-client>
 
     <paginated-list
       loading="[[loading]]"
@@ -86,7 +102,8 @@ limitations under the License.
           small-image-style-class="[[smallImageStyleClass]]"
           large-image-style-class="[[largeImageStyleClass]]"
           new-tab="[[newTab]]"
-          notification-query-date="[[notificationQueryDate]]">
+          notification-query-date="[[notificationQueryDate]]",
+          query-config="[[_buildQueryConfig(esClient, config.elasticIndex, item.id, transforms.cache.ad)]]">
         </single-record>
       </template>
     </paginated-list>
@@ -520,6 +537,13 @@ limitations under the License.
         } else {
           this.set('recordsListTitle', 'No ' + this.type + 's');
         }
+      },
+
+      _buildQueryConfig: function(esClient, esIndex, id, transform) {
+        if (esClient && esIndex && id && transform){
+          return {esClient, esIndex, id, transform};
+        }
+        return undefined;
       },
 
       _getList: function(item, property) {
