@@ -58,9 +58,6 @@ The following software licenses apply to the listed third-party dependencies:
 - Copyright (c) 2014 Lucas Garron
 - https://github.com/lgarron/clipboard.js/blob/master/LICENSE.md
 
-#### csv-download
-- https://opensource.org/licenses/MIT
-
 #### elastic.js
 - Copyright (c) 2012 FullScale Labs, LLC
 - https://opensource.org/licenses/MIT
