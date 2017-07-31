@@ -36,8 +36,6 @@ var exportTransform = (function(_) {
     },
 
     createExportDataForCsv: function(searchData) {
-      console.log('searchData ' + (searchData ? searchData.length : 'null'));
-
       var linkPrefix = window.location.hostname + ':' + window.location.port;
       var exportData = [[
         'ad url',
