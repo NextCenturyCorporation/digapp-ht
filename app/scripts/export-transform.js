@@ -17,12 +17,29 @@
 /* exported exportTransform */
 /* jshint camelcase:false */
 
-var exportTransform = (function() {
+var exportTransform = (function(_) {
   return {
-    createExportDataForCsv: function(results) {
+    createBulkSearchData: function(searchParameters, searchFields) {
+      return _.keys(searchParameters).reduce(function(data, type) {
+        _.keys(searchParameters[type]).filter(function(term) {
+          return searchParameters[type][term].enabled;
+        }).map(function(term) {
+          return searchParameters[type][term].key;
+        }).forEach(function(id) {
+          data.push({
+            field: searchFields[type].field,
+            value: id
+          });
+        });
+        return data;
+      }, []);
+    },
+
+    createExportDataForCsv: function(searchData) {
+      console.log('searchData ' + (searchData ? searchData.length : 'null'));
 
       var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [[
+      var exportData = [[
         'ad url',
         'dig url',
         'title',
@@ -45,7 +62,7 @@ var exportTransform = (function() {
         'description'
       ]];
 
-      results.forEach(function(result) {
+      searchData.forEach(function(result) {
         var getExtractionTextList = function(extractions, property) {
           return extractions.map(function(extraction) {
             return extraction[property || 'text'];
@@ -69,7 +86,7 @@ var exportTransform = (function() {
         var reviewIds = getExtractionTextList(result.reviewIds);
         var description = result.description.replace(/\s/g, ' ');
 
-        data.push([
+        exportData.push([
             result.url,
             linkPrefix + result.link,
             result.title,
@@ -93,15 +110,15 @@ var exportTransform = (function() {
         ]);
       });
 
-      return data;
+      return exportData;
     },
 
-    createExportDataForPdf: function(results) {
+    createExportDataForPdf: function(searchData) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [];
+      var exportData = [];
       var nextId = 1;
 
-      results.forEach(function(result) {
+      searchData.forEach(function(result) {
         var locations = result.locations.map(function(location) {
           return location.textAndCountry;
         }).join(', ');
@@ -171,10 +188,10 @@ var exportTransform = (function() {
           value: linkPrefix + result.link
         });
 
-        data.push(item);
+        exportData.push(item);
       });
 
-      return data;
+      return exportData;
     }
   };
 });

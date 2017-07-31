@@ -15,14 +15,14 @@ limitations under the License.
 -->
 
 <link rel="import" href="../../bower_components/polymer/polymer.html">
-<link rel="import" href="../../bower_components/query-transformer/query-transformer.html">
-<link rel="import" href="../../bower_components/json-transform/json-transform.html">
+<link rel="import" href="../../bower_components/build-and-run-query/build-and-run-query.html">
+<link rel="import" href="../../bower_components/button-action/button-action.html">
+<link rel="import" href="../../bower_components/json-combine/json-combine.html">
+<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
-<link rel="import" href="../../bower_components/iron-ajax/iron-ajax.html">
-<link rel="import" href="../../bower_components/paper-radio-button/paper-radio-button.html">
-<link rel="import" href="../../bower_components/paper-radio-group/paper-radio-group.html">
+<link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
 <link rel="import" href="../pdfmake.html">
 
 <dom-module id="export-button">
@@ -57,17 +57,6 @@ limitations under the License.
         line-height: 30px;
         margin-left: 5px;
       }
-
-      .disabled {
-        cursor: default;
-        opacity: 0.5;
-        pointer-events: none;
-        text-decoration: none;
-      }
-
-      .hide {
-        visibility: hidden;
-      }
     </style>
 
     <template is="dom-if" if="[[data.length]]">
@@ -78,114 +67,149 @@ limitations under the License.
     </template>
 
     <styled-dialog id="dialog" header="Export" fill>
-      <div class="styled-dialog-text">Name of Export File:</div>
-      <paper-input label="Enter Export Filename" value="{{filename}}" no-label-float></paper-input>
-
-      <div class="styled-dialog-text">Number to Export:</div>
-
-      <paper-radio-group class="layout vertical" selected="{{_selectedMode}}">
-        <paper-radio-button name="input">The [[data.length]] Ads Currently Shown (PDF or CSV)</paper-radio-button>
-        <paper-radio-button disabled="[[_isBulkExportDisabled(data.length, size)]]" name="query">The Top 100 Ads Matching Each Keyword (CSV Only)</paper-radio-button>
-      </paper-radio-group>
-
-      <div class="layout horizontal styled-dialog-text">
-        <template is="dom-if" if="[[_isBulk(_selectedMode)]]">
-          <span class="link styled-dialog-right-space disabled">Export to PDF</span>
-
-          <span class="styled-dialog-right-space">|</span>
-
-          <template is="dom-if" if="[[!_isBulkDataDoneLoading(_keywordArray, _keywordIndex)]]">
-            <span class="link" on-tap="_runBulkDataQueries">Load Data</span>
-          </template>
-          <template is="dom-if" if="[[_isBulkDataDoneLoading(_keywordArray, _keywordIndex)]]">
-            <span class="link" on-tap="_exportBulkDataForCsv">Export to CSV</span>
-          </template>
-        </template>
-
-        <template is="dom-if" if="[[!_isBulk(_selectedMode)]]">
-          <span class="link styled-dialog-right-space" on-tap="_exportDataForPdf">Export to PDF</span>
-
-          <span class="styled-dialog-right-space">|</span>
-
-          <a is="csv-download" class="link" data="[[_dataForCsv]]" download="[[filename]].csv">Export to CSV</a>
-        </template>
+      <div class="layout horizontal">
+        <div class="styled-dialog-bold styled-dialog-right-space">Standard Export</div>
+        <div class="styled-dialog-text styled-dialog-right-space">Export the [[data.length]] Ads Currently Shown</div>
       </div>
 
-      <template is="dom-if" if="[[!_isBulk(_selectedMode)]]">
-        <div class="note">Please note that it may take a minute or longer to export hundreds of results to PDF.</div>
-      </template>
+      <div class="styled-dialog-text">Please note that it may take a minute or longer to export hundreds of results to PDF.</div>
 
-      <template is="dom-if" if="[[_isBulk(_selectedMode)]]">
-        <div class="note">If your file doesn't download automatically, please check that your internet browser allows popups from this page.</div>
-        <div class="note">Please note that it may take a minute or longer to load tens of thousands of results returned from many keywords.</div>
-      </template>
+      <div class="layout horizontal">
+        <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Name of Export File</div>
+        <paper-input class="styled-dialog-right-space" label="Enter Export Filename" value="{{filename}}" no-label-float></paper-input>
+      </div>
 
-      <template is="dom-if" if="[[_isBulk(_selectedMode)]]">
-        <template is="dom-if" if="[[_isBulkDataLoadingOrDone(_queryReady, _keywordArray, _keywordIndex)]]">
-          <template is="dom-repeat" items="[[_keywordArray]]">
+      <div class="layout horizontal">
+        <button-action class="styled-dialog-tall styled-dialog-right-space"
+          disabled="[[_standardExportLoading]]"
+          text="Export to CSV"
+          click-listener="[[_createExportDataForCsvListener()]]">
+        </button-action>
+
+        <button-action class="styled-dialog-tall styled-dialog-right-space"
+          disabled="[[_standardExportLoading]]"
+          text="Export to PDF"
+          click-listener="[[_createExportDataForPdfListener()]]">
+        </button-action>
+      </div>
+
+      <div class="styled-dialog-divider"></div>
+
+      <template is="dom-if" if="[[_isNotUndefined(searchParameters)]]">
+        <div class="layout horizontal">
+          <div class="styled-dialog-bold styled-dialog-right-space">Bulk Export</div>
+          <div class="styled-dialog-text styled-dialog-right-space">Export the Top 10,000 Ads Matching Each Search Term</div>
+        </div>
+
+        <div class="styled-dialog-text">If your exported file doesn't download automatically, please check that your internet browser allows popups from this page.</div>
+        <div class="styled-dialog-text">Please note that it may take a minute or longer to load the tens of thousands of results returned from multiple search terms.</div>
+
+        <div class="layout horizontal">
+          <button-action class="styled-dialog-tall styled-dialog-right-space"
+            disabled="[[_bulkExportLoading]]"
+            text="Export to CSV"
+            click-listener="[[_createBulkExportListener()]]">
+          </button-action>
+        </div>
+
+        <template is="dom-if" if="[[_isBulkDataLoadingOrDone(_bulkSearchReady, _bulkData.array, _bulkData.index)]]">
+          <template is="dom-repeat" items="[[_bulkData.array]]">
             <template is="dom-if" if="[[_isNotUndefined(item.count)]]">
-              <div class="note">Loaded Top Ads Matching Keyword <span>[[item.value]]</span></div>
+              <div class="styled-dialog-text">Loaded Top [[item.count]] Ads Matching Term <span>[[item.value]]</span></div>
             </template>
             <template is="dom-if" if="[[!_isNotUndefined(item.count)]]">
-              <div class="note">Loading Top Ads Matching Keyword <span>[[item.value]]</span>...</div>
+              <template is="dom-if" if="[[!_isNotUndefined(item.error)]]">
+                <div class="styled-dialog-text">Loading Top Ads Matching Term <span>[[item.value]]</span>...</div>
+              </template>
+              <template is="dom-if" if="[[_isNotUndefined(item.error)]]">
+                <div class="styled-dialog-text">Error Exporting <span>[[item.value]]</span> CSV File</div>
+              </template>
             </template>
           </template>
         </template>
+
+        <template is="dom-if" if="[[_bulkSearchLoading]]">
+          <loading-spinner show="[[_bulkSearchLoading]]" type="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]] Ad Data"></loading-spinner>
+        </template>
+
+        <template is="dom-if" if="[[_bulkExportLoading]]">
+          <loading-spinner show="[[_bulkExportLoading]]" type="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]] Export File"></loading-spinner>
+        </template>
       </template>
 
-      <template is="dom-if" if="[[_bulkDataFileExportError]]">
+      <template is="dom-if" if="[[_standardExportError]]">
         <div>Error Exporting CSV File</div>
       </template>
 
-      <template is="dom-if" if="[[_queryLoading]]">
-        <loading-spinner show="[[_queryLoading]]" type="Data"></loading-spinner>
-      </template>
-
-      <template is="dom-if" if="[[_bulkDataFileExportLoading]]">
-        <loading-spinner show="[[_bulkDataFileExportLoading]]" type="File"></loading-spinner>
-      </template>
-
-      <template is="dom-if" if="[[loading]]">
-        <loading-spinner show="[[loading]]" type="File"></loading-spinner>
+      <template is="dom-if" if="[[_standardExportLoading]]">
+        <loading-spinner show="[[_standardExportLoading]]" type="Export File"></loading-spinner>
       </template>
     </styled-dialog>
 
-    <query-transformer
-      error="{{_queryError}}"
-      loading="{{_queryLoading}}"
-      page="1"
-      page-size="100"
-      process-request="[[_queryReady]]"
-      result-function="[[queryTransformFunction]]"
-      results="{{_queryResults}}"
-      total="{{recordsTotalCount}}"
-      search-parameters="[[searchParameters]]"
-      search-function="[[searchTransformFunction]]"
-      url="[[queryUrl]]">
-    </query-transformer>
+    <json-combine
+      data-in1="[[_dataForCsv]]"
+      data-in2="[[filename]]"
+      data-out="{{_standardExportBody}}"
+      combine-function="[[_transformExportResultsFunction]]">
+    </json-combine>
 
-    <json-transform
-      data-in="[[_queryResults]]"
-      data-out="{{_bulkDataSubset}}"
-      transform-function="[[offerTransformFunction]]">
-    </json-transform>
-
-    <json-transform
-      data-in="[[_bulkDataSubset]]"
-      data-out="{{_bulkDataSubsetForCsv}}"
-      transform-function="[[csvTransformFunction]]">
-    </json-transform>
-
-    <iron-ajax id="bulkExport"
-      body="[[_bulkDataForCsv]]"
+    <iron-ajax id="standardExport"
+      body="[[_standardExportBody]]"
       content-type="application/json"
       handle-as="text"
       method="POST"
       url="/export"
-      on-response="_openBulkDataFile"
-      last-error="{{_bulkDataFileExportError}}"
-      last-response="{{_bulkDataFileExportResponse}}"
-      loading="{{_bulkDataFileExportLoading}}">
+      on-response="_handleStandardExportResponse"
+      last-error="{{_standardExportError}}"
+      last-response="{{_standardExportResponse}}"
+      loading="{{_standardExportLoading}}">
+    </iron-ajax>
+
+    <build-and-run-query
+      type="match"
+      fields="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'field')]]"
+      values="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]]"
+      client="[[client]]"
+      index-name="[[indexName]]"
+      index-types="[[indexTypes]]"
+      aggregations="[]"
+      filters="[[filterList]]"
+      page="0"
+      page-size="10000"
+      properties-ready="[[_bulkSearchReady]]"
+      source-exclude="[[sourceExclude]]"
+      source-include="[[sourceInclude]]"
+      transform-function="[[transformSearchResultsFunction]]"
+      error="{{_bulkError}}"
+      loading="{{_bulkSearchLoading}}"
+      results="{{_bulkSearchData}}">
+    </build-and-run-query>
+
+    <json-combine
+      data-in1="[[_bulkSearchData]]"
+      data-in2="[[searchFields]]"
+      data-out="{{_bulkExportData}}"
+      combine-function="[[transformCsvFunction]]">
+    </json-combine>
+
+    <json-combine
+      data-in1="[[_bulkExportData]]"
+      data-in2="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]]"
+      data-out="{{_bulkExportBody}}"
+      combine-function="[[_transformExportResultsFunction]]">
+    </json-combine>
+
+    <iron-ajax id="bulkExport"
+      auto="[[_isNotUndefined(_bulkExportBody)]]"
+      body="[[_bulkExportBody]]"
+      content-type="application/json"
+      handle-as="text"
+      method="POST"
+      url="/export"
+      on-response="_handleBulkExportResponse"
+      last-error="{{_bulkError}}"
+      last-response="{{_bulkExportResponse}}"
+      loading="{{_bulkExportLoading}}">
     </iron-ajax>
 
     <div>
@@ -204,17 +228,21 @@ limitations under the License.
     Polymer({
       is: 'export-button',
 
-      /* globals pdfMake */
+      /* globals _, pdfMake */
       properties: {
         /**
-         * The function to transform the data into CSV export data.
+         * The elasticsearch client to use in the bulk data query.
+         *
+         * @type {Object}
          */
-        csvTransformFunction: {
-          type: Function
+        client: {
+          type: Object
         },
 
         /**
-         * The data to transform and export.
+         * The data for the standard export.
+         *
+         * @type {Array}
          */
         data: {
           type: Array
@@ -222,13 +250,18 @@ limitations under the License.
 
         /**
          * The URL needed by the PDF export to download each image.
+         *
+         * @type {String}
          */
         downloadImageUrl: {
           type: String
         },
 
         /**
-         * The name of the exported file.
+         * The name of the standard export file.
+         *
+         * @type {String}
+         * @default 'data'
          */
         filename: {
           type: String,
@@ -236,110 +269,219 @@ limitations under the License.
         },
 
         /**
-         * The searchParameters object used for the bulk data query.
+         * The list of elasticsearch filter objects to use in the bulk data query.
+         *
+         * @type {Array}
+         */
+        filterList: {
+          type: Array
+        },
+
+        /**
+         * The elasticsearch index name to use in the bulk data query.
+         *
+         * @type {String}
+         */
+        indexName: {
+          type: String
+        },
+
+        /**
+         * The elasticsearch index types to use in the bulk data query.
+         *
+         * @type {String}
+         */
+        indexTypes: {
+          type: Array
+        },
+
+        /**
+         * The list of search fields to use as the secondary argument in the `transformSearchInputFunction`.
+         *
+         * @type {Array}
+         */
+        searchFields: {
+          type: Array
+        },
+
+        /**
+         * The list of search parameters to use in the bulk data query.
+         *
+         * @type {Object}
          */
         searchParameters: {
           type: Object
         },
 
         /**
-         * Whether the export file is loading.
+         * The list of sources to exclude from the bulk data query.
+         *
+         * @type {Array}
+         * @default []
          */
-        loading: {
-          notify: true,
+        sourceExclude: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The list of sources to include in the bulk data query.
+         *
+         * @type {Array}
+         * @default []
+         */
+        sourceInclude: {
+          type: Array,
+          value: function() {
+            return [];
+          }
+        },
+
+        /**
+         * The function to transform the `data` into the CSV standard export data.
+         *
+         * @type {Object}
+         */
+        transformCsvFunction: {
+          type: Object
+        },
+
+        /**
+         * The function to transform the `data` into the PDF standard export data.
+         *
+         * @type {Object}
+         */
+        transformPdfFunction: {
+          type: Object
+        },
+
+        /**
+         * The function to transform the `searchParamters` into the input for the bulk data query.
+         *
+         * @type {Object}
+         */
+        transformSearchInputFunction: {
+          type: Object
+        },
+
+        /**
+         * The function to transform the bulk data query results into the bulk export data.
+         *
+         * @type {Object}
+         */
+        transformSearchResultsFunction: {
+          type: Object
+        },
+
+        /**
+         * An object containing:
+         *   {Array} `array` The array of input fields and values for the bulk data query.
+         *   {Number} `index` The current index in the `array` of the bulk data query.
+         *
+         * @type {Object}
+         * @default {}
+         * @private
+         */
+        _bulkData: {
+          type: Object,
+          value: function() {
+            return {};
+          }
+        },
+
+        /**
+         * The bulk search query or export request error.
+         *
+         * @type {Object}
+         * @private
+         */
+        _bulkError: {
+          type: Object
+        },
+
+        /**
+         * The bulk export request body.
+         *
+         * @type {Array}
+         * @private
+         */
+        _bulkExportBody: {
+          type: Array
+        },
+
+        /**
+         * The bulk export request data.
+         *
+         * @type {Array}
+         * @private
+         */
+        _bulkExportData: {
+          type: Array
+        },
+
+        /**
+         * Whether the bulk export request is loading.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
+         */
+        _bulkExportLoading: {
           type: Boolean,
           value: false
         },
 
         /**
-         * The function to transform the data into offer export data.
+         * The bulk export request response.
+         *
+         * @type {Object}
+         * @private
          */
-        offerTransformFunction: {
-          type: Function
-        },
-
-        /**
-         * The function to transform the data into PDF export data.
-         */
-        pdfTransformFunction: {
-          type: Function
-        },
-
-        /*
-         * The address for the query endpoint
-        */
-        queryUrl: {
-          type: String
-        },
-
-        /**
-         * The function to transform the bulk query elasticsearch results into data.
-         */
-        queryTransformFunction: {
-          type: Function
-        },
-
-        /**
-         * The function to transform the searchParamters into search data.
-         */
-        searchTransformFunction: {
-          type: Function
-        },
-
-        /**
-         * The size of all the data (not the input data).
-         */
-        size: {
-          type: Number
-        },
-
-        /**
-         * The bulk data file export error.
-         */
-        _bulkDataFileExportError: {
+        _bulkExportResponse: {
           type: Object
         },
 
         /**
-         * Whether the bulk data file export is loading.
+         * The bulk search query data.
+         *
+         * @type {Object}
+         * @private
          */
-        _bulkDataFileExportLoading: {
+        _bulkSearchData: {
           type: Object
         },
 
         /**
-         * The bulk data file export response.
+         * Whether the bulk search query is loading.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
          */
-        _bulkDataFileExportResponse: {
-          type: Object
+        _bulkSearchLoading: {
+          type: Boolean,
+          value: false
         },
 
         /**
-         * The CSV export data for the bulk data (from all the query results).
+         * Whether the bulk search query is ready to run.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
          */
-        _bulkDataForCsv: {
-          type: Array,
-          value: []
-        },
-
-        /**
-         * The bulk data from one set of elasticsearch query results (one keyword).
-         */
-        _bulkDataSubset: {
-          type: Array,
-          value: []
-        },
-
-        /**
-         * The CSV export data for the bulk data subset (from one set of query results).
-         */
-        _bulkDataSubsetForCsv: {
-          type: Array,
-          value: []
+        _bulkSearchReady: {
+          type: Boolean,
+          value: false
         },
 
         /**
          * The CSV export data for the data (from the element input) for the csv-download component.
+         *
+         * @type {Array}
+         * @private
          */
         _dataForCsv: {
           type: Array
@@ -347,95 +489,165 @@ limitations under the License.
 
         /**
          * The PDF export data for the data (from the element input) for the pdfMake library.
+         *
+         * @type {Array}
+         * @private
          */
         _dataForPdf: {
           type: Array
         },
 
         /**
-         * The array of query keywords.
+         * The standard export request error.
+         *
+         * @type {Object}
+         * @private
          */
-        _keywordArray: {
-          type: Array
-        },
-
-        /**
-         * The current query index in the array of query keywords.
-         */
-        _keywordIndex: {
-          type: Number,
-          value: 0
-        },
-
-        /**
-         * The elasticsearch bulk data error.
-         */
-        _queryError: {
+        _standardExportError: {
           type: Object
         },
 
         /**
-         * Whether the elasticsearch bulk data query is running.
+         * Whether the standard export request or PDF is loading.
+         *
+         * @type {Boolean}
+         * @default false
+         * @private
          */
-        _queryLoading: {
+        _standardExportLoading: {
           type: Boolean,
           value: false
         },
 
         /**
-         * Whether to run the elasticsearch bulk data query.
+         * The standard export request response.
+         *
+         * @type {Object}
+         * @private
          */
-        _queryReady: {
-          type: Boolean,
-          value: false
-        },
-
-        /**
-         * The elasticsearch bulk data query results.
-         */
-        _queryResults: {
+        _standardExportResponse: {
           type: Object
         },
 
         /**
-         * The selected mode string (query or input).
+         * The function to transform the bulk export data into the bulk export request body.
+         *
+         * @type {Object}
+         * @default function(data, filename)
+         * @private
          */
-        _selectedMode: {
-          type: String,
-          value: 'input'
+        _transformExportResultsFunction: {
+          type: Object,
+          value: function() {
+            var self = this;
+            return function(data, filename) {
+              // Return undefined so the ajax request does not trigger.
+              if(!filename || data.length <= 1) {
+                return undefined;
+              }
+              // The 'export' route of our server expects the first array element in the body to be the filename.
+              return [filename.replace(/\s/g, '-')].concat(data);
+            };
+          }
         }
       },
 
       observers: [
-        // Use observers rather than a json-transform element because we must observe changes on data.* rather than data itself.
-        '_computeDataForCsv(data.length, csvTransformFunction)',
-        '_computeDataForPdf(data.*, pdfTransformFunction)',
-        '_computeDataForCsv(data.length, csvTransformFunction)',
-        '_computeDataForPdf(data.*, pdfTransformFunction)',
-        '_resetBulkDataResults(searchParameters.*)',
-        '_updateBulkDataFilename(filename)',
-        '_updateBulkDataFromSubset(_bulkDataSubsetForCsv)',
-        '_updateKeywordArray(searchParameters.*)'
+        // Use observers rather than a json-combine element because we must observe changes on data.* rather than data itself.
+        '_computeDataForCsv(data.length, transformCsvFunction)',
+        '_computeDataForPdf(data.*, transformPdfFunction)',
+        '_computeDataForCsv(data.length, transformCsvFunction)',
+        '_computeDataForPdf(data.*, transformPdfFunction)',
+        '_handleBulkError(_bulkError)',
+        '_updateBulkDataObject(searchParameters.*, searchFields, transformSearchInputFunction)',
       ],
 
       /**
        * Computes the CSV export data using the input data and the transform function.
+       *
+       * @private
        */
       _computeDataForCsv: function() {
-        this._dataForCsv = this.csvTransformFunction(this.data);
+        this._dataForCsv = this.transformCsvFunction(this.data);
       },
 
       /**
        * Computes the PDF export data using the input data and the transform function.
+       *
+       * @private
        */
       _computeDataForPdf: function() {
-        this._dataForPdf = this.pdfTransformFunction(this.data);
+        this._dataForPdf = this.transformPdfFunction(this.data);
       },
 
       /**
-       * Creates and returns the pdfMake PDF content for the given data.
+       * Creates and returns the listener that runs the bulk data search for the bulk export file.
+       *
+       * @return {Object}
+       * @private
        */
-      _createPdfContent: function(data) {
+      _createBulkExportListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            self.set('_bulkSearchReady', true);
+          }
+        };
+      },
+
+      /**
+       * Creates and returns the listener that runs the CSV export for the `data`.
+       *
+       * @return {Object}
+       * @private
+       */
+      _createExportDataForCsvListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            self._runStandardExportRequest();
+          }
+        };
+      },
+
+      /**
+       * Creates and returns the listener that runs the PDF export for the `data`.
+       *
+       * @return {Object}
+       * @private
+       */
+      _createExportDataForPdfListener: function() {
+        var self = this;
+        return {
+          onClick: function() {
+            self._createPdfAndDownloadFile();
+          }
+        };
+      },
+
+      /**
+       * Creates the PDF export file and automatically downloads it.
+       *
+       * @private
+       */
+      _createPdfAndDownloadFile: function() {
+        this.set('_standardExportLoading', true);
+        var doc = this._createPdfDoc(this._dataForPdf);
+        var self = this;
+        setTimeout(function() {
+          pdfMake.createPdf(doc).download(self.filename + '.pdf');
+          self.set('_standardExportLoading', false);
+        }, 500);
+      },
+
+      /**
+       * Creates and returns the pdfMake PDF doc content for the given data.
+       *
+       * @param {Array} data
+       * @return {Object}
+       * @private
+       */
+      _createPdfDoc: function(data) {
         var doc = {
           content: []
         };
@@ -497,178 +709,156 @@ limitations under the License.
       },
 
       /**
-       * Export the bulk data for CSV using an AJAX call.
+       * Returns the given field of the object at the given index of the given array, or undefined.
+       *
+       * @param {Array} array
+       * @param {Number} index
+       * @param {String} field
+       * @return {Object}
+       * @private
        */
-      _exportBulkDataForCsv: function() {
-        this.$$('#bulkExport').generateRequest();
+      _getBulkDataProperty: function(array, index, field) {
+        if(index < 0 || index >= array.length) {
+          return undefined;
+        }
+        return array[index][field];
       },
 
       /**
-       * Creates a PDF using the export data and downloads it automatically with pdfMake.
+       * Shows an error.  Then runs the next bulk data search.
+       *
+       * @private
        */
-      _exportDataForPdf: function() {
-        this.set('loading', true);
-        var doc = this._createPdfContent(this._dataForPdf);
-        var self = this;
-        setTimeout(function() {
-          pdfMake.createPdf(doc).download(self.filename + '.pdf');
-          self.set('loading', false);
-        }, 500);
+      _handleBulkError: function() {
+        if(!this._bulkError || !this._bulkData || !this._bulkData.array) {
+          return;
+        }
+
+        // Set the error shown in the dialog.
+        this.set('_bulkData.array.' + this._bulkData.index + '.error', true);
+
+        // Reset other properties.
+        this.set('_bulkError', undefined);
+        this.set('_bulkSearchData', undefined);
+        this.set('_bulkExportData', undefined);
+        this.set('_bulkExportBody', undefined);
+
+        // Run the next search.
+        this.set('_bulkData.index', this._bulkData.index + 1);
+
+        if(this._isBulkDataDoneLoading(this._bulkData.array, this._bulkData.index)) {
+          // No more runs needed.
+          this.set('_bulkSearchReady', false);
+        }
+      },
+
+      /**
+       * Automatically downloads the file from the export response by opening it in a new window.  Then runs the next bulk data search.
+       *
+       * @private
+       */
+      _handleBulkExportResponse: function() {
+        // Open the export file.
+        if(this._bulkExportResponse) {
+          window.open(this._bulkExportResponse, 'export');
+        }
+
+        // Set the count shown in the dialog.
+        this.set('_bulkData.array.' + this._bulkData.index + '.count', this._bulkSearchData.length);
+
+        // Reset other properties.
+        this.set('_bulkSearchData', undefined);
+        this.set('_bulkExportData', undefined);
+        this.set('_bulkExportBody', undefined);
+
+        // Run the next search.
+        this.set('_bulkData.index', this._bulkData.index + 1);
+
+        if(this._isBulkDataDoneLoading(this._bulkData.array, this._bulkData.index)) {
+          // No more runs needed.
+          this.set('_bulkSearchReady', false);
+        }
+      },
+
+      /**
+       * Automatically downloads the file from the export response by opening it in a new window.
+       *
+       * @private
+       */
+      _handleStandardExportResponse: function() {
+        // Open the export file.
+        if(this._standardExportResponse) {
+          window.open(this._standardExportResponse, 'export');
+        }
       },
 
       /**
        * Returns the image source needed by the PDF export to download each image.
+       *
+       * @param {String} url
+       * @param {String} source
+       * @return {String}
+       * @private
        */
       _getImageSrc: function(url, source) {
         return '/' + url + '/' + source;
       },
 
       /**
-       * Returns the keyword in the given array at the given index.
-       */
-      _getKeyword: function(array, index) {
-        return index < array.length ? array[index].value : undefined;
-      },
-
-      /**
-       * Returns whether the two inputs are equal.
-       */
-      _isBulk: function(mode) {
-        return mode === 'query';
-      },
-
-      /**
-       * Returns whether the bulk data is done loading using the given keyword array and index.
+       * Returns whether the bulk data is done loading using the given input array and index.
+       *
+       * @param {Array} array
+       * @param {Number} index
+       * @return {Boolean}
+       * @private
        */
       _isBulkDataDoneLoading: function(array, index) {
-        //replace 1 with array.length for multiple queries
-        return array && (index === 1);
+        return array && (index >= array.length);
       },
 
       /**
-       * Returns whether the bulk data is loading or done using the given run status and keyword array and index.
+       * Returns whether the bulk data is loading or done using the given run status and input array and index.
+       *
+       * @param {Boolean} running
+       * @param {Array} array
+       * @param {Number} index
+       * @return {Boolean}
+       * @private
        */
-      _isBulkDataLoadingOrDone: function(run, array, index) {
-        return run || this._isBulkDataDoneLoading(array, index);
-      },
-
-      /**
-       * Returns whether bulk export is disabled.
-       */
-      _isBulkExportDisabled: function() {
-        return this.data.length >= this.size;
+      _isBulkDataLoadingOrDone: function(running, array, index) {
+        return running || this._isBulkDataDoneLoading(array, index);
       },
 
       /**
        * Returns whether the given argument is undefined.
+       *
+       * @param {Any} argument
+       * @return {Boolean}
+       * @private
        */
       _isNotUndefined: function(argument) {
         return typeof argument !== 'undefined';
       },
 
       /**
-       * Automatically downloads the file from the bulk data export response by opening it in a new window.
+       * Runs the standard export ajax request.
+       *
+       * @private
        */
-      _openBulkDataFile: function() {
-        if(this._bulkDataFileExportResponse) {
-          window.open(this._bulkDataFileExportResponse, 'export');
-        }
+      _runStandardExportRequest: function() {
+        this.$$('#standardExport').generateRequest();
       },
 
       /**
-       * Resets the bulk data for a new elasticsearch query.
+       * Resets the bulk data object.
+       *
+       * @private
        */
-      _resetBulkDataResults: function() {
-        this.set('_bulkDataForCsv', []);
-        this.set('_keywordIndex', 0);
-        this.set('_selectedMode', 'input');
-        if(this._keywordArray) {
-          var self = this;
-          this._keywordArray.forEach(function(value, index) {
-            self.set('_keywordArray.' + index + '.count', null);
-          });
-        }
-      },
-
-      /**
-       * Runs the elasticsearch query.
-       */
-      _runBulkDataQueries: function() {
-        this.set('_queryReady', true);
-      },
-
-      /**
-       * Updates the bulk data filename using the given filename.
-       */
-      _updateBulkDataFilename: function(filename) {
-        if(this._bulkDataForCsv && this._bulkDataForCsv.length) {
-          this._bulkDataForCsv[0] = filename;
-        }
-      },
-
-      /**
-       * Updates the bulk data from the given data subset and then runs either the next bulk data query or the bulk data export call.
-       */
-      _updateBulkDataFromSubset: function(data) {
-        // If the queryResults are null/undefined then the query hasn't finished running yet!
-        if(!this._keywordArray || !this._queryResults) {
-          return;
-        }
-
-        if(this._keywordIndex === 0) {
-          // The first two array elements are the filename and the CSV header.
-          this.set('_bulkDataForCsv', [this.filename].concat(data.slice(0, 1)));
-        }
-
-        // Slice to remove the CSV header from the list.
-        this.set('_bulkDataForCsv', this._bulkDataForCsv.concat(data.slice(1)));
-
-        // Set the count shown in the dialog.
-        this.set('_keywordArray.' + this._keywordIndex + '.count', data.length - 1);
-
-        // Start a new query.
-        this.set('_keywordIndex', this._keywordIndex + 1);
-
-        if(this._isBulkDataDoneLoading(this._keywordArray, this._keywordIndex)) {
-          // No more runs needed.
-          this.set('_queryReady', false);
-          this._exportBulkDataForCsv();
-        }
-      },
-
-      /**
-       * Updates the keyword array and index using the given searchParameter object.
-       */
-      _updateKeywordArray: function(searchParameters) {
-        if(searchParameters) {
-          var keywords = [];
-          this.set('_keywordIndex', 0);
-
-          //get the object containing all search field objects
-          var searchParameter = searchParameters.base;
-
-          //find all non empty searchFields
-          for(var searchField in searchParameter) {
-            var search = searchParameter[searchField];
-
-            if(!_.isEmpty(search)) {
-              var keys = Object.keys(search);
-
-              //update the keyword array
-              for(var i = 0; i < keys.length; i++) {
-                var element = search[keys[i]];
-  
-                if(element.enabled) {
-                  var obj = {
-                    value: element.key
-                  };
-                  keywords.push(obj);
-                }
-              }
-            }
-          }
-          this.set('_keywordArray', keywords);
-        }
+      _updateBulkDataObject: function() {
+        this.set('_bulkData', {
+          array: this.transformSearchInputFunction(this.searchParameters, this.searchFields),
+          index: 0
+        });
       },
 
       /**

@@ -19,7 +19,7 @@ limitations under the License.
 <html>
 <head>
   <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, user-scalable=yes">
-  <title>export-button</title>
+  <title>single-record</title>
   <script src="../bower_components/webcomponentsjs/webcomponents.min.js"></script>
   <script src="../bower_components/web-component-tester/browser.js"></script>
   <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
@@ -37,111 +37,21 @@ limitations under the License.
 <script>
   /* globals suite, test, expect, setup, fixture, flush */
   /* jshint -W030 */
-  suite('<export-button> with no data', function() {
-    var element;
-
-    setup(function() {
-      element = fixture('export-button-fixture');
-      element.data = [];
-      element.downloadImageUrl = 'downloadImage';
-      element.csvTransformFunction = function(data) {
-        return [{
-          csv: data
-        }];
-      };
-      element.pdfTransformFunction = function(data) {
-        return [{
-          pdf: data
-        }];
-      };
-    });
-
-    test('properties are set correctly', function() {
-      expect(element.data).to.deep.equal([]);
-      expect(element.filename).to.equal('data');
-      expect(element.csvTransformFunction).to.be.a('Function');
-      expect(element.pdfTransformFunction).to.be.a('Function');
-      expect(element._dataSubsetForCsv).to.deep.equal([{
-        csv: []
-      }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
-        pdf: []
-      }]);
-    });
-
-    test('does show styled-dialog and build-and-run-query', function() {
-      expect(element.$$('styled-dialog')).to.exist;
-      expect(element.$$('build-and-run-query')).to.exist;
-    });
-
-    test('changing data does update _dataSubsetForCsv and _dataSubsetForPdf', function() {
-      element.data = ['a'];
-      expect(element._dataSubsetForCsv).to.deep.equal([{
-        csv: ['a']
-      }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
-        pdf: ['a']
-      }]);
-
-      element.data = ['a', 'b'];
-      expect(element._dataSubsetForCsv).to.deep.equal([{
-        csv: ['a', 'b']
-      }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
-        pdf: ['a', 'b']
-      }]);
-    });
-
-    test('changing a property in data does update _dataSubsetForCsv and _dataSubsetForPdf', function() {
-      element.data = [{
-        property1: 'a'
-      }];
-      expect(element._dataSubsetForCsv).to.deep.equal([{
-        csv: [{
-          property1: 'a'
-        }]
-      }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
-        pdf: [{
-          property1: 'a'
-        }]
-      }]);
-
-      element.data[0].property2 = 'b';
-      expect(element._dataSubsetForCsv).to.deep.equal([{
-        csv: [{
-          property1: 'a',
-          property2: 'b'
-        }]
-      }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
-        pdf: [{
-          property1: 'a',
-          property2: 'b'
-        }]
-      }]);
-    });
-  });
-
   suite('<export-button> with data', function() {
     var element;
 
     setup(function(done) {
       element = fixture('export-button-fixture');
-      element.data = ['a', 'b', 'c'];
+      element.data = ['a', 'b', 'c', 'd'];
       element.downloadImageUrl = 'downloadImage';
-      element.filename = 'file';
-      element.csvTransformFunction = function(data) {
+      element.transformCsvFunction = function(data) {
         return data.map(function(item) {
-          return {
-            property: item
-          };
+          return item.toUpperCase();
         });
       };
-      element.pdfTransformFunction = function(data) {
-        var paragraphs = data.map(function(item, index) {
+      element.transformPdfFunction = function(data) {
+        var paragraphs = data.map(function(item) {
           return {
-            big: (index === 1),
             label: 'label-' + item,
             value: 'value-' + item
           };
@@ -155,55 +65,249 @@ limitations under the License.
           paragraphs: paragraphs
         }];
       };
-      element.type = 'Type';
       flush(done);
     });
 
-    test('properties are set correctly', function() {
-      expect(element.data).to.deep.equal(['a', 'b', 'c']);
-      expect(element.filename).to.equal('file');
-      expect(element.csvTransformFunction).to.be.a('Function');
-      expect(element.pdfTransformFunction).to.be.a('Function');
-      expect(element._dataSubsetForCsv).to.deep.equal([{
-        property: 'a'
-      }, {
-        property: 'b'
-      }, {
-        property: 'c'
-      }]);
-      expect(element._dataSubsetForPdf).to.deep.equal([{
+    test('default properties are set correctly', function() {
+      expect(element.client).to.not.exist;
+      expect(element.filename).to.equal('data');
+      expect(element.filterList).to.not.exist;
+      expect(element.indexName).to.not.exist;
+      expect(element.indexTypes).to.not.exist;
+      expect(element.searchFields).to.not.exist;
+      expect(element.searchParameters).to.not.exist;
+      expect(element.sourceExclude).to.deep.equal([]);
+      expect(element.sourceInclude).to.deep.equal([]);
+      expect(element.transformSearchInputFunction).to.not.exist;
+      expect(element.transformSearchResultsFunction).to.not.exist;
+      expect(element._bulkData).to.deep.equal({});
+      expect(element._bulkError).to.not.exist;
+      expect(element._bulkExportBody).to.not.exist;
+      expect(element._bulkExportData).to.not.exist;
+      expect(element._bulkExportLoading).to.be.false;
+      expect(element._bulkExportResponse).to.not.exist;
+      expect(element._bulkSearchData).to.not.exist;
+      expect(element._bulkSearchLoading).to.be.false;
+      expect(element._bulkSearchReady).to.be.false;
+      expect(element._standardExportError).to.not.exist;
+      expect(element._standardExportLoading).to.be.false;
+      expect(element._standardExportResponse).to.not.exist;
+    });
+
+    test('input and computed properties are set correctly', function() {
+      expect(element.data).to.deep.equal(['a', 'b', 'c', 'd']);
+      expect(element.downloadImageUrl).to.equal('downloadImage');
+      expect(element.transformCsvFunction).to.be.a('Function');
+      expect(element.transformPdfFunction).to.be.a('Function');
+      expect(element._dataForCsv).to.deep.equal(['A', 'B', 'C', 'D']);
+      expect(element._dataForPdf).to.deep.equal([{
         images: [{
           id: 'imageId',
           source: 'imageSource',
           text: 'imageText'
         }],
         paragraphs: [{
-          big: false,
           label: 'label-a',
           value: 'value-a'
         }, {
-          big: true,
           label: 'label-b',
           value: 'value-b'
         }, {
-          big: false,
           label: 'label-c',
           value: 'value-c'
+        }, {
+          label: 'label-d',
+          value: 'value-d'
         }]
       }]);
     });
 
-    test('does show styled-dialog and build-and-run-query', function() {
+    test('does show a link element', function() {
+      expect(element.$$('.link')).to.exist;
+      expect(element.$$('.link .open')).to.exist;
+    });
+
+    test('does show a styled-dialog element', function() {
       expect(element.$$('styled-dialog')).to.exist;
-      expect(element.$$('build-and-run-query')).to.exist;
+      expect(element.$$('styled-dialog').getAttribute('fill')).to.exist;
+      expect(element.$$('styled-dialog').getAttribute('header')).to.equal('Export');
+      expect(element.$$('styled-dialog').id).to.equal('dialog');
     });
 
     test('does show an image element', function() {
       expect(element.$$('img')).to.exist;
+      expect(element.$$('img').getAttribute('id')).to.equal('imageId');
+      expect(element.$$('img').getAttribute('crossorigin')).to.equal('anonymous');
+      expect(element.$$('img').getAttribute('src')).to.equal('/downloadImage/imageSource');
+      expect(element.$$('img').getAttribute('style')).to.equal('display:none');
     });
 
-    test('_createPdfContent returns correctly', function() {
-      expect(element._createPdfContent(element._dataSubsetForPdf, 'subset').content).to.deep.equal([{
+    test('does show two button-action elements', function() {
+      var buttonActionElements = Polymer.dom(element.root).querySelectorAll('button-action');
+      expect(buttonActionElements[0]).to.exist;
+      expect(buttonActionElements[0].text).to.equal('Export to CSV');
+      expect(buttonActionElements[1]).to.exist;
+      expect(buttonActionElements[1].text).to.equal('Export to PDF');
+      expect(buttonActionElements[2]).to.not.exist;
+    });
+
+    test('does show a build-and-run-query element', function() {
+      expect(element.$$('build-and-run-query')).to.exist;
+      expect(element.$$('build-and-run-query').getAttribute('aggregations')).to.equal('[]');
+      expect(element.$$('build-and-run-query').getAttribute('page')).to.equal('0');
+      expect(element.$$('build-and-run-query').getAttribute('page-size')).to.equal('10000');
+      expect(element.$$('build-and-run-query').getAttribute('properties-ready')).to.be.null;
+      expect(element.$$('build-and-run-query').getAttribute('type')).to.equal('match');
+    });
+
+    test('does show two iron-ajax elements', function() {
+      var ajaxElements = Polymer.dom(element.root).querySelectorAll('iron-ajax');
+      expect(ajaxElements[0]).to.exist;
+      expect(ajaxElements[0].id).to.equal('standardExport');
+      expect(ajaxElements[0].body).to.deep.equal(['data', 'A', 'B', 'C', 'D']);
+      expect(ajaxElements[0].getAttribute('auto')).to.not.exist;
+      expect(ajaxElements[0].getAttribute('content-type')).to.equal('application/json');
+      expect(ajaxElements[0].getAttribute('handle-as')).to.equal('text');
+      expect(ajaxElements[0].getAttribute('method')).to.equal('POST');
+      expect(ajaxElements[0].getAttribute('url')).to.equal('/export');
+      expect(ajaxElements[1]).to.exist;
+      expect(ajaxElements[1].id).to.equal('bulkExport');
+      expect(ajaxElements[1].body).to.not.exist;
+      expect(ajaxElements[1].getAttribute('auto')).to.not.exist;
+      expect(ajaxElements[1].getAttribute('content-type')).to.equal('application/json');
+      expect(ajaxElements[1].getAttribute('handle-as')).to.equal('text');
+      expect(ajaxElements[1].getAttribute('method')).to.equal('POST');
+      expect(ajaxElements[1].getAttribute('url')).to.equal('/export');
+      expect(ajaxElements[2]).to.not.exist;
+    });
+
+    test('does not show a loading-spinner element', function() {
+      expect(element.$$('loading-spinner')).to.not.exist;
+    });
+
+    test('does show a loading-spinner element if _standardExportLoading is true', function(done) {
+      element._standardExportLoading = true;
+      flush(function() {
+        expect(element.$$('loading-spinner')).to.exist;
+        done();
+      });
+    });
+
+    test('changing data does update _dataForCsv and _dataForPdf', function() {
+      element.data = ['e'];
+      expect(element._dataForCsv).to.deep.equal(['E']);
+      expect(element._dataForPdf).to.deep.equal([{
+        images: [{
+          id: 'imageId',
+          source: 'imageSource',
+          text: 'imageText'
+        }],
+        paragraphs: [{
+          label: 'label-e',
+          value: 'value-e'
+        }]
+      }]);
+    });
+
+    test('changing an item in data does update _dataForCsv and _dataForPdf', function() {
+      element.data = ['e', 'f', 'g', 'h'];
+      expect(element._dataForCsv).to.deep.equal(['E', 'F', 'G', 'H']);
+      expect(element._dataForPdf).to.deep.equal([{
+        images: [{
+          id: 'imageId',
+          source: 'imageSource',
+          text: 'imageText'
+        }],
+        paragraphs: [{
+          label: 'label-e',
+          value: 'value-e'
+        }, {
+          label: 'label-f',
+          value: 'value-f'
+        }, {
+          label: 'label-g',
+          value: 'value-g'
+        }, {
+          label: 'label-h',
+          value: 'value-h'
+        }]
+      }]);
+    });
+
+    test('_createBulkExportListener does return a listener object', function() {
+      expect(element._createBulkExportListener).to.be.a('Function');
+      var listener = element._createBulkExportListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+    });
+
+    test('the listener returned by _createBulkExportListener does set _bulkSearchReady to true', function() {
+      expect(element._bulkSearchReady).to.be.false;
+      expect(element.$$('build-and-run-query').propertiesReady).to.be.false;
+      element._createBulkExportListener().onClick();
+      expect(element._bulkSearchReady).to.be.true;
+      expect(element.$$('build-and-run-query').propertiesReady).to.be.true;
+    });
+
+    test('_createExportDataForCsvListener does return a listener object', function() {
+      expect(element._createExportDataForCsvListener).to.be.a('Function');
+      var listener = element._createExportDataForCsvListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+    });
+
+    test('the listener returned by _createExportDataForCsvListener does call _runStandardExportRequest', function() {
+      var called = false;
+      element._runStandardExportRequest = function() {
+        called = true;
+      };
+
+      element._createExportDataForCsvListener().onClick();
+      expect(called).to.be.true;
+    });
+
+    test('_createExportDataForPdfListener does return a listener object', function() {
+      expect(element._createExportDataForPdfListener).to.be.a('Function');
+      var listener = element._createExportDataForPdfListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+    });
+
+    test('the listener returned by _createExportDataForPdfListener does call _createPdfAndDownloadFile', function() {
+      var called = false;
+      element._createPdfAndDownloadFile = function() {
+        called = true;
+      };
+
+      element._createExportDataForPdfListener().onClick();
+      expect(called).to.be.true;
+    });
+
+    test('_createPdfDoc does return a doc object', function() {
+      expect(element._createPdfDoc).to.be.a('Function');
+      var doc = element._createPdfDoc([{
+        images: [{
+          id: 'imageId',
+          source: 'imageSource',
+          text: 'imageText'
+        }],
+        paragraphs: [{
+          label: 'label-a',
+          value: 'value-a'
+        }, {
+          label: 'label-b',
+          value: 'value-b'
+        }, {
+          label: 'label-c',
+          value: 'value-c'
+        }, {
+          label: 'label-d',
+          value: 'value-d'
+        }]
+      }]);
+      expect(doc).to.be.an('Object');
+      expect(doc.content).to.be.an('Array');
+      expect(doc.content).to.deep.equal([{
         fontSize: 12,
         margin: [0, 0, 0, 10],
         text: [{
@@ -213,7 +317,7 @@ limitations under the License.
           text: 'value-a'
         }]
       }, {
-        fontSize: 16,
+        fontSize: 12,
         margin: [0, 0, 0, 10],
         text: [{
           bold: true,
@@ -231,6 +335,15 @@ limitations under the License.
           text: 'value-c'
         }]
       }, {
+        fontSize: 12,
+        margin: [0, 0, 0, 10],
+        text: [{
+          bold: true,
+          text: 'label-d'
+        }, {
+          text: 'value-d'
+        }]
+      }, {
         bold: true,
         fontSize: 12,
         margin: [0, 0, 0, 10],
@@ -246,6 +359,529 @@ limitations under the License.
         margin: [0, 0, 0, 10]
         */
       }]);
+    });
+
+    test('_getBulkDataProperty does return the correct value', function() {
+      expect(element._getBulkDataProperty).to.be.a('Function');
+      expect(element._getBulkDataProperty([], 0, 'field')).to.be.undefined;
+      expect(element._getBulkDataProperty([], 1, 'field')).to.be.undefined;
+      expect(element._getBulkDataProperty([{}], 0, 'field')).to.be.undefined;
+      expect(element._getBulkDataProperty([{
+        field: 'one'
+      }], 1, 'field')).to.be.undefined;
+
+      expect(element._getBulkDataProperty([{
+        field: 'one'
+      }], 0, 'field')).to.equal('one');
+
+      expect(element._getBulkDataProperty([{
+        field: 'one'
+      }, {
+        field: 'two'
+      }], 1, 'field')).to.equal('two');
+
+      expect(element._getBulkDataProperty([{
+        field: 'one',
+        value: 'two'
+      }], 0, 'field')).to.equal('one');
+
+      expect(element._getBulkDataProperty([{
+        field: 'one',
+        value: 'two'
+      }], 0, 'value')).to.equal('two');
+    });
+
+    test('_getImageSrc does return the correct value', function() {
+      expect(element._getImageSrc).to.be.a('Function');
+      expect(element._getImageSrc('a', 'b')).to.equal('/a/b');
+      expect(element._getImageSrc('c', 'd')).to.equal('/c/d');
+    });
+
+    test('_isBulkDataDoneLoading does return the correct value', function() {
+      expect(element._isBulkDataDoneLoading).to.be.a('Function');
+      expect(element._isBulkDataDoneLoading([], 0)).to.be.true;
+      expect(element._isBulkDataDoneLoading([], 1)).to.be.true;
+      expect(element._isBulkDataDoneLoading(['a'], 0)).to.be.false;
+      expect(element._isBulkDataDoneLoading(['a'], 1)).to.be.true;
+      expect(element._isBulkDataDoneLoading(['a'], 2)).to.be.true;
+      expect(element._isBulkDataDoneLoading(['a', 'b'], 0)).to.be.false;
+      expect(element._isBulkDataDoneLoading(['a', 'b'], 1)).to.be.false;
+      expect(element._isBulkDataDoneLoading(['a', 'b'], 2)).to.be.true;
+      expect(element._isBulkDataDoneLoading(['a', 'b'], 3)).to.be.true;
+      expect(element._isBulkDataDoneLoading(['a', 'b', 'c', 'd'], 0)).to.be.false;
+    });
+
+    test('_isBulkDataLoadingOrDone does return the correct value', function() {
+      expect(element._isBulkDataLoadingOrDone).to.be.a('Function');
+      expect(element._isBulkDataLoadingOrDone(false, [], 0)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(false, [], 1)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(false, ['a'], 0)).to.be.false;
+      expect(element._isBulkDataLoadingOrDone(false, ['a'], 1)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(false, ['a', 'b'], 0)).to.be.false;
+      expect(element._isBulkDataLoadingOrDone(false, ['a', 'b'], 1)).to.be.false;
+      expect(element._isBulkDataLoadingOrDone(false, ['a', 'b'], 2)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(false, ['a', 'b', 'c', 'd'], 0)).to.be.false;
+      expect(element._isBulkDataLoadingOrDone(true, ['a'], 0)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(true, ['a', 'b'], 0)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(true, ['a', 'b'], 1)).to.be.true;
+      expect(element._isBulkDataLoadingOrDone(true, ['a', 'b', 'c', 'd'], 0)).to.be.true;
+    });
+
+    test('_isNotUndefined does return the correct value', function() {
+      expect(element._isNotUndefined).to.be.a('Function');
+      expect(element._isNotUndefined(0)).to.be.true;
+      expect(element._isNotUndefined(1)).to.be.true;
+      expect(element._isNotUndefined('')).to.be.true;
+      expect(element._isNotUndefined('a')).to.be.true;
+      expect(element._isNotUndefined(false)).to.be.true;
+      expect(element._isNotUndefined(true)).to.be.true;
+      expect(element._isNotUndefined([])).to.be.true;
+      expect(element._isNotUndefined(['a'])).to.be.true;
+      expect(element._isNotUndefined({})).to.be.true;
+      expect(element._isNotUndefined({
+        field: 'value'
+      })).to.be.true;
+      expect(element._isNotUndefined(null)).to.be.true;
+      expect(element._isNotUndefined(undefined)).to.be.false;
+    });
+  });
+
+  suite('<export-button> with searchFields and searchParameters', function() {
+    var element;
+
+    setup(function(done) {
+      element = fixture('export-button-fixture');
+      element.searchFields = {
+        a: 'field-a',
+        b: 'field-b',
+        c: 'field-c',
+        d: 'field-d',
+        e: 'field-e',
+        f: 'field-f',
+        g: 'field-g',
+        h: 'field-h'
+      };
+      element.searchParameters = {
+        one: ['a', 'b'],
+        two: ['c', 'd']
+      };
+      element.transformSearchInputFunction = function(parameters, fields) {
+        var data = [];
+        Object.keys(parameters).forEach(function(type) {
+          parameters[type].forEach(function(term) {
+            data.push({
+              field: fields[term],
+              value: 'value-' + term
+            });
+          });
+        });
+        return data;
+      };
+      flush(done);
+    });
+
+    test('input and computed properties are set correctly', function() {
+      expect(element.searchFields).to.deep.equal({
+        a: 'field-a',
+        b: 'field-b',
+        c: 'field-c',
+        d: 'field-d',
+        e: 'field-e',
+        f: 'field-f',
+        g: 'field-g',
+        h: 'field-h'
+      });
+      expect(element.searchParameters).to.deep.equal({
+        one: ['a', 'b'],
+        two: ['c', 'd']
+      });
+      expect(element.transformSearchInputFunction).to.be.a('Function');
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          field: 'field-b',
+          value: 'value-b'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 0
+      });
+    });
+
+    test('does show three button-action elements', function() {
+      var buttonActionElements = Polymer.dom(element.root).querySelectorAll('button-action');
+      expect(buttonActionElements[0]).to.exist;
+      expect(buttonActionElements[0].text).to.equal('Export to CSV');
+      expect(buttonActionElements[1]).to.exist;
+      expect(buttonActionElements[1].text).to.equal('Export to PDF');
+      expect(buttonActionElements[2]).to.exist;
+      expect(buttonActionElements[2].text).to.equal('Export to CSV');
+      expect(buttonActionElements[3]).to.not.exist;
+    });
+
+    test('does show a build-and-run-query element', function() {
+      expect(element.$$('build-and-run-query')).to.exist;
+      expect(element.$$('build-and-run-query').getAttribute('aggregations')).to.equal('[]');
+      expect(element.$$('build-and-run-query').getAttribute('page')).to.equal('0');
+      expect(element.$$('build-and-run-query').getAttribute('page-size')).to.equal('10000');
+      expect(element.$$('build-and-run-query').getAttribute('properties-ready')).to.not.exist;
+      expect(element.$$('build-and-run-query').getAttribute('type')).to.equal('match');
+      expect(element.$$('build-and-run-query').fields).to.equal('field-a');
+      expect(element.$$('build-and-run-query').values).to.equal('value-a');
+    });
+
+    test('does not show a loading-spinner element', function() {
+      expect(element.$$('loading-spinner')).to.not.exist;
+    });
+
+    test('does show a loading-spinner element if _bulkSearchLoading is true', function(done) {
+      element._bulkSearchLoading = true;
+      flush(function() {
+        expect(element.$$('loading-spinner')).to.exist;
+        done();
+      });
+    });
+
+    test('does show a loading-spinner element if _bulkExportLoading is true', function(done) {
+      element._bulkExportLoading = true;
+      flush(function() {
+        expect(element.$$('loading-spinner')).to.exist;
+        done();
+      });
+    });
+
+    test('properties do update build-and-run-query', function() {
+      element.indexName = 'testName';
+      element.indexTypes = ['testType'];
+      element.filterList = ['testFilter'];
+      element.sourceExclude = ['testExclude'];
+      element.sourceInclude = ['testInclude'];
+      element.transformSearchResultsFunction = function() {};
+      expect(element.$$('build-and-run-query').filters).to.deep.equal(['testFilter']);
+      expect(element.$$('build-and-run-query').indexName).to.equal('testName');
+      expect(element.$$('build-and-run-query').indexTypes).to.deep.equal(['testType']);
+      expect(element.$$('build-and-run-query').sourceExclude).to.deep.equal(['testExclude']);
+      expect(element.$$('build-and-run-query').sourceInclude).to.deep.equal(['testInclude']);
+      expect(element.$$('build-and-run-query').transformFunction).to.be.a('Function');
+    });
+
+    test('changing searchParameters does update _bulkData', function() {
+      element.searchParameters = {
+        one: ['e', 'f'],
+        two: ['g', 'h']
+      };
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-e',
+          value: 'value-e'
+        }, {
+          field: 'field-f',
+          value: 'value-f'
+        }, {
+          field: 'field-g',
+          value: 'value-g'
+        }, {
+          field: 'field-h',
+          value: 'value-h'
+        }],
+        index: 0
+      });
+
+      element.searchParameters = {
+        three: ['a', 'b']
+      };
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          field: 'field-b',
+          value: 'value-b'
+        }],
+        index: 0
+      });
+    });
+
+    test('changing properties in searchParameters does update _bulkData', function() {
+      element.set('searchParameters.one', ['e', 'f']);
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-e',
+          value: 'value-e'
+        }, {
+          field: 'field-f',
+          value: 'value-f'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 0
+      });
+
+      element.set('searchParameters.two', ['g']);
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-e',
+          value: 'value-e'
+        }, {
+          field: 'field-f',
+          value: 'value-f'
+        }, {
+          field: 'field-g',
+          value: 'value-g'
+        }],
+        index: 0
+      });
+    });
+
+    test('changing searchFields does update _bulkData', function() {
+      element.searchFields = {
+        a: 'new-field-a',
+        b: 'new-field-b',
+        c: 'new-field-c',
+        d: 'new-field-d'
+      };
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'new-field-a',
+          value: 'value-a'
+        }, {
+          field: 'new-field-b',
+          value: 'value-b'
+        }, {
+          field: 'new-field-c',
+          value: 'value-c'
+        }, {
+          field: 'new-field-d',
+          value: 'value-d'
+        }],
+        index: 0
+      });
+    });
+
+    test('changing transformSearchInputFunction does update _bulkData', function() {
+      element.transformSearchInputFunction = function(parameters, fields) {
+        var data = [];
+        Object.keys(parameters).forEach(function(type) {
+          parameters[type].forEach(function(term) {
+            data.push({
+              field: 'other-' + fields[term],
+              value: 'other-value-' + term
+            });
+          });
+        });
+        return data;
+      };
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'other-field-a',
+          value: 'other-value-a'
+        }, {
+          field: 'other-field-b',
+          value: 'other-value-b'
+        }, {
+          field: 'other-field-c',
+          value: 'other-value-c'
+        }, {
+          field: 'other-field-d',
+          value: 'other-value-d'
+        }],
+        index: 0
+      });
+    });
+
+    test('setting _bulkSearchData does update _bulkExportData', function() {
+      element.transformCsvFunction = function(data) {
+        return data.map(function(item) {
+          return item.toUpperCase();
+        });
+      };
+      element._bulkSearchData = ['w', 'x', 'y', 'z'];
+      expect(element._bulkExportData).to.deep.equal(['W', 'X', 'Y', 'Z']);
+    });
+
+    test('setting _bulkExportData does set _bulkExportBody to undefined if _bulkExportData is not populated', function() {
+      element._bulkSearchReady = true;
+      element._bulkExportData = [['Header1', 'Header2', 'Header3', 'Header4']];
+      expect(element._bulkExportBody).to.not.exist;
+      expect(element.$$('#bulkExport').auto).to.be.false;
+      expect(element.$$('#bulkExport').body).to.not.exist;
+    });
+
+    test('setting _bulkExportData does set _bulkExportBody and run #bulkExport if _bulkSearchReady is true and _bulkExportData is populated', function() {
+      element._bulkSearchReady = true;
+      element._bulkExportData = [['Header1', 'Header2', 'Header3', 'Header4'], ['Data1', 'Data2', 'Data3', 'Data4']];
+      expect(element._bulkExportBody).to.deep.equal(['value-a', ['Header1', 'Header2', 'Header3', 'Header4'], ['Data1', 'Data2', 'Data3', 'Data4']]);
+      expect(element.$$('#bulkExport').auto).to.be.true;
+      expect(element.$$('#bulkExport').body).to.deep.equal(['value-a', ['Header1', 'Header2', 'Header3', 'Header4'], ['Data1', 'Data2', 'Data3', 'Data4']]);
+    });
+
+    test('setting _bulkError does update _bulkData.array, _bulkData.index, _bulkSearchData, _bulkExportData, _bulkExportBody, and _bulkError', function() {
+      element._bulkSearchData = [];
+      element._bulkExportData = [];
+      element._bulkExportBody = {};
+      element._bulkError = {}
+
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          error: true,
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          field: 'field-b',
+          value: 'value-b'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 1
+      });
+      expect(element.$$('build-and-run-query').fields).to.equal('field-b');
+      expect(element.$$('build-and-run-query').values).to.equal('value-b');
+      expect(element._bulkSearchData).to.be.undefined;
+      expect(element._bulkExportData).to.be.undefined;
+      expect(element._bulkExportBody).to.be.undefined;
+      expect(element._bulkError).to.be.undefined;
+    });
+
+    test('setting _bulkError does update _bulkSearchReady if done', function() {
+      element._bulkData.index = 3;
+      element._bulkSearchData = [1, 2];
+      element._bulkSearchReady = true;
+      element._bulkExportData = [];
+      element._bulkExportBody = {};
+      element._bulkError = {};
+
+      element._handleBulkError();
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          field: 'field-b',
+          value: 'value-b'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          error: true,
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 4
+      });
+      expect(element._bulkSearchReady).to.be.false;
+      expect(element._bulkSearchData).to.be.undefined;
+      expect(element._bulkExportData).to.be.undefined;
+      expect(element._bulkExportBody).to.be.undefined;
+      expect(element._bulkSearchData).to.be.undefined;
+    });
+
+    test('_handleBulkExportResponse does update _bulkData.array, _bulkData.index, _bulkSearchData, _bulkExportData, and _bulkExportBody', function() {
+      element._bulkSearchData = [1, 2];
+      element._bulkExportData = [];
+      element._bulkExportBody = {};
+      element._handleBulkExportResponse();
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          count: 2,
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          field: 'field-b',
+          value: 'value-b'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 1
+      });
+      expect(element.$$('build-and-run-query').fields).to.equal('field-b');
+      expect(element.$$('build-and-run-query').values).to.equal('value-b');
+      expect(element._bulkSearchData).to.be.undefined;
+
+      element._bulkSearchData = [3];
+      element._handleBulkExportResponse();
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          count: 2,
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          count: 1,
+          field: 'field-b',
+          value: 'value-b'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 2
+      });
+      expect(element.$$('build-and-run-query').fields).to.equal('field-c');
+      expect(element.$$('build-and-run-query').values).to.equal('value-c');
+      expect(element._bulkSearchData).to.be.undefined;
+    });
+
+    test('_handleBulkExportResponse does update _bulkSearchReady if done', function() {
+      element._bulkData.index = 3;
+      element._bulkSearchData = [1, 2];
+      element._bulkSearchReady = true;
+      element._handleBulkExportResponse();
+      expect(element._bulkData).to.deep.equal({
+        array: [{
+          field: 'field-a',
+          value: 'value-a'
+        }, {
+          field: 'field-b',
+          value: 'value-b'
+        }, {
+          field: 'field-c',
+          value: 'value-c'
+        }, {
+          count: 2,
+          field: 'field-d',
+          value: 'value-d'
+        }],
+        index: 4
+      });
+      expect(element._bulkSearchReady).to.be.false;
+      expect(element._bulkSearchData).to.be.undefined;
+    });
+  });
+
+  suite('<export-button> with no data', function() {
+    var element;
+
+    setup(function() {
+      element = fixture('export-button-fixture');
+      element.data = [];
+    });
+
+    test('input properties are set correctly', function() {
+      expect(element.data).to.deep.equal([]);
+    });
+
+    test('does not show a link element', function() {
+      expect(element.$$('.link')).to.not.exist;
+      expect(element.$$('.link .open')).to.not.exist;
     });
   });
 </script>
