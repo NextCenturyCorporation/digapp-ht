@@ -23,6 +23,8 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-icon/iron-icon.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/loading-spinner/loading-spinner.html">
+<link rel="import" href="../../bower_components/paper-dropdown-menu/paper-dropdown-menu.html">
+<link rel="import" href="../../bower_components/paper-listbox/paper-listbox.html">
 <link rel="import" href="../pdfmake.html">
 
 <dom-module id="export-button">
@@ -56,6 +58,16 @@ limitations under the License.
       .link > .open {
         line-height: 30px;
         margin-left: 5px;
+      }
+
+      paper-listbox {
+        --paper-listbox: {
+          padding: 0;
+        }
+      }
+
+      paper-listbox paper-item {
+        cursor: pointer;
       }
     </style>
 
@@ -98,11 +110,22 @@ limitations under the License.
       <template is="dom-if" if="[[_isNotUndefined(searchParameters)]]">
         <div class="layout horizontal">
           <div class="styled-dialog-bold styled-dialog-right-space">Bulk Export</div>
-          <div class="styled-dialog-text styled-dialog-right-space">Export the Top 10,000 Ads Matching Each Search Term</div>
+          <div class="styled-dialog-text styled-dialog-right-space">Export the Top Ads Matching Each Search Term</div>
         </div>
 
         <div class="styled-dialog-text">If your exported file doesn't download automatically, please check that your internet browser allows popups from this page.</div>
         <div class="styled-dialog-text">Please note that it may take a minute or longer to load the tens of thousands of results returned from multiple search terms.</div>
+
+        <div class="layout horizontal">
+          <div class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Number of Top Ads to Export</div>
+          <paper-dropdown-menu label="Choose Number to Export" no-label-float>
+            <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{_bulkSize}}">
+              <paper-item value="1000">1,000</paper-item>
+              <paper-item value="5000">5,000</paper-item>
+              <paper-item value="10000">10,000</paper-item>
+            </paper-listbox>
+          </paper-dropdown-menu>
+        </div>
 
         <div class="layout horizontal">
           <button-action class="styled-dialog-tall styled-dialog-right-space"
@@ -115,25 +138,25 @@ limitations under the License.
         <template is="dom-if" if="[[_isBulkDataLoadingOrDone(_bulkSearchReady, _bulkData.array, _bulkData.index)]]">
           <template is="dom-repeat" items="[[_bulkData.array]]">
             <template is="dom-if" if="[[_isNotUndefined(item.count)]]">
-              <div class="styled-dialog-text">Loaded Top [[item.count]] Ads Matching Term <span>[[item.value]]</span></div>
+              <div class="styled-dialog-text">Exported Top <strong>[[item.count]]</strong> Ads Matching Term: <strong>[[item.value]]</strong></div>
             </template>
             <template is="dom-if" if="[[!_isNotUndefined(item.count)]]">
               <template is="dom-if" if="[[!_isNotUndefined(item.error)]]">
-                <div class="styled-dialog-text">Loading Top Ads Matching Term <span>[[item.value]]</span>...</div>
+                <div class="styled-dialog-text">Loading Top <strong>[[_bulkSize]]</strong> Ads Matching Term: <strong>[[item.value]]</strong>...</div>
               </template>
               <template is="dom-if" if="[[_isNotUndefined(item.error)]]">
-                <div class="styled-dialog-text">Error Exporting <span>[[item.value]]</span> CSV File</div>
+                <div class="styled-dialog-text">Failed to Load Top Ads Matching Term: <strong>[[item.value]]</strong></div>
               </template>
             </template>
           </template>
         </template>
 
         <template is="dom-if" if="[[_bulkSearchLoading]]">
-          <loading-spinner show="[[_bulkSearchLoading]]" type="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]] Ad Data"></loading-spinner>
+          <loading-spinner show="[[_bulkSearchLoading]]" type="Ad Data:  [[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]]"></loading-spinner>
         </template>
 
         <template is="dom-if" if="[[_bulkExportLoading]]">
-          <loading-spinner show="[[_bulkExportLoading]]" type="[[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]] Export File"></loading-spinner>
+          <loading-spinner show="[[_bulkExportLoading]]" type="Export File:  [[_getBulkDataProperty(_bulkData.array, _bulkData.index, 'value')]]"></loading-spinner>
         </template>
       </template>
 
@@ -175,7 +198,7 @@ limitations under the License.
       aggregations="[]"
       filters="[[filterList]]"
       page="0"
-      page-size="10000"
+      page-size="[[_bulkSize]]"
       properties-ready="[[_bulkSearchReady]]"
       source-exclude="[[sourceExclude]]"
       source-include="[[sourceInclude]]"
@@ -475,6 +498,18 @@ limitations under the License.
         _bulkSearchReady: {
           type: Boolean,
           value: false
+        },
+
+        /**
+         * The bulk search stringified size.
+         *
+         * @type {String}
+         * @default 5000
+         * @private
+         */
+        _bulkSize: {
+          type: String,
+          value: '5000'
         },
 
         /**
