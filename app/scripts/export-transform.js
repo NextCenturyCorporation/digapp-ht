@@ -41,7 +41,7 @@ var exportTransform = (function(_) {
         'ad url',
         'dig url',
         'title',
-        'date',
+        'dates',
         'website',
         'locations',
         'telephone numbers',
