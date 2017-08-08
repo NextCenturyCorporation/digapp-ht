@@ -185,12 +185,6 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
   }
 
   function checkHighlightedText(text, type) {
-    // TODO Do we have to hard-code <em> or can we make it a config variable?
-    // Ignore partial matches for emails and websites.
-    if((type === 'email' || type === 'website') && (!_.startsWith(text, '<em>') || !_.endsWith(text, '</em>'))) {
-      return false;
-    }
-
     var output = text;
 
     // Usernames are formatted "<website> <username>".  Ignore matches on the <website>.
