@@ -24,6 +24,7 @@ limitations under the License.
   <script src="../bower_components/web-component-tester/browser.js"></script>
   <script src="../bower_components/test-fixture/test-fixture-mocha.js"></script>
   <link rel="import" href="../bower_components/test-fixture/test-fixture.html">
+  <link rel="import" href="../elements/behaviors.html">
   <link rel="import" href="../elements/state-manager/state-manager.html">
 </head>
 
@@ -35,7 +36,7 @@ limitations under the License.
 </test-fixture>
 
 <script>
-  /* globals suite, setup, fixture, test, expect */
+  /* globals suite, setup, fixture, test, expect, flush, DigBehaviors */
   /* jshint -W030 */
   suite('state-manager tests', function() {
     var element;
@@ -109,11 +110,10 @@ limitations under the License.
       social: {},
       title: {},
       website: {},
-      weight: {},
-      sort: ''
+      weight: {}
     };
 
-    var DEFAULT_STRING_SEARCH_STATE = '{\"age\":{},\"city\":{},\"country\":{},\"description\":{},\"email\":{},\"ethnicity\":{},\"eyeColor\":{},\"gender\":{},\"hairColor\":{},\"height\":{},\"image\":{},\"location\":{},\"name\":{},\"phone\":{},\"postingDate\":{},\"price\":{},\"region\":{},\"review\":{},\"services\":{},\"social\":{},\"title\":{},\"website\":{},\"weight\":{},\"sort\":\"\"}';
+    var DEFAULT_STRING_SEARCH_STATE = '{\"age\":{},\"city\":{},\"country\":{},\"description\":{},\"email\":{},\"ethnicity\":{},\"eyeColor\":{},\"gender\":{},\"hairColor\":{},\"height\":{},\"image\":{},\"location\":{},\"name\":{},\"phone\":{},\"postingDate\":{},\"price\":{},\"region\":{},\"review\":{},\"services\":{},\"social\":{},\"title\":{},\"website\":{},\"weight\":{}}';
 
     var EXAMPLE_OBJECT_SEARCH_STATE = {
       age: {
@@ -233,48 +233,71 @@ limitations under the License.
         term: {
           key: 'weight'
         }
-      },
-      sort: 'sort'
+      }
     };
 
-    var EXAMPLE_STRING_SEARCH_STATE = '{\"age\":{\"term\":{\"key\":\"age\"}},\"city\":{\"term\":{\"key\":\"city\"}},\"country\":{\"term\":{\"key\":\"country\"}},\"description\":{\"term\":{\"key\":\"description\"}},\"email\":{\"term\":{\"key\":\"email\"}},\"ethnicity\":{\"term\":{\"key\":\"ethnicity\"}},\"eyeColor\":{\"term\":{\"key\":\"eyeColor\"}},\"gender\":{\"term\":{\"key\":\"gender\"}},\"hairColor\":{\"term\":{\"key\":\"hairColor\"}},\"height\":{\"term\":{\"key\":\"height\"}},\"image\":{\"term\":{\"key\":\"image\"}},\"location\":{\"term\":{\"key\":\"location\"}},\"name\":{\"term\":{\"key\":\"name\"}},\"phone\":{\"term\":{\"key\":\"phone\"}},\"postingDate\":{\"dateEnd\":{\"key\":\"dateEnd\"},\"dateStart\":{\"key\":\"dateStart\"}},\"price\":{\"term\":{\"key\":\"price\"}},\"region\":{\"term\":{\"key\":\"region\"}},\"review\":{\"term\":{\"key\":\"review\"}},\"services\":{\"term\":{\"key\":\"services\"}},\"social\":{\"term\":{\"key\":\"social\"}},\"title\":{\"term\":{\"key\":\"title\"}},\"website\":{\"term\":{\"key\":\"website\"}},\"weight\":{\"term\":{\"key\":\"weight\"}},\"sort\":\"sort\"}';
+    var EXAMPLE_STRING_SEARCH_STATE = '{\"age\":{\"term\":{\"key\":\"age\"}},\"city\":{\"term\":{\"key\":\"city\"}},\"country\":{\"term\":{\"key\":\"country\"}},\"description\":{\"term\":{\"key\":\"description\"}},\"email\":{\"term\":{\"key\":\"email\"}},\"ethnicity\":{\"term\":{\"key\":\"ethnicity\"}},\"eyeColor\":{\"term\":{\"key\":\"eyeColor\"}},\"gender\":{\"term\":{\"key\":\"gender\"}},\"hairColor\":{\"term\":{\"key\":\"hairColor\"}},\"height\":{\"term\":{\"key\":\"height\"}},\"image\":{\"term\":{\"key\":\"image\"}},\"location\":{\"term\":{\"key\":\"location\"}},\"name\":{\"term\":{\"key\":\"name\"}},\"phone\":{\"term\":{\"key\":\"phone\"}},\"postingDate\":{\"dateEnd\":{\"key\":\"dateEnd\"},\"dateStart\":{\"key\":\"dateStart\"}},\"price\":{\"term\":{\"key\":\"price\"}},\"region\":{\"term\":{\"key\":\"region\"}},\"review\":{\"term\":{\"key\":\"review\"}},\"services\":{\"term\":{\"key\":\"services\"}},\"social\":{\"term\":{\"key\":\"social\"}},\"title\":{\"term\":{\"key\":\"title\"}},\"website\":{\"term\":{\"key\":\"website\"}},\"weight\":{\"term\":{\"key\":\"weight\"}}}';
 
-    setup(function() {
+    setup(function(done) {
       element = fixture('state-manager-fixture');
+      element.buildPopupDataFunction = DigBehaviors.StateBehavior.buildTermsCollectionFromFilterCollection;
+      element.buildStateDataFunction = DigBehaviors.StateBehavior.buildEntityState;
+      flush(done);
     });
 
     test('default properties are set correctly', function() {
+      expect(element.buildPopupDataFunction).to.be.a('Function');
+      expect(element.buildStateDataFunction).to.be.a('Function');
       expect(element.client).to.not.exist;
-      expect(element.filterCollection).to.not.exist;
+      expect(element.collection).to.not.exist;
       expect(element.stateId).to.not.exist;
       expect(element.stateIndex).to.not.exist;
       expect(element.stateType).to.not.exist;
-      expect(element.pageType).to.equal('entity');
+      expect(element.format).to.equal('hh:mm:ss A');
+      expect(element.stateHistory).to.deep.equal([]);
+      expect(element.hasHistory).to.be.false;
       expect(element._creationBody).to.not.exist;
       expect(element._creationResults).to.not.exist;
       expect(element._stateIdQuery).to.not.exist;
       expect(element._stateIdResults).to.not.exist;
       expect(element._stringifiedState).to.not.exist;
-      expect(element._stringifiedStateQuery).to.not.exist;
       expect(element._stringifiedStateResults).to.not.exist;
-      expect(element._link).to.not.exist;
       expect(element._validateId).to.be.false;
     });
 
-    test('does have expected elements', function() {
-      expect(element.$$('paper-icon-button')).to.exist;
-      expect(element.$$('styled-dialog')).to.exist;
-      expect(element.$$('styled-dialog').id).to.equal('linkDialog');
+    test('does have state history dialog element', function() {
+      expect(element.$$('#stateHistoryDialog')).to.exist;
     });
 
-    test('_createStringifiedState with entity page type does return entity page JSON strings', function() {
-      expect(element._createStringifiedState({}, 'entity')).to.equal(DEFAULT_STRING_ENTITY_STATE);
-      expect(element._createStringifiedState(EXAMPLE_OBJECT_ENTITY_STATE, 'entity')).to.equal(EXAMPLE_STRING_ENTITY_STATE);
+    test('openStateHistory() does open the state history dialog', function(done) {
+      expect(element.$$('#stateHistoryDialog').opened).to.be.false;
+      element.openStateHistory();
+
+      flush(function() {
+        expect(element.$$('#stateHistoryDialog').opened).to.be.true;
+        done();
+      });
     });
 
-    test('_createStringifiedState with search page type does return search page JSON strings', function() {
-      expect(element._createStringifiedState({}, 'search')).to.equal(DEFAULT_STRING_SEARCH_STATE);
-      expect(element._createStringifiedState(EXAMPLE_OBJECT_SEARCH_STATE, 'search')).to.equal(EXAMPLE_STRING_SEARCH_STATE);
+    test('_createStringifiedState with custom functions does return data', function() {
+      expect(element._createStringifiedState({
+        key: 'value'
+      }, function(data) {
+        expect(data).to.deep.equal({
+          key: 'value'
+        });
+        return ['1234'];
+      })).to.equal('["1234"]');
+    });
+
+    test('_createStringifiedState with state behavior functions does return JSON strings', function() {
+      expect(DigBehaviors.StateBehavior.buildSearchState).to.be.a('Function');
+      expect(element._createStringifiedState({}, DigBehaviors.StateBehavior.buildEntityState)).to.equal(DEFAULT_STRING_ENTITY_STATE);
+      expect(element._createStringifiedState(EXAMPLE_OBJECT_ENTITY_STATE, DigBehaviors.StateBehavior.buildEntityState)).to.equal(EXAMPLE_STRING_ENTITY_STATE);
+
+      expect(DigBehaviors.StateBehavior.buildEntityState).to.be.a('Function');
+      expect(element._createStringifiedState({}, DigBehaviors.StateBehavior.buildSearchState)).to.equal(DEFAULT_STRING_SEARCH_STATE);
+      expect(element._createStringifiedState(EXAMPLE_OBJECT_SEARCH_STATE, DigBehaviors.StateBehavior.buildSearchState)).to.equal(EXAMPLE_STRING_SEARCH_STATE);
     });
 
     test('_generateId does return strings', function() {
@@ -302,76 +325,112 @@ limitations under the License.
       })).to.be.false;
     });
 
-    test('_populateCreationBody with entity page type does set _creationBody and _link', function() {
-      element._populateCreationBody('id1', EXAMPLE_OBJECT_ENTITY_STATE, 'entity');
+    test('_populateCreationBody does set entity _creationBody and stateHistory', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+      element._populateCreationBody('id1', EXAMPLE_OBJECT_ENTITY_STATE, [], DigBehaviors.StateBehavior.buildTermsCollectionFromFilterCollection, DigBehaviors.StateBehavior.buildEntityState);
       expect(element._creationBody).to.deep.equal({
         id: 'id1',
         state: EXAMPLE_STRING_ENTITY_STATE
       });
-      expect(element._link.endsWith('state=id1')).to.be.true;
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal(EXAMPLE_OBJECT_ENTITY_STATE);
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
     });
 
-    test('_populateCreationBody with search page type does set _creationBody and _link', function() {
-      element._populateCreationBody('id1', EXAMPLE_OBJECT_SEARCH_STATE, 'search');
+    test('_populateCreationBody does set search _creationBody and stateHistory', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+      element._populateCreationBody('id1', EXAMPLE_OBJECT_SEARCH_STATE, [], DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters, DigBehaviors.StateBehavior.buildSearchState);
       expect(element._creationBody).to.deep.equal({
         id: 'id1',
         state: EXAMPLE_STRING_SEARCH_STATE
       });
-      expect(element._link.endsWith('state=id1')).to.be.true;
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal(EXAMPLE_OBJECT_SEARCH_STATE);
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
     });
 
-    test('_populateCreationBody with entity type does set _creationBody and _link using defaults if state is empty', function() {
-      element._populateCreationBody('id1', {}, 'entity');
+    test('_populateCreationBody with entity type does set _creationBody and stateHistory using defaults if state is empty', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+      element._populateCreationBody('id1', {}, [], DigBehaviors.StateBehavior.buildTermsCollectionFromFilterCollection, DigBehaviors.StateBehavior.buildEntityState);
       expect(element._creationBody).to.deep.equal({
         id: 'id1',
         state: DEFAULT_STRING_ENTITY_STATE
       });
-      expect(element._link.endsWith('state=id1')).to.be.true;
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal({});
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
     });
 
-    test('_populateCreationBody with search type does set _creationBody and _link using defaults if state is empty', function() {
-      element._populateCreationBody('id1', {}, 'search');
+    test('_populateCreationBody with search type does set _creationBody and stateHistory using defaults if state is empty', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+      element._populateCreationBody('id1', {}, [], DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters, DigBehaviors.StateBehavior.buildSearchState);
       expect(element._creationBody).to.deep.equal({
         id: 'id1',
         state: DEFAULT_STRING_SEARCH_STATE
       });
-      expect(element._link.endsWith('state=id1')).to.be.true;
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal({});
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
     });
 
-    test('_updateFilterCollection with empty object and entity page type does set filterCollection', function() {
-      element._updateFilterCollection('{}', 'entity');
-      expect(element.filterCollection).to.deep.equal(DEFAULT_OBJECT_ENTITY_STATE);
+    test('_updateCollection with empty object does set entity collection', function() {
+      element._updateCollection('{}', DigBehaviors.StateBehavior.buildEntityState);
+      expect(element.collection).to.deep.equal(DEFAULT_OBJECT_ENTITY_STATE);
     });
 
-    test('_updateFilterCollection with non-empty object and entity page type sets filterCollection', function() {
-      element._updateFilterCollection(EXAMPLE_STRING_ENTITY_STATE, 'entity');
-      expect(element.filterCollection).to.deep.equal(EXAMPLE_OBJECT_ENTITY_STATE);
+    test('_updateCollection with non-empty object does set entity collection', function() {
+      element._updateCollection(EXAMPLE_STRING_ENTITY_STATE, DigBehaviors.StateBehavior.buildEntityState);
+      expect(element.collection).to.deep.equal(EXAMPLE_OBJECT_ENTITY_STATE);
     });
 
-    test('_updateFilterCollection with empty object and search page type does set filterCollection', function() {
-      element._updateFilterCollection('{}', 'search');
-      expect(element.filterCollection).to.deep.equal(DEFAULT_OBJECT_SEARCH_STATE);
+    test('_updateCollection with empty object does set search collection', function() {
+      element.buildPopupDataFunction = DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters;
+      element.buildStateDataFunction = DigBehaviors.StateBehavior.buildSearchState;
+
+      element._updateCollection('{}', DigBehaviors.StateBehavior.buildSearchState);
+      expect(element.collection).to.deep.equal(DEFAULT_OBJECT_SEARCH_STATE);
     });
 
-    test('_updateFilterCollection with non-empty object and search page type sets filterCollection', function() {
-      element._updateFilterCollection(EXAMPLE_STRING_SEARCH_STATE, 'search');
-      expect(element.filterCollection).to.deep.equal(EXAMPLE_OBJECT_SEARCH_STATE);
-    });
+    test('_updateCollection with non-empty object does set search collection', function() {
+      element.buildPopupDataFunction = DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters;
+      element.buildStateDataFunction = DigBehaviors.StateBehavior.buildSearchState;
 
-    test('_updateUrlAndShowDialog does set _link', function() {
-      element._updateUrlAndShowDialog('id1');
-      expect(element._link.endsWith('state=id1')).to.be.true;
+      element._updateCollection(EXAMPLE_STRING_SEARCH_STATE, DigBehaviors.StateBehavior.buildSearchState);
+      expect(element.collection).to.deep.equal(EXAMPLE_OBJECT_SEARCH_STATE);
     });
 
     test('generateLink does set _stringifiedState', function() {
-      element.filterCollection = EXAMPLE_OBJECT_ENTITY_STATE;
+      element.collection = EXAMPLE_OBJECT_ENTITY_STATE;
       element.generateLink();
       expect(element._stringifiedState).to.equal(EXAMPLE_STRING_ENTITY_STATE);
     });
 
-    test('setting _stateIdQuery does set _creationBody, _link, and _validateId if _validateId is true and hits is empty', function() {
+    test('setting _stateIdQuery does set _creationBody, stateHistory, and _validateId if _validateId is true and hits is empty', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+
       element.stateId = 'id1';
-      element.filterCollection = {};
+      element.collection = {};
       element._validateId = true;
       element._stateIdQuery = {};
       element._stateIdResults = {
@@ -385,7 +444,14 @@ limitations under the License.
         id: 'id1',
         state: DEFAULT_STRING_ENTITY_STATE
       });
-      expect(element._link.endsWith('state=id1')).to.be.true;
+
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal({});
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
     });
 
     test('setting _stateIdQuery and _stateIdResults does set stateId if _validateId is true', function() {
@@ -407,7 +473,7 @@ limitations under the License.
       expect(element._validateId).to.be.true;
     });
 
-    test('setting _stateIdQuery and _stateIdResults does set filterCollection if _validateId is false', function() {
+    test('setting _stateIdQuery and _stateIdResults does set collection if _validateId is false', function() {
       element._stateIdQuery = {};
       element._stateIdResults = {
         hits: {
@@ -418,10 +484,10 @@ limitations under the License.
           }]
         }
       };
-      expect(element.filterCollection).to.deep.equal(EXAMPLE_OBJECT_ENTITY_STATE);
+      expect(element.collection).to.deep.equal(EXAMPLE_OBJECT_ENTITY_STATE);
     });
 
-    test('setting _stateIdQuery and _stateIdResults does set filterCollection using defaults if _validateId is false and state is empty', function() {
+    test('setting _stateIdQuery and _stateIdResults does set collection using defaults if _validateId is false and state is empty', function() {
       element._stateIdQuery = {};
       element._stateIdResults = {
         hits: {
@@ -432,11 +498,13 @@ limitations under the License.
           }]
         }
       };
-      expect(element.filterCollection).to.deep.equal(DEFAULT_OBJECT_ENTITY_STATE);
+      expect(element.collection).to.deep.equal(DEFAULT_OBJECT_ENTITY_STATE);
     });
 
-    test('setting _stringifiedStateQuery and _stringifiedStateResults does set stateId and _validateId if hits is empty', function() {
-      element._stringifiedStateQuery = {};
+    test('setting _stringifiedStateResults does set stateId and _validateId if hits is empty', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+
       element._stringifiedStateResults = {
         hits: {
           hits: []
@@ -447,8 +515,8 @@ limitations under the License.
       expect(element._validateId).to.be.true;
     });
 
-    test('setting _stringifiedStateQuery and _stringifiedStateResults does set _link', function() {
-      element._stringifiedStateQuery = {};
+    test('setting _stringifiedStateResults does set stateHistory', function() {
+      element.collection = {};
       element._stringifiedStateResults = {
         hits: {
           hits: [{
@@ -459,9 +527,289 @@ limitations under the License.
         }
       };
 
-      expect(element._link.endsWith('state=id1')).to.be.true;
       expect(element.stateId).to.not.exist;
       expect(element._validateId).to.be.false;
+
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal({});
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
+    });
+
+    test('_addToHistory() will not call generateLink if processRequest is false', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element._addToHistory();
+
+      flush(function() {
+        expect(linkGenerated).to.be.false;
+        done();
+      });
+    });
+
+    test('_addToHistory() will not call generateLink if collection is empty', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.collection = element.buildStateDataFunction({});
+      element.processRequest = true;
+      element._addToHistory();
+
+      flush(function() {
+        expect(linkGenerated).to.be.false;
+        done();
+      });
+    });
+
+    test('_addToHistory() calls generateLink when appropriate conditions are met', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.collection = {age: {term: {key: '21', enabled: true}}};
+      element.processRequest = true;
+      element._addToHistory();
+
+      flush(function() {
+        expect(linkGenerated).to.be.true;
+        done();
+      });
+    });
+
+    test('_addToHistory() works as observer', function(done) {
+      var linkGenerated = false;
+      element.generateLink = function() {
+        linkGenerated = true;
+      };
+      element.collection = {age: {term: {key: '21', enabled: true}}};
+      element.processRequest = true;
+
+      flush(function() {
+        expect(linkGenerated).to.be.true;
+        done();
+      });
+    });
+
+    test('_setState() sets collection to the value of the clicked search history item, moves items in stateHistory and closes dialog', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+      element.$$('#stateHistoryDialog').opened = true;
+      element.set('stateHistory', [{
+        id: 'someString1',
+        collection: {
+          filter: ['some param']
+        },
+        time: 'string value'
+      }, {
+        id: 'someString2',
+        collection: {
+          filter: ['new parameters']
+        },
+        time: 'some other time'
+      }]);
+      element._setState({
+        model: {
+          index: 1,
+          item: {
+            id: 'someString2',
+            collection: {
+              filter: ['new parameters']
+            },
+            time: 'some other time'
+          }
+        }
+      });
+
+      expect(element.collection).to.deep.equal({filter: ['new parameters']});
+      expect(element.stateHistory.length).to.deep.equal(2);
+      expect(element.stateHistory[0].id).to.deep.equal('someString2');
+      expect(element.stateHistory[0].collection).to.deep.equal({filter: ['new parameters']});
+      expect(element.stateHistory[1].id).to.deep.equal('someString1');
+      expect(element.stateHistory[1].collection).to.deep.equal({filter: ['some param']});
+      expect(element.$$('#stateHistoryDialog').opened).to.be.false;
+      expect(window.location.search).to.equal('?state=someString2');
+    });
+
+    test('_copyCollection() returns a copy of argument passed in', function() {
+      var collection = {text: 'some string here'};
+      var collectionCopy = element._copyCollection(collection);
+
+      expect(collection).to.not.equal(collectionCopy);
+      expect(collection).to.deep.equal(collectionCopy);
+    });
+
+    test('_unshiftStateHistoryItem() correctly adds item to the beginning of the stateHistory array', function() {
+      element.set('stateHistory', [{id: 'someid', collection: 'some param', time: 'string value'}]);
+      element._unshiftStateHistoryItem({
+        collection: 'some string here'
+      }, 'newid', DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters);
+
+      expect(element.stateHistory.length).to.deep.equal(2);
+      expect(element.stateHistory[0].id).to.deep.equal('newid');
+      expect(element.stateHistory[0].collection).to.deep.equal({
+        collection: 'some string here'
+      });
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].time).to.be.a('String');
+      expect(element.stateHistory[1]).to.deep.equal({id: 'someid', collection: 'some param', time: 'string value'});
+    });
+
+    test('_checkHistory() correctly sets hasHistory to true when stateHistory array is populated', function() {
+      element.set('stateHistory', [{hasObject: true}]);
+      element._checkHistory();
+      expect(element.hasHistory).to.be.true;
+    });
+
+    test('_checkHistory() correctly sets hasHistory to false when stateHistory array is empty', function() {
+      element.set('stateHistory', []);
+      element._checkHistory();
+      expect(element.hasHistory).to.be.false;
+    });
+
+    test('_checkHistory() works as observer', function(done) {
+      element.set('stateHistory', [{hasObject: true}]);
+
+      flush(function() {
+        expect(element.hasHistory).to.be.true;
+        element.set('stateHistory', []);
+        done();
+      });
+    });
+
+    test('_updateUrlAndAddToHistory does update the state and stateHistory', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+
+      element._updateUrlAndAddToHistory({
+        age: {
+          term: {
+            key: '21',
+            enabled: true
+          }
+        }
+      }, [], DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters, 'id1');
+
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(1);
+      expect(element.stateHistory[0].collection).to.deep.equal({
+        age: {
+          term: {
+            key: '21',
+            enabled: true
+          }
+        }
+      });
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id1');
+      expect(element.stateHistory[0].time).to.be.a('String');
+    });
+
+    test('_updateUrlAndAddToHistory does save the prior state in the stateHistory', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+
+      element.stateHistory = [{
+        collection: {
+          age: {
+            term: {
+              key: '22',
+              enabled: true
+            }
+          }
+        },
+        collectionToShow: {},
+        id: 'id1',
+        time: 'time'
+      }];
+      element._updateUrlAndAddToHistory({
+        age: {
+          term: {
+            key: '21',
+            enabled: true
+          }
+        }
+      }, element.stateHistory, DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters, 'id2');
+
+      expect(window.location.search).to.equal('?state=id2');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(2);
+      expect(element.stateHistory[0].collection).to.deep.equal({
+        age: {
+          term: {
+            key: '21',
+            enabled: true
+          }
+        }
+      });
+      expect(element.stateHistory[0].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[0].id).to.equal('id2');
+      expect(element.stateHistory[0].time).to.be.a('String');
+      expect(element.stateHistory[1].collection).to.deep.equal({
+        age: {
+          term: {
+            key: '22',
+            enabled: true
+          }
+        }
+      });
+      expect(element.stateHistory[1].collectionToShow).to.be.an('Object');
+      expect(element.stateHistory[1].id).to.equal('id1');
+      expect(element.stateHistory[1].time).to.be.a('String');
+    });
+
+    test('_updateUrlAndAddToHistory does not update the state (but does update the stateHistory) if its ID equals the existing state ID', function() {
+      history.pushState({}, '', '?state=id1');
+      expect(window.location.search).to.equal('?state=id1');
+
+      element._updateUrlAndAddToHistory({
+        age: {
+          term: {
+            key: '21',
+            enabled: true
+          }
+        }
+      }, [], DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters, 'id1');
+
+      expect(window.location.search).to.equal('?state=id1');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(0);
+    });
+
+    test('_updateUrlAndAddToHistory does not update the current stateHistory (but does update the state) if its collection equals the existing state collection', function() {
+      history.pushState({}, '', '?');
+      expect(window.location.search).to.equal('');
+
+      element._updateUrlAndAddToHistory({
+        age: {
+          term: {
+            key: '21',
+            enabled: true
+          }
+        }
+      }, [{
+        collection: {
+          age: {
+            term: {
+              key: '21',
+              enabled: true
+            }
+          }
+        },
+        collectionToShow: {},
+        id: 'id1',
+        time: 'time'
+      }], DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters, 'id2');
+
+      expect(window.location.search).to.equal('?state=id2');
+      expect(element.stateHistory).to.be.an('Array');
+      expect(element.stateHistory.length).to.equal(0);
     });
   });
 </script>

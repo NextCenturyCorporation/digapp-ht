@@ -33,8 +33,8 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paper-toggle-button/paper-toggle-button.html">
 <link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
 <link rel="import" href="../../styles/icon-styles.html">
-<link rel="import" href="../search-info-display/search-info-display.html">
 <link rel="import" href="../send-search/send-search.html">
+<link rel="import" href="../terms-display/terms-display.html">
 <link rel="import" href="../behaviors.html">
 <link rel="import" href="../lodash.html">
 
@@ -210,11 +210,12 @@ limitations under the License.
                 </modal-icon>
                 <paper-icon-button class$="[[_getRunButtonClass(showSearch, search.notificationHasRun)]]" icon="search" title="Run Saved Search" on-tap="_runSearch" disabled="[[!showSearch]]"></paper-icon-button>
                 <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                <search-info-display
-                  search-name="[[search.name]]"
-                  search-parameters="[[_getSearchParameters(search)]]"
-                  show-new-icon="[[_getShowNewIcon(search)]]">
-                </search-info-display>
+                <terms-display
+                  collection="[[_getTermsDisplayCollection(search)]]"
+                  header="Terms"
+                  icon="[[_getShowNewIcon(search)]]"
+                  name="[[search.name]]">
+                </terms-display>
               </div>
               <iron-collapse id$="[[_createElementId('savedSearch', index)]]">
                 <div class="layout horizontal search-settings">
@@ -274,11 +275,12 @@ limitations under the License.
                 </modal-icon>
                 <paper-icon-button icon="search" title="Run Saved Search" on-tap="_runReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
                 <paper-icon-button icon="delete" title="Delete Saved Search" on-tap="_deleteReceivedSearch" disabled="[[!showSearch]]"></paper-icon-button>
-                <search-info-display
-                  search-name="[[search.name]]"
-                  search-parameters="[[_getSearchParameters(search)]]"
-                  show-new-icon="[[_getShowNewIcon(search)]]">
-                </search-info-display>
+                <terms-display
+                  collection="[[_getTermsDisplayCollection(search)]]"
+                  header="Terms"
+                  icon="[[_getShowNewIcon(search)]]"
+                  name="[[search.name]]">
+                </terms-display>
               </div>
               <iron-collapse id$="[[_createElementId('receivedSearch', index)]]">
                 <div class="layout horizontal search-settings">
@@ -343,7 +345,9 @@ limitations under the License.
     Polymer({
       is: 'user-preferences',
 
-      behaviors: [DigBehaviors.StateBehavior],
+      behaviors: [
+        DigBehaviors.StateBehavior
+      ],
 
       properties: {
         /**
@@ -827,6 +831,7 @@ limitations under the License.
         return this.buildSearchState(savedState);
       },
 
+      // TODO: need to rerun searches using state links (DIG-294/DIG-1062)
       /**
        * Runs the given saved search and updates necessary fields in elasticsearch.
        */
@@ -963,10 +968,12 @@ limitations under the License.
       },
 
       /**
-       * Returns the searchParameters in the given search.
+       * Returns the terms for the given search.
        */
-      _getSearchParameters: function(search) {
-        return search && search.digUIState && search.digUIState.searchParameters ? JSON.parse(search.digUIState.searchParameters) : {};
+      _getTermsDisplayCollection: function(search) {
+        var searchParameters = search && search.digUIState && search.digUIState.searchParameters ? JSON.parse(search.digUIState.searchParameters) : {};
+        // From DigBehaviors.StateBehavior
+        return this.buildTermsCollectionFromSearchParameters(searchParameters);
       },
 
       /**
@@ -974,7 +981,7 @@ limitations under the License.
        */
       _getShowNewIcon: function(search) {
         // Must be equal to false and not just a falsey value (like null or undefined).
-        return search.notificationHasRun === false;
+        return search.notificationHasRun === false ? 'av:fiber-new' : '';
       },
 
       /**

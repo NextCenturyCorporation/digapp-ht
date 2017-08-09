@@ -19,16 +19,31 @@ limitations under the License.
 <link rel="import" href="../../bower_components/elastic-create/elastic-create.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
+<link rel="import" href="../../bower_components/moment-element/moment-with-locales-import.html">
+<link rel="import" href="../../bower_components/paper-dialog/paper-dialog.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/styled-dialog/styled-dialog.html">
+<link rel="import" href="../terms-display/terms-display.html">
 <link rel="import" href="../behaviors.html">
-<link rel="import" href="../clipboard.html">
 <link rel="import" href="../lodash.html">
 <link rel="import" href="../uuid.html">
 
 <dom-module id="state-manager">
   <template>
     <style include="iron-flex"></style>
+    <style>
+      :host {
+        display: block;
+      }
+
+      .collection {
+        margin-left: 10px;
+      }
+
+      .nowrap {
+        flex-wrap: nowrap;
+      }
+    </style>
 
     <build-and-run-query
       raw
@@ -62,11 +77,15 @@ limitations under the License.
       results="{{_stringifiedStateResults}}">
     </build-and-run-query>
 
-    <styled-dialog id="linkDialog" header="Page Link" on-opened-changed="_toggleClipboard">
-      <div class="layout horizontal">
-        <div id="link" class="styled-dialog-right-space styled-dialog-tall flex">[[_link]]</div>
-        <paper-icon-button id="copyToClipboard" icon="content-copy" title="Copy Link to Clipboard" data-clipboard-target="#link"></paper-icon-button>
-      </div>
+    <styled-dialog id="stateHistoryDialog" header="View [[headerType]] State History">
+      <template is="dom-repeat" items="[[stateHistory]]">
+        <div class="layout horizontal">
+          <div class="styled-dialog-text styled-dialog-tall styled-dialog-right-space nowrap">[[item.time]]</div>
+          <terms-display class="flex-1 collection" collection="[[item.collectionToShow]]" icon="[[icon]]"></terms-display>
+          <paper-icon-button class="self-end" icon="[[icon]]" title="Set [[headerType]] State" on-tap="_setState"></paper-icon-button>
+        </div>
+        <div class="styled-dialog-divider"></div>
+      </template>
     </styled-dialog>
   </template>
 
@@ -74,16 +93,33 @@ limitations under the License.
   (function() {
     'use strict';
 
-    /* globals _, Clipboard, DigBehaviors, uuid */
+    /* globals _, moment, DigBehaviors, uuid */
     Polymer({
       is: 'state-manager',
 
       behaviors: [
-        DigBehaviors.BrowserBehavior,
-        DigBehaviors.StateBehavior
+        DigBehaviors.BrowserBehavior
       ],
 
       properties: {
+        /**
+         * The function to build the terms-display data in the popup using a collection object.
+         *
+         * @type {Object}
+         */
+        buildPopupDataFunction: {
+          type: Object
+        },
+
+        /**
+         * The function to build the state data using a collection object.
+         *
+         * @type {Object}
+         */
+        buildStateDataFunction: {
+          type: Object
+        },
+
         /**
          * The elasticsearch client.
          *
@@ -94,13 +130,79 @@ limitations under the License.
         },
 
         /**
+         * The collection of filter or search objects.
+         *
+         * @type {Object}
+         */
+        collection: {
+          notify: true,
+          type: Object
+        },
+
+        /**
+         * The default state to ignore.
+         *
+         * @type {Object}
+         * @default {}
+         */
+        defaultState: {
+          computed: '_buildDefaultState(buildStateDataFunction)',
+          type: Object
+        },
+
+        /**
+         * The format to use for the dates stored in stateHistory.
+         *
+         * @type {String}
+         * @default 'hh:mm:ss A'
+         */
+        format: {
+          type: String,
+          value: 'hh:mm:ss A'
+        },
+
+        /**
          * The object with properties for lists of strings to filter.
          *
          * @type {Object}
          */
-        filterCollection: {
-          type: Object,
+        hasHistory: {
+          type: Boolean,
           notify: true
+        },
+
+        /**
+         * The type string to show in the header.
+         *
+         * @type {String}
+         * @default 'Search'
+         */
+        headerType: {
+          type: String,
+          value: 'Search'
+        },
+
+        /**
+         * The icon to show next to the states.
+         *
+         * @type {String}
+         * @default 'search'
+         */
+        icon: {
+          type: String,
+          value: 'search'
+        },
+
+        /**
+         * Tracking the state history.
+         *
+         * @type {Array}
+         */
+        stateHistory: {
+          type: Array,
+          value: function() {
+            return [];
+          }
         },
 
         /**
@@ -131,24 +233,13 @@ limitations under the License.
         },
 
         /**
-         * Whether this component is used on the search or entity page.
-         *
-         * @type {String}
-         * @default 'entity'
-         */
-        pageType: {
-          type: String,
-          value: 'entity'
-        },
-
-        /**
          * Whether or not all properties have been loaded/are ready for elastic-client-search.
          *
          * @type {Boolean}
          */
         processRequest: {
-          type: Boolean,
-          notify: true
+          notify: true,
+          type: Boolean
         },
 
         /**
@@ -204,16 +295,6 @@ limitations under the License.
         },
 
         /**
-         * The page link shown in the dialog.
-         *
-         * @type {String}
-         * @private
-         */
-        _link: {
-          type: String
-        },
-
-        /**
          * Whether the state ID query was run to validate the uniqueness of the ID (rather than getting the state for that ID).
          *
          * @type {Boolean}
@@ -223,55 +304,130 @@ limitations under the License.
         _validateId: {
           type: Boolean,
           value: false
-        },
-
-        /**
-         * The clipboard object used to copy link text from the browser to the clipboard.
-         *
-         * @type {Object}
-         * @private
-         */
-        _clipboard: {
-          type: Object
         }
       },
 
-      _toggleClipboard: function(opened) {
-        if(opened) {
-          this._clipboard = new Clipboard('#copyToClipboard');
-        } else if(this._clipboard) {
-          // Destroy the clipboard object whenever the dialog is closed in order to avoid console errors.
-          this._clipboard.destroy();
-        }
+      observers: [
+        '_addToHistory(collection.*, processRequest)',
+        '_checkHistory(stateHistory.*)'
+      ],
+
+      /**
+       * Opens the state history dialog.
+       */
+      openStateHistory: function() {
+        this.$$('#stateHistoryDialog').open();
       },
 
       /**
        * Generate a link for the state by getting an existing, matching ID or creating a new one.
        */
       generateLink: function() {
-        var state = this._createStringifiedState(this.filterCollection, this.pageType);
+        var state = this._createStringifiedState(this.collection, this.buildStateDataFunction);
         if(this._isEmptyState(JSON.parse(state))) {
-          this._updateUrlAndShowDialog();
-        } else if(state === this._stringifiedState) {
-          this.$$('#linkDialog').open();
+          this._updateUrlAndAddToHistory(this.collection, this.stateHistory, this.buildPopupDataFunction);
         } else {
           this._stringifiedState = state;
         }
       },
 
       /**
-       * Creates and returns the stringified state for the given filter collection object.
+       * Creates and returns the default state.
+       *
+       * @param {Function} buildStateDataFunction
+       * @return {Object}
+       * @private
        */
-      _createStringifiedState: function(filterCollection, pageType) {
-        if(pageType === 'entity') {
-          // From DigBehaviors.StateBehavior
-          return JSON.stringify(this.buildEntityState(filterCollection));
+      _buildDefaultState: function(buildStateDataFunction) {
+        return buildStateDataFunction ? buildStateDataFunction({}) : {};
+      },
+
+      /**
+       * Runs a search from the stateHistory list using state id link.
+       * When run, that history item is moved to be the first item in the list and dialog is closed.
+       *
+       * @param {Object} event
+       * @private
+       */
+      _setState: function(event) {
+        this.splice('stateHistory', event.model.index, 1);
+        this._unshiftStateHistoryItem(event.model.item.collection, event.model.item.id, this.buildPopupDataFunction);
+        this.set('collection', this._copyCollection(event.model.item.collection));
+        // From DigBehaviors.BrowserBehavior
+        var link = DigBehaviors.BrowserBehavior.generateLinkWithStateParameter(window.location, event.model.item.id);
+        history.pushState({
+          state: event.model.item.id,
+          stateHistory: this.stateHistory
+        }, '', link);
+        this.$$('#stateHistoryDialog').close();
+      },
+
+      /**
+       * Returns a copy of collection object passed in.
+       *
+       * @param {Object} collection
+       * @return {Object} copy
+       * @private
+       */
+      _copyCollection: function(collection) {
+        return JSON.parse(JSON.stringify(collection));
+      },
+
+      /**
+       * Place a new state history item at the beginning of the stateHistory list.
+       *
+       * @param {Object} collection
+       * @param {String} stateId
+       * @private
+       */
+      _unshiftStateHistoryItem: function(collection, stateId, buildPopupDataFunction) {
+        this.unshift('stateHistory', {
+          collection: this._copyCollection(collection),
+          collectionToShow: buildPopupDataFunction(collection),
+          id: stateId,
+          time: moment(new Date()).format(this.format)
+        });
+      },
+
+      /**
+       * Recalculates value of hasHistory based on current state of stateHistory array.
+       *
+       * @private
+       */
+      _checkHistory: function() {
+        this.hasHistory = this.stateHistory && this.stateHistory.length > 0;
+      },
+
+      /**
+       * If there are filters selected, generate a state id and add history item to stateHistory.
+       *
+       * @private
+       */
+      _addToHistory: function() {
+        if(!this.processRequest || !this.buildStateDataFunction || _.isEqual(this.collection, this.defaultState)) {
+          // From DigBehaviors.BrowserBehavior
+          var params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+          if(params.state) {
+            // From DigBehaviors.BrowserBehavior
+            var link = DigBehaviors.BrowserBehavior.generateLinkWithStateParameter(window.location);
+            history.pushState({
+              state: '',
+              stateHistory: this.stateHistory
+            }, '', link);
+          }
+
+          return;
         }
-        if(pageType === 'search') {
-          // From DigBehaviors.StateBehavior
-          return JSON.stringify(this.buildSearchState(filterCollection));
-        }
-        return JSON.stringify({});
+
+        this.generateLink();
+      },
+
+      /**
+       * Creates and returns the stringified state for the given collection object.
+       */
+      _createStringifiedState: function(collection, buildStateDataFunction) {
+        return JSON.stringify(buildStateDataFunction(collection));
       },
 
       /**
@@ -291,11 +447,11 @@ limitations under the License.
             if(this._validateId) {
               this.stateId = this._generateId();
             } else {
-              this._updateFilterCollection(this._stateIdResults.hits.hits[0]._source.state, this.pageType);
+              this._updateCollection(this._stateIdResults.hits.hits[0]._source.state, this.buildStateDataFunction);
             }
           } else if(this._validateId) {
             this._validateId = false;
-            this._populateCreationBody(this.stateId, this.filterCollection, this.pageType);
+            this._populateCreationBody(this.stateId, this.collection, this.stateHistory, this.buildPopupDataFunction, this.buildStateDataFunction);
           }
         }
       },
@@ -314,28 +470,21 @@ limitations under the License.
       /**
        * Sets the body of the state creation request using the given state ID and collection object, updates the browser URL, and shows the dialog with the page link.
        */
-      _populateCreationBody: function(stateId, filterCollection, pageType) {
+      _populateCreationBody: function(stateId, collection, stateHistory, buildPopupDataFunction, buildStateDataFunction) {
         this._creationBody = {
           id: stateId,
-          state: this._createStringifiedState(filterCollection, pageType)
+          state: this._createStringifiedState(collection, buildStateDataFunction)
         };
-        this._updateUrlAndShowDialog(stateId);
+        this._updateUrlAndAddToHistory(collection, stateHistory, buildPopupDataFunction, stateId);
       },
 
       /**
-       * Sets the filter collection to a new object using the given stringified state.
+       * Sets the collection to a new object using the given stringified state.
        */
-      _updateFilterCollection: function(stringifiedState, pageType) {
+      _updateCollection: function(stringifiedState, buildStateDataFunction) {
         var state = JSON.parse(stringifiedState);
         this.set('processRequest', false);
-        if(pageType === 'entity') {
-          // From DigBehaviors.StateBehavior
-          this.set('filterCollection', this.buildEntityState(state));
-        }
-        if(pageType === 'search') {
-          // From DigBehaviors.StateBehavior
-          this.set('filterCollection', this.buildSearchState(state));
-        }
+        this.set('collection', buildStateDataFunction(state));
         this.set('processRequest', true);
       },
 
@@ -347,7 +496,7 @@ limitations under the License.
           if(this._stringifiedStateResults.hits.hits.length) {
             // Do not set this.stateId here because that will trigger another query.
             var stateId = this._stringifiedStateResults.hits.hits[0]._source.id;
-            this._updateUrlAndShowDialog(stateId);
+            this._updateUrlAndAddToHistory(this.collection, this.stateHistory, this.buildPopupDataFunction, stateId);
           } else {
             this._validateId = true;
             this.stateId = this._generateId();
@@ -356,12 +505,27 @@ limitations under the License.
       },
 
       /**
-       * Updates the browser URL with the state ID and shows the dialog with the page link (including the state ID).
+       * Updates the browser URL with the state ID and adds the item to the state history.
        */
-      _updateUrlAndShowDialog: function(id) {
+      _updateUrlAndAddToHistory: function(collection, stateHistory, buildPopupDataFunction, id) {
         // From DigBehaviors.BrowserBehavior
-        this._link = this.generateLinkWithStateParameter(window.location, id);
-        this.$$('#linkDialog').open();
+        var params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+        if(params.state && params.state === id) {
+          return;
+        }
+
+        // make sure this stateHistory item is the latest entry in stateHistory
+        if(!stateHistory.length || (stateHistory.length && JSON.stringify(collection) !== JSON.stringify(stateHistory[0].collection))) {
+          this._unshiftStateHistoryItem(collection, id, buildPopupDataFunction);
+        }
+        // From DigBehaviors.BrowserBehavior
+        var link = DigBehaviors.BrowserBehavior.generateLinkWithStateParameter(window.location, id);
+        // update URL with stateId
+        history.pushState({
+          state: id,
+          stateHistory: stateHistory
+        }, '', link);
       }
     });
   })();
