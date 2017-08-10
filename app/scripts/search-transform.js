@@ -177,7 +177,8 @@ var searchTransform = (function(_, commonTransforms) {
   }
 
   return {
-    adQuery: function(searchParameters, config, networkExpansionParameters) {
+    adQuery: function(searchParameters, config) {
+      var networkExpansionParameters = config.custom;
       var networkExpansionQuery = _.findKey(networkExpansionParameters, function(param) { return param === true; }) ? true : false;
       var adVariableName = networkExpansionQuery ? '?ad2' : '?ad';
       var template = networkExpansionQuery ? getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, true) : getTemplateFromSearchParameters(searchParameters, true);
@@ -220,7 +221,8 @@ var searchTransform = (function(_, commonTransforms) {
           }
           return {
             fields: fields,
-            hits: response[0].result[1].hits || []
+            hits: response[0].result[1].hits || [],
+            totalCount: response[0].result[1].hits ? response[0].result[1].hits.total : 0
           };
         }
       } else {
@@ -236,7 +238,8 @@ var searchTransform = (function(_, commonTransforms) {
           }
           return {
             fields: fields,
-            hits: response[0].result.hits || []
+            hits: response[0].result.hits || [],
+            totalCount: response[0].result.hits ? response[0].result.hits.total : 0
           };
         }
       }
@@ -247,7 +250,8 @@ var searchTransform = (function(_, commonTransforms) {
       };
     },
 
-    facetsQuery: function(searchParameters, config, networkExpansionParameters) {
+    facetsQuery: function(searchParameters, config) {
+      var networkExpansionParameters = config.custom;
       var networkExpansionQuery = _.findKey(networkExpansionParameters, function(param) { return param === true; }) ? true : false;
       var predicate = (config && config.aggregationType ? commonTransforms.getDatabaseTypeFromUiType(config.aggregationType) : undefined);
       var template = networkExpansionQuery ? getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, true) : getTemplateFromSearchParameters(searchParameters, false);
