@@ -29,10 +29,13 @@ limitations under the License.
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/iron-icons/maps-icons.html">
 <link rel="import" href="../../bower_components/iron-image/iron-image.html">
+<link rel="import" href="../../bower_components/iron-pages/iron-pages.html">
 <link rel="import" href="../../bower_components/modal-icon/modal-icon.html">
 <link rel="import" href="../../bower_components/paper-icon-button/paper-icon-button.html">
 <link rel="import" href="../../bower_components/paper-material/paper-material.html">
 <link rel="import" href="../../bower_components/paper-styles/color.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tabs.html">
+<link rel="import" href="../../bower_components/paper-tabs/paper-tab.html">
 <link rel="import" href="../../bower_components/highlighted-text/highlighted-text.html">
 <link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
 <link rel="import" href="../../styles/confidence-styles.html">
@@ -207,6 +210,17 @@ limitations under the License.
       .add-min-height {
         min-height: 40px;
       }
+
+      .cached-page {
+        width: 99%;
+        height: 30em;
+        padding: 5px;
+      }
+
+      .cached-doc {
+        width: 100%;
+        height: 30em;
+      }
     </style>
 
     <build-and-run-aggregation
@@ -349,98 +363,123 @@ limitations under the License.
 
     <template is="dom-if" if="[[_doesHaveDetails(details, detailExtractions, images)]]">
       <iron-collapse id="details" opened="{{opened}}">
-        <paper-material class="body">
-          <template is="dom-repeat" items="[[details]]" as="detail">
-            <div class="detail text">
-              <strong class="detail-name">[[_getProperty(detail, detailNameProperty)]]</strong>
-              <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
-                <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
-              </template>
-              <template is="dom-if" if="[[!_getProperty(detail, detailLinkProperty)]]">
-                <highlighted-text tags="[[highlightedTextTags]]" text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
-              </template>
-              <template is="dom-if" if="[[_isCachedAdWebpage(detail, detailNameProperty)]]">
-                <info-cached-webpages></info-cached-webpages>
+        <paper-tabs class='flex' selected="{{selected}}">
+          <paper-tab>Details</paper-tab>
+          <paper-tab>Cached Webpage</paper-tab>
+        </paper-tabs>
+        <template is="dom-if" if="[[_isSelected(0, selected)]]">
+          <paper-material class="body">
+            <template is="dom-repeat" items="[[details]]" as="detail">
+              <div class="detail text">
+                <template is="dom-if" if="[[!_isCachedAdWebpage(detail, detailNameProperty)]]">
+                  <strong class="detail-name">[[_getProperty(detail, detailNameProperty)]]</strong>
+                  <template is="dom-if" if="[[_getProperty(detail, detailLinkProperty)]]">
+                    <a target="_blank" href$="[[_getProperty(detail, detailLinkProperty)]]">[[_getProperty(detail, detailTextProperty)]]</a>
+                  </template>
+                  <template is="dom-if" if="[[!_getProperty(detail, detailLinkProperty)]]">
+                    <highlighted-text tags="[[highlightedTextTags]]" text="[[_getDetailText(detail, detailHighlightedTextProperty, detailTextProperty)]]"></highlighted-text>
+                  </template>
+                </template>
+              </div>
+            </template>
+
+            <div class="layout horizontal extraction-list wrap">
+              <template is="dom-repeat" items="[[detailExtractions]]">
+                <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
+                  <div class="layout vertical extraction">
+                    <strong class="extraction-name">[[_getProperty(item, extractionNameProperty)]]</strong>
+                    <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
+                      <div class="layout horizontal center extraction-item">
+                        <icon-label class$="[[_getHighlightableLabelStyleClass(extraction, extractionDataHighlightProperty)]]"
+                          title$="Open [[_getProperty(extraction, extractionDataTextProperty)]]"
+                          icon="[[_getProperty(extraction, extractionDataIconProperty)]]"
+                          icon-style-class="[[_getProperty(extraction, extractionDataStyleClassProperty)]]"
+                          link="[[_getProperty(extraction, extractionDataLinkProperty)]]"
+                          target="[[_getTarget(newTab)]]"
+                          text="[[_getProperty(extraction, extractionDataTextProperty)]]">
+                        </icon-label>
+
+                        <confidence-marker
+                          extraction$="[[extraction]]">
+                        </confidence-marker>
+
+                        <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
+                          <template is="dom-if" if="[[classificationManager]]">
+                            <classify-extraction-buttons
+                              classification-manager="[[classificationManager]]"
+                              classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
+                              entity-id="[[itemId]]"
+                              extraction-id="[[_getProperty(extraction, extractionDataIdProperty)]]">
+                            </classify-extraction-buttons>
+                          </template>
+                        </template>
+
+                        <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
+                          <template is="dom-if" if="[[annotationManager]]">
+                            <annotate-record class="tiny-icon"
+                              annotation-manager="[[annotationManager]]"
+                              client="[[client]]"
+                              item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
+                              item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
+                              noink>
+                            </annotate-record>
+                          </template>
+                        </template>
+                      </div>
+                    </template>
+                  </div>
+                </template>
               </template>
             </div>
-          </template>
-
-          <div class="layout horizontal extraction-list wrap">
-            <template is="dom-repeat" items="[[detailExtractions]]">
-              <template is="dom-if" if="[[_getLength(item, extractionDataProperty)]]">
-                <div class="layout vertical extraction">
-                  <strong class="extraction-name">[[_getProperty(item, extractionNameProperty)]]</strong>
-                  <template is="dom-repeat" items="[[_getList(item, extractionDataProperty)]]" as="extraction">
-                    <div class="layout horizontal center extraction-item">
-                      <icon-label class$="[[_getHighlightableLabelStyleClass(extraction, extractionDataHighlightProperty)]]"
-                        title$="Open [[_getProperty(extraction, extractionDataTextProperty)]]"
-                        icon="[[_getProperty(extraction, extractionDataIconProperty)]]"
-                        icon-style-class="[[_getProperty(extraction, extractionDataStyleClassProperty)]]"
-                        link="[[_getProperty(extraction, extractionDataLinkProperty)]]"
-                        target="[[_getTarget(newTab)]]"
-                        text="[[_getProperty(extraction, extractionDataTextProperty)]]">
-                      </icon-label>
-
-                      <confidence-marker
-                        extraction$="[[extraction]]">
-                      </confidence-marker>
-
-                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataClassificationsProperty)]]">
-                        <template is="dom-if" if="[[classificationManager]]">
-                          <classify-extraction-buttons
-                            classification-manager="[[classificationManager]]"
-                            classifications="{{_getProperty(extraction, extractionDataClassificationsProperty)}}"
-                            entity-id="[[itemId]]"
-                            extraction-id="[[_getProperty(extraction, extractionDataIdProperty)]]">
-                          </classify-extraction-buttons>
-                        </template>
-                      </template>
-
-                      <template is="dom-if" if="[[_getProperty(extraction, extractionDataAnnotateProperty)]]">
-                        <template is="dom-if" if="[[annotationManager]]">
-                          <annotate-record class="tiny-icon"
-                            annotation-manager="[[annotationManager]]"
-                            client="[[client]]"
-                            item-id="[[_getProperty(extraction, extractionDataIdProperty)]]"
-                            item-type="[[_getTypeTextWithProperty(extraction, extractionDataTypeProperty)]]"
-                            noink>
-                          </annotate-record>
-                        </template>
-                      </template>
-                    </div>
-                  </template>
-                </div>
-              </template>
-            </template>
 
             <template is="dom-if" if="[[_getImagesExtractionText(images)]]">
               <div class="layout horizontal extraction">
                 <strong class="extraction-name">[[_getImagesExtractionText(images)]]</strong>
               </div>
             </template>
+
+            <template is="dom-if" if="[[images]]">
+              <image-gallery
+                images="[[images]]"
+                image-link-property="[[imageLinkProperty]]"
+                image-source-property="[[imageSourceProperty]]"
+                small-image-style-class="[[smallImageStyleClass]]"
+                large-image-style-class="[[largeImageStyleClass]]"
+                new-tab="[[newTab]]">
+              </image-gallery>
+            </template>
+
+            <template is="dom-if" if="[[link]]">
+              <button-link class="layout horizontal"
+                icon="[[_getLinkIcon(newTab)]]"
+                link="[[link]]"
+                target="[[_getTarget(newTab)]]"
+                text="Open [[_getTypeText(type)]]"
+                show>
+              </button-link>
+            </template>
+          </paper-material>
+        </template>
+        <template is="dom-if" if="[[_isSelected(1, selected)]]">
+           <div class="cached-page">
+            <template is="dom-if" if="[[queryConfig]]">
+              <build-and-run-query
+                fields='"_id"'
+                values='[[queryConfig.id]]'
+                client="[[queryConfig.esClient]]"
+                index-name="[[queryConfig.esIndex]]"
+                aggregations="[]"
+                filters="[]"
+                transform-function="[[queryConfig.transform]]"
+                error="{{cacheError}}"
+                loading="{{cacheLoading}}"
+                results="{{cache}}"
+                total="{{cacheTotal}}">
+              </build-and-run-query>
+            </template>
+            <iframe class='cached-doc' srcdoc="[[cache.html]]"></iframe>
           </div>
-
-          <template is="dom-if" if="[[images]]">
-            <image-gallery
-              images="[[images]]"
-              image-link-property="[[imageLinkProperty]]"
-              image-source-property="[[imageSourceProperty]]"
-              small-image-style-class="[[smallImageStyleClass]]"
-              large-image-style-class="[[largeImageStyleClass]]"
-              new-tab="[[newTab]]">
-            </image-gallery>
-          </template>
-
-          <template is="dom-if" if="[[link]]">
-            <button-link class="layout horizontal"
-              icon="[[_getLinkIcon(newTab)]]"
-              link="[[link]]"
-              target="[[_getTarget(newTab)]]"
-              text="Open [[_getTypeText(type)]]"
-              show>
-            </button-link>
-          </template>
-        </paper-material>
+        </template>
       </iron-collapse>
     </template>
   </template>
@@ -542,6 +581,19 @@ limitations under the License.
          * @default 0
          */
         rank: {
+          type: Number,
+          value: 0
+        },
+
+        /**
+         * (Optional)
+         *
+         * Which tab is selected (Details, Cached Webpage)
+         *
+         * @type {Number}
+         * @default 0
+         */
+        selected: {
           type: Number,
           value: 0
         },
@@ -1070,6 +1122,19 @@ limitations under the License.
         },
 
         /**
+         * (Optional)
+         *
+         * The config for the build-and-run-query
+         *
+         * @type {Object}
+         * @default undefined
+         */
+        queryConfig: {
+          type: Object,
+          value: undefined
+        },
+
+        /**
          * Whether the user is hovering over the result.
          *
          * @type {Boolean}
@@ -1315,6 +1380,18 @@ limitations under the License.
        */
       _isCachedAdWebpage: function(detail, property) {
         return (detail[property] === 'Cached Ad Webpage');
+      },
+
+      /**
+       * Returns whether or not the index is selected.
+       *
+       * @param {Number} index
+       * @param {Number} selected
+       * @return {Boolean}
+       * @private
+       */
+      _isSelected: function(index, selected) {
+        return index === selected;
       },
 
       /**

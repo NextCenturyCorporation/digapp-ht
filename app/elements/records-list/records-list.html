@@ -18,6 +18,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/paginated-list/paginated-list.html">
 <link rel="import" href="../single-record/single-record.html">
 <link rel="import" href="../../styles/list-styles.html">
+<link rel="import" href="../../scripts/cache-transform.js">
 
 <dom-module id="records-list">
   <template>
@@ -28,6 +29,16 @@ limitations under the License.
         height: 100%;
       }
     </style>
+
+    <client-config config="[[config]]" transforms="{{transforms}}"></client-config>
+
+    <iron-ajax
+      id="ajax"
+      auto
+      url="/config"
+      handle-as="json"
+      last-response="{{config}}">
+    </iron-ajax>
 
     <paginated-list
       loading="[[loading]]"
@@ -86,7 +97,8 @@ limitations under the License.
           small-image-style-class="[[smallImageStyleClass]]"
           large-image-style-class="[[largeImageStyleClass]]"
           new-tab="[[newTab]]"
-          notification-query-date="[[notificationQueryDate]]">
+          notification-query-date="[[notificationQueryDate]]"
+          query-config="[[_updateQueryConfig(queryConfig, item.id)]]">
         </single-record>
       </template>
     </paginated-list>
@@ -401,6 +413,17 @@ limitations under the License.
         },
 
         /**
+         * The config for the build-and-run-query
+         *
+         * @type {Object}
+         * @default undefined
+         */
+        queryConfig: {
+          type: Object,
+          value: undefined
+        },
+
+        /**
          * The results from a query to show in this list that are reset for each new page.
          */
         queryResults: {
@@ -520,6 +543,18 @@ limitations under the License.
         } else {
           this.set('recordsListTitle', 'No ' + this.type + 's');
         }
+      },
+
+      _updateQueryConfig: function(queryConfig, id) {
+        if(queryConfig && id) {
+          var newConfig = {};
+          for(var key in queryConfig) {
+            newConfig[key] = queryConfig[key];
+          }
+          newConfig.id = id;
+          return newConfig;
+        }
+        return queryConfig;
       },
 
       _getList: function(item, property) {

@@ -275,13 +275,16 @@ limitations under the License.
         </entity-list-dialog>
 
         <state-manager id="stateManager"
-          page-type="search"
+          build-popup-data-function="[[buildTerms]]"
+          build-state-data-function="[[buildState]]"
           client="[[esclient]]"
           state-index="[[config.filterStatesIndex]]"
           state-type="[[config.filterStatesType]]"
           state-id="[[params.state]]"
-          filter-collection="{{searchParameters}}"
-          process-request="{{processRequest}}">
+          collection="{{searchParameters}}"
+          process-request="{{processRequest}}"
+          state-history="{{stateHistory}}"
+          has-history="{{hasHistory}}">
         </state-manager>
 
         <paper-icon-button icon="menu" class="bottom dropdown-trigger" title="More Options" on-tap="toggleMenu"></paper-icon-button>
@@ -293,9 +296,9 @@ limitations under the License.
               Save Search
             </paper-icon-item>
 
-            <paper-icon-item disabled="[[noSearchParameters(searchParameters.*)]]" title="Generate a Link for this Page with the Selected Search Terms" on-tap="generateLink">
-              <iron-icon icon="link" item-icon></iron-icon>
-              Generate Link
+            <paper-icon-item disabled="[[!hasHistory]]" title="View Search State History" on-tap="openStateHistoryDialog">
+              <iron-icon icon="history" item-icon></iron-icon>
+              View Search State History
             </paper-icon-item>
 
             <paper-icon-item title="Upload or Enter Multiple Telephone Numbers" on-tap="openBatchPhoneSearchDialog">
@@ -749,7 +752,8 @@ limitations under the License.
             type="Result"
             records-list-title="{{recordsListTitle}}"
             current-user="[[config.username]]"
-            notification-query-date="{{notificationDate}}">
+            notification-query-date="{{notificationDate}}"
+            query-config="[[buildQueryConfig(esclient, config.elasticIndex, transforms.cache.ad)]]">
           </records-list>
         </paper-header-panel>
 
@@ -783,6 +787,8 @@ limitations under the License.
       DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
       app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+      app.buildState = DigBehaviors.StateBehavior.buildSearchState;
+      app.buildTerms = DigBehaviors.StateBehavior.buildTermsCollectionFromSearchParameters;
       app.createStringField = DigBehaviors.StateBehavior.createStringField;
       app.createDateField = DigBehaviors.StateBehavior.createDateField;
       app.queryBuilderCallback = {
@@ -912,11 +918,6 @@ limitations under the License.
         window.open('mailto:dig-support@nextcentury.com');
       };
 
-      app.generateLink = function() {
-        this.$.menuDropdown.close();
-        this.$.stateManager.generateLink();
-      };
-
       app.getBlurStyleClass = function(blur, large) {
         return (blur ? (large ? 'large-blur' : 'small-blur') : '');
       };
@@ -953,6 +954,11 @@ limitations under the License.
         this.$.entityListDialog.open();
       };
 
+      app.openStateHistoryDialog = function() {
+        this.$.menuDropdown.close();
+        this.$.stateManager.openStateHistory();
+      };
+
       app.toggleMenu = function() {
         if(this.$.menuDropdown.style.display === 'none') {
           this.$.menuDropdown.open();
@@ -982,6 +988,30 @@ limitations under the License.
       app.createMainSearchResultConfig = function(isNetworkExpansionRequest) {
         return {networkExpansionQuery: isNetworkExpansionRequest.value};
       };
+
+      app.buildQueryConfig = function(esClient, esIndex, transform) {
+        if(esClient && esIndex && transform) {
+          return {esClient, esIndex, transform};
+        }
+        return undefined;
+      };
+
+      /************************* START STATE HISTORY *************************/
+
+      window.onpopstate = function() {
+        // TODO: refreshing for now. Need to address issues with interrupting logging entries -- perhaps a better
+        // approach would to be not to reload the page, but to rerun the query with the changed parameters + make
+        // sure logging is done correctly in this case, which may involve adding processRequest to create-log-message.
+        window.location.reload();
+      };
+
+      window.onload = function() {
+        if(window.history.state && window.history.state.stateHistory) {
+          app.stateHistory = window.history.state.stateHistory;
+        }
+      };
+
+      /************************** END STATE HISTORY **************************/
     })(document);
   </script>
 </body>

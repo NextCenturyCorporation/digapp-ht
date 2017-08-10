@@ -292,12 +292,18 @@ limitations under the License.
           </filters-builder>
 
           <state-manager id="stateManager"
+            build-popup-data-function="[[buildTerms]]"
+            build-state-data-function="[[buildState]]"
+            header-type="Filter"
+            icon="fa:filter"
             client="[[esclient]]"
             state-index="[[config.filterStatesIndex]]"
             state-type="[[config.filterStatesType]]"
             state-id="[[params.state]]"
-            filter-collection="{{filterCollection}}"
-            process-request="{{processRequest}}">
+            collection="{{filterCollection}}"
+            process-request="{{processRequest}}"
+            state-history="{{stateHistory}}"
+            has-history="{{hasHistory}}">
           </state-manager>
 
           <template is="dom-if" if="[[annotationManager]]">
@@ -360,9 +366,9 @@ limitations under the License.
 
           <iron-dropdown id="menuDropdown" class="bottom" horizontal-align="right" vertical-align="top" vertical-offset="40">
             <div class="dropdown-content">
-              <paper-icon-item title="Generate a Link for this Page with the Selected Filters" on-tap="generateLink">
-                <iron-icon icon="link" item-icon></iron-icon>
-                Generate Link
+              <paper-icon-item disabled="[[!hasHistory]]" title="View Filter State History" on-tap="openStateHistoryDialog">
+                <iron-icon icon="history" item-icon></iron-icon>
+                View Filter State History
               </paper-icon-item>
 
               <paper-icon-item disabled$="[[saveEntityDisabled]]" title="Save This Image" on-tap="saveEntity">
@@ -412,6 +418,7 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
+                  properties-ready="[[processRequest]]"
                   transform-config="[[createAggregationTransformConfig('location')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{locationData}}"
@@ -442,6 +449,7 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
+                  properties-ready="[[processRequest]]"
                   transform-config="[[createAggregationTransformConfig('phone')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{phoneData}}"
@@ -478,6 +486,7 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
+                  properties-ready="[[processRequest]]"
                   transform-config="[[createAggregationTransformConfig('email')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{emailData}}"
@@ -514,6 +523,7 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
+                  properties-ready="[[processRequest]]"
                   transform-config="[[createAggregationTransformConfig('social')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{socialData}}"
@@ -546,6 +556,7 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
+                  properties-ready="[[processRequest]]"
                   transform-config="[[createAggregationTransformConfig('review')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{reviewData}}"
@@ -577,6 +588,7 @@ limitations under the License.
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
                   filter-list="[[filterList]]"
+                  properties-ready="[[processRequest]]"
                   transform-config="[[createAggregationTransformConfig('website')]]"
                   transform-function="[[transforms.offer.offerExtractions]]"
                   data="{{publisherData}}"
@@ -630,6 +642,7 @@ limitations under the License.
                   image-id-property="source"
                   index-name="[[config.imageIndex]]"
                   index-types="[[config.imageType]]"
+                  properties-ready="[[processRequest]]"
                   query-fields='"similarImageId.similarImageId"'
                   query-values="[[image.similarImageId]]"
                   transform-config="{}"
@@ -724,6 +737,7 @@ limitations under the License.
                   item-agg-name="locations"
                   item-agg-field="knowledge_graph.city.key"
                   index-types='["ads"]'
+                  properties-ready="[[processRequest]]"
                   query-fields='"doc_id"'
                   query-values="[[image.ads]]"
                   filter-list="[[filterList]]"
@@ -793,7 +807,8 @@ limitations under the License.
                   loading="{{offersLoading}}"
                   type="Ad"
                   records-list-title="{{recordsListTitle}}"
-                  current-user="[[config.username]]">
+                  current-user="[[config.username]]"
+                  query-config="[[buildQueryConfig(esclient, config.elasticIndex, transforms.cache.ad)]]">
                 </records-list>
               </section-container>
 
@@ -818,9 +833,14 @@ limitations under the License.
     /* globals DigBehaviors */
     var app = document.querySelector('#app');
 
-    app.filterCollection = DigBehaviors.StateBehavior.buildEntityState({});
+    app.processRequest = false;
 
     app.params = DigBehaviors.BrowserBehavior.getUrlParameters(window.location.search);
+
+    if(!app.params.state) {
+      app.filterCollection = DigBehaviors.StateBehavior.buildEntityState({});
+      app.processRequest = true;
+    }
 
     // Support legacy links.
     if(!app.params.id && app.params.value) {
@@ -830,6 +850,8 @@ limitations under the License.
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
+    app.buildState = DigBehaviors.StateBehavior.buildEntityState;
+    app.buildTerms = DigBehaviors.StateBehavior.buildTermsCollectionFromFilterCollection;
 
     app.image = {};
 
@@ -901,11 +923,6 @@ limitations under the License.
       }
     };
 
-    app.generateLink = function() {
-      this.$.menuDropdown.close();
-      this.$.stateManager.generateLink();
-    };
-
     app.saveEntity = function() {
       this.$.menuDropdown.close();
       this.$.saveEntity.getNewestDataAndSave();
@@ -929,6 +946,13 @@ limitations under the License.
       }).join(',');
     };
 
+    app.buildQueryConfig = function(esClient, esIndex, transform) {
+      if(esClient && esIndex && transform) {
+        return {esClient, esIndex, transform};
+      }
+      return undefined;
+    };
+
     app.createAggregationTransformConfig = function(type, ignoreId) {
       return {
         property: type,
@@ -940,6 +964,28 @@ limitations under the License.
     app.getBlurStyleClass = function(blur, large) {
       return (blur ? (large ? 'large-blur' : 'small-blur') : '');
     };
+
+    /************************* START STATE HISTORY *************************/
+
+    app.openStateHistoryDialog = function() {
+      this.$.menuDropdown.close();
+      this.$.stateManager.openStateHistory();
+    };
+
+    window.onpopstate = function() {
+      // TODO: refreshing for now. Need to address issues with interrupting logging entries -- perhaps a better
+      // approach would to be not to reload the page, but to rerun the query with the changed parameters + make
+      // sure logging is done correctly in this case, which may involve adding processRequest to create-log-message.
+      window.location.reload();
+    };
+
+    window.onload = function() {
+      if(window.history.state && window.history.state.stateHistory) {
+        app.stateHistory = window.history.state.stateHistory;
+      }
+    };
+
+    /************************** END STATE HISTORY **************************/
   })(document);
   </script>
 </body>
