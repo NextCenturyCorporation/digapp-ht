@@ -81,11 +81,21 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       id: getIdOfType(item.key, item.value, type),
       icon: commonTransforms.getIronIcon(extractionType),
       link: commonTransforms.getLink(item.key, extractionType),
+      provenances: [],
       styleClass: commonTransforms.getStyleClass(extractionType),
       text: getTextOfType(item.key, item.value, type),
-      type: extractionType,
-      provenance: item.provenance
+      type: extractionType
     };
+
+    if(item.provenance) {
+      extraction.provenances = item.provenance.map(function(provenance) {
+        return {
+          method: (provenance.method || 'Not Available') + (provenance.source && provenance.source.segment ? ' from ' + provenance.source.segment : ''),
+          text: provenance.source && provenance.source.context ? provenance.source.context.text : 'Not Available'
+        };
+      });
+    }
+
     if(type !== 'cache' && type !== 'date' && type !== 'website') {
       /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
       var userClassification = item.human_annotation;
@@ -96,6 +106,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
         user: (userClassification === '1' ? 'positive' : (userClassification === '0' ? 'negative' : undefined))
       };
     }
+
     if(type === 'location') {
       var locationData = commonTransforms.getLocationDataFromId(extraction.id);
       extraction.latitude = locationData.latitude;
@@ -104,11 +115,13 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       extraction.textAndCount = locationData.text + (extraction.count ? (' (' + extraction.count + ')') : '');
       extraction.textAndCountry = locationData.text + (locationData.country ? (', ' + locationData.country) : '');
     }
+
     if(type === 'height' || type === 'price' || type === 'review' || type === 'weight') {
       var compoundExtractionData = commonTransforms.getExtractionDataFromCompoundId(extraction.id);
       extraction.id = compoundExtractionData.id;
       extraction.text = compoundExtractionData.text;
     }
+
     return extraction;
   }
 
@@ -244,7 +257,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       return {};
     }
 
-    var rank = _.get(record, '_score');
+    //var rank = _.get(record, '_score');
     var domain = (_.isArray(_.get(record, '_source.knowledge_graph.website')) && _.get(record, '_source.knowledge_graph.website').length > 0) ? _.get(record, '_source.knowledge_graph.website[0].key') : _.get(record, '_source.knowledge_graph.website.key');
     var rawEsDataUrl = (serverConfig && serverConfig.rawEsDataUrl ? (serverConfig.rawEsDataUrl + id) : undefined);
 
