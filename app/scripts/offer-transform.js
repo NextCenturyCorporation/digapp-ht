@@ -251,7 +251,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     var offer = {
       id: id,
       url: url,
-      rank: rank ? rank.toFixed(2) : rank,
+      //rank: rank ? rank.toFixed(2) : rank,
       domain: domain || 'No Domain',
       type: 'offer',
       icon: commonTransforms.getIronIcon('offer'),
