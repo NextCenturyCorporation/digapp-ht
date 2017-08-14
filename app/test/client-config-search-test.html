@@ -661,7 +661,7 @@ limitations under the License.
       }, {
         page: 1,
         pageSize: 50
-      }, {});
+      });
 
       expect(output.type).to.equal('Point Fact');
       expect(output.SPARQL).to.be.an('Object');
@@ -1013,10 +1013,11 @@ limitations under the License.
           }
         }
       }, {
+        custom: {
+          email: true
+        },
         page: 1,
         pageSize: 50
-      }, {
-        email: true
       });
 
       expect(output.type).to.equal('Point Fact');
@@ -1078,33 +1079,44 @@ limitations under the License.
     test('adResults transform function given empty input does return an object', function() {
       expect(clientConfig.transforms.search.adResults()).to.deep.equal({
         fields: {},
-        hits: {}
+        hits: {},
+        totalCount: 0
       });
       expect(clientConfig.transforms.search.adResults([])).to.deep.equal({
         fields: {},
-        hits: {}
+        hits: {},
+        totalCount: 0
       });
       expect(clientConfig.transforms.search.adResults([{}])).to.deep.equal({
         fields: {},
-        hits: {}
+        hits: {},
+        totalCount: 0
       });
       expect(clientConfig.transforms.search.adResults([{
         query: {},
         result: {}
       }])).to.deep.equal({
         fields: {},
-        hits: []
+        hits: [],
+        totalCount: 0
       });
     });
 
     test('adResults transform function given a response with hits does return an object with hits', function() {
       expect(clientConfig.transforms.search.adResults([{
         result: {
-          hits: [1, 2, 3]
+          hits: {
+            hits: [1, 2, 3],
+            total: 3,
+          }
         }
       }])).to.deep.equal({
         fields: {},
-        hits: [1, 2, 3]
+        hits: {
+          hits: [1, 2, 3],
+          total: 3
+        },
+        totalCount: 3
       });
     });
 
@@ -1130,7 +1142,10 @@ limitations under the License.
           }
         },
         result: {
-          hits: [1, 2, 3]
+          hits: {
+            hits: [1, 2, 3],
+            total: 3
+          }
         }
       }])).to.deep.equal({
         fields: {
@@ -1142,57 +1157,36 @@ limitations under the License.
             constraintC: 'idC'
           }
         },
-        hits: [1, 2, 3]
+        hits: {
+          hits: [1, 2, 3],
+          total: 3
+        },
+        totalCount: 3
       });
     });
 
     test('adResults transform function for a network expansion query returns correct response', function() {
       expect(clientConfig.transforms.search.adResults([{
-        result: [
-          {hits: [1, 2, 3]},
-          {hits: [4, 5, 6]}
-        ]
-      }], {networkExpansionQuery: true})).to.deep.equal({
-        fields: {},
-        hits: [4, 5, 6]
-      });
-    });
-
-    test('adResults transform function for a query given a response with clauses and hits does return an object with fields and hits', function() {
-      expect(clientConfig.transforms.search.adResults([{
-        query: {
-          SPARQL: {
-            where: {
-              clauses: [{
-                '_id': 'idA',
-                constraint: 'constraintA',
-                predicate: 'age'
-              }, {
-                '_id': 'idB',
-                constraint: 'constraintB',
-                predicate: 'age'
-              }, {
-                '_id': 'idC',
-                constraint: 'constraintC',
-                predicate: 'social_media_id'
-              }]
-            }
-          }
-        },
-        result: {
-          hits: [1, 2, 3]
-        }
-      }])).to.deep.equal({
-        fields: {
-          age: {
-            constraintA: 'idA',
-            constraintB: 'idB'
+        result: [{
+          hits: {
+            hits: [1, 2],
+            total: 2
           },
-          social: {
-            constraintC: 'idC'
+        }, {
+          hits: {
+            hits: [3, 4, 5, 6],
+            total: 4
           }
+        }]
+      }], {
+        networkExpansionQuery: true
+      })).to.deep.equal({
+        fields: {},
+        hits: {
+          hits: [3, 4, 5, 6],
+          total: 4
         },
-        hits: [1, 2, 3]
+        totalCount: 4
       });
     });
 
@@ -1219,11 +1213,20 @@ limitations under the License.
             }
           }
         },
-        result: [
-          {hits: [1, 2, 3]},
-          {hits: [4, 5, 6]}
-        ]
-      }], {networkExpansionQuery: true})).to.deep.equal({
+        result: [{
+          hits: {
+            hits: [1, 2],
+            total: 2
+          },
+        }, {
+          hits: {
+            hits: [3, 4, 5, 6],
+            total: 4
+          }
+        }]
+      }], {
+        networkExpansionQuery: true
+      })).to.deep.equal({
         fields: {
           age: {
             constrainta: 'idA',
@@ -1233,7 +1236,11 @@ limitations under the License.
             constraintc: 'idC'
           }
         },
-        hits: [4, 5, 6]
+        hits: {
+          hits: [3, 4, 5, 6],
+          total: 4
+        },
+        totalCount: 4
       });
     });
 
@@ -1812,7 +1819,10 @@ limitations under the License.
         }
       }, {
         aggregationType: 'age',
-      }, {age: true});
+        custom: {
+          age: true
+        }
+      });
 
       expect(output.type).to.equal('Aggregation');
       expect(output.SPARQL).to.be.an('Object');
@@ -2021,7 +2031,10 @@ limitations under the License.
     });
 
     test('cityAggregations transform function does create a city list from the given response', function() {
-      var cityAggregations = clientConfig.transforms.search.cityAggregations(cityResponse, {networkExpansionQuery: false, name: 'city'});
+      var cityAggregations = clientConfig.transforms.search.cityAggregations(cityResponse, {
+        networkExpansionQuery: false,
+        name: 'city'
+      });
       assert.deepEqual(cityAggregations, [{
         count: 11,
         id: 'Ontario',
@@ -2076,7 +2089,10 @@ limitations under the License.
     });
 
     test('cityAggregations transform function does create a city list from the given network expansion response', function() {
-      var cityAggregations = clientConfig.transforms.search.cityAggregations(cityNetworkExpansionResponse, {networkExpansionQuery: true, name: 'city'});
+      var cityAggregations = clientConfig.transforms.search.cityAggregations(cityNetworkExpansionResponse, {
+        networkExpansionQuery: true,
+        name: 'city'
+      });
       assert.deepEqual(cityAggregations, [{
         count: 11,
         id: 'Ontario',
@@ -2138,7 +2154,10 @@ limitations under the License.
     });
 
     test('filterAggregations transform function does create a filter list from the given response', function() {
-      var filterAggregations = clientConfig.transforms.search.filterAggregations(filterResponse, {networkExpansionQuery: false, name: 'property'});
+      var filterAggregations = clientConfig.transforms.search.filterAggregations(filterResponse, {
+        networkExpansionQuery: false,
+        name: 'property'
+      });
       assert.deepEqual(filterAggregations, [{
         count: 20,
         id: '123'
@@ -2152,7 +2171,10 @@ limitations under the License.
     });
 
     test('filterAggregations transform function does create a filter list from the given network expansion response', function() {
-      var filterAggregations = clientConfig.transforms.search.filterAggregations(filterNetworkExpansionResponse, {networkExpansionQuery: true, name: 'property'});
+      var filterAggregations = clientConfig.transforms.search.filterAggregations(filterNetworkExpansionResponse, {
+        networkExpansionQuery: true,
+        name: 'property'
+      });
       assert.deepEqual(filterAggregations, [{
         count: 20,
         id: '123'
@@ -2173,7 +2195,10 @@ limitations under the License.
     });
 
     test('compoundExtractionAggregations transform function does create an extraction list from the given response', function() {
-      var compoundExtractionAggregations = clientConfig.transforms.search.compoundExtractionAggregations(compoundResponse, {networkExpansionQuery: false, name: 'property'});
+      var compoundExtractionAggregations = clientConfig.transforms.search.compoundExtractionAggregations(compoundResponse, {
+        networkExpansionQuery: false,
+        name: 'property'
+      });
       assert.deepEqual(compoundExtractionAggregations, [{
         count: 80,
         id: '175',
@@ -2205,7 +2230,10 @@ limitations under the License.
     });
 
     test('compoundExtractionAggregations transform function does create an extraction list from the given network expansion response', function() {
-      var compoundExtractionAggregations = clientConfig.transforms.search.compoundExtractionAggregations(compoundNetworkExpansionResponse, {networkExpansionQuery: true, name: 'property'});
+      var compoundExtractionAggregations = clientConfig.transforms.search.compoundExtractionAggregations(compoundNetworkExpansionResponse, {
+        networkExpansionQuery: true,
+        name: 'property'
+      });
       assert.deepEqual(compoundExtractionAggregations, [{
         count: 80,
         id: '175',
@@ -2237,7 +2265,10 @@ limitations under the License.
     });
 
     test('emailAggregations transform function does create an email list from the given response', function() {
-      var emailAggregations = clientConfig.transforms.search.emailAggregations(emailResponse, {networkExpansionQuery: false, name: 'email'});
+      var emailAggregations = clientConfig.transforms.search.emailAggregations(emailResponse, {
+        networkExpansionQuery: false,
+        name: 'email'
+      });
       assert.deepEqual(emailAggregations, [{
         count: 20,
         id: 'abc@gmail.com',
@@ -2261,7 +2292,10 @@ limitations under the License.
     });
 
     test('emailAggregations transform function does create an email list from the given network expansion response', function() {
-      var emailAggregations = clientConfig.transforms.search.emailAggregations(emailNetworkExpansionResponse, {networkExpansionQuery: true, name: 'email'});
+      var emailAggregations = clientConfig.transforms.search.emailAggregations(emailNetworkExpansionResponse, {
+        networkExpansionQuery: true,
+        name: 'email'
+      });
       assert.deepEqual(emailAggregations, [{
         count: 20,
         id: 'abc@gmail.com',
@@ -2285,7 +2319,10 @@ limitations under the License.
     });
 
     test('phoneAggregations transform function does create a phone list from the given response', function() {
-      var phoneAggregations = clientConfig.transforms.search.phoneAggregations(phoneResponse, {networkExpansionQuery: false, name: 'phone'});
+      var phoneAggregations = clientConfig.transforms.search.phoneAggregations(phoneResponse, {
+        networkExpansionQuery: false,
+        name: 'phone'
+      });
       assert.deepEqual(phoneAggregations, [{
         count: 80,
         id: '1234567890',
@@ -2315,7 +2352,10 @@ limitations under the License.
     });
 
     test('phoneAggregations transform function does create a phone list from the given network expansion response', function() {
-      var phoneAggregations = clientConfig.transforms.search.phoneAggregations(phoneNetworkExpansionResponse, {networkExpansionQuery: true, name: 'phone'});
+      var phoneAggregations = clientConfig.transforms.search.phoneAggregations(phoneNetworkExpansionResponse, {
+        networkExpansionQuery: true,
+        name: 'phone'
+      });
       assert.deepEqual(phoneAggregations, [{
         count: 80,
         id: '1234567890',
@@ -2352,7 +2392,10 @@ limitations under the License.
     });
 
     test('socialMediaAggregations transform function does create a social media list from the given response', function() {
-      var socialMediaAggregations = clientConfig.transforms.search.socialMediaAggregations(socialMediaResponse, {networkExpansionQuery: false, name: 'social'});
+      var socialMediaAggregations = clientConfig.transforms.search.socialMediaAggregations(socialMediaResponse, {
+        networkExpansionQuery: false,
+        name: 'social'
+      });
 
       assert.deepEqual(socialMediaAggregations, [{
         count: 80,
@@ -2383,7 +2426,10 @@ limitations under the License.
     });
 
     test('socialMediaAggregations transform function does create a social media list from the given network expansion response', function() {
-      var socialMediaAggregations = clientConfig.transforms.search.socialMediaAggregations(socialMediaNetworkExpansionResponse, {networkExpansionQuery: true, name: 'social'});
+      var socialMediaAggregations = clientConfig.transforms.search.socialMediaAggregations(socialMediaNetworkExpansionResponse, {
+        networkExpansionQuery: true,
+        name: 'social'
+      });
 
       assert.deepEqual(socialMediaAggregations, [{
         count: 80,
