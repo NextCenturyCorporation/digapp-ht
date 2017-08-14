@@ -33,12 +33,24 @@ var searchTransform = (function(_, commonTransforms) {
     return [];
   }
 
-  function getTemplateFromSearchParameters(searchParameters, optional) {
+  function getTemplateFromSearchParameters(searchParameters, networkExpansionParameters) {
     var predicates = {};
     var template = {
+      clauses: !networkExpansionParameters ? [] : [{
+        clauses: [],
+        type: 'Ad',
+        variable: '?ad1'
+      }],
+      filters: [],
+      selects: []
+    };
+    var andFilter = {
       clauses: [],
-      filters: [],
-      selects: []
+      operator: 'and'
+    };
+    var notFilter = {
+      clauses: [],
+      operator: 'not exists'
     };
 
     if(!_.isEmpty(searchParameters)) {
@@ -47,130 +59,98 @@ var searchTransform = (function(_, commonTransforms) {
         _.keys(searchParameters[type]).forEach(function(term) {
           if(searchParameters[type][term].enabled) {
             if(type === 'postingDate') {
-              // Use a single date variable ('date1').
-              predicates.date = 1;
+              // Use only a single date variable ('date1').
+              predicates.date = [{
+                optional: false
+              }];
 
-              if(template.filters.length === 0) {
-                template.filters.push({});
-              }
-
-              if(!template.filters[0].operator) {
-                template.filters[0].operator = 'and';
-              }
-
-              if(!template.filters[0].clauses) {
-                template.filters[0].clauses = [];
-              }
-
-              template.filters[0].clauses.push({
+              andFilter.clauses.push({
                 constraint: searchParameters[type][term].date,
                 operator: term === 'dateStart' ? '>' : '<',
                 variable: '?date1'
               });
-            } else if(predicate) {
-              predicates[predicate] = (predicates[predicate] || 0) + 1;
-
-              template.clauses.push({
+            } else if(predicate && searchParameters[type][term].search === 'excluded') {
+              notFilter.clauses.push({
                 constraint: searchParameters[type][term].key,
-                isOptional: optional,
                 predicate: predicate
               });
-            }
-          }
-        });
-      });
-
-      _.keys(predicates).forEach(function(predicate) {
-        for(var i = 1; i <= predicates[predicate]; ++i) {
-          template.selects.push({
-            type: 'simple',
-            variable: '?' + predicate + i
-          });
-          template.clauses.push({
-            isOptional: (predicate === 'date' ? false : optional),
-            predicate: predicate === 'date' ? 'posting_date' : predicate,
-            variable: '?' + predicate + i
-          });
-        }
-      });
-    }
-
-    return template;
-  }
-
-  // network expansion queries are structured a bit differently, the main difference being that they have nested clauses
-  function getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, optional) {
-    var predicates = {};
-    var template = {
-      clauses: [{clauses: [], type: 'Ad', variable: '?ad1'}],
-      filters: [],
-      selects: []
-    };
-
-    if(!_.isEmpty(searchParameters)) {
-      _.keys(searchParameters).forEach(function(type) {
-        var predicate = commonTransforms.getDatabaseTypeFromUiType(type);
-        _.keys(searchParameters[type]).forEach(function(term) {
-          if(searchParameters[type][term].enabled) {
-            if(type === 'postingDate') {
-              // Use a single date variable ('date1').
-              predicates.date = 1;
-
-              if(template.filters.length === 0) {
-                template.filters.push({});
-              }
-
-              if(!template.filters[0].operator) {
-                template.filters[0].operator = 'and';
-              }
-
-              if(!template.filters[0].clauses) {
-                template.filters[0].clauses = [];
-              }
-
-              template.filters[0].clauses.push({
-                constraint: searchParameters[type][term].date,
-                operator: term === 'dateStart' ? '>' : '<',
-                variable: '?date1'
-              });
             } else if(predicate) {
-              // we only want to add exact search terms entered in by the user to the initial query, not the expanded query
-              template.clauses[0].clauses.push({
-                constraint: searchParameters[type][term].key,
-                isOptional: optional,
-                predicate: predicate
-              });
+              var optional = !(searchParameters[type][term].search === 'required');
+              if(!networkExpansionParameters) {
+                predicates[predicate] = predicates[predicate] || [];
+                predicates[predicate].push({
+                  optional: optional
+                });
 
-              if(!networkExpansionParameters[type]) {
                 template.clauses.push({
                   constraint: searchParameters[type][term].key,
                   isOptional: optional,
                   predicate: predicate
                 });
+              } else {
+                // we only want to add exact search terms entered in by the user to the initial query, not the expanded query
+                template.clauses[0].clauses.push({
+                  constraint: searchParameters[type][term].key,
+                  isOptional: optional,
+                  predicate: predicate
+                });
+
+                if(!networkExpansionParameters[type]) {
+                  template.clauses.push({
+                    constraint: searchParameters[type][term].key,
+                    isOptional: optional,
+                    predicate: predicate
+                  });
+                }
               }
             }
           }
         });
-        if(!predicates[predicate] && networkExpansionParameters[type]) {
-          predicates[predicate] = (predicates[predicate] || 0) + 1;
+
+        if(networkExpansionParameters && networkExpansionParameters[type] && !predicates[predicate]) {
+          // TODO Should predicate variables for network expansion queries always be required?
+          predicates[predicate] = [{
+            optional: false
+          }];
         }
       });
 
       _.keys(predicates).forEach(function(predicate) {
-        for(var i = 1; i <= predicates[predicate]; ++i) {
-          template.clauses.push({
-            isOptional: false,
-            predicate: predicate === 'date' ? 'posting_date' : predicate,
-            variable: predicate === 'date' ? '?' + predicate + i : '?' + predicate,
-          });
+        for(var i = 1; i <= predicates[predicate].length; ++i) {
+          if(!networkExpansionParameters) {
+            template.selects.push({
+              type: 'simple',
+              variable: '?' + predicate + i
+            });
 
-          template.clauses[0].clauses.push({
-            isOptional: false,
-            predicate: predicate === 'date' ? 'posting_date' : predicate,
-            variable: predicate === 'date' ? '?' + predicate + i : '?' + predicate,
-          });
+            template.clauses.push({
+              isOptional: predicates[predicate][i - 1].optional,
+              predicate: predicate === 'date' ? 'posting_date' : predicate,
+              variable: '?' + predicate + i
+            });
+          } else {
+            template.clauses.push({
+              isOptional: predicates[predicate][i - 1].optional,
+              predicate: predicate === 'date' ? 'posting_date' : predicate,
+              variable: (predicate === 'date' ? ('?' + predicate + i) : ('?' + predicate))
+            });
+
+            template.clauses[0].clauses.push({
+              isOptional: predicates[predicate][i - 1].optional,
+              predicate: predicate === 'date' ? 'posting_date' : predicate,
+              variable: (predicate === 'date' ? ('?' + predicate + i) : ('?' + predicate))
+            });
+          }
         }
       });
+    }
+
+    if(andFilter.clauses.length) {
+      template.filters.push(andFilter);
+    }
+
+    if(notFilter.clauses.length) {
+      template.filters.push(notFilter);
     }
 
     return template;
@@ -180,8 +160,7 @@ var searchTransform = (function(_, commonTransforms) {
     adQuery: function(searchParameters, config) {
       var networkExpansionParameters = config ? config.custom : {};
       var networkExpansionQuery = _.findKey(networkExpansionParameters, function(param) { return param === true; }) ? true : false;
-      var adVariableName = networkExpansionQuery ? '?ad2' : '?ad';
-      var template = networkExpansionQuery ? getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, true) : getTemplateFromSearchParameters(searchParameters, true);
+      var template = getTemplateFromSearchParameters(searchParameters, networkExpansionQuery ? networkExpansionParameters : undefined);
       var groupBy = (!config || !config.page || !config.pageSize) ? undefined : {
         limit: config.pageSize,
         offset: (config.page - 1) * config.pageSize
@@ -191,13 +170,15 @@ var searchTransform = (function(_, commonTransforms) {
         SPARQL: {
           'group-by': groupBy,
           select: {
-            variables: networkExpansionQuery ? [{variable: '?ad2'}] : template.selects
+            variables: !networkExpansionQuery ? template.selects : [{
+              variable: '?ad2'
+            }]
           },
           where: {
             clauses: template.clauses,
             filters: template.filters,
             type: 'Ad',
-            variable: adVariableName
+            variable: !networkExpansionQuery ? '?ad' : '?ad2'
           }
         },
         type: 'Point Fact'
@@ -255,7 +236,7 @@ var searchTransform = (function(_, commonTransforms) {
       var networkExpansionParameters = config ? config.custom : {};
       var networkExpansionQuery = _.findKey(networkExpansionParameters, function(param) { return param === true; }) ? true : false;
       var predicate = (config && config.aggregationType ? commonTransforms.getDatabaseTypeFromUiType(config.aggregationType) : undefined);
-      var template = networkExpansionQuery ? getTemplateFromSearchParametersAndNetworkParameters(searchParameters, networkExpansionParameters, true) : getTemplateFromSearchParameters(searchParameters, false);
+      var template = getTemplateFromSearchParameters(searchParameters, networkExpansionQuery ? networkExpansionParameters : undefined);
       var groupBy = {
         limit: (config && config.pageSize ? config.pageSize : 0),
         offset: 0
@@ -269,6 +250,7 @@ var searchTransform = (function(_, commonTransforms) {
           variable: '?' + predicate
         });
 
+        // TODO What does this if statement mean?
         if(!networkExpansionQuery || (_.findIndex(template.clauses, function(clause) {
           return clause.predicate === predicate && clause.variable === '?' + predicate;
         }) === -1)) {

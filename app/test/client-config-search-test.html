@@ -900,6 +900,177 @@ limitations under the License.
       }]);
     });
 
+    test('adQuery transform function given both optional and required search parameters does return correct query', function() {
+      var output = clientConfig.transforms.search.adQuery({
+        email: {
+          emailA: {
+            enabled: true,
+            key: 'emailA',
+            search: 'optional'
+          },
+          emailB: {
+            enabled: true,
+            key: 'emailB',
+            search: 'required'
+          },
+        },
+        phone: {
+          phoneA: {
+            enabled: true,
+            key: 'phoneA',
+            search: 'required'
+          },
+          phoneB: {
+            enabled: true,
+            key: 'phoneB',
+            search: 'optional'
+          },
+        }
+      }, {
+        page: 1,
+        pageSize: 50
+      });
+
+      expect(output.type).to.equal('Point Fact');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?email1'
+        }, {
+          type: 'simple',
+          variable: '?email2'
+        }, {
+          type: 'simple',
+          variable: '?phone1'
+        }, {
+          type: 'simple',
+          variable: '?phone2'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'emailA',
+        isOptional: true,
+        predicate: 'email'
+      }, {
+        constraint: 'emailB',
+        isOptional: false,
+        predicate: 'email'
+      }, {
+        constraint: 'phoneA',
+        isOptional: false,
+        predicate: 'phone'
+      }, {
+        constraint: 'phoneB',
+        isOptional: true,
+        predicate: 'phone'
+      }, {
+        variable: '?email1',
+        isOptional: true,
+        predicate: 'email'
+      }, {
+        variable: '?email2',
+        isOptional: false,
+        predicate: 'email'
+      }, {
+        variable: '?phone1',
+        isOptional: false,
+        predicate: 'phone'
+      }, {
+        variable: '?phone2',
+        isOptional: true,
+        predicate: 'phone'
+      }]);
+    });
+
+    test('adQuery transform function given excluded search parameters does return correct query', function() {
+      var output = clientConfig.transforms.search.adQuery({
+        email: {
+          emailA: {
+            enabled: true,
+            key: 'emailA',
+            search: 'optional'
+          },
+          emailB: {
+            enabled: true,
+            key: 'emailB',
+            search: 'excluded'
+          },
+        },
+        phone: {
+          phoneA: {
+            enabled: true,
+            key: 'phoneA',
+            search: 'excluded'
+          },
+          phoneB: {
+            enabled: true,
+            key: 'phoneB',
+            search: 'optional'
+          },
+        }
+      }, {
+        page: 1,
+        pageSize: 50
+      });
+
+      expect(output.type).to.equal('Point Fact');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?email1'
+        }, {
+          type: 'simple',
+          variable: '?phone1'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([{
+        clauses: [{
+          constraint: 'emailB',
+          predicate: 'email'
+        }, {
+          constraint: 'phoneA',
+          predicate: 'phone'
+        }],
+        operator: 'not exists'
+      }]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'emailA',
+        isOptional: true,
+        predicate: 'email'
+      }, {
+        constraint: 'phoneB',
+        isOptional: true,
+        predicate: 'phone'
+      }, {
+        variable: '?email1',
+        isOptional: true,
+        predicate: 'email'
+      }, {
+        variable: '?phone1',
+        isOptional: true,
+        predicate: 'phone'
+      }]);
+    });
+
     test('adQuery transform function given date search parameters does return correct query', function() {
       var output = clientConfig.transforms.search.adQuery({
         postingDate: {
@@ -1563,18 +1734,18 @@ limitations under the License.
       expect(output.SPARQL.where.filters).to.deep.equal([]);
       expect(output.SPARQL.where.clauses).to.deep.equal([{
         constraint: 'titleA',
-        isOptional: false,
+        isOptional: true,
         predicate: 'title'
       }, {
         constraint: 'titleB',
-        isOptional: false,
+        isOptional: true,
         predicate: 'title'
       }, {
-        isOptional: false,
+        isOptional: true,
         predicate: 'title',
         variable: '?title1'
       }, {
-        isOptional: false,
+        isOptional: true,
         predicate: 'title',
         variable: '?title2'
       }, {
@@ -1632,10 +1803,10 @@ limitations under the License.
       expect(output.SPARQL.where.filters).to.deep.equal([]);
       expect(output.SPARQL.where.clauses).to.deep.equal([{
         constraint: 'titleA',
-        isOptional: false,
+        isOptional: true,
         predicate: 'title'
       }, {
-        isOptional: false,
+        isOptional: true,
         predicate: 'title',
         variable: '?title1'
       }, {
@@ -1691,10 +1862,10 @@ limitations under the License.
       expect(output.SPARQL.where.filters).to.deep.equal([]);
       expect(output.SPARQL.where.clauses).to.deep.equal([{
         constraint: 'ageA',
-        isOptional: false,
+        isOptional: true,
         predicate: 'age'
       }, {
-        isOptional: false,
+        isOptional: true,
         predicate: 'age',
         variable: '?age1'
       }, {
@@ -1768,6 +1939,112 @@ limitations under the License.
       expect(output.SPARQL.where.filters).to.deep.equal([]);
       expect(output.SPARQL.where.clauses).to.deep.equal([{
         constraint: 'ageA',
+        isOptional: true,
+        predicate: 'age'
+      }, {
+        constraint: 'cityA',
+        isOptional: true,
+        predicate: 'city'
+      }, {
+        constraint: 'socialA',
+        isOptional: true,
+        predicate: 'social_media_id'
+      }, {
+        isOptional: true,
+        predicate: 'age',
+        variable: '?age1'
+      }, {
+        isOptional: true,
+        predicate: 'city',
+        variable: '?city1'
+      }, {
+        isOptional: true,
+        predicate: 'social_media_id',
+        variable: '?social_media_id1'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given both optional and required search parameters does return correct query', function() {
+      var output = clientConfig.transforms.search.facetsQuery({
+        age: {
+          ageA: {
+            enabled: true,
+            key: 'ageA',
+            search: 'optional'
+          },
+          ageB: {
+            enabled: true,
+            key: 'ageB',
+            search: 'required'
+          }
+        },
+        city: {
+          cityA: {
+            enabled: true,
+            key: 'cityA',
+            search: 'required'
+          },
+          cityB: {
+            enabled: true,
+            key: 'cityB',
+            search: 'optional'
+          }
+        }
+      }, {
+        aggregationType: 'age',
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?age1'
+        }, {
+          type: 'simple',
+          variable: '?age2'
+        }, {
+          type: 'simple',
+          variable: '?city1'
+        }, {
+          type: 'simple',
+          variable: '?city2'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'ageA',
+        isOptional: true,
+        predicate: 'age'
+      }, {
+        constraint: 'ageB',
         isOptional: false,
         predicate: 'age'
       }, {
@@ -1775,21 +2052,122 @@ limitations under the License.
         isOptional: false,
         predicate: 'city'
       }, {
-        constraint: 'socialA',
-        isOptional: false,
-        predicate: 'social_media_id'
+        constraint: 'cityB',
+        isOptional: true,
+        predicate: 'city'
+      }, {
+        isOptional: true,
+        predicate: 'age',
+        variable: '?age1'
       }, {
         isOptional: false,
         predicate: 'age',
-        variable: '?age1'
+        variable: '?age2'
       }, {
         isOptional: false,
         predicate: 'city',
         variable: '?city1'
       }, {
+        isOptional: true,
+        predicate: 'city',
+        variable: '?city2'
+      }, {
         isOptional: false,
-        predicate: 'social_media_id',
-        variable: '?social_media_id1'
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given excluded search parameters does return correct query', function() {
+      var output = clientConfig.transforms.search.facetsQuery({
+        age: {
+          ageA: {
+            enabled: true,
+            key: 'ageA',
+            search: 'optional'
+          },
+          ageB: {
+            enabled: true,
+            key: 'ageB',
+            search: 'excluded'
+          }
+        },
+        city: {
+          cityA: {
+            enabled: true,
+            key: 'cityA',
+            search: 'excluded'
+          },
+          cityB: {
+            enabled: true,
+            key: 'cityB',
+            search: 'optional'
+          }
+        }
+      }, {
+        aggregationType: 'age',
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?age1'
+        }, {
+          type: 'simple',
+          variable: '?city1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([{
+        clauses: [{
+          constraint: 'ageB',
+          predicate: 'age'
+        }, {
+          constraint: 'cityA',
+          predicate: 'city'
+        }],
+        operator: 'not exists'
+      }]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        constraint: 'ageA',
+        isOptional: true,
+        predicate: 'age'
+      }, {
+        constraint: 'cityB',
+        isOptional: true,
+        predicate: 'city'
+      }, {
+        isOptional: true,
+        predicate: 'age',
+        variable: '?age1'
+      }, {
+        isOptional: true,
+        predicate: 'city',
+        variable: '?city1'
       }, {
         isOptional: false,
         predicate: 'age',
