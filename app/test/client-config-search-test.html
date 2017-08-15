@@ -1004,7 +1004,7 @@ limitations under the License.
             enabled: true,
             key: 'emailB',
             search: 'excluded'
-          },
+          }
         },
         phone: {
           phoneA: {
@@ -1016,7 +1016,7 @@ limitations under the License.
             enabled: true,
             key: 'phoneB',
             search: 'optional'
-          },
+          }
         }
       }, {
         page: 1,
@@ -1068,6 +1068,96 @@ limitations under the License.
         variable: '?phone1',
         isOptional: true,
         predicate: 'phone'
+      }]);
+    });
+
+    test('adQuery transform function given union search parameters does return correct query', function() {
+      var output = clientConfig.transforms.search.adQuery({
+        email: {
+          emailA: {
+            enabled: true,
+            key: 'emailA',
+            search: 'union'
+          }
+        },
+        phone: {
+          phoneA: {
+            enabled: true,
+            key: 'phoneA',
+            search: 'union'
+          },
+          phoneB: {
+            enabled: true,
+            key: 'phoneB',
+            search: 'union'
+          },
+          phoneC: {
+            enabled: true,
+            key: 'phoneC',
+            search: 'excluded'
+          }
+        },
+        title: {
+          titleA: {
+            enabled: true,
+            key: 'titleA',
+            search: 'optional'
+          }
+        }
+      }, {
+        page: 1,
+        pageSize: 50
+      });
+
+      expect(output.type).to.equal('Point Fact');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 50,
+        offset: 0
+      });
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?title1'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([{
+        clauses: [{
+          constraint: 'phoneC',
+          predicate: 'phone'
+        }],
+        operator: 'not exists'
+      }]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        clauses: [{
+          constraint: 'emailA',
+          isOptional: false,
+          predicate: 'email'
+        }],
+        operator: 'union'
+      }, {
+        clauses: [{
+          constraint: 'phoneA',
+          isOptional: false,
+          predicate: 'phone'
+        }, {
+          constraint: 'phoneB',
+          isOptional: false,
+          predicate: 'phone'
+        }],
+        operator: 'union'
+      }, {
+        constraint: 'titleA',
+        isOptional: true,
+        predicate: 'title'
+      }, {
+        variable: '?title1',
+        isOptional: true,
+        predicate: 'title'
       }]);
     });
 
@@ -2168,6 +2258,114 @@ limitations under the License.
         isOptional: true,
         predicate: 'city',
         variable: '?city1'
+      }, {
+        isOptional: false,
+        predicate: 'age',
+        variable: '?age'
+      }]);
+    });
+
+    test('facetsQuery transform function given union search parameters does return correct query', function() {
+      var output = clientConfig.transforms.search.facetsQuery({
+        age: {
+          ageA: {
+            enabled: true,
+            key: 'ageA',
+            search: 'union'
+          }
+        },
+        city: {
+          cityA: {
+            enabled: true,
+            key: 'cityA',
+            search: 'union'
+          },
+          cityB: {
+            enabled: true,
+            key: 'cityB',
+            search: 'union'
+          },
+          cityC: {
+            enabled: true,
+            key: 'cityC',
+            search: 'excluded'
+          }
+        },
+        title: {
+          titleA: {
+            enabled: true,
+            key: 'titleA',
+            search: 'optional'
+          }
+        }
+      }, {
+        aggregationType: 'age',
+      });
+
+      expect(output.type).to.equal('Aggregation');
+      expect(output.SPARQL).to.be.an('Object');
+      expect(output.SPARQL['group-by']).to.deep.equal({
+        limit: 0,
+        offset: 0,
+        variables: [{
+          variable: '?age'
+        }]
+      });
+      expect(output.SPARQL['order-by']).to.deep.equal({
+        values: [{
+          'function': 'count',
+          order: 'desc',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.select).to.deep.equal({
+        variables: [{
+          type: 'simple',
+          variable: '?title1'
+        }, {
+          'function': 'count',
+          type: 'function',
+          variable: '?age'
+        }]
+      });
+
+      expect(output.SPARQL.where).to.be.an('Object');
+      expect(output.SPARQL.where.variable).to.equal('?ad');
+      expect(output.SPARQL.where.type).to.equal('Ad');
+      expect(output.SPARQL.where.filters).to.deep.equal([{
+        clauses: [{
+          constraint: 'cityC',
+          predicate: 'city'
+        }],
+        operator: 'not exists'
+      }]);
+      expect(output.SPARQL.where.clauses).to.deep.equal([{
+        clauses: [{
+          constraint: 'ageA',
+          isOptional: false,
+          predicate: 'age'
+        }],
+        operator: 'union'
+      }, {
+        clauses: [{
+          constraint: 'cityA',
+          isOptional: false,
+          predicate: 'city'
+        }, {
+          constraint: 'cityB',
+          isOptional: false,
+          predicate: 'city'
+        }],
+        operator: 'union'
+      }, {
+        constraint: 'titleA',
+        isOptional: true,
+        predicate: 'title'
+      }, {
+        variable: '?title1',
+        isOptional: true,
+        predicate: 'title'
       }, {
         isOptional: false,
         predicate: 'age',

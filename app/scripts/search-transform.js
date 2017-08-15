@@ -56,6 +56,11 @@ var searchTransform = (function(_, commonTransforms) {
     if(!_.isEmpty(searchParameters)) {
       _.keys(searchParameters).forEach(function(type) {
         var predicate = commonTransforms.getDatabaseTypeFromUiType(type);
+        var unionClause = {
+          clauses: [],
+          operator: 'union'
+        };
+
         _.keys(searchParameters[type]).forEach(function(term) {
           if(searchParameters[type][term].enabled) {
             if(type === 'postingDate') {
@@ -74,8 +79,14 @@ var searchTransform = (function(_, commonTransforms) {
                 constraint: searchParameters[type][term].key,
                 predicate: predicate
               });
+            } else if(predicate && searchParameters[type][term].search === 'union') {
+              unionClause.clauses.push({
+                constraint: searchParameters[type][term].key,
+                isOptional: false,
+                predicate: predicate
+              });
             } else if(predicate) {
-              var optional = !(searchParameters[type][term].search === 'required');
+              var optional = (searchParameters[type][term].search !== 'required');
               if(!networkExpansionParameters) {
                 predicates[predicate] = predicates[predicate] || [];
                 predicates[predicate].push({
@@ -106,6 +117,10 @@ var searchTransform = (function(_, commonTransforms) {
             }
           }
         });
+
+        if(unionClause.clauses.length) {
+          template.clauses.push(unionClause);
+        }
 
         if(networkExpansionParameters && networkExpansionParameters[type] && !predicates[predicate]) {
           // TODO Should predicate variables for network expansion queries always be required?
@@ -260,7 +275,7 @@ var searchTransform = (function(_, commonTransforms) {
             variable: '?' + predicate
           });
 
-          if(template.clauses.length && template.clauses[0].clauses) {
+          if(networkExpansionQuery && template.clauses.length && template.clauses[0].clauses) {
             template.clauses[0].clauses.push({
               isOptional: false,
               predicate: predicate,
