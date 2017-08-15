@@ -41,8 +41,7 @@ var searchTransform = (function(_, commonTransforms) {
         type: 'Ad',
         variable: '?ad1'
       }],
-      filters: [],
-      selects: []
+      filters: []
     };
     var andFilter = {
       clauses: [],
@@ -133,11 +132,6 @@ var searchTransform = (function(_, commonTransforms) {
       _.keys(predicates).forEach(function(predicate) {
         for(var i = 1; i <= predicates[predicate].length; ++i) {
           if(!networkExpansionParameters) {
-            template.selects.push({
-              type: 'simple',
-              variable: '?' + predicate + i
-            });
-
             template.clauses.push({
               isOptional: predicates[predicate][i - 1].optional,
               predicate: predicate === 'date' ? 'posting_date' : predicate,
@@ -185,8 +179,9 @@ var searchTransform = (function(_, commonTransforms) {
         SPARQL: {
           'group-by': groupBy,
           select: {
-            variables: !networkExpansionQuery ? template.selects : [{
-              variable: '?ad2'
+            variables: [{
+              type: 'simple',
+              variable: !networkExpansionQuery ? '?ad' : '?ad2'
             }]
           },
           where: {
@@ -257,13 +252,14 @@ var searchTransform = (function(_, commonTransforms) {
         offset: 0
       };
       var orderBy;
+      var selects;
 
       if(predicate) {
-        template.selects.push({
+        var selects = [{
           'function': 'count',
           type: 'function',
           variable: '?' + predicate
-        });
+        }];
 
         // TODO What does this if statement mean?
         if(!networkExpansionQuery || (_.findIndex(template.clauses, function(clause) {
@@ -302,7 +298,7 @@ var searchTransform = (function(_, commonTransforms) {
           'group-by': groupBy,
           'order-by': orderBy,
           select: {
-            variables: template.selects
+            variables: selects || []
           },
           where: {
             clauses: template.clauses,
