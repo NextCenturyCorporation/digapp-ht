@@ -21,6 +21,10 @@
 'use strict';
 
 var config = require('./config/environment');
+
+var csvWriteStream = require('csv-write-stream');
+var fs = require('fs');
+
 var path = require('path');
 var request = require('request');
 
@@ -70,6 +74,34 @@ module.exports = function(app) {
     app.get('/downloadImage/:link', function(req, res) {
       var link = 'https://s3.amazonaws.com/' + decodeURIComponent(req.params.link);
       req.pipe(request(link)).pipe(res);
+    });
+
+    app.get('/file/:file', function(req, res) {
+      res.download(req.params.file);
+    });
+
+    app.post('/export', function(req, res) {
+      if(req.body && req.body.length > 1) {
+        var filename = req.body[0] + '.csv';
+        var header = req.body[1];
+        var writer = csvWriteStream({
+          headers: header
+        });
+        writer.pipe(fs.createWriteStream(filename));
+        var index = 2;
+        writer.on('data', function() {
+          index++;
+          if(index === req.body.length) {
+            writer.end();
+            res.status(200).set('Cache-Control', 'no-cache').send('/file/' + filename);
+          }
+        });
+        for(var i = 2; i < req.body.length; ++i) {
+          writer.write(req.body[i]);
+        }
+      } else {
+        res.status(200).send();
+      }
     });
 
     app.post('/upload', upload.array('file'), function(req, res) {

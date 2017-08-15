@@ -17,65 +17,106 @@
 /* exported exportTransform */
 /* jshint camelcase:false */
 
-var exportTransform = (function() {
+var exportTransform = (function(_) {
   return {
-    createExportDataForCsv: function(results) {
+    createBulkSearchData: function(searchParameters, searchFields) {
+      return _.keys(searchParameters).reduce(function(data, type) {
+        _.keys(searchParameters[type]).filter(function(term) {
+          return searchParameters[type][term].enabled;
+        }).map(function(term) {
+          return searchParameters[type][term].key;
+        }).forEach(function(id) {
+          data.push({
+            field: searchFields[type].field,
+            value: id
+          });
+        });
+        return data;
+      }, []);
+    },
+
+    createExportDataForCsv: function(searchData) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [[
+      var exportData = [[
         'ad url',
         'dig url',
         'title',
-        'date',
+        'dates',
+        'website',
         'locations',
         'telephone numbers',
         'email addresses',
+        'prices',
+        'names',
+        'ages',
+        'genders',
+        'ethnicities',
+        'eye colors',
+        'hair colors',
+        'heights',
+        'weights',
         'social media ids',
         'review ids',
-        'images',
         'description'
       ]];
-      results.forEach(function(result) {
-        var locations = result.locations.map(function(location) {
-          return location.textAndCountry;
-        }).join('; ');
-        var phones = result.phones.map(function(phone) {
-          return phone.text;
-        }).join('; ');
-        var emails = result.emails.map(function(email) {
-          return email.text;
-        }).join('; ');
-        var socialIds = result.socialIds.map(function(socialId) {
-          return socialId.text;
-        }).join('; ');
-        var reviewIds = result.reviewIds.map(function(reviewId) {
-          return reviewId.text;
-        }).join('; ');
-        var images = (result.images || []).map(function(image) {
-          return image.source;
-        }).join('; ');
-        data.push([
-          result.url,
-          linkPrefix + result.link,
-          result.title,
-          result.date,
-          locations,
-          phones,
-          emails,
-          socialIds,
-          reviewIds,
-          images,
-          result.description.replace(/\n/g, ' ')
+
+      searchData.forEach(function(result) {
+        var getExtractionTextList = function(extractions, property) {
+          return extractions.map(function(extraction) {
+            return extraction[property || 'text'];
+          }).join('; ');
+        };
+
+        var dates = getExtractionTextList(result.dates);
+        var locations = getExtractionTextList(result.locations);
+        var phones = getExtractionTextList(result.phones);
+        var emails = getExtractionTextList(result.emails);
+        var prices = getExtractionTextList(result.prices);
+        var names = getExtractionTextList(result.names);
+        var ages = getExtractionTextList(result.ages);
+        var genders = getExtractionTextList(result.genders);
+        var ethnicities = getExtractionTextList(result.ethnicities);
+        var eyeColors = getExtractionTextList(result.eyeColors);
+        var hairColors = getExtractionTextList(result.hairColors);
+        var heights = getExtractionTextList(result.heights);
+        var weights = getExtractionTextList(result.weights);
+        var socialIds = getExtractionTextList(result.socialIds);
+        var reviewIds = getExtractionTextList(result.reviewIds);
+        var description = result.description.replace(/\s/g, ' ');
+
+        exportData.push([
+            result.url,
+            linkPrefix + result.link,
+            result.title,
+            dates,
+            result.domain,
+            locations,
+            phones,
+            emails,
+            prices,
+            names,
+            ages,
+            genders,
+            ethnicities,
+            eyeColors,
+            hairColors,
+            heights,
+            weights,
+            socialIds,
+            reviewIds,
+            description
         ]);
       });
-      return data;
+
+      return exportData;
     },
 
-    createExportDataForPdf: function(results) {
+    createExportDataForPdf: function(searchData) {
       var linkPrefix = window.location.hostname + ':' + window.location.port;
-      var data = [];
+      var exportData = [];
       var nextId = 1;
 
-      results.forEach(function(result) {
+      searchData.forEach(function(result) {
         var locations = result.locations.map(function(location) {
           return location.textAndCountry;
         }).join(', ');
@@ -145,10 +186,10 @@ var exportTransform = (function() {
           value: linkPrefix + result.link
         });
 
-        data.push(item);
+        exportData.push(item);
       });
 
-      return data;
+      return exportData;
     }
   };
 });
