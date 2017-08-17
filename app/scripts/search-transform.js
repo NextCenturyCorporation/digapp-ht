@@ -212,8 +212,7 @@ var searchTransform = (function(_, commonTransforms) {
           }
           return {
             fields: fields,
-            hits: response[0].result[1].hits || [],
-            totalCount: response[0].result[1].hits ? response[0].result[1].hits.total : 0
+            hits: response[0].result[1].hits || []
           };
         }
       } else {
@@ -229,16 +228,14 @@ var searchTransform = (function(_, commonTransforms) {
           }
           return {
             fields: fields,
-            hits: response[0].result.hits || [],
-            totalCount: response[0].result.hits ? response[0].result.hits.total : 0
+            hits: response[0].result.hits || []
           };
         }
       }
 
       return {
         fields: {},
-        hits: {},
-        totalCount: 0
+        hits: {}
       };
     },
 

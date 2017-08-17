@@ -81,6 +81,8 @@ limitations under the License.
       search-parameters="[[searchParameters]]"
       search-config="[[networkExpansionParameters]]"
       search-function="[[transforms.search.adQuery]]"
+      total-count-function="[[getTotalCountFunction()]]"
+      total="{{searchTotal}}"
       url="[[config.queryUrl]]">
     </query-transformer>
 
@@ -710,7 +712,7 @@ limitations under the License.
               <div class="layout horizontal flex">
                 <div class="paper-font-title">[[recordsListTitle]]</div>
 
-                <template is="dom-if" if="[[searchResults.totalCount]]">
+                <template is="dom-if" if="[[searchTotal]]">
                   <info-search search-parameters="[[searchParameters]]"></info-search>
                 </template>
               </div>
@@ -764,7 +766,7 @@ limitations under the License.
             new-tab="true"
             text-property="title"
             query-results="{{records}}"
-            total-results="{{searchResults.totalCount}}"
+            total-results="{{searchTotal}}"
             shown-results="{{shownRecords}}"
             page="{{pageNum}}"
             page-size="25"
@@ -1034,6 +1036,18 @@ limitations under the License.
           };
         }
         return undefined;
+      };
+
+      app.getTotalCountFunction = function() {
+        return function(response) {
+          if(response && response.length && response[0] && response[0].result) {
+            if(_.isArray(response[0].result)) {
+              return (response[0].result.length && response[0].result[1].hits && response[0].result[1].hits.total ? response[0].result[1].hits.total : 0);
+            }
+            return (response[0].result.hits && response[0].result.hits.total ? response[0].result.hits.total : 0);
+          }
+          return 0;
+        };
       };
 
       /************************* START STATE HISTORY *************************/
