@@ -40,16 +40,49 @@ limitations under the License.
   suite('<bulk-search> default tests', function() {
     var element;
 
-    setup(function() {
+    setup(function(done) {
       element = fixture('bulk-search-fixture');
-      element.category = 'Telephone Number';
-      element.searchParameters = {};
+      element.searchParameters = {
+        email: {},
+        phone: {}
+      };
+      element.searchFields = [{
+        key: 'phone',
+        title: 'Telephone Number'
+      }, {
+        key: 'email',
+        title: 'Email Address'
+      }];
+      element.parameterKey = 'phone';
+      flush(done);
     });
 
-    test('default properties are correct', function() {
-      expect(element.clearFacets).to.be.true;
+    test('properties are set as expected', function() {
+      expect(element.parameterKey).to.equal('phone');
+      expect(element.searchFields).to.deep.equal([{
+        key: 'phone',
+        title: 'Telephone Number'
+      }, {
+        key: 'email',
+        title: 'Email Address'
+      }]);
+      expect(element.searchFieldsKeyProperty).to.equal('key');
+      expect(element.searchFieldsTitleProperty).to.equal('title');
+      expect(element.searchParameters).to.deep.equal({
+        email: {},
+        phone: {}
+      });
       expect(element._cleanInput).to.be.false;
-      expect(element._phoneInput).to.equal('');
+      expect(element._resetSearchParameters).to.be.true;
+      expect(element._sortedSearchFields).to.deep.equal([{
+        key: 'email',
+        title: 'Email Address'
+      }, {
+        key: 'phone',
+        title: 'Telephone Number'
+      }]);
+      expect(element._termsInput).to.equal('');
+      expect(element._uploadText).to.equal('');
     });
 
     test('does have expected UI elements', function() {
@@ -59,10 +92,24 @@ limitations under the License.
       expect(element.$$('file-upload').id).to.equal('fileUpload');
     });
 
+    test('does have expected paper elements', function() {
+      expect(element.$$('paper-dropdown-menu')).to.exist;
+      expect(element.$$('paper-listbox')).to.exist;
+      var items = Polymer.dom(element.root).querySelectorAll('paper-item');
+      expect(items.length).to.equal(2);
+      expect(items[0].id).to.equal('email');
+      expect(items[0].value).to.equal('email');
+      expect(items[0].innerHTML.indexOf('Email Address') >= 0).to.be.true;
+      expect(items[1].id).to.equal('phone');
+      expect(items[1].value).to.equal('phone');
+      expect(items[1].innerHTML.indexOf('Telephone Number') >= 0).to.be.true;
+    });
+
     test('does have terms-transformer', function() {
       expect(element.$$('terms-transformer')).to.exist;
       expect(element.$$('terms-transformer').category).to.equal('Telephone Number');
       expect(element.$$('terms-transformer').createObjectFromList).to.be.a('Function');
+      expect(element.$$('terms-transformer').searchDefaultValue).to.equal('optional');
     });
 
     test('does have expected behaviors', function() {
@@ -70,42 +117,54 @@ limitations under the License.
       expect(element.getUnformattedPhones).to.be.a('Function');
     });
 
-    test('_createCleanListener.onClick does nothing if _phoneInput is blank', function() {
+    test('_createCleanListener.onClick does nothing if _termsInput is blank', function() {
+      element._termsInput = '';
       element._cleanInput = false;
-      element._phoneInput = '';
       var listener = element._createCleanListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
       expect(element._cleanInput).to.be.false;
-      expect(element._phoneInput).to.equal('');
+      expect(element._termsInput).to.equal('');
     });
 
-    test('_createCleanListener.onClick sets _phoneInput and _cleanInput', function() {
+    test('_createCleanListener.onClick does nothing if parameterKey is blank', function() {
+      element._termsInput = '1234567890';
       element._cleanInput = false;
-      element._phoneInput = '1234567890';
+      element.parameterKey = '';
+      var listener = element._createCleanListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(element._cleanInput).to.be.false;
+      expect(element._termsInput).to.equal('1234567890');
+    });
+
+    test('_createCleanListener.onClick does set _termsInput and _cleanInput', function() {
+      element._termsInput = '1234567890';
+      element._cleanInput = false;
       var listener = element._createCleanListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
       expect(element._cleanInput).to.be.true;
-      expect(element._phoneInput).to.equal('1234567890');
+      expect(element._termsInput).to.equal('1234567890');
     });
 
-    test('_createCleanListener.onClick sets _phoneInput with clean phone input', function() {
+    test('_createCleanListener.onClick does set _termsInput with clean phone input', function() {
+      element._termsInput = '(123)-456-7890 111.222.3333';
       element._cleanInput = false;
-      element._phoneInput = '(123)-456-7890 111.222.3333';
       var listener = element._createCleanListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
       expect(element._cleanInput).to.be.true;
-      expect(element._phoneInput).to.equal('1234567890\n1112223333');
+      expect(element._termsInput).to.equal('1234567890\n1112223333');
     });
 
-    test('_createSearchListener.onClick sets searchParameters.phone and clears _phoneInput', function() {
+    test('_createSearchListener.onClick does set searchParameters.phone and clear _termsInput', function() {
+      element._termsInput = '1234567890';
       element._cleanInput = true;
-      element._phoneInput = '1234567890';
       var listener = element._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
@@ -119,16 +178,26 @@ limitations under the License.
           text: '1234567890'
         }
       });
-      expect(element._phoneInput).to.equal('');
+      expect(element._termsInput).to.equal('');
     });
 
-    test('_createSearchListener.onClick does nothing if _phoneInput is blank', function() {
-      element._phoneInput = '';
+    test('_createSearchListener.onClick does nothing if _termsInput is blank', function() {
+      element._termsInput = '';
       var listener = element._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(element.searchParameters.phone).to.not.exist;
+      expect(element.searchParameters.phone).to.deep.equal({});
+    });
+
+    test('_createSearchListener.onClick does nothing if parameterKey is blank', function() {
+      element._termsInput = '1234567890';
+      element.parameterKey = '';
+      var listener = element._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(element.searchParameters.phone).to.deep.equal({});
     });
 
     test('_createSearchListener.onClick does nothing if _cleanInput is false', function() {
@@ -137,16 +206,17 @@ limitations under the License.
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(element.searchParameters.phone).to.not.exist;
+      expect(element.searchParameters.phone).to.deep.equal({});
     });
 
-    test('_createSearchListener.onClick sets searchParameters.phone and clears _phoneInput', function() {
+    test('_createSearchListener.onClick does set searchParameters.phone and clear _termsInput', function() {
+      element._termsInput = '1234567890\n1112223333';
       element._cleanInput = true;
-      element._phoneInput = '1234567890\n1112223333';
       var listener = element._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
+      expect(element.searchParameters.email).to.deep.equal({});
       expect(element.searchParameters.phone).to.deep.equal({
         1234567890: {
           category: 'Telephone Number',
@@ -163,10 +233,38 @@ limitations under the License.
           text: '1112223333'
         }
       });
-      expect(element._phoneInput).to.equal('');
+      expect(element._termsInput).to.equal('');
     });
 
-    test('_createSearchListener.onClick with clearFacets clears and resets searchParameters', function() {
+    test('_createSearchListener.onClick does set searchParameters.email if parameterKey=email', function() {
+      element.parameterKey = 'email';
+      element._termsInput = 'abc@gmail.com\nxyz@yahoo.com';
+      element._cleanInput = true;
+      var listener = element._createSearchListener();
+      expect(listener).to.be.an('Object');
+      expect(listener.onClick).to.be.a('Function');
+      listener.onClick();
+      expect(element.searchParameters.phone).to.deep.equal({});
+      expect(element.searchParameters.email).to.deep.equal({
+        'abc@gmail.com': {
+          category: 'Email Address',
+          enabled: true,
+          key: 'abc@gmail.com',
+          search: 'optional',
+          text: 'abc@gmail.com'
+        },
+        'xyz@yahoo.com': {
+          category: 'Email Address',
+          enabled: true,
+          key: 'xyz@yahoo.com',
+          search: 'optional',
+          text: 'xyz@yahoo.com'
+        }
+      });
+      expect(element._termsInput).to.equal('');
+    });
+
+    test('_createSearchListener.onClick with _resetSearchParameters does clear searchParameters', function() {
       element.searchParameters = {
         key1: {
           property: 'value1'
@@ -174,8 +272,8 @@ limitations under the License.
         key2: 'value2',
         phone: 'phone'
       };
+      element._termsInput = '1234567890';
       element._cleanInput = true;
-      element._phoneInput = '1234567890';
       var listener = element._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
@@ -191,11 +289,11 @@ limitations under the License.
       });
       expect(element.searchParameters.key1).to.not.exist;
       expect(element.searchParameters.key2).to.not.exist;
-      expect(element._phoneInput).to.equal('');
+      expect(element._termsInput).to.equal('');
     });
 
-    test('_createSearchListener.onClick without clearFacets only sets searchParameters.phone', function() {
-      element.clearFacets = false;
+    test('_createSearchListener.onClick without _resetSearchParameters does only set searchParameters.phone', function() {
+      element._resetSearchParameters = false;
       element.searchParameters = {
         key1: {
           property: 'value1'
@@ -203,8 +301,8 @@ limitations under the License.
         key2: 'value2',
         phone: 'phone'
       };
+      element._termsInput = '1234567890';
       element._cleanInput = true;
-      element._phoneInput = '1234567890';
       var listener = element._createSearchListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
@@ -224,40 +322,187 @@ limitations under the License.
           }
         }
       });
-      expect(element._phoneInput).to.equal('');
+      expect(element._termsInput).to.equal('');
     });
 
-    test('_createResetListener.onClick resets _phoneInput', function() {
-      element._phoneInput = '1234567890';
+    test('_createResetListener.onClick does clear _termsInput', function() {
+      element._termsInput = '1234567890';
       var listener = element._createResetListener();
       expect(listener).to.be.an('Object');
       expect(listener.onClick).to.be.a('Function');
       listener.onClick();
-      expect(element._phoneInput).to.equal('');
+      expect(element._termsInput).to.equal('');
     });
 
-    test('_handlePhoneInputChange sets _cleanInput to false', function() {
+    test('_disableCleanButton does return as expected', function() {
+      expect(element._disableCleanButton('key', 'terms')).to.be.false;
+      expect(element._disableCleanButton('key', '')).to.be.true;
+      expect(element._disableCleanButton('', 'terms')).to.be.true;
+      expect(element._disableCleanButton('', '')).to.be.true;
+    });
+
+    test('_getButtonStyleClass does return as expected for clean', function() {
+      expect(element._getButtonStyleClass('clean', true, 'key', 'terms')).to.equal('');
+      expect(element._getButtonStyleClass('clean', true, 'key', '')).to.equal('');
+      expect(element._getButtonStyleClass('clean', true, '', 'terms')).to.equal('');
+      expect(element._getButtonStyleClass('clean', true, '', '')).to.equal('');
+      expect(element._getButtonStyleClass('clean', false, 'key', 'terms')).to.equal('active');
+      expect(element._getButtonStyleClass('clean', false, 'key', '')).to.equal('');
+      expect(element._getButtonStyleClass('clean', false, '', 'terms')).to.equal('');
+      expect(element._getButtonStyleClass('clean', false, '', '')).to.equal('');
+    });
+
+    test('_getButtonStyleClass does return as expected for search', function() {
+      expect(element._getButtonStyleClass('search', true, 'key', 'terms')).to.equal('active');
+      expect(element._getButtonStyleClass('search', true, 'key', '')).to.equal('');
+      expect(element._getButtonStyleClass('search', true, '', 'terms')).to.equal('');
+      expect(element._getButtonStyleClass('search', true, '', '')).to.equal('');
+      expect(element._getButtonStyleClass('search', false, 'key', 'terms')).to.equal('');
+      expect(element._getButtonStyleClass('search', false, 'key', '')).to.equal('');
+      expect(element._getButtonStyleClass('search', false, '', 'terms')).to.equal('');
+      expect(element._getButtonStyleClass('search', false, '', '')).to.equal('');
+    });
+
+    test('_getCategory does return as expected', function() {
+      expect(element._getCategory([])).to.not.exist;
+      expect(element._getCategory([{
+        key: 1,
+        title: 'a'
+      }, {
+        key: 2,
+        title: 'b'
+      }], 'key', 'title', 0)).to.not.exist;
+      expect(element._getCategory([{
+        key: 1,
+        title: 'a'
+      }], 'key', 'title', 1)).to.equal('a');
+      expect(element._getCategory([{
+        key: 1,
+        title: 'a'
+      }, {
+        key: 2,
+        title: 'b'
+      }], 'key', 'title', 1)).to.equal('a');
+      expect(element._getCategory([{
+        key: 1,
+        title: 'a'
+      }, {
+        key: 2,
+        title: 'b'
+      }], 'key', 'title', 2)).to.equal('b');
+      expect(element._getCategory([{
+        id: 1,
+        name: 'a'
+      }, {
+        id: 2,
+        name: 'b'
+      }], 'id', 'name', 1)).to.equal('a');
+    });
+
+    test('_getProperty does return as expected', function() {
+      expect(element._getProperty).to.be.a('Function');
+      expect(element._getProperty({}, 'property')).to.not.exist;
+      expect(element._getProperty({
+        property: 'text'
+      }, 'notproperty')).to.not.exist;
+      expect(element._getProperty({
+        notproperty: 'text'
+      }, 'property')).to.not.exist;
+      expect(element._getProperty({
+        property: 'text'
+      }, 'property')).to.equal('text');
+      expect(element._getProperty({
+        property: 10
+      }, 'property')).to.equal(10);
+      expect(element._getProperty({
+        property: true
+      }, 'property')).to.be.true;
+      expect(element._getProperty({
+        property: [1, 2, 3, 4, 5]
+      }, 'property')).to.deep.equal([1, 2, 3, 4, 5]);
+      expect(element._getProperty({
+        property: {
+          key: 'value'
+        }
+      }, 'property')).to.deep.equal({
+        key: 'value'
+      });
+    });
+
+    test('_getWarningMessageStyleClass does return as expected', function() {
+      expect(element._getWarningMessageStyleClass(false, 'terms')).to.equal('warning message');
+      expect(element._getWarningMessageStyleClass(false, '')).to.equal('hide');
+      expect(element._getWarningMessageStyleClass(true, 'terms')).to.equal('hide');
+      expect(element._getWarningMessageStyleClass(true, '')).to.equal('hide');
+      expect(element._getWarningMessageStyleClass('', 'terms')).to.equal('warning message');
+      expect(element._getWarningMessageStyleClass('', '')).to.equal('hide');
+      expect(element._getWarningMessageStyleClass('input', 'terms')).to.equal('hide');
+      expect(element._getWarningMessageStyleClass('input', '')).to.equal('hide');
+    });
+
+    test('_handleParameterKeyOrTermsInputChange does set _cleanInput to false', function() {
       element._cleanInput = true;
-      element._handlePhoneInputChange();
+      element._handleParameterKeyOrTermsInputChange();
       expect(element._cleanInput).to.be.false;
     });
 
-    test('_setPhoneInputToFileText sets _phoneInput', function() {
-      element._setPhoneInputToFileText({
+    test('_setTermsInputWithFileText does set _termsInput', function() {
+      element._setTermsInputWithFileText({
         detail: {
           xhr: {
             response: '1234567890'
           }
         }
       });
-      expect(element._phoneInput).to.equal('1234567890');
+      expect(element._termsInput).to.equal('1234567890');
     });
 
-    test('_showOrHideCleanWarning returns correct value', function() {
-      expect(element._showOrHideCleanWarning(false, false)).to.equal('hide');
-      expect(element._showOrHideCleanWarning(false, true)).to.equal('');
-      expect(element._showOrHideCleanWarning(true, false)).to.equal('hide');
-      expect(element._showOrHideCleanWarning(true, true)).to.equal('hide');
+    test('_setUploadErrorMessage does set _uploadText', function() {
+      element._setUploadErrorMessage();
+      expect(element._uploadText).to.equal('File upload failed!');
+    });
+
+    test('_sortSearchFields does return as expected', function() {
+      expect(element._sortSearchFields([{
+        title: 'a'
+      }], 'title')).to.deep.equal([{
+        title: 'a'
+      }]);
+
+      expect(element._sortSearchFields([{
+        title: 'a'
+      }, {
+        title: 'b'
+      }], 'title')).to.deep.equal([{
+        title: 'a'
+      }, {
+        title: 'b'
+      }]);
+
+      expect(element._sortSearchFields([{
+        title: 'b'
+      }, {
+        title: 'a'
+      }], 'title')).to.deep.equal([{
+        title: 'a'
+      }, {
+        title: 'b'
+      }]);
+
+      expect(element._sortSearchFields([{
+        name: 'b'
+      }, {
+        name: 'a'
+      }], 'name')).to.deep.equal([{
+        name: 'a'
+      }, {
+        name: 'b'
+      }]);
+    });
+
+    test('_yesOrNo does return as expected', function() {
+      expect(element._yesOrNo(true)).to.equal('Yes');
+      expect(element._yesOrNo(false)).to.equal('No');
     });
 
     test('open() opens the dialog', function(done) {
@@ -268,6 +513,38 @@ limitations under the License.
         expect(dialog.opened).to.be.true;
         done();
       });
+    });
+
+    test('setting parameterKey does set _cleanInput to false and update the terms-transformer', function() {
+      element._cleanInput = true;
+      element.parameterKey = 'email';
+      expect(element._cleanInput).to.be.false;
+      expect(element.$$('terms-transformer').category).to.equal('Email Address');
+
+      element._cleanInput = true;
+      element.parameterKey = 'phone';
+      expect(element._cleanInput).to.be.false;
+      expect(element.$$('terms-transformer').category).to.equal('Telephone Number');
+    });
+
+    test('setting searchFields does update _sortedSearchFields and the paper-item elements', function() {
+      element.searchFields = [{
+        key: 2,
+        title: 'b'
+      }, {
+        key: 1,
+        title: 'a'
+      }];
+
+      expect(element._sortedSearchFields).to.deep.equal([{
+        key: 1,
+        title: 'a'
+      }, {
+        key: 2,
+        title: 'b'
+      }]);
+
+      // TODO
     });
   });
 </script>

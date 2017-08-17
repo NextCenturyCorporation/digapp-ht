@@ -17,6 +17,7 @@ limitations under the License.
 <link rel="import" href="../../bower_components/polymer/polymer.html">
 <link rel="import" href="../../bower_components/button-action/button-action.html">
 <link rel="import" href="../../bower_components/file-upload/file-upload.html">
+<link rel="import" href="../../bower_components/fontawesome-iconset/fa-all.html">
 <link rel="import" href="../../bower_components/iron-flex-layout/iron-flex-layout-classes.html">
 <link rel="import" href="../../bower_components/iron-icons/iron-icons.html">
 <link rel="import" href="../../bower_components/paper-input/paper-textarea.html">
@@ -44,6 +45,28 @@ limitations under the License.
         display: none;
       }
 
+      paper-dropdown-menu {
+        --paper-dropdown-menu-input: {
+          width: 400px;
+        };
+        --paper-menu-button-dropdown: {
+          width: 400px;
+        }
+      }
+
+      paper-listbox {
+        --paper-listbox: {
+          padding: 0;
+        };
+      }
+
+      paper-item {
+        --paper-item: {
+          cursor: pointer;
+          white-space: nowrap;
+        }
+      }
+
       /* Apply DIG Element button styling to the file upload button. */
       file-upload ::content paper-button {
         @apply(--shadow-elevation-4dp);
@@ -61,11 +84,19 @@ limitations under the License.
       file-upload ::content #UploadBorder {
         margin: 10px;
       }
+
+      button-action.active ::content paper-button {
+        background-color: #00ff00;
+      }
+
+      .warning.message {
+        color: #ff0000;
+      }
     </style>
 
-    <terms-transformer category="[[category]]" search-default-value="optional"></terms-transformer>
+    <terms-transformer category="[[_getCategory(searchFields, searchFieldsKeyProperty, searchFieldsTitleProperty, parameterKey)]]" search-default-value="optional"></terms-transformer>
 
-    <styled-dialog id="bulkSearchDialog" header="Upload or Enter Multiple Telephone Numbers" fill>
+    <styled-dialog id="bulkSearchDialog" header="Upload or Enter Search Terms" fill>
       <div class="layout horizontal">
         <div class="layout vertical styled-dialog-right-space">
           <span class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Instructions</span>
@@ -73,7 +104,7 @@ limitations under the License.
           <span class="styled-dialog-name styled-dialog-tall styled-dialog-right-space">Supported delimiters</span>
         </div>
         <div class="layout vertical">
-          <span class="styled-dialog-tall styled-dialog-text">Please enter or paste telephone numbers in the text box below or upload your own files.</span>
+          <span class="styled-dialog-tall styled-dialog-text">Please enter or paste search terms in the text box below or upload your own files.</span>
           <span class="styled-dialog-tall styled-dialog-text">plain text files (including .csv and .txt)</span>
           <span class="styled-dialog-tall styled-dialog-text">commas, semicolons, whitespace (including spaces, tabs, and newlines)</span>
         </div>
@@ -81,15 +112,25 @@ limitations under the License.
 
       <div class="styled-dialog-divider"></div>
 
+      <paper-dropdown-menu class="layout horizontal" label="Field" invalid="[[!parameterKey]]" no-label-float>
+        <paper-listbox class="dropdown-content" attr-for-selected="value" selected="{{parameterKey}}">
+          <template is="dom-repeat" items="[[_sortedSearchFields]]">
+            <paper-item role="menuitem" id$="[[_getProperty(item, searchFieldsKeyProperty)]]" value="[[_getProperty(item, searchFieldsKeyProperty)]]">
+              <span>[[_getProperty(item, searchFieldsTitleProperty)]]</span>
+            </paper-item>
+          </template>
+        </paper-listbox>
+      </paper-dropdown-menu>
+
       <div class="layout horizontal">
-        <span class="styled-dialog-tall styled-dialog-text styled-dialog-right-space">Clear all selected search facets?</span>
-        <span class="styled-dialog-tall styled-dialog-text styled-dialog-right-space">[[_yesOrNo(clearFacets)]]</span>
-        <paper-toggle-button checked="{{clearFacets}}" title="Clear all selected search facets"></paper-toggle-button>
+        <span class="styled-dialog-tall styled-dialog-text styled-dialog-right-space">Reset Search Terms?</span>
+        <span class="styled-dialog-tall styled-dialog-text styled-dialog-right-space">[[_yesOrNo(_resetSearchParameters)]]</span>
+        <paper-toggle-button checked="{{_resetSearchParameters}}" title="Reset Search Terms"></paper-toggle-button>
       </div>
 
       <div class="styled-dialog-divider"></div>
 
-      <paper-textarea label="Enter or Paste Telephone Numbers" value="{{_phoneInput}}" no-label-float on-input="_handlePhoneInputChange"></paper-textarea>
+      <paper-textarea label="Enter or Paste Search Terms" value="{{_termsInput}}" no-label-float on-input="_handleParameterKeyOrTermsInputChange"></paper-textarea>
 
       <div class="layout horizontal center">
         <file-upload
@@ -100,18 +141,41 @@ limitations under the License.
           target="/upload"
           on-before-upload="_clearFileList"
           on-error="_setUploadErrorMessage"
-          on-success="_setPhoneInputToFileText">Upload File...
+          on-success="_setTermsInputWithFileText">Upload File...
         </file-upload>
 
         <span class="styled-dialog-text">[[_uploadText]]</span>
       </div>
 
       <div class="layout horizontal">
-        <button-action class="styled-dialog-tall styled-dialog-right-space" text="Clean" click-listener="[[_createCleanListener()]]"></button-action>
-        <button-action class="styled-dialog-tall styled-dialog-right-space" disabled$="[[!_cleanInput]]" text="Search" click-listener="[[_createSearchListener()]]"></button-action>
-        <button-action class="styled-dialog-tall styled-dialog-right-space" text="Reset" click-listener="[[_createResetListener()]]"></button-action>
-        <iron-icon class$="[[_showOrHideCleanWarning(_cleanInput, _phoneInput)]]" icon="icons:warning"></iron-icon>
-        <span class$="styled-dialog-tall styled-dialog-text [[_showOrHideCleanWarning(_cleanInput, _phoneInput)]]">You must Clean before you may Search.</span>
+        <button-action
+          class$="styled-dialog-tall styled-dialog-right-space [[_getButtonStyleClass('clean', _cleanInput, parameterKey, _termsInput)]]"
+          disabled="[[_disableCleanButton(parameterKey, _termsInput)]]"
+          icon="fa:wrench"
+          text="Clean"
+          click-listener="[[_createCleanListener()]]">
+        </button-action>
+
+        <button-action
+          class$="styled-dialog-tall styled-dialog-right-space [[_getButtonStyleClass('search', _cleanInput, parameterKey, _termsInput)]]"
+          disabled="[[!_cleanInput]]"
+          icon="fa:search"
+          text="Search"
+          click-listener="[[_createSearchListener()]]">
+        </button-action>
+
+        <button-action
+          class="styled-dialog-tall styled-dialog-right-space"
+          icon="fa:undo"
+          text="Reset"
+          click-listener="[[_createResetListener()]]">
+        </button-action>
+
+        <iron-icon class$="[[_getWarningMessageStyleClass(parameterKey, _termsInput)]]" icon="icons:warning"></iron-icon>
+        <span class$="styled-dialog-tall styled-dialog-text [[_getWarningMessageStyleClass(parameterKey, _termsInput)]]">You must select a Field before you may Search.</span>
+
+        <iron-icon class$="[[_getWarningMessageStyleClass(_cleanInput, _termsInput)]]" icon="icons:warning"></iron-icon>
+        <span class$="styled-dialog-tall styled-dialog-text [[_getWarningMessageStyleClass(_cleanInput, _termsInput)]]">You must Clean before you may Search.</span>
       </div>
     </styled-dialog>
   </template>
@@ -128,25 +192,14 @@ limitations under the License.
 
       properties: {
         /**
-         * The category of the phone search parameters.
+         * The chosen key in the `searchParameters`.
          *
          * @type {String}
-         * @default ''
          */
-        category: {
+        parameterKey: {
+          observer: '_handleParameterKeyOrTermsInputChange',
           type: String,
           value: ''
-        },
-
-        /**
-         * Whether to clear all selected facets whenever a search is run.
-         *
-         * @type {Boolean}
-         * @default true
-         */
-        clearFacets: {
-          type: Boolean,
-          value: true
         },
 
         /**
@@ -155,8 +208,39 @@ limitations under the License.
          * @type {Boolean}
          */
         processRequest: {
-          type: Boolean,
-          notify: true
+          notify: true,
+          type: Boolean
+        },
+
+        /**
+         * The list of search field objects to show in the dropdown menu.
+         *
+         * @type {Array}
+         */
+        searchFields: {
+          type: Array
+        },
+
+        /**
+         * The property in the search field objects for the key.
+         *
+         * @type {String}
+         * @default 'key'
+         */
+        searchFieldsKeyProperty: {
+          type: String,
+          value: 'key'
+        },
+
+        /**
+         * The property in the search field objects for the title.
+         *
+         * @type {String}
+         * @default 'title'
+         */
+        searchFieldsTitleProperty: {
+          type: String,
+          value: 'title'
         },
 
         /**
@@ -165,12 +249,12 @@ limitations under the License.
          * @type {Object}
          */
         searchParameters: {
-          type: Object,
-          notify: true
+          notify: true,
+          type: Object
         },
 
         /**
-         * Whether the phone input is clean.
+         * Whether the terms input is clean.
          *
          * @type {Boolean}
          * @default false
@@ -182,13 +266,35 @@ limitations under the License.
         },
 
         /**
-         * The phone input for the dialog.
+         * Whether to reset all the searchParameters whenever a search is run.
+         *
+         * @type {Boolean}
+         * @default true
+         */
+        _resetSearchParameters: {
+          type: Boolean,
+          value: true
+        },
+
+        /**
+         * The sorted list of search fields.
+         *
+         * @type {Array}
+         * @private
+         */
+        _sortedSearchFields: {
+          computed: '_sortSearchFields(searchFields, searchFieldsTitleProperty)',
+          type: Array
+        },
+
+        /**
+         * The terms input for the dialog.
          *
          * @type {String}
          * @default ''
          * @private
          */
-        _phoneInput: {
+        _termsInput: {
           type: String,
           value: ''
         },
@@ -226,9 +332,12 @@ limitations under the License.
         var self = this;
         return {
           onClick: function() {
-            if(self._phoneInput) {
-              // From DigBehaviors.PhoneBehavior
-              self._phoneInput = self.getUnformattedPhones(self._phoneInput);
+            if(self.parameterKey && self._termsInput) {
+              // TODO Clean other types?
+              if(self.parameterKey === 'phone') {
+                // From DigBehaviors.PhoneBehavior
+                self._termsInput = self.getUnformattedPhones(self._termsInput);
+              }
               self._cleanInput = true;
             }
           }
@@ -245,23 +354,22 @@ limitations under the License.
         var self = this;
         return {
           onClick: function() {
-            if(self._phoneInput && self._cleanInput) {
+            if(self.parameterKey && self._termsInput && self._cleanInput) {
               var termsTransformer = self.$$('terms-transformer');
-              var phoneArray = self._phoneInput.replace(/\n/g, ' ').split(' ');
-              var phoneParameter = termsTransformer.createObjectFromList(phoneArray);
+              var termsArray = self._termsInput.replace(/\n/g, ' ').split(' ');
+              var termsParameter = termsTransformer.createObjectFromList(termsArray);
               self.$$('#bulkSearchDialog').close();
               self.set('processRequest', false);
-              if(self.clearFacets) {
+              if(self._resetSearchParameters) {
+                var parameters = {};
+                parameters[self.parameterKey] = termsParameter;
                 // From DigBehaviors.StateBehavior
-                self.set('searchParameters', self.buildSearchState({
-                  phone: phoneParameter,
-                  sort: self.searchParameters.sort
-                }));
+                self.set('searchParameters', self.buildSearchState(parameters));
               } else {
-                self.set('searchParameters.phone', phoneParameter);
+                self.set('searchParameters.' + self.parameterKey, termsParameter);
               }
               self.set('processRequest', true);
-              self.set('_phoneInput', '');
+              self.set('_termsInput', '');
               self.set('_uploadText', '');
               self.$$('#fileUpload').clear();
             }
@@ -280,7 +388,7 @@ limitations under the License.
         return {
           onClick: function() {
             self.set('_uploadText', '');
-            self.set('_phoneInput', '');
+            self.set('_termsInput', '');
             self.set('_cleanInput', false);
             self.$$('#fileUpload').clear();
           }
@@ -288,24 +396,99 @@ limitations under the License.
       },
 
       /**
-       * Handles change in the phone input.  Sets _cleanInput to false.
+       * Returns whether to disable the clean button.
+       *
+       * @param {String} parameterKey
+       * @param {String} termsInput
+       * @return {Boolean}
+       * @private
+       */
+      _disableCleanButton: function(parameterKey, termsInput) {
+        return !parameterKey || !termsInput;
+      },
+
+      /**
+       * Returns the style class for the button of the given type.
+       *
+       * @param {String} type
+       * @param {Boolean} cleanInput
+       * @param {String} parameterKey
+       * @param {String} termsInput
+       * @return {String}
+       * @private
+       */
+      _getButtonStyleClass: function(type, cleanInput, parameterKey, termsInput) {
+        if(type === 'clean') {
+          return (!!termsInput && !!parameterKey && !cleanInput ? 'active' : '');
+        }
+        if(type === 'search') {
+          return (!!termsInput && !!parameterKey && cleanInput ? 'active' : '');
+        }
+        return '';
+      },
+
+      /**
+       * Returns the category of the search field with the given parameter key.
+       *
+       * @param {Array} searchFields
+       * @param {String} keyProperty
+       * @param {String} titleProperty
+       * @param {String} parameterKey
+       * @return {String}
+       * @private
+       */
+      _getCategory: function(searchFields, keyProperty, titleProperty, parameterKey) {
+        for(var i = 0; i < searchFields.length; ++i) {
+          if(searchFields[i][keyProperty] === parameterKey) {
+            return searchFields[i][titleProperty];
+          }
+        }
+        return undefined;
+      },
+
+      /**
+       * Returns the given property in the given item.
+       *
+       * @param {Object} item
+       * @param {String} property
+       * @return {Object}
+       * @private
+       */
+      _getProperty: function(item, property) {
+        return item[property];
+      },
+
+      /**
+       * Returns the style class for whether to show or hide the warning message icon and text.
+       *
+       * @param {Boolean|String} prerequisite
+       * @param {String} termsInput
+       * @return {String}
+       * @private
+       */
+      _getWarningMessageStyleClass: function(prerequisite, termsInput) {
+        return (!prerequisite && termsInput) ? 'warning message' : 'hide';
+      },
+
+      /**
+       * Handles change in the parameter key or terms input.  Sets _cleanInput to false.
        *
        * @private
        */
-      _handlePhoneInputChange: function() {
+      _handleParameterKeyOrTermsInputChange: function() {
         this._cleanInput = false;
       },
 
       /**
-       * Sets the phone input in the dialog with the file text.
+       * Sets the terms input in the dialog with the file text.
        *
        * @event success
        * @private
        */
-      _setPhoneInputToFileText: function(event) {
+      _setTermsInputWithFileText: function(event) {
         if(event.detail && event.detail.xhr && event.detail.xhr.response) {
           this._uploadText = 'File upload successful!';
-          this._phoneInput = (this._phoneInput || '') + event.detail.xhr.response;
+          this._termsInput = (this._termsInput || '') + event.detail.xhr.response;
           this._cleanInput = false;
         }
       },
@@ -321,15 +504,18 @@ limitations under the License.
       },
 
       /**
-       * Returns the style class for whether to show or hide the clean warning text.
+       * Returns the sorted list of search fields.
        *
-       * @param {Boolean} cleanInput
-       * @param {String} phoneInput
-       * @return {String}
+       * @param {Array} searchFields
+       * @param {String} titleProperty
+       * @return {Array}
        * @private
        */
-      _showOrHideCleanWarning: function(cleanInput, phoneInput) {
-        return (!cleanInput && phoneInput) ? '' : 'hide';
+      _sortSearchFields: function(searchFields, titleProperty) {
+        // Use concat to create a copy.
+        return searchFields.concat().sort(function(a, b) {
+          return a[titleProperty].localeCompare(b[titleProperty]);
+        });
       },
 
       /**
