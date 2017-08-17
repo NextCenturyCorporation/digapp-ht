@@ -252,7 +252,7 @@ var searchTransform = (function(_, commonTransforms) {
       var selects;
 
       if(predicate) {
-        var selects = [{
+        selects = [{
           'function': 'count',
           type: 'function',
           variable: '?' + predicate
