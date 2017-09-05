@@ -14,6 +14,10 @@ The following software licenses apply to the listed third-party dependencies:
 - Copyright (c) 2016 Elasticsearch BV
 - https://raw.githubusercontent.com/elastic/bower-elasticsearch-js/master/elasticsearch.js
 
+#### vaadin-date-picker
+- Copyright 2014-2016 Vaadin Ltd.
+- https://github.com/vaadin/vaadin-date-picker/blob/master/LICENSE
+
 ### BSD 2-Clause
 
 [License](https://github.com/NextCenturyCorporation/digapp-ht/blob/master/THIRD-PARTY-LICENSES/BSD-2-CLAUSE)

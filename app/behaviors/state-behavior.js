@@ -167,16 +167,14 @@ DigBehaviors.StateBehavior = {
    * @param {String} key
    * @param {String} title
    * @param {String} field
-   * @param {String} dateIdentifier
    * @return {Object}
    */
-  createDateField: function(key, title, field, dateIdentifier) {
+  createDateField: function(key, title, field) {
     return {
       key: key,
       title: title,
       aggregationField: field,
-      queryField: field,
-      dateIdentifier: dateIdentifier
+      queryField: field
     };
   },
 
