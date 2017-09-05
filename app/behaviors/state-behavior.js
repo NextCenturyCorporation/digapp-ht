@@ -102,6 +102,7 @@ DigBehaviors.StateBehavior = {
       services: config.services || {},
       social: config.social || {},
       title: config.title || {},
+      url: config.url || {},
       website: config.website || {},
       weight: config.weight || {}
     };
@@ -207,6 +208,7 @@ DigBehaviors.StateBehavior = {
       services: false,
       social: false,
       title: false,
+      url: false,
       website: false,
       weight: false
     };
@@ -236,6 +238,7 @@ DigBehaviors.StateBehavior = {
       case 'services': return 'Services Provided';
       case 'social': return 'Social Media ID';
       case 'title': return 'Title';
+      case 'url': return 'URL';
       case 'website': return 'Website';
       case 'weight': return 'Weight of Provider';
     }

@@ -87,7 +87,7 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       type: extractionType
     };
 
-    if(item.provenance) {
+    if(item.provenance && item.provenance.length) {
       extraction.provenances = item.provenance.map(function(provenance) {
         return {
           method: (provenance.method || 'Not Available') + (provenance.source && provenance.source.segment ? ' from ' + provenance.source.segment : ''),
