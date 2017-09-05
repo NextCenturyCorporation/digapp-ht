@@ -147,14 +147,16 @@ DigBehaviors.StateBehavior = {
    * @param {String} title
    * @param {String} aggregationField
    * @param {String} queryField
+   * @param {Boolean} enableNetworkExpansion
    * @return {Object}
    */
-  createStringField: function(key, title, aggregationField, queryField) {
+  createStringField: function(key, title, aggregationField, queryField, enableNetworkExpansion) {
     return {
       key: key,
       title: title,
       aggregationField: aggregationField,
-      queryField: queryField || aggregationField
+      queryField: queryField || aggregationField,
+      enableNetworkExpansion: enableNetworkExpansion || false
     };
   },
 
