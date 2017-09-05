@@ -70,7 +70,7 @@ var searchTransform = (function(_, commonTransforms) {
 
               andFilter.clauses.push({
                 constraint: searchParameters[type][term].date,
-                operator: term === 'dateStart' ? '>' : '<',
+                operator: term === 'dateStart' ? '>=' : '<=',
                 variable: '?date1'
               });
             } else if(predicate && searchParameters[type][term].search === 'excluded') {
