@@ -70,13 +70,6 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <template is="dom-if" if="[[config.imageConfig]]">
-      <elastic-client
-        config="[[config.imageConfig]]"
-        client="{{imageClient}}">
-      </elastic-client>
-    </template>
-
     <!-- Offer query -->
 
     <build-and-run-query
@@ -89,7 +82,7 @@ limitations under the License.
       filters="[]"
       page-size="1"
       properties-ready="{{processRequest}}"
-      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
       transform-function="[[transforms.offer.offer]]"
       error="{{error}}"
       loading="{{loading}}"
@@ -141,7 +134,7 @@ limitations under the License.
       filters="[[buildArray(notThisAdFilter)]]"
       page="{{revisionAdDataPage}}"
       page-size="25"
-      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
       loading="{{revisionAdDataLoading}}"
       last-error="{{revisionAdDataError}}"
       results="{{revisionAdDataResults}}"
@@ -173,7 +166,7 @@ limitations under the License.
       filters="[[buildArray(notThisAdFilter)]]"
       page="{{similarOfferPage}}"
       page-size="25"
-      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
       loading="{{similarOfferLoading}}"
       last-error="{{similarOfferError}}"
       results="{{similarOfferResults}}"
@@ -472,24 +465,23 @@ limitations under the License.
                 icon="image:photo"
                 style-class="entity-light-blue"
                 transform-config="[[loadedImages.length]]"
-                transform-function="[[transforms.image.imageTitle]]"
+                transform-function="[[transforms.offer.offerImageTitle]]"
                 data="[[images]]">
 
                 <image-query-and-display
-                  aggregation-field="url.raw"
+                  aggregation-field="objects.obj_stored_url.key"
                   aggregation-name="image"
-                  client="[[imageClient]]"
+                  client="[[esclient]]"
                   filter-list="[]"
                   header-counts-name="Shown"
                   header-entity-name="This Ad"
-                  image-id-property="source"
-                  index-name="[[config.imageIndex]]"
-                  index-types="[[config.imageType]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
                   properties-ready="[[processRequest]]"
-                  query-fields='"isImagePartOf.uri"'
-                  query-values="[[imageQueryId]]"
+                  query-fields='"doc_id"'
+                  query-values="[[params.id]]"
                   transform-config="{}"
-                  transform-function="[[transforms.image.images]]"
+                  transform-function="[[transforms.offer.offerImages]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   images="{{images}}"
@@ -537,8 +529,7 @@ limitations under the License.
 
                   <export-button
                     data="[[shownRevisions]]"
-                    download-image-url="[[config.downloadImageUrl]]"
-                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
                     transform-csv-function="[[transforms.export.createExportDataForCsv]]"
                     transform-pdf-function="[[transforms.export.createExportDataForPdf]]">
                   </export-button>
@@ -556,13 +547,6 @@ limitations under the License.
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
-                  image-aggregation-field="url.raw"
-                  image-aggregation-name="image"
-                  image-client="[[imageClient]]"
-                  image-index-name="[[config.imageIndex]]"
-                  image-index-type="[[config.imageType]]"
-                  image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"
@@ -695,8 +679,7 @@ limitations under the License.
 
                   <export-button
                     data="[[shownSimilarOffers]]"
-                    download-image-url="[[config.downloadImageUrl]]"
-                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
                     transform-csv-function="[[transforms.export.createExportDataForCsv]]"
                     transform-pdf-function="[[transforms.export.createExportDataForPdf]]">
                   </export-button>
@@ -714,13 +697,6 @@ limitations under the License.
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
-                  image-aggregation-field="url.raw"
-                  image-aggregation-name="image"
-                  image-client="[[imageClient]]"
-                  image-index-name="[[config.imageIndex]]"
-                  image-index-type="[[config.imageType]]"
-                  image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"
@@ -759,9 +735,6 @@ limitations under the License.
     if(!app.params.id && app.params.value) {
       app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
     }
-
-    // TODO
-    app.imageQueryId = 'http://dig.isi.edu/ht/data/webpage/' + app.params.id;
 
     app.buildArray = DigBehaviors.ArrayBehavior.buildArray;
 

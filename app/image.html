@@ -70,50 +70,9 @@ limitations under the License.
       client="{{esclient}}">
     </elastic-client>
 
-    <template is="dom-if" if="[[config.imageConfig]]">
-      <elastic-client
-        config="[[config.imageConfig]]"
-        client="{{imageClient}}">
-      </elastic-client>
-    </template>
-
-    <!-- Image query is built using either the ID or the URL (whatever is available in the parameters) -->
-    <elastic-client-query-builder
-      type="term"
-      fields='"identifier"'
-      values="[[params.id]]"
-      ejs-query="{{imageQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-query-builder
-      type="term"
-      fields='"url.raw"'
-      values="[[params.url]]"
-      ejs-query="{{imageQuery}}">
-    </elastic-client-query-builder>
-
-    <elastic-client-search
-      client="[[imageClient]]"
-      index="[[config.imageIndex]]"
-      elastic-types="[[config.imageType]]"
-      page-size="1"
-      query="[[imageQuery]]"
-      aggregations="[]"
-      filters="[]"
-      results="{{imageResults}}"
-      last-error="{{error}}">
-    </elastic-client-search>
-
-    <json-transform
-      data-in="[[imageResults]]"
-      data-out="{{image}}"
-      transform-function="[[transforms.image.image]]">
-    </json-transform>
-
     <build-and-run-query
-      type="terms"
-      fields='"doc_id"'
-      values="[[image.ads]]"
+      fields='"objects.obj_stored_url"'
+      values="[[params.id]]"
       client="[[esclient]]"
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
@@ -123,7 +82,7 @@ limitations under the License.
       page-size="25"
       properties-ready="{{processRequest}}"
       sort-field="knowledge_graph.posting_date.key"
-      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
       transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
@@ -145,8 +104,8 @@ limitations under the License.
       phone-aggregation-field="knowledge_graph.phone.key"
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="tld.raw"
-      query-field="doc_id"
-      query-value="[[image.ads]]"
+      query-field="objects.obj_stored_url"
+      query-value="[[params.id]]"
       client="[[esclient]]"
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
@@ -172,8 +131,8 @@ limitations under the License.
       phone-aggregation-field="fields.phone.key"
       publisher-aggregation-name="publishers"
       publisher-aggregation-field="tld.raw"
-      query-field="doc_id"
-      query-value="[[image.ads]]"
+      query-field="objects.obj_stored_url"
+      query-value="[[params.id]]"
       client="[[esclient]]"
       index-name="[[config.elasticIndex]]"
       index-types='["ads"]'
@@ -192,7 +151,7 @@ limitations under the License.
       es-index="[[config.logIndex]]"
       es-type="[[config.logType]]"
       type="Image-Open"
-      data="[[image.id]]"
+      data="[[params.id]]"
       username="[[config.username]]">
     </dig-logger>
 
@@ -309,7 +268,7 @@ limitations under the License.
           <template is="dom-if" if="[[annotationManager]]">
             <annotate-record client="[[esclient]]"
               annotation-manager="[[annotationManager]]"
-              item-id="[[image.id]]"
+              item-id="[[params.id]]"
               item-type="image"
               current-user="[[config.username]]">
             </annotate-record>
@@ -320,8 +279,8 @@ limitations under the License.
             user-index="[[config.userIndex]]"
             user-type="[[config.userType]]"
             user-id="[[userId]]"
-            entity-id="[[image.id]]"
-            entity-name="[[image.url]]"
+            entity-id="[[params.id]]"
+            entity-name="[[createImageUrl(params.id, config)]]"
             entity-type="image"
             run-user-query-callback="[[runUserQueryCallback]]"
             save-user-data-callback="{{saveUserDataCallback}}"
@@ -412,8 +371,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.city.key"
                   selected-property="location"
                   selected="{{filterCollection}}"
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -443,8 +402,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.phone.key"
                   selected-property="phone"
                   selected="{{filterCollection}}"
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -480,8 +439,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.email.key"
                   selected-property="email"
                   selected="{{filterCollection}}"
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -517,8 +476,8 @@ limitations under the License.
                   aggregation-field="knowledge_graph.social_media_id.key"
                   selected-property="social"
                   selected="{{filterCollection}}"
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -550,8 +509,8 @@ limitations under the License.
                   aggregation-field="fields.review_id.key"
                   selected-property="review"
                   selected="{{filterCollection}}"
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -582,8 +541,8 @@ limitations under the License.
                   aggregation-field="tld.raw"
                   selected-property="publisher"
                   selected="{{filterCollection}}"
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   index-types='["ads"]'
@@ -605,8 +564,8 @@ limitations under the License.
                 section-title="Provider Summary">
 
                 <people-features
-                  query-field="doc_id"
-                  query-value="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   client="[[esclient]]"
                   index-name="[[config.elasticIndex]]"
                   filter-list="[[filterList]]"
@@ -629,36 +588,67 @@ limitations under the License.
                 icon="image:photo-camera"
                 style-class="entity-light-blue"
                 transform-config="[[loadedImages.length]]"
-                transform-function="[[transforms.image.similarImageTitle]]"
+                transform-function="[[transforms.offer.offerImageTitle]]"
                 data="[[images]]">
 
                 <image-query-and-display
-                  aggregation-field="url.raw"
+                  aggregation-field="objects.obj_stored_url.key"
                   aggregation-name="image"
-                  client="[[imageClient]]"
+                  client="[[esclient]]"
                   filter-list="[]"
                   header-counts-name="Shown"
                   header-entity-name="This Image"
-                  image-id-property="source"
-                  index-name="[[config.imageIndex]]"
-                  index-types="[[config.imageType]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
                   properties-ready="[[processRequest]]"
-                  query-fields='"similarImageId.similarImageId"'
-                  query-values="[[image.similarImageId]]"
+                  query-fields='"objects.obj_stored_url"'
+                  query-values="[[params.id]]"
                   transform-config="{}"
-                  transform-function="[[transforms.image.images]]"
+                  transform-function="[[transforms.offer.offerImages]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   images="{{images}}"
                   loaded-images="{{loadedImages}}"
                   selected-property="image"
-                  selected="{{filterCollection}}"
+                  selected="{{filterCollection}}">
+                </image-query-and-display>
+              </section-and-title>
+
+              <!-- TODO Similar Image Section
+              <section-and-title
+                icon="image:photo-camera"
+                style-class="entity-light-blue"
+                transform-config="[[loadedImages.length]]"
+                transform-function="[[transforms.offer.offerSimilarImageTitle]]"
+                data="[[images]]">
+
+                <image-query-and-display
+                  aggregation-field="objects.similar_image_id.key"
+                  aggregation-name="image"
+                  client="[[esclient]]"
+                  filter-list="[]"
+                  header-counts-name="Shown"
+                  header-entity-name="This Image"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  properties-ready="[[processRequest]]"
+                  query-fields='"objects.obj_stored_url"'
+                  query-values="[[params.id]]"
+                  transform-config="{}"
+                  transform-function="[[transforms.offer.offerImages]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  images="{{images}}"
+                  loaded-images="{{loadedImages}}"
+                  selected-property="image"
+                  selected="{{filterCollection}}">
                 </image-query-and-display>
 
                 <template is="dom-if" if="[[images.length]]">
                   <info-similar-images></info-similar-images>
                 </template>
               </section-and-title>
+              -->
 
               <section-and-title
                 error="[[locationTimelineError]]"
@@ -682,7 +672,7 @@ limitations under the License.
             <div class="flex layout vertical">
 
               <section-container class="image-section">
-                <iron-image src="[[image.url]]" class$="layout horizontal center-justified [[getBlurStyleClass(blurImages, 'large')]]"></iron-image>
+                <iron-image src="[[createImageUrl(params.id, config)]]" class$="layout horizontal center-justified [[getBlurStyleClass(blurImages, 'large')]]"></iron-image>
               </section-container>
 
               <section-and-title
@@ -738,8 +728,8 @@ limitations under the License.
                   item-agg-field="knowledge_graph.city.key"
                   index-types='["ads"]'
                   properties-ready="[[processRequest]]"
-                  query-fields='"doc_id"'
-                  query-values="[[image.ads]]"
+                  query-field="objects.obj_stored_url"
+                  query-value="[[params.id]]"
                   filter-list="[[filterList]]"
                   transform="[[transforms.timeline.eventDropsTimeline]]"
                   transform-items-property="locations"
@@ -762,8 +752,7 @@ limitations under the License.
 
                   <export-button
                     data="[[shownOffers]]"
-                    download-image-url="[[config.downloadImageUrl]]"
-                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
                     transform-csv-function="[[transforms.export.createExportDataForCsv]]"
                     transform-pdf-function="[[transforms.export.createExportDataForPdf]]">
                   </export-button>
@@ -779,13 +768,6 @@ limitations under the License.
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
-                  image-aggregation-field="url.raw"
-                  image-aggregation-name="image"
-                  image-client="[[imageClient]]"
-                  image-index-name="[[config.imageIndex]]"
-                  image-index-type="[[config.imageType]]"
-                  image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"
@@ -836,6 +818,8 @@ limitations under the License.
     if(!app.params.id && app.params.value) {
       app.params.id = app.params.value.substring(app.params.value.lastIndexOf('/') + 1);
     }
+
+    app.params.id = decodeURIComponent(app.params.id);
 
     DigBehaviors.BrowserBehavior.removeStateParameter(window.history, window.location);
 
@@ -957,6 +941,10 @@ limitations under the License.
 
     app.getBlurStyleClass = function(blur, large) {
       return (blur ? (large ? 'large-blur' : 'small-blur') : '');
+    };
+
+    app.createImageUrl = function(id, serverConfig) {
+      return serverConfig.imageUrlPrefix + '/' + id;
     };
 
     /************************* START STATE HISTORY *************************/

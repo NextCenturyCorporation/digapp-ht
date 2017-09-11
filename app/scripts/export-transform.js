@@ -137,7 +137,7 @@ var exportTransform = (function(_) {
           images: (result.images || []).map(function(image) {
             return {
               id: 'image' + nextId++,
-              source: encodeURIComponent(image.source.replace('https://s3.amazonaws.com/', '')),
+              source: image.downloadSource,
               text: image.source
             };
           }),

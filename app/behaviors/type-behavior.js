@@ -34,13 +34,9 @@ DigBehaviors.TypeBehavior = {
     if(linkId.indexOf('http://dig.isi.edu/ht/data/') === 0) {
       linkId = decodeURIComponent(linkId.substring(linkId.lastIndexOf('/') + 1));
     }
-    if(type === 'email' || type === 'social') {
+    if(type === 'email' || type === 'image' || type === 'social') {
       linkId = encodeURIComponent(linkId);
     }
-    if(type === 'image') {
-      return '/' + type + '.html?url=' + linkId;
-    }
-
     return '/' + type + '.html?id=' + linkId;
   },
 
@@ -82,6 +78,7 @@ DigBehaviors.TypeBehavior = {
       case 'provider': return 'Provider' + (plural ? 's' : '');
       case 'review': return 'Review ID' + (plural ? 's' : '');
       case 'service': return 'Service' + (plural ? 's' : '') + ' Provided';
+      case 'similarImage': return 'Similar Image' + (plural ? 's' : '');
       case 'social': return 'Social Media ID' + (plural ? 's' : '');
       case 'website': return 'Website' + (plural ? 's' : '');
     }

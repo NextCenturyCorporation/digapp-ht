@@ -54,13 +54,6 @@
       client="{{esclient}}">
     </elastic-client>
 
-    <template is="dom-if" if="[[config.imageConfig]]">
-      <elastic-client
-        config="[[config.imageConfig]]"
-        client="{{imageClient}}">
-      </elastic-client>
-    </template>
-
     <build-and-run-query
       fields='"knowledge_graph.city.key"'
       values="[[location.id]]"
@@ -73,7 +66,7 @@
       page-size="25"
       properties-ready="{{processRequest}}"
       sort-field="knowledge_graph.posting_date.key"
-      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+      source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
       transform-function="[[transforms.offer.offers]]"
       error="{{offersError}}"
       loading="{{offersLoading}}"
@@ -586,6 +579,36 @@
               </section-and-title>
 
               <section-and-title
+                icon="image:photo-camera"
+                style-class="entity-light-blue"
+                transform-config="[[loadedImages.length]]"
+                transform-function="[[transforms.offer.offerImageTitle]]"
+                data="[[images]]">
+
+                <image-query-and-display
+                  aggregation-field="objects.obj_stored_url.key"
+                  aggregation-name="image"
+                  client="[[esclient]]"
+                  filter-list="[]"
+                  header-counts-name="Ads"
+                  header-entity-name="[[location.city]]"
+                  index-name="[[config.elasticIndex]]"
+                  index-types='["ads"]'
+                  properties-ready="[[processRequest]]"
+                  query-fields='"knowledge_graph.city.key"'
+                  query-values="[[params.id]]"
+                  transform-config="{}"
+                  transform-function="[[transforms.offer.offerImages]]"
+                  small-image-style-class="[[getBlurStyleClass(blurImages)]]"
+                  large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
+                  images="{{images}}"
+                  loaded-images="{{loadedImages}}"
+                  selected-property="image"
+                  selected="{{filterCollection}}">
+                </image-query-and-display>
+              </section-and-title>
+
+              <section-and-title
                 error="[[locationTimelineError]]"
                 icon="icons:timeline"
                 section-title="[[itineraryTitle]]">
@@ -683,8 +706,7 @@
 
                   <export-button
                     data="[[shownOffers]]"
-                    download-image-url="[[config.downloadImageUrl]]"
-                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "tld", "url"]'
+                    source-include='["content_extraction.content_strict.text", "content_extraction.title.text", "doc_id", "knowledge_graph", "objects", "tld", "url"]'
                     transform-csv-function="[[transforms.export.createExportDataForCsv]]"
                     transform-pdf-function="[[transforms.export.createExportDataForPdf]]">
                   </export-button>
@@ -700,13 +722,6 @@
                   annotation-manager="[[annotationManager]]"
                   classification-manager="[[classificationManager]]"
                   client="[[esclient]]"
-                  image-aggregation-field="url.raw"
-                  image-aggregation-name="image"
-                  image-client="[[imageClient]]"
-                  image-index-name="[[config.imageIndex]]"
-                  image-index-type="[[config.imageType]]"
-                  image-query-field="isImagePartOf.uri"
-                  image-transform-function="[[transforms.image.images]]"
                   small-image-style-class="[[getBlurStyleClass(blurImages)]]"
                   large-image-style-class="[[getBlurStyleClass(blurImages, 'large')]]"
                   text-property="title"

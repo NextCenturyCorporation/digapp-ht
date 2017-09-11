@@ -249,6 +249,27 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
     }, {});
   }
 
+  function getImages(data, sourceProperty) {
+    return data.map(function(item, index) {
+      /* jscs:disable requireCamelCaseOrUpperCaseIdentifiers */
+      var count = item.doc_count;
+      /* jscs:enable requireCamelCaseOrUpperCaseIdentifiers */
+      return {
+        annotate: false,
+        count: count,
+        downloadSource: '/' + serverConfig.downloadImageUrl + '/' + encodeURIComponent(item[sourceProperty]),
+        id: item[sourceProperty],
+        icon: commonTransforms.getIronIcon('image'),
+        link: commonTransforms.getLink(item[sourceProperty], 'image'),
+        provenances: [],
+        source: serverConfig.imageUrlPrefix + '/' + item[sourceProperty],
+        styleClass: commonTransforms.getStyleClass('image'),
+        text: 'Image #' + (index + 1),
+        type: 'image'
+      };
+    });
+  }
+
   function getOfferObject(record, highlightMapping) {
     var id = _.get(record, '_source.doc_id');
     var url = _.get(record, '_source.url');
@@ -429,11 +450,17 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
       text: 'Open Raw ES Ad Content'
     };
 
+    offer.images = getImages(_.get(record, '_source.objects', []), 'obj_stored_url');
+
     return offer;
   }
 
+  function formatNumber(number) {
+    return (number ? number.toString() : '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  }
+
   function getTitle(size, type, sayOther) {
-    return (size || 'No') + (sayOther ? ' Other ' : ' ') + commonTransforms.getName(type, size !== 1);
+    return (size ? formatNumber(size) : 'No') + (sayOther ? ' Other ' : ' ') + commonTransforms.getName(type, size !== 1);
   }
 
   return {
@@ -477,6 +504,21 @@ var offerTransform = (function(_, serverConfig, commonTransforms) {
         offer.detailExtractions = offer.detailExtractions.map(helperFunction);
         return offer;
       });
+    },
+
+    offerImages: function(data) {
+      if(data && data.aggregations && data.aggregations.image && data.aggregations.image.image) {
+        return getImages(data.aggregations.image.image.buckets || [], 'key');
+      }
+      return [];
+    },
+
+    offerImageTitle: function(sizeTotal, sizeShown) {
+      return (sizeShown ? formatNumber(sizeShown) + ' of ' : '') + getTitle(sizeTotal, 'image');
+    },
+
+    offerSimilarImageTitle: function(sizeTotal, sizeShown) {
+      return (sizeShown ? formatNumber(sizeShown) + ' of ' : '') + getTitle(sizeTotal, 'similarImage');
     },
 
     offerExtractions: function(data, config) {

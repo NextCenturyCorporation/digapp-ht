@@ -60,19 +60,17 @@ module.exports = function(app) {
             logType: config.logType,
             userIndex: config.userIndex,
             userType: config.userType,
-            imageConfig: config.imageConfig ? JSON.parse(config.imageConfig) : undefined,
-            imageIndex: config.imageIndex,
-            imageType: config.imageType,
             imageServiceAuth: config.imageServiceAuth,
             imageServiceHost: config.imageServiceHost,
+            imageUrlPrefix: config.imageUrlPrefix,
             downloadImageUrl: config.downloadImageUrl,
             queryUrl: config.queryUrl,
             rawEsDataUrl: config.rawEsDataUrl
         });
     });
 
-    app.get('/downloadImage/:link', function(req, res) {
-      var link = 'https://s3.amazonaws.com/' + decodeURIComponent(req.params.link);
+    app.get('/downloadImage/:prefix/:id', function(req, res) {
+      var link = decodeURIComponent(req.params.prefix) + decodeURIComponent(req.params.id);
       req.pipe(request(link)).pipe(res);
     });
 
