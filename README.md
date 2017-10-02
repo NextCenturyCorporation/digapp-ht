@@ -1,3 +1,7 @@
+# Deprecated
+
+The digapp-ht project is now deprecated.  Please move to the [dig-ui project](https://github.com/NextCenturyCorporation/dig-ui) for the latest releases and future development.
+
 # digapp-ht
 DIG search and visualization user interface for the HT domain
 
